@@ -1,0 +1,3006 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USUARIOS Y AUTENTICACIÓN ====================
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String
+  image         String?
+  role          UserRole  @default(USER)
+  company       String?
+  phone         String?
+  address       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  accounts            Account[]
+  sessions            Session[]
+  invoices            Invoice[]
+  expenses            Expense[]
+  employees           Employee[]
+  taxReturns          TaxReturn[]
+  bankAccounts        BankAccount[]
+  reconciliationRules ReconciliationRule[]
+  companyMemberships  CompanyUser[]
+  
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  ACCOUNTANT
+}
+
+// ==================== CLIENTES ====================
+model Customer {
+  id              String    @id @default(cuid())
+  name            String
+  email           String?
+  phone           String?
+  company         String?
+  taxId           String?
+  address         String?
+  city            String?
+  state           String?
+  zipCode         String?
+  country         String    @default("México")
+  notes           String?   @db.Text
+  status          CustomerStatus @default(ACTIVE)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  invoices        Invoice[]
+  transactions    Transaction[]
+  
+  @@map("customers")
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ==================== PRODUCTOS Y SERVICIOS ====================
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  description String?     @db.Text
+  type        ProductType @default(SERVICE)
+  sku         String?     @unique
+  price       Float
+  cost        Float?
+  taxable     Boolean     @default(true)
+  taxRate     Float       @default(16)
+  category    String?
+  unit        String?
+  status      ProductStatus @default(ACTIVE)
+  stock       Int?        @default(0)
+  reorderLevel Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  invoiceItems InvoiceItem[]
+  valuations   InventoryValuation[]
+  adjustments  InventoryAdjustment[]
+  
+  @@map("products")
+}
+
+enum ProductType {
+  PRODUCT
+  SERVICE
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ==================== FACTURAS ====================
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique
+  customerId      String
+  userId          String
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  subtotal        Float
+  taxAmount       Float
+  discount        Float         @default(0)
+  total           Float
+  status          InvoiceStatus @default(DRAFT)
+  notes           String?       @db.Text
+  terms           String?       @db.Text
+  paymentMethod   PaymentMethod?
+  paidDate        DateTime?
+  currencyId      String?
+  exchangeRate    Float         @default(1)
+  costCenterId    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // US Invoice Fields
+  taxExempt       Boolean       @default(false)
+  taxExemptReason String?
+  poNumber        String?       // Purchase Order Number
+  shipToAddress   String?
+  billToAddress   String?
+  salesTaxRate    Float         @default(0)
+  paymentTerms    String?       // Net 30, Due on Receipt, etc.
+  
+  customer         Customer          @relation(fields: [customerId], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
+  currency         Currency?         @relation(fields: [currencyId], references: [id])
+  items            InvoiceItem[]
+  payments         Payment[]
+  creditNotes      CreditNote[]
+  reminders        PaymentReminder[]
+  withholdings     TaxWithholding[]
+  eInvoice         EInvoice?
+  bankTransactions BankTransaction[]
+  
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  productId   String
+  description String
+  quantity    Float
+  unitPrice   Float
+  taxRate     Float
+  taxAmount   Float
+  total       Float
+  
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  @@map("invoice_items")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  invoiceId     String
+  amount        Float
+  paymentDate   DateTime      @default(now())
+  paymentMethod PaymentMethod
+  reference     String?
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now())
+  
+  invoice          Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  bankTransactions BankTransaction[]
+  
+  @@map("payments")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  CHECK
+  OTHER
+}
+
+// ==================== GASTOS Y CONTABILIDAD ====================
+model Expense {
+  id              String        @id @default(cuid())
+  userId          String
+  categoryId      String
+  amount          Float
+  date            DateTime      @default(now())
+  description     String
+  vendor          String?
+  paymentMethod   PaymentMethod
+  reference       String?
+  taxDeductible   Boolean       @default(true)
+  taxAmount       Float         @default(0)
+  notes           String?       @db.Text
+  attachments     String[]
+  status          ExpenseStatus @default(PENDING)
+  costCenterId    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  user             User               @relation(fields: [userId], references: [id])
+  costCenter       CostCenter?        @relation(fields: [costCenterId], references: [id])
+  withholdings     TaxWithholding[]
+  category         ExpenseCategory    @relation(fields: [categoryId], references: [id])
+  bankTransactions BankTransaction[]
+  
+  @@map("expenses")
+}
+
+model ExpenseCategory {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  type        ExpenseType
+  taxRate     Float     @default(16)
+  parentId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  parent      ExpenseCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    ExpenseCategory[] @relation("CategoryHierarchy")
+  expenses    Expense[]
+  
+  @@map("expense_categories")
+}
+
+enum ExpenseType {
+  OPERATING
+  ADMINISTRATIVE
+  SALES
+  FINANCIAL
+  OTHER
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+// ==================== TRANSACCIONES ====================
+model Transaction {
+  id              String            @id @default(cuid())
+  customerId      String?
+  type            TransactionType
+  category        String
+  amount          Float
+  date            DateTime          @default(now())
+  description     String
+  reference       String?
+  status          TransactionStatus @default(COMPLETED)
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  customer        Customer?         @relation(fields: [customerId], references: [id])
+  
+  @@map("transactions")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  RECEIVABLE
+  PAYABLE
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+// ==================== NÓMINA ====================
+model Employee {
+  id              String          @id @default(cuid())
+  userId          String
+  employeeNumber  String          @unique
+  firstName       String
+  lastName        String
+  email           String          @unique
+  phone           String?
+  position        String
+  department      String?
+  hireDate        DateTime
+  terminationDate DateTime?
+  salary          Float
+  salaryType      SalaryType      @default(MONTHLY)
+  taxId           String?
+  bankAccount     String?
+  address         String?
+  status          EmployeeStatus  @default(ACTIVE)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  user            User            @relation(fields: [userId], references: [id])
+  payrolls        Payroll[]
+  
+  @@map("employees")
+}
+
+model Payroll {
+  id              String        @id @default(cuid())
+  employeeId      String
+  periodStart     DateTime
+  periodEnd       DateTime
+  grossSalary     Float
+  deductions      Float
+  bonuses         Float         @default(0)
+  netSalary       Float
+  paymentDate     DateTime?
+  status          PayrollStatus @default(DRAFT)
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  employee        Employee      @relation(fields: [employeeId], references: [id])
+  deductionItems  PayrollDeduction[]
+  
+  @@map("payrolls")
+}
+
+model PayrollDeduction {
+  id              String   @id @default(cuid())
+  payrollId       String
+  type            String
+  description     String
+  amount          Float
+  
+  payroll         Payroll  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  
+  @@map("payroll_deductions")
+}
+
+enum SalaryType {
+  HOURLY
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+}
+
+enum PayrollStatus {
+  DRAFT
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+// ==================== IMPUESTOS ====================
+model TaxReturn {
+  id              String         @id @default(cuid())
+  userId          String
+  taxType         TaxType
+  period          String
+  year            Int
+  startDate       DateTime?
+  endDate         DateTime?
+  amount          Float
+  totalSales      Float          @default(0)
+  totalPurchases  Float          @default(0)
+  taxCollected    Float          @default(0)
+  taxPaid         Float          @default(0)
+  taxDue          Float          @default(0)
+  status          TaxStatus      @default(PENDING)
+  dueDate         DateTime
+  filedDate       DateTime?
+  notes           String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  user            User           @relation(fields: [userId], references: [id])
+  
+  @@map("tax_returns")
+}
+
+model TaxConfig {
+  id          String   @id @default(cuid())
+  name        String
+  type        TaxType
+  rate        Float
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("tax_config")
+}
+
+enum TaxType {
+  VAT
+  INCOME
+  ISR
+  IVA
+  RETENTION
+  OTHER
+}
+
+enum TaxStatus {
+  PENDING
+  FILED
+  PAID
+  OVERDUE
+}
+
+// ==================== BANCOS Y CONCILIACIÓN ====================
+model BankAccount {
+  id                String              @id @default(cuid())
+  userId            String
+  
+  // Plaid Integration Fields
+  plaidAccountId    String?             @unique
+  plaidAccessToken  String?             // Encrypted
+  plaidItemId       String?
+  institutionId     String?
+  institutionName   String?
+  
+  // Account Information
+  accountName       String
+  accountNumber     String?
+  bankName          String?
+  accountType       BankAccountType     @default(CHECKING)
+  accountSubtype    String?
+  mask              String?             // Last 4 digits
+  
+  // Balance
+  currency          String              @default("USD")
+  balance           Float               @default(0)
+  availableBalance  Float?
+  
+  // Sync Configuration
+  lastReconciled    DateTime?
+  lastSyncedAt      DateTime?
+  syncFrequency     Int                 @default(24) // Hours
+  autoSync          Boolean             @default(true)
+  
+  // Status
+  status            BankAccountStatus   @default(ACTIVE)
+  isActive          Boolean             @default(true)
+  isPrimary         Boolean             @default(false)
+  notes             String?
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  user              User                @relation(fields: [userId], references: [id])
+  bankTransactions  BankTransaction[]
+  reconciliations   BankReconciliation[]
+  rules             ReconciliationRule[]
+  
+  @@index([userId])
+  @@index([plaidItemId])
+  @@map("bank_accounts")
+}
+
+model BankTransaction {
+  id                  String                    @id @default(cuid())
+  bankAccountId       String
+  plaidTransactionId  String?                   @unique
+  
+  // Transaction Details
+  date                DateTime
+  authorizedDate      DateTime?
+  name                String                    // Transaction name
+  merchantName        String?
+  amount              Float                     // Negative for debits, positive for credits
+  isoCurrencyCode     String                    @default("USD")
+  
+  // Legacy fields (keep for compatibility)
+  description         String?
+  reference           String?
+  debit               Float                     @default(0)
+  credit              Float                     @default(0)
+  balance             Float                     @default(0)
+  
+  // Categorization
+  category            String[]
+  categoryId          String?
+  paymentChannel      String?                   // online, in store, other
+  
+  // Status
+  pending             Boolean                   @default(false)
+  reconciled          Boolean                   @default(false)
+  
+  // Reconciliation Matching
+  reconciledAt        DateTime?
+  reconciledBy        String?
+  matchedInvoiceId    String?
+  matchedExpenseId    String?
+  matchedPaymentId    String?
+  
+  // Metadata
+  location            Json?
+  paymentMeta         Json?
+  transactionCode     String?
+  notes               String?                   @db.Text
+  
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  
+  bankAccount         BankAccount               @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  invoice             Invoice?                  @relation(fields: [matchedInvoiceId], references: [id])
+  expense             Expense?                  @relation(fields: [matchedExpenseId], references: [id])
+  payment             Payment?                  @relation(fields: [matchedPaymentId], references: [id])
+  matches             ReconciliationMatch[]
+  
+  @@index([bankAccountId])
+  @@index([date])
+  @@index([reconciled])
+  @@map("bank_transactions")
+}
+
+model BankReconciliation {
+  id              String      @id @default(cuid())
+  bankAccountId   String
+  startDate       DateTime
+  endDate         DateTime
+  openingBalance  Float
+  closingBalance  Float
+  reconciledBy    String?
+  status          ReconciliationStatus @default(IN_PROGRESS)
+  notes           String?     @db.Text
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  bankAccount     BankAccount @relation(fields: [bankAccountId], references: [id])
+  matches         ReconciliationMatch[]
+  
+  @@index([bankAccountId])
+  @@map("bank_reconciliations")
+}
+
+model ReconciliationRule {
+  id                String          @id @default(cuid())
+  bankAccountId     String?
+  userId            String
+  
+  // Rule Definition
+  name              String
+  description       String?
+  priority          Int             @default(0)
+  isActive          Boolean         @default(true)
+  
+  // Conditions (JSON format: [{ field, operator, value }])
+  conditions        Json
+  
+  // Actions
+  categoryId        String?
+  accountId         String?
+  autoMatch         Boolean         @default(false)
+  addTags           String[]
+  
+  // Stats
+  timesApplied      Int             @default(0)
+  lastAppliedAt     DateTime?
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  bankAccount       BankAccount?    @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([bankAccountId])
+  @@map("reconciliation_rules")
+}
+
+model ReconciliationMatch {
+  id                    String              @id @default(cuid())
+  reconciliationId      String
+  bankTransactionId     String
+  transactionType       String              // INVOICE, EXPENSE, PAYMENT, TRANSFER
+  transactionId         String?
+  matchType             MatchType           @default(MANUAL)
+  
+  // Match Quality
+  confidence            Float               @default(0) // 0-1
+  amountDifference      Float               @default(0)
+  dateDifference        Int                 @default(0) // Days
+  
+  // Confirmation
+  isConfirmed           Boolean             @default(false)
+  confirmedAt           DateTime?
+  confirmedBy           String?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  
+  reconciliation        BankReconciliation  @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  bankTransaction       BankTransaction     @relation(fields: [bankTransactionId], references: [id])
+  
+  @@index([reconciliationId])
+  @@index([bankTransactionId])
+  @@map("reconciliation_matches")
+}
+
+enum BankAccountType {
+  CHECKING
+  SAVINGS
+  CREDIT
+  CREDIT_CARD
+  INVESTMENT
+  MONEY_MARKET
+  LOAN
+  OTHER
+}
+
+enum BankAccountStatus {
+  ACTIVE
+  INACTIVE
+  CLOSED
+  PENDING
+  REQUIRES_UPDATE
+  ERROR
+}
+
+enum ReconciliationStatus {
+  IN_PROGRESS
+  COMPLETED
+  REVIEWED
+  LOCKED
+  REOPENED
+}
+
+enum MatchType {
+  AUTOMATIC
+  MANUAL
+  SUGGESTED
+  EXACT
+  FUZZY
+  RULE_BASED
+}
+
+// ==================== CONTABILIDAD DE DOBLE PARTIDA ====================
+model ChartOfAccounts {
+  id          String           @id @default(cuid())
+  code        String           @unique
+  name        String
+  type        AccountType
+  category    AccountCategory?
+  parentId    String?
+  level       Int              @default(1)
+  isActive    Boolean          @default(true)
+  description String?          @db.Text
+  balance     Float            @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  parent      ChartOfAccounts?  @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children    ChartOfAccounts[] @relation("AccountHierarchy")
+  journalEntries JournalEntryLine[]
+  budgets     Budget[]
+  
+  @@map("chart_of_accounts")
+}
+
+model JournalEntry {
+  id              String             @id @default(cuid())
+  entryNumber     String             @unique
+  date            DateTime
+  description     String
+  reference       String?
+  status          JournalEntryStatus @default(DRAFT)
+  isReversed      Boolean            @default(false)
+  reversedById    String?
+  costCenterId    String?
+  createdBy       String
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  lines           JournalEntryLine[]
+  reversedBy      JournalEntry?      @relation("ReversedEntries", fields: [reversedById], references: [id])
+  reversals       JournalEntry[]     @relation("ReversedEntries")
+  costCenter      CostCenter?        @relation(fields: [costCenterId], references: [id])
+  
+  @@map("journal_entries")
+}
+
+model JournalEntryLine {
+  id              String           @id @default(cuid())
+  journalEntryId  String
+  accountId       String
+  description     String?
+  debit           Float            @default(0)
+  credit          Float            @default(0)
+  currencyId      String?
+  exchangeRate    Float?
+  lineNumber      Int
+  createdAt       DateTime         @default(now())
+  
+  journalEntry    JournalEntry     @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account         ChartOfAccounts  @relation(fields: [accountId], references: [id])
+  currency        Currency?        @relation(fields: [currencyId], references: [id])
+  
+  @@map("journal_entry_lines")
+}
+
+// ==================== PRESUPUESTOS ====================
+model Budget {
+  id              String         @id @default(cuid())
+  name            String
+  fiscalYear      Int
+  startDate       DateTime
+  endDate         DateTime
+  accountId       String
+  costCenterId    String?
+  amount          Float
+  spent           Float          @default(0)
+  remaining       Float          @default(0)
+  status          BudgetStatus   @default(ACTIVE)
+  notes           String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  account         ChartOfAccounts @relation(fields: [accountId], references: [id])
+  costCenter      CostCenter?     @relation(fields: [costCenterId], references: [id])
+  periods         BudgetPeriod[]
+  
+  @@map("budgets")
+}
+
+model BudgetPeriod {
+  id              String       @id @default(cuid())
+  budgetId        String
+  period          String
+  startDate       DateTime
+  endDate         DateTime
+  budgetAmount    Float
+  actualAmount    Float        @default(0)
+  variance        Float        @default(0)
+  variancePercent Float        @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  budget          Budget       @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  
+  @@map("budget_periods")
+}
+
+// ==================== ACTIVOS FIJOS ====================
+model Asset {
+  id                  String             @id @default(cuid())
+  assetNumber         String             @unique
+  name                String
+  description         String?            @db.Text
+  category            AssetCategory
+  purchaseDate        DateTime
+  purchasePrice       Float
+  salvageValue        Float              @default(0)
+  usefulLife          Int
+  depreciationMethod  DepreciationMethod @default(STRAIGHT_LINE)
+  accountId           String?
+  locationId          String?
+  costCenterId        String?
+  status              AssetStatus        @default(ACTIVE)
+  accumulatedDepreciation Float          @default(0)
+  bookValue           Float
+  disposalDate        DateTime?
+  disposalPrice       Float?
+  disposalMethod      String?
+  notes               String?            @db.Text
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  
+  costCenter          CostCenter?        @relation(fields: [costCenterId], references: [id])
+  depreciations       AssetDepreciation[]
+  
+  @@map("assets")
+}
+
+model AssetDepreciation {
+  id                  String       @id @default(cuid())
+  assetId             String
+  period              DateTime
+  depreciationAmount  Float
+  accumulatedDepreciation Float
+  bookValue           Float
+  notes               String?      @db.Text
+  createdAt           DateTime     @default(now())
+  
+  asset               Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@map("asset_depreciations")
+}
+
+// ==================== MULTIMONEDA ====================
+model Currency {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  name            String
+  symbol          String
+  exchangeRate    Float        @default(1)
+  isBaseCurrency  Boolean      @default(false)
+  isActive        Boolean      @default(true)
+  decimalPlaces   Int          @default(2)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  exchangeRates   ExchangeRate[]
+  invoices        Invoice[]
+  journalLines    JournalEntryLine[]
+  
+  @@map("currencies")
+}
+
+model ExchangeRate {
+  id              String       @id @default(cuid())
+  currencyId      String
+  date            DateTime
+  rate            Float
+  source          String?
+  createdAt       DateTime     @default(now())
+  
+  currency        Currency     @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+  
+  @@unique([currencyId, date])
+  @@map("exchange_rates")
+}
+
+// ==================== CENTROS DE COSTO ====================
+model CostCenter {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  name            String
+  description     String?      @db.Text
+  parentId        String?
+  isActive        Boolean      @default(true)
+  managerId       String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  parent          CostCenter?  @relation("CostCenterHierarchy", fields: [parentId], references: [id])
+  children        CostCenter[] @relation("CostCenterHierarchy")
+  journalEntries  JournalEntry[]
+  budgets         Budget[]
+  expenses        Expense[]
+  assets          Asset[]
+  
+  @@map("cost_centers")
+}
+
+// ==================== IMPUESTOS AVANZADOS ====================
+model TaxWithholding {
+  id              String       @id @default(cuid())
+  invoiceId       String?
+  expenseId       String?
+  withholdingType String
+  taxBase         Float
+  percentage      Float
+  amount          Float
+  certificateNumber String?
+  date            DateTime
+  createdAt       DateTime     @default(now())
+  
+  invoice         Invoice?     @relation(fields: [invoiceId], references: [id])
+  expense         Expense?     @relation(fields: [expenseId], references: [id])
+  
+  @@map("tax_withholdings")
+}
+
+// ==================== INVENTARIO AVANZADO ====================
+model InventoryValuation {
+  id              String             @id @default(cuid())
+  productId       String
+  method          ValuationMethod    @default(AVERAGE)
+  quantity        Int
+  unitCost        Float
+  totalCost       Float
+  date            DateTime
+  createdAt       DateTime           @default(now())
+  
+  product         Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@map("inventory_valuations")
+}
+
+model InventoryAdjustment {
+  id              String       @id @default(cuid())
+  productId       String
+  adjustmentType  AdjustmentType
+  quantity        Int
+  costImpact      Float        @default(0)
+  reason          String
+  notes           String?      @db.Text
+  date            DateTime
+  createdAt       DateTime     @default(now())
+  
+  product         Product      @relation(fields: [productId], references: [id])
+  
+  @@map("inventory_adjustments")
+}
+
+// ==================== CUENTAS POR COBRAR/PAGAR ====================
+model AgingReport {
+  id              String       @id @default(cuid())
+  entityType      String
+  entityId        String
+  documentType    String
+  documentNumber  String
+  documentDate    DateTime
+  dueDate         DateTime
+  amount          Float
+  balance         Float
+  daysOverdue     Int
+  agingBucket     String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@map("aging_reports")
+}
+
+model PaymentReminder {
+  id              String         @id @default(cuid())
+  invoiceId       String
+  reminderNumber  Int
+  sentDate        DateTime
+  dueDate         DateTime
+  amount          Float
+  status          ReminderStatus @default(PENDING)
+  emailSent       Boolean        @default(false)
+  notes           String?        @db.Text
+  createdAt       DateTime       @default(now())
+  
+  invoice         Invoice        @relation(fields: [invoiceId], references: [id])
+  
+  @@map("payment_reminders")
+}
+
+model CreditNote {
+  id              String       @id @default(cuid())
+  noteNumber      String       @unique
+  invoiceId       String
+  date            DateTime
+  amount          Float
+  reason          String
+  status          String       @default("ISSUED")
+  notes           String?      @db.Text
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  invoice         Invoice      @relation(fields: [invoiceId], references: [id])
+  
+  @@map("credit_notes")
+}
+
+// ==================== ESTADOS FINANCIEROS ====================
+model FinancialStatement {
+  id              String           @id @default(cuid())
+  statementType   StatementType
+  period          String
+  startDate       DateTime
+  endDate         DateTime
+  data            Json
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  @@map("financial_statements")
+}
+
+model CashFlowProjection {
+  id              String       @id @default(cuid())
+  period          DateTime
+  projectedIncome Float
+  projectedExpense Float
+  projectedBalance Float
+  actualIncome    Float?
+  actualExpense   Float?
+  actualBalance   Float?
+  variance        Float?
+  notes           String?      @db.Text
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@map("cash_flow_projections")
+}
+
+// ==================== ENUMS ADICIONALES ====================
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum AccountCategory {
+  CURRENT_ASSET
+  FIXED_ASSET
+  CURRENT_LIABILITY
+  LONG_TERM_LIABILITY
+  EQUITY
+  OPERATING_REVENUE
+  NON_OPERATING_REVENUE
+  OPERATING_EXPENSE
+  NON_OPERATING_EXPENSE
+  COST_OF_GOODS_SOLD
+}
+
+enum JournalEntryStatus {
+  DRAFT
+  POSTED
+  APPROVED
+  REVERSED
+}
+
+enum BudgetStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  EXCEEDED
+}
+
+enum AssetCategory {
+  LAND
+  BUILDING
+  MACHINERY
+  VEHICLE
+  FURNITURE
+  COMPUTER
+  SOFTWARE
+  OTHER
+}
+
+enum DepreciationMethod {
+  STRAIGHT_LINE
+  DECLINING_BALANCE
+  SUM_OF_YEARS
+  UNITS_OF_PRODUCTION
+}
+
+enum AssetStatus {
+  ACTIVE
+  DISPOSED
+  UNDER_MAINTENANCE
+  RETIRED
+}
+
+enum TaxReturnStatus {
+  DRAFT
+  FILED
+  PAID
+  OVERDUE
+}
+
+enum ValuationMethod {
+  FIFO
+  LIFO
+  AVERAGE
+  SPECIFIC_IDENTIFICATION
+}
+
+enum AdjustmentType {
+  SHRINKAGE
+  DAMAGE
+  OBSOLESCENCE
+  COUNT_ADJUSTMENT
+  TRANSFER
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  PAID
+  CANCELLED
+}
+
+enum StatementType {
+  BALANCE_SHEET
+  INCOME_STATEMENT
+  CASH_FLOW
+  TRIAL_BALANCE
+  GENERAL_LEDGER
+}
+
+// ==================== SEGURIDAD Y AUDITORÍA ====================
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
+  entityType  String   // Invoice, Expense, Customer, etc.
+  entityId    String?
+  changes     Json?    // Cambios realizados
+  ipAddress   String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([entityType])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  name        String?          @unique
+  resource    String           // invoices, expenses, reports, etc. (renamed from module)
+  action      PermissionAction // Enum type (FASE 8)
+  description String?
+  category    String?          // Financial, HR, Admin, etc. (FASE 8)
+  createdAt   DateTime         @default(now())
+  
+  roles       RolePermission[]
+  
+  @@unique([resource, action])  // FASE 8: Unique combination
+  @@map("permissions")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isSystem    Boolean  @default(false) // Roles del sistema no se pueden eliminar
+  companyId   String?  // null = global role (FASE 8)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  permissions     RolePermission[]
+  userRoles       UserRole_Advanced[]
+  
+  @@unique([name, companyId])
+  @@map("roles")
+}
+
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  permissionId String
+  canCreate    Boolean  @default(false)  // FASE 8
+  canRead      Boolean  @default(false)  // FASE 8
+  canUpdate    Boolean  @default(false)  // FASE 8
+  canDelete    Boolean  @default(false)  // FASE 8
+  conditions   Json?    // FASE 8: Field-level restrictions
+  createdAt    DateTime @default(now())  // FASE 8
+  
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole_Advanced {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  grantedBy String?
+  grantedAt DateTime @default(now())
+  
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model EncryptedData {
+  id          String   @id @default(cuid())
+  entityType  String   // Type of entity
+  entityId    String   // ID of entity
+  fieldName   String   // Field name that is encrypted
+  encrypted   String   @db.Text // Encrypted value
+  iv          String   // Initialization vector
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([entityType, entityId, fieldName])
+  @@map("encrypted_data")
+}
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  category  String   // security, billing, notifications, etc.
+  encrypted Boolean  @default(false)
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+  
+  @@map("system_config")
+}
+
+model LoginAttempt {
+  id          String   @id @default(cuid())
+  email       String
+  success     Boolean
+  ipAddress   String?
+  userAgent   String?
+  failReason  String?
+  timestamp   DateTime @default(now())
+  
+  @@index([email])
+  @@index([timestamp])
+  @@map("login_attempts")
+}
+
+model ApiKey {
+  id              String         @id @default(cuid())
+  companyId       String         // FASE 8: Multi-company support
+  name            String
+  key             String         @unique
+  prefix          String         // FASE 8: First 8 chars for identification
+  scopes          String[]       // FASE 8: Array of permissions
+  environment     ApiEnvironment @default(PRODUCTION)  // FASE 8
+  userId          String?        // Keep for backward compatibility
+  permissions     Json?          // Permisos específicos del API key
+  lastUsedAt      DateTime?      // Renamed from lastUsed
+  expiresAt       DateTime?
+  isActive        Boolean        @default(true)
+  createdBy       String?        // FASE 8
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt  // FASE 8
+  
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)  // FASE 8
+  logs            ApiLog[]       // FASE 10
+  
+  @@index([userId])
+  @@index([companyId])  // FASE 8
+  @@map("api_keys")
+}
+
+// ==================== US E-INVOICING (FLORIDA) ====================
+model EInvoice {
+  id                String          @id @default(cuid())
+  invoiceId         String          @unique
+  invoiceNumber     String          @unique
+  
+  // Company Information
+  companyName       String
+  companyEIN        String          // Employer Identification Number
+  companyAddress    String
+  companyCity       String
+  companyState      String          @default("FL")
+  companyZip        String
+  companyPhone      String?
+  companyEmail      String?
+  
+  // Customer Information
+  customerName      String
+  customerTaxId     String?         // EIN or SSN
+  customerAddress   String
+  customerCity      String
+  customerState     String
+  customerZip       String
+  customerEmail     String?
+  
+  // Invoice Details
+  issueDate         DateTime
+  dueDate           DateTime?
+  poNumber          String?         // Purchase Order Number
+  
+  // Amounts
+  subtotal          Float
+  discountAmount    Float           @default(0)
+  taxableAmount     Float
+  salesTaxRate      Float           @default(0)
+  salesTaxAmount    Float           @default(0)
+  totalAmount       Float
+  
+  // Florida Sales Tax Details
+  floridaSalesTax   Boolean         @default(true)
+  countyTax         Float?          // County surtax
+  discretionaryTax  Float?          // Discretionary sales surtax
+  taxExempt         Boolean         @default(false)
+  exemptionCertificate String?      // Tax exemption certificate number
+  
+  // Payment Information
+  paymentTerms      String?         // Net 30, Due on Receipt, etc.
+  paymentMethod     String?         // Check, ACH, Credit Card, etc.
+  
+  // Status
+  status            EInvoiceStatus  @default(DRAFT)
+  sentDate          DateTime?
+  paidDate          DateTime?
+  voidDate          DateTime?
+  voidReason        String?
+  
+  // Files
+  pdfPath           String?
+  pdfContent        String?         @db.Text // PDF en base64
+  
+  // Compliance
+  irsSent           Boolean         @default(false) // Sent to IRS (if required)
+  form1099Required  Boolean         @default(false)
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  invoice           Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  @@index([invoiceNumber])
+  @@index([companyEIN])
+  @@index([customerTaxId])
+  @@index([issueDate])
+  @@map("e_invoices")
+}
+
+model SalesTaxRate {
+  id                String   @id @default(cuid())
+  state             String   // FL
+  county            String?
+  city              String?
+  zipCode           String?
+  
+  // Tax Rates
+  stateTaxRate      Float    // Florida state sales tax (currently 6%)
+  countyTaxRate     Float    @default(0)
+  cityTaxRate       Float    @default(0)
+  specialTaxRate    Float    @default(0)
+  totalTaxRate      Float    // Sum of all rates
+  
+  // Validity
+  effectiveDate     DateTime
+  endDate           DateTime?
+  isActive          Boolean  @default(true)
+  
+  description       String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([state, county, city, zipCode, effectiveDate])
+  @@index([zipCode])
+  @@map("sales_tax_rates")
+}
+
+model TaxExemption {
+  id                String   @id @default(cuid())
+  customerId        String
+  certificateNumber String   @unique
+  certificateType   String   // Resale, Agricultural, Manufacturing, etc.
+  issuingState      String
+  expirationDate    DateTime?
+  
+  // Certificate file
+  certificatePath   String?
+  certificateFile   String?  @db.Text // File in base64
+  
+  isActive          Boolean  @default(true)
+  notes             String?  @db.Text
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([customerId])
+  @@map("tax_exemptions")
+}
+
+model Form1099 {
+  id                String   @id @default(cuid())
+  year              Int
+  vendorId          String   // Could be customer or vendor
+  vendorName        String
+  vendorTaxId       String   // EIN or SSN
+  vendorAddress     String
+  
+  formType          String   // 1099-MISC, 1099-NEC, 1099-K, etc.
+  
+  // Amounts by box number
+  box1Amount        Float    @default(0) // Rents
+  box2Amount        Float    @default(0) // Royalties
+  box3Amount        Float    @default(0) // Other income
+  box4Amount        Float    @default(0) // Federal income tax withheld
+  box7Amount        Float    @default(0) // Nonemployee compensation (1099-NEC)
+  
+  totalAmount       Float
+  
+  // Filing
+  filed             Boolean  @default(false)
+  filedDate         DateTime?
+  eFileStatus       String?  // PENDING, ACCEPTED, REJECTED
+  
+  pdfPath           String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([year, vendorId, formType])
+  @@index([year])
+  @@index([vendorTaxId])
+  @@map("form_1099")
+}
+
+model W9Form {
+  id                String   @id @default(cuid())
+  vendorId          String   @unique
+  vendorName        String
+  businessName      String?
+  taxClassification String   // Individual, C Corp, S Corp, Partnership, etc.
+  
+  // Tax ID
+  ein               String?  // Employer Identification Number
+  ssn               String?  // Social Security Number (encrypted)
+  
+  address           String
+  city              String
+  state             String
+  zipCode           String
+  
+  // Exemptions
+  exemptPayeeCode   String?
+  exemptFATCA       Boolean  @default(false)
+  
+  // Signature
+  signedDate        DateTime?
+  signaturePath     String?
+  
+  // File
+  w9FilePath        String?
+  w9FileContent     String?  @db.Text
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("w9_forms")
+}
+
+enum EInvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  VOID
+  CANCELLED
+}
+
+// ==================== INVENTARIO ====================
+
+model Warehouse {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  code        String   @unique
+  description String?
+  
+  // Ubicación
+  address     String
+  city        String
+  state       String
+  zipCode     String
+  country     String   @default("US")
+  
+  // Contacto
+  phone       String?
+  email       String?
+  manager     String?
+  
+  // Estado
+  isActive    Boolean  @default(true)
+  isPrimary   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  inventoryItems InventoryItem[]
+  stockMovements StockMovement[]
+  
+  @@index([userId])
+  @@map("warehouses")
+}
+
+model InventoryItem {
+  id          String   @id @default(cuid())
+  userId      String
+  warehouseId String
+  
+  // Información básica
+  sku         String   @unique
+  name        String
+  description String?  @db.Text
+  category    String?
+  
+  // Tipo de item
+  itemType    ItemType @default(PRODUCT)
+  
+  // Unidades
+  unit        String   @default("pcs") // pcs, kg, lb, gal, etc.
+  
+  // Stock
+  quantity    Float    @default(0)
+  minStock    Float    @default(0)   // Punto de reorden
+  maxStock    Float?
+  
+  // Seguimiento
+  trackBatches Boolean  @default(false)
+  trackSerial  Boolean  @default(false)
+  
+  // Costos
+  costMethod  CostMethod @default(AVERAGE)
+  unitCost    Float      @default(0)
+  avgCost     Float      @default(0)
+  
+  // Precios
+  salePrice   Float?
+  
+  // Estado
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  warehouse      Warehouse        @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  batches        Batch[]
+  serialNumbers  SerialNumber[]
+  stockMovements StockMovement[]
+  stockAlerts    StockAlert[]
+  purchaseOrderItems PurchaseOrderItem[]
+  
+  @@index([userId])
+  @@index([warehouseId])
+  @@index([sku])
+  @@map("inventory_items")
+}
+
+model Batch {
+  id              String   @id @default(cuid())
+  inventoryItemId String
+  
+  batchNumber     String
+  quantity        Float
+  unitCost        Float
+  
+  // Fechas
+  manufacturedDate DateTime?
+  expirationDate   DateTime?
+  receivedDate     DateTime  @default(now())
+  
+  // Estado
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relaciones
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  stockMovements  StockMovement[]
+  
+  @@unique([inventoryItemId, batchNumber])
+  @@index([inventoryItemId])
+  @@index([expirationDate])
+  @@map("batches")
+}
+
+model SerialNumber {
+  id              String   @id @default(cuid())
+  inventoryItemId String
+  
+  serialNumber    String   @unique
+  status          SerialStatus @default(IN_STOCK)
+  
+  // Costos
+  unitCost        Float
+  
+  // Fechas
+  receivedDate    DateTime  @default(now())
+  soldDate        DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relaciones
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  stockMovements  StockMovement[]
+  
+  @@index([inventoryItemId])
+  @@index([status])
+  @@map("serial_numbers")
+}
+
+model StockMovement {
+  id              String   @id @default(cuid())
+  userId          String
+  inventoryItemId String
+  warehouseId     String
+  batchId         String?
+  serialNumberId  String?
+  
+  // Tipo de movimiento
+  movementType    MovementType
+  
+  // Cantidades
+  quantity        Float
+  unitCost        Float
+  totalCost       Float
+  
+  // Referencia
+  referenceType   String?  // Invoice, PurchaseOrder, Adjustment, Transfer
+  referenceId     String?
+  
+  // Descripción
+  description     String?  @db.Text
+  notes           String?  @db.Text
+  
+  // Fecha
+  movementDate    DateTime @default(now())
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relaciones
+  inventoryItem   InventoryItem  @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  warehouse       Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  batch           Batch?         @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  serialNumber    SerialNumber?  @relation(fields: [serialNumberId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([inventoryItemId])
+  @@index([warehouseId])
+  @@index([movementType])
+  @@index([movementDate])
+  @@map("stock_movements")
+}
+
+model PurchaseOrder {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Número de orden
+  poNumber        String   @unique
+  
+  // Proveedor
+  vendorId        String?
+  vendorName      String
+  vendorEmail     String?
+  vendorPhone     String?
+  
+  // Fechas
+  orderDate       DateTime @default(now())
+  expectedDate    DateTime?
+  receivedDate    DateTime?
+  
+  // Estado
+  status          POStatus @default(DRAFT)
+  
+  // Totales
+  subtotal        Float    @default(0)
+  tax             Float    @default(0)
+  shipping        Float    @default(0)
+  total           Float    @default(0)
+  
+  // Notas
+  notes           String?  @db.Text
+  terms           String?  @db.Text
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relaciones
+  items           PurchaseOrderItem[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([orderDate])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String   @id @default(cuid())
+  purchaseOrderId String
+  inventoryItemId String
+  
+  // Detalles
+  description     String
+  quantity        Float
+  unitCost        Float
+  totalCost       Float
+  
+  // Recepción
+  receivedQty     Float    @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relaciones
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  
+  @@index([purchaseOrderId])
+  @@index([inventoryItemId])
+  @@map("purchase_order_items")
+}
+
+model StockAlert {
+  id              String   @id @default(cuid())
+  inventoryItemId String
+  userId          String
+  
+  // Tipo de alerta
+  alertType       AlertType
+  
+  // Umbrales
+  threshold       Float?
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  isResolved      Boolean  @default(false)
+  
+  // Notificación
+  notified        Boolean  @default(false)
+  notifiedAt      DateTime?
+  
+  // Resolución
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relaciones
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  
+  @@index([inventoryItemId])
+  @@index([userId])
+  @@index([isResolved])
+  @@index([alertType])
+  @@map("stock_alerts")
+}
+
+// ==================== ENUMS DE INVENTARIO ====================
+
+enum ItemType {
+  PRODUCT      // Producto terminado
+  RAW_MATERIAL // Materia prima
+  COMPONENT    // Componente
+  SERVICE      // Servicio
+  BUNDLE       // Paquete
+}
+
+enum CostMethod {
+  FIFO         // First In First Out
+  LIFO         // Last In First Out
+  AVERAGE      // Promedio ponderado
+  SPECIFIC     // Identificación específica
+}
+
+enum SerialStatus {
+  IN_STOCK
+  SOLD
+  RETURNED
+  DAMAGED
+  LOST
+}
+
+enum MovementType {
+  PURCHASE     // Compra
+  SALE         // Venta
+  ADJUSTMENT   // Ajuste
+  TRANSFER     // Transferencia entre almacenes
+  RETURN       // Devolución
+  DAMAGE       // Daño/pérdida
+  MANUFACTURING // Fabricación
+}
+
+enum POStatus {
+  DRAFT        // Borrador
+  SENT         // Enviada
+  CONFIRMED    // Confirmada
+  PARTIAL      // Parcialmente recibida
+  RECEIVED     // Recibida completa
+  CANCELLED    // Cancelada
+}
+
+enum AlertType {
+  LOW_STOCK    // Stock bajo
+  OUT_OF_STOCK // Sin stock
+  EXPIRING     // Por vencer
+  EXPIRED      // Vencido
+  OVERSTOCK    // Sobre stock
+}
+
+// ==================== FASE 7: TAX COMPLIANCE & AUTOMATION ====================
+
+// Form 1099-NEC & 1099-MISC
+model TaxForm1099 {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Información del pagador (empresa)
+  payerName       String
+  payerEIN        String   // Employer Identification Number
+  payerAddress    String
+  payerCity       String
+  payerState      String
+  payerZip        String
+  
+  // Información del receptor (contractor/vendor)
+  recipientName   String
+  recipientTIN    String   // Tax Identification Number (SSN or EIN)
+  recipientAddress String
+  recipientCity   String
+  recipientState  String
+  recipientZip    String
+  recipientEmail  String?
+  
+  // Tipo de formulario
+  formType        Form1099Type  // NEC, MISC, INT, DIV
+  taxYear         Int           // 2025, 2026, etc.
+  
+  // Montos (basado en boxes del formulario)
+  box1Amount      Float  @default(0)  // Nonemployee compensation (1099-NEC)
+  box2Amount      Float  @default(0)  // Rents (1099-MISC)
+  box3Amount      Float  @default(0)  // Other income (1099-MISC)
+  box4Amount      Float  @default(0)  // Federal income tax withheld
+  box5Amount      Float  @default(0)  // Fishing boat proceeds
+  box6Amount      Float  @default(0)  // Medical and health care payments
+  box7Amount      Float  @default(0)  // Payer made direct sales
+  box8Amount      Float  @default(0)  // Substitute payments
+  box10Amount     Float  @default(0)  // Crop insurance proceeds
+  
+  // Estado y cumplimiento
+  status          Tax1099Status @default(DRAFT)
+  filingRequired  Boolean  @default(true)  // Si cumple umbral de $600
+  filedDate       DateTime?
+  correctionOf    String?   // ID del 1099 que corrige
+  isCorrection    Boolean   @default(false)
+  
+  // Tracking
+  generatedAt     DateTime  @default(now())
+  sentToRecipient Boolean   @default(false)
+  sentDate        DateTime?
+  filedWithIRS    Boolean   @default(false)
+  irsFiledDate    DateTime?
+  
+  // Relación con pagos
+  expenseIds      String[]  // Array de expense IDs que suman a este 1099
+  invoiceIds      String[]  // Array de invoice IDs (para vendors)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([recipientTIN])
+  @@index([taxYear])
+  @@index([status])
+  @@map("tax_form_1099")
+}
+
+// Form W-9 (Request for Taxpayer Identification)
+model W9Information {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Información básica
+  businessName    String
+  individualName  String?
+  taxClassification TaxClassification
+  otherClassification String?
+  
+  // Exenciones
+  exemptPayeeCode String?
+  fatcaExemptCode String?
+  
+  // Dirección
+  address         String
+  city            String
+  state           String
+  zip             String
+  
+  // Números de identificación
+  tinType         TINType   // SSN or EIN
+  tin             String    // Encrypted
+  
+  // Certificación
+  certifiedDate   DateTime?
+  signature       String?   // Digital signature or confirmation
+  isCertified     Boolean   @default(false)
+  
+  // Tracking
+  requestedDate   DateTime  @default(now())
+  submittedDate   DateTime?
+  status          W9Status  @default(PENDING)
+  
+  // Relación
+  vendorId        String?   // ID del customer/vendor
+  employeeId      String?   // ID del employee si aplica
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([vendorId])
+  @@index([status])
+  @@map("w9_information")
+}
+
+// Form 1096 (Annual Summary and Transmittal)
+model TaxForm1096 {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Información del archivo
+  taxYear         Int
+  formType        String    // "1099-NEC", "1099-MISC", etc.
+  
+  // Totales
+  totalForms      Int       // Número de 1099s incluidos
+  totalAmount     Float     // Suma total reportada
+  
+  // Información del pagador
+  payerName       String
+  payerEIN        String
+  payerAddress    String
+  payerCity       String
+  payerState      String
+  payerZip        String
+  
+  // Contacto
+  contactName     String
+  contactPhone    String
+  contactEmail    String
+  
+  // Filing
+  filedDate       DateTime?
+  filedWithIRS    Boolean   @default(false)
+  confirmationNumber String?
+  
+  // Referencias a 1099s incluidos
+  form1099Ids     String[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([taxYear])
+  @@map("tax_form_1096")
+}
+
+// Sales Tax Filing (State Level)
+model SalesTaxFiling {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Jurisdicción
+  state           String    // FL, CA, NY, TX, etc.
+  county          String?
+  city            String?
+  jurisdiction    String    // Full name: "Florida Department of Revenue"
+  
+  // Período
+  filingPeriod    FilingPeriod  // MONTHLY, QUARTERLY, ANNUALLY
+  periodStart     DateTime
+  periodEnd       DateTime
+  dueDate         DateTime
+  
+  // Montos
+  grossSales      Float     // Total de ventas
+  taxableSales    Float     // Ventas sujetas a impuesto
+  exemptSales     Float     // Ventas exentas
+  taxRate         Float     // Tasa aplicable
+  taxCollected    Float     // Impuesto cobrado
+  taxDue          Float     // Impuesto a pagar
+  
+  // Ajustes
+  deductions      Float     @default(0)
+  credits         Float     @default(0)
+  penalties       Float     @default(0)
+  interest        Float     @default(0)
+  netTaxDue       Float     // Tax due - credits + penalties + interest
+  
+  // Estado
+  status          TaxFilingStatus @default(DRAFT)
+  filedDate       DateTime?
+  paidDate        DateTime?
+  confirmationNumber String?
+  
+  // Documentos
+  returnFileUrl   String?   // URL del PDF del return
+  paymentProof    String?   // URL del comprobante de pago
+  
+  // Nexus (presencia física/económica)
+  hasNexus        Boolean   @default(true)
+  nexusType       NexusType?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([state])
+  @@index([periodStart])
+  @@index([dueDate])
+  @@index([status])
+  @@map("sales_tax_filing")
+}
+
+// Tax Deadlines & Compliance Calendar
+model TaxDeadline {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Tipo de obligación
+  taxType         TaxDeadlineType
+  formName        String    // "Form 1099-NEC", "Form 941", "Florida Sales Tax", etc.
+  description     String
+  
+  // Jurisdicción
+  jurisdiction    String    // "IRS", "Florida", "California", etc.
+  isMultiState    Boolean   @default(false)
+  states          String[]  // Si aplica a múltiples estados
+  
+  // Fechas
+  dueDate         DateTime
+  extensionDate   DateTime?
+  filingPeriod    String    // "Q1 2025", "January 2025", "Annual 2025"
+  
+  // Frecuencia
+  frequency       DeadlineFrequency
+  isRecurring     Boolean   @default(true)
+  
+  // Estado
+  status          DeadlineStatus @default(UPCOMING)
+  completedDate   DateTime?
+  
+  // Penalidades
+  penaltyAmount   Float?
+  penaltyRate     Float?    // % por día/mes de retraso
+  interestRate    Float?
+  
+  // Recordatorios
+  reminderDays    Int[]     // [30, 15, 7, 3, 1] días antes
+  notificationsSent Int     @default(0)
+  lastNotification DateTime?
+  
+  // Enlaces
+  relatedFilingId String?   // ID del SalesTaxFiling o Form1096
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([dueDate])
+  @@index([status])
+  @@index([taxType])
+  @@map("tax_deadlines")
+}
+
+// Nexus Tracking (Economic Presence)
+model SalesTaxNexus {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Estado
+  state           String
+  stateName       String    // "Florida", "California", etc.
+  
+  // Thresholds
+  economicThreshold Float   // $100,000 for most states
+  transactionThreshold Int? // 200 transactions (some states)
+  
+  // Actividad actual
+  currentYearSales Float   @default(0)
+  currentYearTransactions Int @default(0)
+  lastYearSales   Float   @default(0)
+  lastYearTransactions Int @default(0)
+  
+  // Nexus status
+  hasNexus        Boolean   @default(false)
+  nexusType       NexusType?
+  nexusDate       DateTime? // Fecha en que se estableció nexus
+  
+  // Registro
+  isRegistered    Boolean   @default(false)
+  registrationDate DateTime?
+  taxId           String?   // State Tax ID
+  certificateUrl  String?   // Certificado de registro
+  
+  // Obligaciones
+  filingFrequency FilingPeriod?
+  nextFilingDate  DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId, state])
+  @@index([userId])
+  @@index([hasNexus])
+  @@map("sales_tax_nexus")
+}
+
+// ==================== ENUMS DE TAX COMPLIANCE ====================
+
+enum Form1099Type {
+  NEC          // Nonemployee Compensation (contractors)
+  MISC         // Miscellaneous Income (rent, royalties, etc.)
+  INT          // Interest Income
+  DIV          // Dividends
+  B            // Broker transactions
+  K            // Merchant card payments
+}
+
+enum Tax1099Status {
+  DRAFT        // En preparación
+  READY        // Listo para enviar
+  SENT         // Enviado al receptor
+  FILED        // Archivado con IRS
+  CORRECTED    // Corregido
+  VOID         // Anulado
+}
+
+enum TaxClassification {
+  INDIVIDUAL           // Individual/Sole proprietor
+  C_CORPORATION        // C Corporation
+  S_CORPORATION        // S Corporation
+  PARTNERSHIP          // Partnership
+  TRUST_ESTATE         // Trust/Estate
+  LLC_C               // LLC taxed as C Corp
+  LLC_S               // LLC taxed as S Corp
+  LLC_PARTNERSHIP     // LLC taxed as Partnership
+  OTHER               // Other
+}
+
+enum TINType {
+  SSN          // Social Security Number
+  EIN          // Employer Identification Number
+}
+
+enum W9Status {
+  PENDING      // Pendiente de recibir
+  SUBMITTED    // Enviado por el vendor
+  VERIFIED     // Verificado
+  EXPIRED      // Expirado (requiere actualización)
+  REJECTED     // Rechazado (información incorrecta)
+}
+
+enum FilingPeriod {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+  SEMI_ANNUALLY
+}
+
+enum TaxFilingStatus {
+  DRAFT        // En preparación
+  READY        // Listo para archivar
+  FILED        // Archivado
+  PAID         // Pagado
+  LATE         // Presentado tarde
+  AMENDED      // Enmendado
+}
+
+enum NexusType {
+  PHYSICAL     // Presencia física (oficina, empleados, inventario)
+  ECONOMIC     // Ventas sobre threshold
+  CLICK_THROUGH // Afiliados en el estado
+  MARKETPLACE  // Marketplace facilitator
+}
+
+enum TaxDeadlineType {
+  FEDERAL_INCOME_TAX
+  STATE_INCOME_TAX
+  SALES_TAX
+  PAYROLL_TAX
+  FORM_1099
+  FORM_W2
+  FORM_941
+  FORM_940
+  FORM_1096
+  ANNUAL_REPORT
+  FRANCHISE_TAX
+  ESTIMATED_TAX
+}
+
+enum DeadlineFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUALLY
+  ANNUALLY
+  ONE_TIME
+}
+
+enum DeadlineStatus {
+  UPCOMING
+  DUE_SOON     // Dentro de 7 días
+  OVERDUE
+  COMPLETED
+  EXTENDED
+  WAIVED
+}
+
+// ==================== FASE 8: ENTERPRISE FEATURES ====================
+
+// Multi-Company Management
+model Company {
+  id              String         @id @default(cuid())
+  name            String
+  legalName       String?
+  taxId           String?        // EIN
+  industry        String?
+  website         String?
+  logo            String?
+  address         String?
+  city            String?
+  state           String?
+  zipCode         String?
+  country         String         @default("US")
+  phone           String?
+  email           String?
+  settings        Json?          // Company-specific settings
+  subscription    SubscriptionTier @default(FREE)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  users           CompanyUser[]
+  roles           CompanyRole[]
+  invitations     CompanyInvitation[]
+  apiKeys         ApiKey[]
+  webhooks        Webhook[]
+  integrations    Integration[]
+  backupJobs      BackupJob[]
+  systemLogs      SystemLog[]
+  dataExports     DataExport[]
+  dataImports     DataImport[]
+  dashboards      Dashboard[]
+  kpis            KPI[]
+  whiteLabel      WhiteLabel?
+  aiModels        AIModel[]
+  predictionLogs  PredictionLog[]
+  trainingData    TrainingData[]
+  anomalyDetections AnomalyDetection[]
+  recommendations Recommendation[]
+  chatConversations ChatConversation[]
+  
+  @@map("companies")
+}
+
+model CompanyUser {
+  id              String         @id @default(cuid())
+  companyId       String
+  userId          String
+  roleId          String
+  isOwner         Boolean        @default(false)
+  permissions     Json?          // Custom permissions override
+  invitedBy       String?
+  invitedAt       DateTime?
+  joinedAt        DateTime       @default(now())
+  lastAccessAt    DateTime?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role            CompanyRole    @relation("UserRole", fields: [roleId], references: [id])
+  
+  @@unique([companyId, userId])
+  @@map("company_users")
+}
+
+// Webhooks (ApiKey already exists above)
+model Webhook {
+  id              String         @id @default(cuid())
+  companyId       String
+  url             String
+  events          String[]       // invoice.created, payment.received, etc.
+  secret          String         // For signature verification
+  isActive        Boolean        @default(true)
+  retryCount      Int            @default(3)
+  timeout         Int            @default(30) // seconds
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  logs            WebhookLog[]
+  deliveries      WebhookDelivery[]
+  
+  @@map("webhooks")
+}
+
+model WebhookLog {
+  id              String         @id @default(cuid())
+  webhookId       String
+  event           String
+  payload         Json
+  statusCode      Int?
+  response        String?        @db.Text
+  error           String?        @db.Text
+  attempts        Int            @default(1)
+  deliveredAt     DateTime?
+  createdAt       DateTime       @default(now())
+  
+  webhook         Webhook        @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  
+  @@index([webhookId, createdAt])
+  @@map("webhook_logs")
+}
+
+// System Monitoring
+model SystemLog {
+  id              String         @id @default(cuid())
+  companyId       String?
+  userId          String?
+  level           LogLevel
+  category        String         // API, Database, Auth, Integration, etc.
+  action          String
+  resource        String?
+  resourceId      String?
+  message         String         @db.Text
+  metadata        Json?
+  ipAddress       String?
+  userAgent       String?
+  duration        Int?           // milliseconds
+  createdAt       DateTime       @default(now())
+  
+  company         Company?       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, createdAt])
+  @@index([level, createdAt])
+  @@index([category, createdAt])
+  @@map("system_logs")
+}
+
+// Backup & Restore
+model BackupJob {
+  id              String         @id @default(cuid())
+  companyId       String
+  type            BackupType
+  status          BackupStatus
+  size            BigInt?        // bytes
+  recordCount     Int?
+  storageLocation String?        // S3 URL, file path, etc.
+  compression     String?        // gzip, zip, etc.
+  encryption      Boolean        @default(true)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  error           String?        @db.Text
+  metadata        Json?
+  createdBy       String?
+  createdAt       DateTime       @default(now())
+  
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, createdAt])
+  @@map("backup_jobs")
+}
+
+// External Integrations
+model Integration {
+  id              String            @id @default(cuid())
+  companyId       String
+  provider        IntegrationProvider
+  name            String?
+  status          IntegrationStatus @default(DISCONNECTED)
+  accessToken     String?           @db.Text // Encrypted
+  refreshToken    String?           @db.Text // Encrypted
+  expiresAt       DateTime?
+  scopes          String[]
+  settings        Json?
+  lastSyncAt      DateTime?
+  lastError       String?           @db.Text
+  syncFrequency   String?           // cron expression
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  company         Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  syncLogs        IntegrationSyncLog[]
+  
+  @@unique([companyId, provider])
+  @@map("integrations")
+}
+
+// Enums for FASE 8
+enum SubscriptionTier {
+  FREE
+  BASIC
+  STARTER        // FASE 10
+  PROFESSIONAL
+  ENTERPRISE
+  CUSTOM         // FASE 10
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  APPROVE
+  EXPORT
+  IMPORT
+  MANAGE
+}
+
+enum ApiEnvironment {
+  DEVELOPMENT
+  STAGING
+  PRODUCTION
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum BackupType {
+  FULL
+  INCREMENTAL
+  DIFFERENTIAL
+  MANUAL
+  SCHEDULED
+}
+
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum IntegrationProvider {
+  STRIPE
+  QUICKBOOKS
+  XERO
+  PLAID
+  SHOPIFY
+  SALESFORCE
+  MAILCHIMP
+  SLACK
+  ZAPIER
+  CUSTOM
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+  PENDING_AUTH
+  EXPIRED
+}
+
+// ============================================
+// FASE 9: AI & AUTOMATION
+// ============================================
+
+enum AIModelType {
+  EXPENSE_CATEGORIZATION
+  INVOICE_OCR
+  CASH_FLOW_FORECASTING
+  ANOMALY_DETECTION
+  RECOMMENDATION_ENGINE
+  CHATBOT
+}
+
+enum AIModelStatus {
+  TRAINING
+  READY
+  DEPLOYED
+  DEPRECATED
+  FAILED
+}
+
+enum PredictionConfidence {
+  LOW
+  MEDIUM
+  HIGH
+  VERY_HIGH
+}
+
+enum AnomalyType {
+  DUPLICATE_TRANSACTION
+  UNUSUAL_AMOUNT
+  SUSPICIOUS_VENDOR
+  SPENDING_SPIKE
+  FRAUD_PATTERN
+  MISSING_RECEIPT
+  LATE_PAYMENT
+  BUDGET_OVERRUN
+}
+
+enum AnomalySeverity {
+  INFO
+  WARNING
+  CRITICAL
+  URGENT
+}
+
+enum RecommendationType {
+  TAX_SAVING
+  COST_REDUCTION
+  PAYMENT_TERMS
+  AUTOMATION
+  WORKFLOW_IMPROVEMENT
+  VENDOR_NEGOTIATION
+  EARLY_PAYMENT_DISCOUNT
+  INVENTORY_OPTIMIZATION
+}
+
+enum RecommendationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  IMPLEMENTED
+  EXPIRED
+}
+
+model AIModel {
+  id              String         @id @default(cuid())
+  companyId       String?        // null for global models
+  type            AIModelType
+  name            String
+  description     String?        @db.Text
+  version         String         @default("1.0.0")
+  status          AIModelStatus  @default(TRAINING)
+  accuracy        Float?         // 0.0 to 1.0
+  trainingData    Int            @default(0) // count of training samples
+  lastTrained     DateTime?
+  modelData       Json?          // Serialized model parameters
+  config          Json?          // Model hyperparameters
+  createdBy       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  company         Company?       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  predictions     PredictionLog[]
+  
+  @@index([companyId, type])
+  @@map("ai_models")
+}
+
+model PredictionLog {
+  id              String             @id @default(cuid())
+  modelId         String
+  companyId       String
+  userId          String?
+  inputData       Json               // Input features
+  prediction      Json               // Model output
+  confidence      PredictionConfidence
+  confidenceScore Float              // 0.0 to 1.0
+  feedback        String?            // User correction
+  isCorrect       Boolean?           // User validation
+  processingTime  Int?               // milliseconds
+  metadata        Json?
+  createdAt       DateTime           @default(now())
+  
+  model           AIModel            @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  company         Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([modelId, createdAt])
+  @@index([companyId, createdAt])
+  @@map("prediction_logs")
+}
+
+model TrainingData {
+  id              String         @id @default(cuid())
+  companyId       String
+  modelType       AIModelType
+  features        Json           // Input features
+  label           String         // Expected output
+  weight          Float          @default(1.0)
+  source          String?        // Where data came from
+  isValidated     Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, modelType])
+  @@index([isValidated])
+  @@map("training_data")
+}
+
+model AnomalyDetection {
+  id              String             @id @default(cuid())
+  companyId       String
+  type            AnomalyType
+  severity        AnomalySeverity
+  resource        String             // transactions, invoices, expenses
+  resourceId      String
+  title           String
+  description     String             @db.Text
+  detectedValue   Json               // Actual value that triggered alert
+  expectedValue   Json?              // What was expected
+  confidence      Float              // 0.0 to 1.0
+  isResolved      Boolean            @default(false)
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  resolution      String?            @db.Text
+  metadata        Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  company         Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, isResolved])
+  @@index([severity, isResolved])
+  @@index([createdAt])
+  @@map("anomaly_detections")
+}
+
+model Recommendation {
+  id              String                 @id @default(cuid())
+  companyId       String
+  type            RecommendationType
+  status          RecommendationStatus   @default(PENDING)
+  title           String
+  description     String                 @db.Text
+  potentialSaving Decimal?               @db.Decimal(15, 2)
+  estimatedImpact String?                // Low, Medium, High
+  actionSteps     Json                   // Array of steps to implement
+  relatedResource String?                // expenses, invoices, vendors
+  relatedId       String?
+  priority        Int                    @default(0) // 0-10
+  confidence      Float                  // 0.0 to 1.0
+  expiresAt       DateTime?
+  implementedBy   String?
+  implementedAt   DateTime?
+  feedback        String?                @db.Text
+  actualSaving    Decimal?               @db.Decimal(15, 2)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  
+  company         Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, status])
+  @@index([type, status])
+  @@index([priority])
+  @@map("recommendations")
+}
+
+model ChatConversation {
+  id              String         @id @default(cuid())
+  companyId       String
+  userId          String
+  title           String?
+  context         Json?          // Conversation context
+  isActive        Boolean        @default(true)
+  lastMessageAt   DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  messages        ChatMessage[]
+  
+  @@index([companyId, userId])
+  @@index([lastMessageAt])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id              String             @id @default(cuid())
+  conversationId  String
+  role            String             // user, assistant, system
+  content         String             @db.Text
+  functionCall    Json?              // If assistant called a function
+  functionResult  Json?              // Result of function call
+  tokens          Int?               // Token count
+  model           String?            // gpt-4, gpt-3.5-turbo
+  metadata        Json?
+  createdAt       DateTime           @default(now())
+  
+  conversation    ChatConversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  @@index([conversationId, createdAt])
+  @@map("chat_messages")
+}
+
+// ==================== FASE 10: ADDITIONAL ENTERPRISE MODELS ====================
+
+model CompanyRole {
+  id          String          @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  permissions Json            // Array of permission strings
+  isSystem    Boolean         @default(false) // Owner, Admin, User roles
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  members     CompanyUser[]   @relation("UserRole")
+  
+  @@unique([companyId, name])
+  @@map("company_roles")
+}
+
+model CompanyInvitation {
+  id          String              @id @default(cuid())
+  companyId   String
+  email       String
+  roleId      String
+  invitedBy   String
+  token       String              @unique
+  status      InvitationStatus    @default(PENDING)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  
+  company     Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([email, status])
+  @@map("company_invitations")
+}
+
+model DataExport {
+  id            String       @id @default(cuid())
+  companyId     String
+  userId        String
+  type          ExportType
+  format        ExportFormat
+  filters       Json?        // Date range, resources, etc.
+  status        JobStatus    @default(PENDING)
+  fileUrl       String?
+  fileSize      Int?         // bytes
+  recordCount   Int?
+  error         String?      @db.Text
+  startedAt     DateTime?
+  completedAt   DateTime?
+  expiresAt     DateTime?    // Temporary download link
+  createdAt     DateTime     @default(now())
+  
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, status])
+  @@index([userId, createdAt])
+  @@map("data_exports")
+}
+
+model DataImport {
+  id              String       @id @default(cuid())
+  companyId       String
+  userId          String
+  source          ImportSource
+  fileUrl         String
+  fileSize        Int
+  status          JobStatus    @default(PENDING)
+  mapping         Json?        // Field mappings
+  preview         Json?        // First 10 rows
+  recordCount     Int?
+  importedCount   Int?
+  errorCount      Int?
+  errors          Json?        // Array of error messages
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, status])
+  @@index([userId, createdAt])
+  @@map("data_imports")
+}
+
+model IntegrationSyncLog {
+  id            String       @id @default(cuid())
+  integrationId String
+  direction     SyncDirection
+  recordType    String       // "invoice", "expense", etc.
+  recordCount   Int
+  successCount  Int
+  errorCount    Int
+  errors        Json?
+  duration      Int          // milliseconds
+  startedAt     DateTime
+  completedAt   DateTime
+  
+  integration   Integration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  
+  @@index([integrationId, startedAt])
+  @@map("integration_sync_logs")
+}
+
+model WebhookDelivery {
+  id          String         @id @default(cuid())
+  webhookId   String
+  event       String
+  payload     Json
+  response    Json?
+  statusCode  Int?
+  success     Boolean
+  attempts    Int            @default(1)
+  nextRetry   DateTime?
+  createdAt   DateTime       @default(now())
+  
+  webhook     Webhook        @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  
+  @@index([webhookId, createdAt])
+  @@index([success, nextRetry])
+  @@map("webhook_deliveries")
+}
+
+model Dashboard {
+  id          String       @id @default(cuid())
+  companyId   String
+  userId      String?      // null = shared/company-wide
+  name        String
+  description String?
+  layout      Json         // Grid layout config
+  widgets     Json         // Array of widget configs
+  isPublic    Boolean      @default(false)
+  isDefault   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, userId])
+  @@map("dashboards")
+}
+
+model KPI {
+  id           String       @id @default(cuid())
+  companyId    String
+  name         String
+  metric       String       // "revenue", "expenses", "profit_margin"
+  target       Float?
+  current      Float
+  previous     Float?
+  change       Float?       // Percentage change
+  trend        String?      // "up", "down", "stable"
+  period       KPIPeriod
+  calculatedAt DateTime     @default(now())
+  
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, metric, period])
+  @@index([calculatedAt])
+  @@map("kpis")
+}
+
+model WhiteLabel {
+  id            String       @id @default(cuid())
+  companyId     String       @unique
+  brandName     String
+  logo          String?
+  primaryColor  String       @default("#3b82f6")
+  accentColor   String       @default("#8b5cf6")
+  customDomain  String?      @unique
+  emailFrom     String?
+  emailFooter   String?      @db.Text
+  favicon       String?
+  loginImage    String?
+  customCss     String?      @db.Text
+  customJs      String?      @db.Text
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@map("white_labels")
+}
+
+model ApiLog {
+  id          String       @id @default(cuid())
+  apiKeyId    String
+  method      String
+  endpoint    String
+  statusCode  Int
+  duration    Int          // milliseconds
+  ip          String?
+  userAgent   String?
+  requestBody Json?
+  responseBody Json?
+  timestamp   DateTime     @default(now())
+  
+  apiKey      ApiKey       @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  
+  @@index([apiKeyId, timestamp])
+  @@index([timestamp])
+  @@map("api_logs")
+}
+
+// ==================== FASE 10: NEW ENUMS ====================
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+enum ExportType {
+  FULL_BACKUP
+  INVOICES
+  EXPENSES
+  CUSTOMERS
+  PRODUCTS
+  REPORTS
+  AUDIT_TRAIL
+  TAX_DOCUMENTS
+}
+
+enum ExportFormat {
+  CSV
+  EXCEL
+  PDF
+  JSON
+  QUICKBOOKS_IIF
+  XERO_CSV
+  XML
+}
+
+enum ImportSource {
+  CSV
+  EXCEL
+  QUICKBOOKS_DESKTOP
+  QUICKBOOKS_ONLINE
+  XERO
+  FRESHBOOKS
+  WAVE
+  CUSTOM
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SyncDirection {
+  IMPORT
+  EXPORT
+  BIDIRECTIONAL
+}
+
+enum KPIPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
