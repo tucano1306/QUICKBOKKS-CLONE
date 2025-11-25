@@ -49,6 +49,8 @@ async function main() {
   console.log('✅ Categorías de gastos creadas')
 
   // Create sample customers
+  const portalPassword = await bcrypt.hash('client123', 10)
+  
   const customers = [
     {
       name: 'Juan Pérez García',
@@ -57,6 +59,8 @@ async function main() {
       company: 'Pérez y Asociados',
       taxId: 'PEGJ850101ABC',
       status: 'ACTIVE',
+      portalPassword,
+      portalActive: true,
     },
     {
       name: 'María López Hernández',
@@ -137,9 +141,15 @@ async function main() {
   ]
 
   for (const product of products) {
-    await prisma.product.create({
-      data: product as any,
+    const existing = await prisma.product.findFirst({
+      where: { sku: product.sku },
     })
+    
+    if (!existing) {
+      await prisma.product.create({
+        data: product as any,
+      })
+    }
   }
 
   console.log('✅ Productos de ejemplo creados')
@@ -351,6 +361,138 @@ async function main() {
   }
 
   console.log('✅ Presupuestos creados')
+
+  // Create sample employees
+  const employees = [
+    {
+      userId: adminUser.id,
+      employeeNumber: 'EMP-001',
+      firstName: 'Ana',
+      lastName: 'García López',
+      email: 'ana.garcia@empresa.com',
+      phone: '55 1111 2222',
+      position: 'Gerente de Ventas',
+      department: 'Ventas',
+      hireDate: new Date('2024-01-15'),
+      salary: 65000,
+      salaryType: 'YEARLY',
+      status: 'ACTIVE',
+      taxId: '123-45-6789',
+      address: 'Av. Reforma 123, CDMX',
+      employeeType: 'EMPLOYEE',
+    },
+    {
+      userId: adminUser.id,
+      employeeNumber: 'EMP-002',
+      firstName: 'Roberto',
+      lastName: 'Martínez Cruz',
+      email: 'roberto.martinez@empresa.com',
+      phone: '55 2222 3333',
+      position: 'Desarrollador Senior',
+      department: 'Tecnología',
+      hireDate: new Date('2023-06-01'),
+      salary: 75000,
+      salaryType: 'YEARLY',
+      status: 'ACTIVE',
+      taxId: '987-65-4321',
+      address: 'Calle Insurgentes 456, CDMX',
+      employeeType: 'EMPLOYEE',
+    },
+    {
+      userId: adminUser.id,
+      employeeNumber: 'EMP-003',
+      firstName: 'Laura',
+      lastName: 'Sánchez Díaz',
+      email: 'laura.sanchez@empresa.com',
+      phone: '55 3333 4444',
+      position: 'Contadora',
+      department: 'Finanzas',
+      hireDate: new Date('2024-03-10'),
+      salary: 55000,
+      salaryType: 'YEARLY',
+      status: 'ACTIVE',
+      taxId: '456-78-9012',
+      address: 'Col. Roma Norte, CDMX',
+      employeeType: 'EMPLOYEE',
+    },
+  ]
+
+  const createdEmployees = []
+  for (const employeeData of employees) {
+    const existing = await prisma.employee.findFirst({
+      where: { email: employeeData.email },
+    })
+    
+    if (!existing) {
+      const employee = await prisma.employee.create({
+        data: employeeData as any,
+      })
+      createdEmployees.push(employee)
+    } else {
+      createdEmployees.push(existing)
+    }
+  }
+
+  console.log('✅ Empleados creados:', createdEmployees.length)
+
+  // Create payroll records for 2025 (Q1-Q3)
+  for (const employee of createdEmployees) {
+    const monthlySalary = employee.salary / 12
+    const months = [
+      // Q1 2025
+      { start: new Date('2025-01-01'), end: new Date('2025-01-31') },
+      { start: new Date('2025-02-01'), end: new Date('2025-02-28') },
+      { start: new Date('2025-03-01'), end: new Date('2025-03-31') },
+      // Q2 2025
+      { start: new Date('2025-04-01'), end: new Date('2025-04-30') },
+      { start: new Date('2025-05-01'), end: new Date('2025-05-31') },
+      { start: new Date('2025-06-01'), end: new Date('2025-06-30') },
+      // Q3 2025
+      { start: new Date('2025-07-01'), end: new Date('2025-07-31') },
+      { start: new Date('2025-08-01'), end: new Date('2025-08-31') },
+      { start: new Date('2025-09-01'), end: new Date('2025-09-30') },
+    ]
+
+    for (const month of months) {
+      // Federal taxes: ~20% withholding
+      const federalTax = monthlySalary * 0.20
+      // Social Security: 6.2%
+      const socialSecurityTax = monthlySalary * 0.062
+      // Medicare: 1.45%
+      const medicareTax = monthlySalary * 0.0145
+      // State taxes (if applicable): ~3%
+      const stateTax = monthlySalary * 0.03
+      
+      const totalDeductions = federalTax + socialSecurityTax + medicareTax + stateTax
+      const netSalary = monthlySalary - totalDeductions
+
+      const existing = await prisma.payroll.findFirst({
+        where: {
+          employeeId: employee.id,
+          periodStart: month.start,
+        },
+      })
+
+      if (!existing) {
+        await prisma.payroll.create({
+          data: {
+            employeeId: employee.id,
+            periodStart: month.start,
+            periodEnd: month.end,
+            grossSalary: monthlySalary,
+            deductions: totalDeductions,
+            bonuses: 0,
+            netSalary: netSalary,
+            paymentDate: new Date(month.end.getTime() + 5 * 24 * 60 * 60 * 1000), // 5 days after period end
+            status: 'PAID',
+            notes: `Nómina mensual - ${month.start.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}`,
+          },
+        })
+      }
+    }
+  }
+
+  console.log('✅ Registros de nómina 2025 creados')
 
   console.log('🎉 Seed completado exitosamente!')
 }

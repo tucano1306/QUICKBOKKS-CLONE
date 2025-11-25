@@ -12,6 +12,13 @@ export function BankConnectionManager({ onConnectionComplete }: { onConnectionCo
   // Obtener link token al montar el componente
   useEffect(() => {
     const fetchLinkToken = async () => {
+      // Solo intentar si las variables de entorno están configuradas
+      const plaidClientId = process.env.NEXT_PUBLIC_PLAID_CLIENT_ID;
+      if (!plaidClientId) {
+        console.warn('Plaid no configurado. Define NEXT_PUBLIC_PLAID_CLIENT_ID en .env');
+        return;
+      }
+
       try {
         setLoading(true)
         const response = await fetch('/api/banking/link/token', {
@@ -19,13 +26,15 @@ export function BankConnectionManager({ onConnectionComplete }: { onConnectionCo
         })
 
         if (!response.ok) {
-          throw new Error('Failed to create link token')
+          // Silenciar el error si Plaid no está configurado
+          console.warn('No se pudo crear link token de Plaid. La integración bancaria no está disponible.')
+          return;
         }
 
         const data = await response.json()
         setLinkToken(data.linkToken)
       } catch (error) {
-        console.error('Error fetching link token:', error)
+        console.warn('Integración bancaria de Plaid no disponible:', error)
       } finally {
         setLoading(false)
       }

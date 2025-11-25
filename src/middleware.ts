@@ -7,8 +7,12 @@ const publicRoutes = ['/auth/login', '/auth/register', '/api/auth']
 
 // Rutas que requieren roles específicos
 const protectedRoutes: { [key: string]: string[] } = {
-  '/api/accounting': ['ADMIN', 'ACCOUNTANT'],
-  '/api/reports': ['ADMIN', 'ACCOUNTANT'],
+  '/api/accounting/chart-of-accounts': ['ADMIN', 'ACCOUNTANT'],
+  '/api/accounting/journal-entries': ['ADMIN', 'ACCOUNTANT'],
+  '/api/accounting/depreciation': ['ADMIN', 'ACCOUNTANT'],
+  '/api/reports/balance-sheet': ['ADMIN', 'ACCOUNTANT', 'USER'],
+  '/api/reports/income-statement': ['ADMIN', 'ACCOUNTANT', 'USER'],
+  '/api/reports/cash-flow': ['ADMIN', 'ACCOUNTANT', 'USER'],
   '/settings': ['ADMIN'],
   '/api/users': ['ADMIN']
 }

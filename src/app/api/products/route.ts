@@ -15,9 +15,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
     const status = searchParams.get('status')
+    const companyId = searchParams.get('companyId') || 'default-company-001'
 
     const products = await prisma.product.findMany({
       where: {
+        companyId,
         ...(type && { type: type as any }),
         ...(status && { status: status as any }),
       },
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
       taxRate,
       category,
       unit,
+      companyId,
     } = body
 
     if (!name || price === undefined) {
@@ -68,6 +71,7 @@ export async function POST(request: Request) {
 
     const product = await prisma.product.create({
       data: {
+        companyId: companyId || 'default-company-001',
         name,
         description,
         type: type || 'SERVICE',

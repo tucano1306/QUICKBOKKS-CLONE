@@ -22,9 +22,11 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import CompanySelector from '@/components/CompanySelector'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Empresas', href: '/companies', icon: Building2 },
   { name: 'Clientes', href: '/customers', icon: Users },
   { name: 'Productos', href: '/products', icon: Package },
   { name: 'Facturas', href: '/invoices', icon: FileText },
@@ -33,7 +35,11 @@ const navigation = [
   { name: 'Nómina', href: '/payroll', icon: DollarSign },
   { name: 'Bancos', href: '/banking', icon: Building2 },
   { name: 'Tax Compliance', href: '/tax-compliance', icon: Scale },
+  { name: 'Formularios Fiscales', href: '/tax-forms', icon: FileText },
   { name: 'Reportes', href: '/reports', icon: TrendingUp },
+  { name: 'Reportes Avanzados', href: '/reports/advanced', icon: Scale },
+  { name: '🤖 Agente IA', href: '/ai-agent', icon: TrendingUp },
+  { name: '👥 Portal Clientes', href: '/portal', icon: Users },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ]
 
@@ -71,7 +77,7 @@ export default function Sidebar() {
 
           {/* User info */}
           <div className="p-4 bg-gray-800/50">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
                 <span className="text-lg font-semibold">
                   {session?.user?.name?.charAt(0) || 'U'}
@@ -85,6 +91,10 @@ export default function Sidebar() {
                   {session?.user?.email}
                 </p>
               </div>
+            </div>
+            {/* Company Selector */}
+            <div className="mt-3">
+              <CompanySelector />
             </div>
           </div>
 

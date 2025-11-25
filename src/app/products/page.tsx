@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table'
 import { Plus, Search, Edit, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useCompany } from '@/contexts/CompanyContext'
 
 interface Product {
   id: string
@@ -32,6 +33,7 @@ interface Product {
 
 export default function ProductsPage() {
   const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -41,10 +43,10 @@ export default function ProductsPage() {
     if (status === 'unauthenticated') {
       redirect('/auth/login')
     }
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && activeCompany) {
       fetchProducts()
     }
-  }, [status])
+  }, [status, activeCompany])
 
   useEffect(() => {
     const filtered = products.filter(
@@ -57,12 +59,16 @@ export default function ProductsPage() {
   }, [searchTerm, products])
 
   const fetchProducts = async () => {
+    if (!activeCompany) return
+    
     try {
-      const response = await fetch('/api/products')
+      const response = await fetch(`/api/products?companyId=${activeCompany.id}`)
       if (response.ok) {
-        const data = await response.json()
-        setProducts(data)
-        setFilteredProducts(data)
+        const result = await response.json()
+        // Manejar tanto respuestas con paginación como arrays directos
+        const data = result.data || result
+        setProducts(Array.isArray(data) ? data : [])
+        setFilteredProducts(Array.isArray(data) ? data : [])
       }
     } catch (error) {
       console.error('Error fetching products:', error)
@@ -73,10 +79,10 @@ export default function ProductsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este producto?')) return
+    if (!activeCompany || !confirm('¿Estás seguro de eliminar este producto?')) return
 
     try {
-      const response = await fetch(`/api/products/${id}`, {
+      const response = await fetch(`/api/products/${id}?companyId=${activeCompany.id}`, {
         method: 'DELETE',
       })
 

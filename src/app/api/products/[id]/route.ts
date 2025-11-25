@@ -15,8 +15,14 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: params.id },
+    const url = new URL(request.url)
+    const companyId = url.searchParams.get('companyId') || 'default-company-001'
+
+    const product = await prisma.product.findFirst({
+      where: { 
+        id: params.id,
+        companyId,
+      },
     })
 
     if (!product) {
@@ -61,7 +67,23 @@ export async function PUT(
       category,
       unit,
       status,
+      companyId,
     } = body
+
+    // Verify product belongs to company
+    const existingProduct = await prisma.product.findFirst({
+      where: { 
+        id: params.id,
+        companyId: companyId || 'default-company-001',
+      },
+    })
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: 'Producto no encontrado' },
+        { status: 404 }
+      )
+    }
 
     const product = await prisma.product.update({
       where: { id: params.id },
@@ -100,6 +122,24 @@ export async function DELETE(
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const url = new URL(request.url)
+    const companyId = url.searchParams.get('companyId') || 'default-company-001'
+
+    // Verify product belongs to company
+    const product = await prisma.product.findFirst({
+      where: { 
+        id: params.id,
+        companyId,
+      },
+    })
+
+    if (!product) {
+      return NextResponse.json(
+        { error: 'Producto no encontrado' },
+        { status: 404 }
+      )
     }
 
     await prisma.product.delete({

@@ -41,6 +41,7 @@ export default function InvoicesPage() {
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [generatingLink, setGeneratingLink] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -64,15 +65,47 @@ export default function InvoicesPage() {
     try {
       const response = await fetch('/api/invoices')
       if (response.ok) {
-        const data = await response.json()
-        setInvoices(data)
-        setFilteredInvoices(data)
+        const result = await response.json()
+        // La API ahora devuelve { data: [...], pagination: {...} }
+        const data = result.data || result
+        setInvoices(Array.isArray(data) ? data : [])
+        setFilteredInvoices(Array.isArray(data) ? data : [])
       }
     } catch (error) {
       console.error('Error fetching invoices:', error)
       toast.error('Error al cargar facturas')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const generatePaymentLink = async (invoiceId: string, provider: 'stripe' | 'manual') => {
+    setGeneratingLink(invoiceId)
+    try {
+      const response = await fetch('/api/payment-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: provider === 'stripe' ? 'create-stripe' : 'create-manual',
+          options: {
+            invoiceId,
+            expiresInDays: 30,
+            customMessage: 'Por favor procesa tu pago usando el siguiente enlace',
+          },
+        }),
+      })
+
+      if (!response.ok) throw new Error('Error generando link')
+
+      const link = await response.json()
+      
+      // Copiar al portapapeles
+      await navigator.clipboard.writeText(link.url)
+      toast.success(`Link generado y copiado: ${link.shortCode}`)
+    } catch (error: any) {
+      toast.error(error.message || 'Error generando payment link')
+    } finally {
+      setGeneratingLink(null)
     }
   }
 
@@ -187,6 +220,17 @@ export default function InvoicesPage() {
                               <Edit className="h-4 w-4" />
                             </Button>
                           </Link>
+                          {(invoice.status === 'SENT' || invoice.status === 'OVERDUE') && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => generatePaymentLink(invoice.id, 'manual')}
+                              disabled={generatingLink === invoice.id}
+                              title="Generar payment link"
+                            >
+                              {generatingLink === invoice.id ? '...' : '💳'}
+                            </Button>
+                          )}
                           <Button variant="ghost" size="sm">
                             <Download className="h-4 w-4" />
                           </Button>

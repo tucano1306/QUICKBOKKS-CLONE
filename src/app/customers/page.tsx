@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table'
 import { Plus, Search, Edit, Trash2, Mail, Phone, Building } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useCompany } from '@/contexts/CompanyContext'
 
 interface Customer {
   id: string
@@ -35,6 +36,7 @@ interface Customer {
 
 export default function CustomersPage() {
   const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -44,10 +46,10 @@ export default function CustomersPage() {
     if (status === 'unauthenticated') {
       redirect('/auth/login')
     }
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && activeCompany) {
       fetchCustomers()
     }
-  }, [status])
+  }, [status, activeCompany])
 
   useEffect(() => {
     const filtered = customers.filter(
@@ -60,12 +62,16 @@ export default function CustomersPage() {
   }, [searchTerm, customers])
 
   const fetchCustomers = async () => {
+    if (!activeCompany) return
+    
     try {
-      const response = await fetch('/api/customers')
+      const response = await fetch(`/api/customers?companyId=${activeCompany.id}`)
       if (response.ok) {
-        const data = await response.json()
-        setCustomers(data)
-        setFilteredCustomers(data)
+        const result = await response.json()
+        // La API ahora devuelve { data: [...], pagination: {...} }
+        const data = result.data || result
+        setCustomers(Array.isArray(data) ? data : [])
+        setFilteredCustomers(Array.isArray(data) ? data : [])
       }
     } catch (error) {
       console.error('Error fetching customers:', error)
@@ -76,10 +82,10 @@ export default function CustomersPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este cliente?')) return
+    if (!activeCompany || !confirm('¿Estás seguro de eliminar este cliente?')) return
 
     try {
-      const response = await fetch(`/api/customers/${id}`, {
+      const response = await fetch(`/api/customers/${id}?companyId=${activeCompany.id}`, {
         method: 'DELETE',
       })
 

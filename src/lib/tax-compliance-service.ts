@@ -107,7 +107,7 @@ export async function generate1099FormsForYear(
   const endDate = new Date(taxYear, 11, 31, 23, 59, 59); // Dec 31
 
   // Agrupar gastos por empleado (contractors)
-  const expenses = await (prisma as any).expense.findMany({
+  const expenses = await prisma.expense.findMany({
     where: {
       userId,
       date: {
@@ -161,7 +161,7 @@ export async function generate1099FormsForYear(
     }
 
     // Crear 1099-NEC (Nonemployee Compensation)
-    const form1099 = await (prisma as any).taxForm1099.create({
+    const form1099 = await prisma.taxForm1099.create({
       data: {
         userId,
         
@@ -177,9 +177,9 @@ export async function generate1099FormsForYear(
         recipientName: `${employee.firstName} ${employee.lastName}`,
         recipientTIN: employee.taxId,
         recipientAddress: employee.address || '',
-        recipientCity: employee.city || '',
-        recipientState: employee.state || 'FL',
-        recipientZip: employee.zipCode || '',
+        recipientCity: '', // TODO: Parse from address or add city field
+        recipientState: 'FL',
+        recipientZip: '',
         recipientEmail: employee.email || '',
         
         // Form details
@@ -241,7 +241,7 @@ export async function generate1099Form(
   // Verificar umbral de $600
   const filingRequired = totalAmount >= 600;
 
-  const form1099 = await (prisma as any).taxForm1099.create({
+  const form1099 = await prisma.taxForm1099.create({
     data: {
       userId,
       
@@ -340,7 +340,7 @@ export function validate1099Form(form: any): { valid: boolean; errors: string[] 
  * Marcar 1099 como enviado al receptor
  */
 export async function send1099ToRecipient(form1099Id: string): Promise<any> {
-  const form = await (prisma as any).taxForm1099.findUnique({
+  const form = await prisma.taxForm1099.findUnique({
     where: { id: form1099Id },
   });
 
@@ -357,7 +357,7 @@ export async function send1099ToRecipient(form1099Id: string): Promise<any> {
   // Aquí iría la lógica de envío por email con el PDF del 1099
   // Por ahora solo actualizamos el estado
 
-  return (prisma as any).taxForm1099.update({
+  return prisma.taxForm1099.update({
     where: { id: form1099Id },
     data: {
       status: 'SENT',
@@ -371,7 +371,7 @@ export async function send1099ToRecipient(form1099Id: string): Promise<any> {
  * Marcar 1099 como archivado con el IRS
  */
 export async function file1099WithIRS(form1099Id: string): Promise<any> {
-  return (prisma as any).taxForm1099.update({
+  return prisma.taxForm1099.update({
     where: { id: form1099Id },
     data: {
       status: 'FILED',
@@ -392,11 +392,11 @@ export async function generate1096Summary(
   formType: string = '1099-NEC'
 ): Promise<any> {
   // Obtener todos los 1099 del año y tipo especificado
-  const forms1099 = await (prisma as any).taxForm1099.findMany({
+  const forms1099 = await prisma.taxForm1099.findMany({
     where: {
       userId,
       taxYear,
-      formType: formType.replace('1099-', ''), // "NEC", "MISC"
+      formType: formType.replace('1099-', '') as any, // "NEC", "MISC", etc.
       status: { in: ['READY', 'SENT', 'FILED'] },
     },
   });
@@ -432,7 +432,7 @@ export async function generate1096Summary(
   };
 
   // Crear Form 1096
-  const form1096 = await (prisma as any).taxForm1096.create({
+  const form1096 = await prisma.taxForm1096.create({
     data: {
       userId,
       taxYear,
@@ -470,7 +470,7 @@ export async function requestW9(
   userId: string,
   request: W9Request
 ): Promise<any> {
-  const w9 = await (prisma as any).w9Information.create({
+  const w9 = await prisma.w9Information.create({
     data: {
       userId,
       businessName: request.businessName,
@@ -501,7 +501,7 @@ export async function checkW9Status(
   userId: string,
   vendorId: string
 ): Promise<{ hasW9: boolean; w9?: any; status?: W9Status }> {
-  const w9 = await (prisma as any).w9Information.findFirst({
+  const w9 = await prisma.w9Information.findFirst({
     where: {
       userId,
       vendorId,
@@ -547,11 +547,12 @@ export async function submitW9Information(
     throw new Error('EIN debe tener 9 dígitos (sin guión)');
   }
 
-  return (prisma as any).w9Information.update({
+  return prisma.w9Information.update({
     where: { id: w9Id },
     data: {
       ...data,
-      status: 'SUBMITTED',
+      taxClassification: data.taxClassification as any,
+      status: 'SUBMITTED' as any,
       submittedDate: new Date(),
     },
   });
@@ -567,7 +568,7 @@ export async function generateComplianceReport(
   taxYear: number
 ): Promise<ComplianceReport> {
   // 1. Obtener todos los contractors
-  const contractors = await (prisma as any).employee.findMany({
+  const contractors = await prisma.employee.findMany({
     where: {
       userId,
       employeeType: 'CONTRACTOR',
@@ -580,7 +581,7 @@ export async function generateComplianceReport(
   const startDate = new Date(taxYear, 0, 1);
   const endDate = new Date(taxYear, 11, 31, 23, 59, 59);
 
-  const expenses = await (prisma as any).expense.findMany({
+  const expenses = await prisma.expense.findMany({
     where: {
       userId,
       date: { gte: startDate, lte: endDate },
@@ -603,7 +604,7 @@ export async function generateComplianceReport(
   const contractors1099Required = Object.values(contractorPayments).filter(amount => amount >= 600).length;
 
   // 3. Obtener 1099s generados
-  const forms1099 = await (prisma as any).taxForm1099.findMany({
+  const forms1099 = await prisma.taxForm1099.findMany({
     where: {
       userId,
       taxYear,
@@ -614,7 +615,7 @@ export async function generateComplianceReport(
   const total1099Amount = forms1099.reduce((sum: number, form: any) => sum + form.box1Amount, 0);
 
   // 4. W-9 collection rate
-  const w9Records = await (prisma as any).w9Information.findMany({
+  const w9Records = await prisma.w9Information.findMany({
     where: {
       userId,
       status: { in: ['SUBMITTED', 'VERIFIED'] },
@@ -699,7 +700,7 @@ export async function get1099List(
     where.status = status;
   }
 
-  return (prisma as any).taxForm1099.findMany({
+  return prisma.taxForm1099.findMany({
     where,
     orderBy: {
       createdAt: 'desc',
@@ -711,7 +712,7 @@ export async function get1099List(
  * Obtener detalles de un 1099 específico
  */
 export async function get1099Details(form1099Id: string): Promise<any> {
-  return (prisma as any).taxForm1099.findUnique({
+  return prisma.taxForm1099.findUnique({
     where: { id: form1099Id },
   });
 }

@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
+    const companyId = searchParams.get('companyId') || 'default-company-001'
     
     // Validate pagination
     const { page, limit, error: paginationError } = validatePagination(request)
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
     const [customers, total] = await Promise.all([
       prisma.customer.findMany({
         where: {
+          companyId,
           ...(status && { status: status as any }),
         },
         orderBy: {
@@ -43,6 +45,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.customer.count({
         where: {
+          companyId,
           ...(status && { status: status as any }),
         },
       }),
@@ -91,6 +94,7 @@ export async function POST(request: NextRequest) {
       zipCode,
       country,
       notes,
+      companyId,
     } = body
 
     // Additional validation
@@ -108,6 +112,7 @@ export async function POST(request: NextRequest) {
 
     const customer = await prisma.customer.create({
       data: {
+        companyId: companyId || 'default-company-001',
         name,
         email,
         phone,

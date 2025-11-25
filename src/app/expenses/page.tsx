@@ -65,9 +65,11 @@ export default function ExpensesPage() {
     try {
       const response = await fetch('/api/expenses')
       if (response.ok) {
-        const data = await response.json()
-        setExpenses(data)
-        setFilteredExpenses(data)
+        const result = await response.json()
+        // La API ahora devuelve { data: [...], pagination: {...} }
+        const data = result.data || result
+        setExpenses(Array.isArray(data) ? data : [])
+        setFilteredExpenses(Array.isArray(data) ? data : [])
       }
     } catch (error) {
       console.error('Error fetching expenses:', error)

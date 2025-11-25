@@ -15,8 +15,14 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const customer = await prisma.customer.findUnique({
-      where: { id: params.id },
+    const url = new URL(request.url)
+    const companyId = url.searchParams.get('companyId') || 'default-company-001'
+
+    const customer = await prisma.customer.findFirst({
+      where: { 
+        id: params.id,
+        companyId,
+      },
       include: {
         invoices: {
           orderBy: {
@@ -76,7 +82,23 @@ export async function PUT(
       country,
       notes,
       status,
+      companyId,
     } = body
+
+    // Verify customer belongs to company
+    const existingCustomer = await prisma.customer.findFirst({
+      where: { 
+        id: params.id,
+        companyId: companyId || 'default-company-001',
+      },
+    })
+
+    if (!existingCustomer) {
+      return NextResponse.json(
+        { error: 'Cliente no encontrado' },
+        { status: 404 }
+      )
+    }
 
     const customer = await prisma.customer.update({
       where: { id: params.id },
@@ -116,6 +138,24 @@ export async function DELETE(
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const url = new URL(request.url)
+    const companyId = url.searchParams.get('companyId') || 'default-company-001'
+
+    // Verify customer belongs to company
+    const customer = await prisma.customer.findFirst({
+      where: { 
+        id: params.id,
+        companyId,
+      },
+    })
+
+    if (!customer) {
+      return NextResponse.json(
+        { error: 'Cliente no encontrado' },
+        { status: 404 }
+      )
     }
 
     // Check if customer has invoices

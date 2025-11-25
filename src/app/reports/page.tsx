@@ -177,15 +177,15 @@ export default function ReportsPage() {
                 <h4 className="font-semibold mb-2">Assets</h4>
                 <table className="w-full text-sm">
                   <tbody>
-                    {reportData.assets.currentAssets.map((asset: any, i: number) => (
+                    {Array.isArray(reportData.assets?.currentAssets) && reportData.assets.currentAssets.map((asset: any, i: number) => (
                       <tr key={i}>
                         <td className="py-1">{asset.accountName}</td>
-                        <td className="text-right">${asset.amount.toFixed(2)}</td>
+                        <td className="text-right">${(asset.amount || 0).toFixed(2)}</td>
                       </tr>
                     ))}
                     <tr className="font-semibold border-t">
                       <td className="py-1">Total Assets</td>
-                      <td className="text-right">${reportData.assets.totalAssets.toFixed(2)}</td>
+                      <td className="text-right">${(reportData.assets?.totalAssets || 0).toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -196,11 +196,11 @@ export default function ReportsPage() {
                   <tbody>
                     <tr className="font-bold border-t-2">
                       <td className="py-2">Total Liabilities</td>
-                      <td className="text-right">${reportData.liabilities.totalLiabilities.toFixed(2)}</td>
+                      <td className="text-right">${(reportData.liabilities?.totalLiabilities || 0).toFixed(2)}</td>
                     </tr>
                     <tr className="font-bold">
                       <td className="py-2">Total Equity</td>
-                      <td className="text-right">${reportData.equity.totalEquity.toFixed(2)}</td>
+                      <td className="text-right">${(reportData.equity?.totalEquity || 0).toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -222,11 +222,11 @@ export default function ReportsPage() {
                 <tr className="font-semibold"><td colSpan={2}>Revenue</td></tr>
                 <tr className="font-semibold border-t">
                   <td className="py-1">Total Revenue</td>
-                  <td className="text-right">${reportData.revenue.total.toFixed(2)}</td>
+                  <td className="text-right">${(reportData.revenue?.total || 0).toFixed(2)}</td>
                 </tr>
                 <tr className="font-bold border-t-2">
                   <td className="py-2">NET INCOME</td>
-                  <td className="text-right">${reportData.netIncome.toFixed(2)}</td>
+                  <td className="text-right">${(reportData.netIncome || 0).toFixed(2)}</td>
                 </tr>
               </tbody>
             </table>
@@ -246,13 +246,13 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {reportData.customers.map((customer: any) => (
+                {Array.isArray(reportData.customers) && reportData.customers.map((customer: any) => (
                   <tr key={customer.customerId} className="border-b">
                     <td className="py-2">{customer.customerName}</td>
-                    <td className="text-right">${customer.totalSales.toFixed(2)}</td>
-                    <td className="text-right">${customer.totalOutstanding.toFixed(2)}</td>
+                    <td className="text-right">${(customer.totalSales || 0).toFixed(2)}</td>
+                    <td className="text-right">${(customer.totalOutstanding || 0).toFixed(2)}</td>
                   </tr>
-                ))}
+                )))
               </tbody>
             </table>
           </div>

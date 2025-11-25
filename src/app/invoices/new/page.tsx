@@ -69,11 +69,13 @@ export default function NewInvoicePage() {
     try {
       const response = await fetch('/api/customers')
       if (response.ok) {
-        const data = await response.json()
-        setCustomers(data)
+        const result = await response.json()
+        // API returns { data: [], pagination: {} }
+        setCustomers(Array.isArray(result) ? result : (result.data || []))
       }
     } catch (error) {
       console.error('Error fetching customers:', error)
+      setCustomers([])
     }
   }
 
@@ -81,11 +83,13 @@ export default function NewInvoicePage() {
     try {
       const response = await fetch('/api/products')
       if (response.ok) {
-        const data = await response.json()
-        setProducts(data)
+        const result = await response.json()
+        // API returns { data: [], pagination: {} }
+        setProducts(Array.isArray(result) ? result : (result.data || []))
       }
     } catch (error) {
       console.error('Error fetching products:', error)
+      setProducts([])
     }
   }
 
