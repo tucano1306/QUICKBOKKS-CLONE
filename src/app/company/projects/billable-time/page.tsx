@@ -497,11 +497,11 @@ export default function BillableTimePage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando horas facturables a CSV')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('⏱️ Nueva Entrada\n\nRegistrar horas de proyecto')}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Entrada
             </Button>

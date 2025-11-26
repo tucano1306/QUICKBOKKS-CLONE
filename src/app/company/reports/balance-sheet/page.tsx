@@ -1,18 +1,31 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, TrendingUp, Building2, Wallet, CreditCard, Package } from 'lucide-react'
+import DateRangeSelector from '@/components/ui/date-range-selector'
+import { Calendar, TrendingUp, Building2, Wallet, CreditCard, Package, Download, Printer, RefreshCw } from 'lucide-react'
+
+interface DateRange {
+  startDate: string
+  endDate: string
+  label: string
+}
 
 export default function BalanceSheetPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
+  const [dateRange, setDateRange] = useState<DateRange>({
+    startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    label: 'Este Año'
+  })
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -21,6 +34,15 @@ export default function BalanceSheetPage() {
   }, [status, router])
 
   const currentDate = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  // Función para recalcular balance basado en rango de fechas
+  const recalculateBalance = () => {
+    setLoading(true)
+    setTimeout(() => {
+      setLoading(false)
+      alert(`✅ Balance recalculado para el periodo:\n${dateRange.startDate} al ${dateRange.endDate}\n\nEn producción, esto consultaría la base de datos y recalcularía todos los montos basándose en las transacciones del periodo seleccionado.`)
+    }, 1000)
+  }
 
   const balanceData = {
     activos: {
@@ -66,6 +88,46 @@ export default function BalanceSheetPage() {
   const totalCapital = balanceData.capital.reduce((sum, item) => sum + item.monto, 0)
   const totalPasivosCapital = totalPasivos + totalCapital
 
+  // Función para generar CSV
+  const generateBalanceCSV = () => {
+    let csv = 'BALANCE GENERAL\n'
+    csv += `Empresa: ${activeCompany?.name || 'N/A'}\n`
+    csv += `Periodo: ${dateRange.startDate} al ${dateRange.endDate}\n`
+    csv += `Generado: ${new Date().toLocaleString('es-MX')}\n\n`
+    csv += 'Concepto,Monto\n'
+    csv += '\nACTIVOS\n'
+    csv += 'Activos Circulantes\n'
+    balanceData.activos.circulantes.forEach(item => {
+      csv += `"${item.concepto}",${item.monto}\n`
+    })
+    csv += `TOTAL ACTIVOS CIRCULANTES,${totalActivosCirc}\n\n`
+    csv += 'Activos Fijos\n'
+    balanceData.activos.fijos.forEach(item => {
+      csv += `"${item.concepto}",${item.monto}\n`
+    })
+    csv += `TOTAL ACTIVOS FIJOS,${totalActivosFijos}\n`
+    csv += `TOTAL ACTIVOS,${totalActivos}\n\n`
+    csv += 'PASIVOS\n'
+    csv += 'Pasivos a Corto Plazo\n'
+    balanceData.pasivos.corto.forEach(item => {
+      csv += `"${item.concepto}",${item.monto}\n`
+    })
+    csv += `TOTAL PASIVOS CORTO PLAZO,${totalPasivosCorto}\n\n`
+    csv += 'Pasivos a Largo Plazo\n'
+    balanceData.pasivos.largo.forEach(item => {
+      csv += `"${item.concepto}",${item.monto}\n`
+    })
+    csv += `TOTAL PASIVOS LARGO PLAZO,${totalPasivosLargo}\n`
+    csv += `TOTAL PASIVOS,${totalPasivos}\n\n`
+    csv += 'CAPITAL\n'
+    balanceData.capital.forEach(item => {
+      csv += `"${item.concepto}",${item.monto}\n`
+    })
+    csv += `TOTAL CAPITAL,${totalCapital}\n\n`
+    csv += `TOTAL PASIVOS + CAPITAL,${totalPasivosCapital}\n`
+    return csv
+  }
+
   if (status === 'loading') {
     return (
       <CompanyTabsLayout>
@@ -84,16 +146,44 @@ export default function BalanceSheetPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Balance General</h1>
             <p className="text-gray-600 mt-1">
-              Estado de Situación Financiera - {currentDate}
+              Estado de Situación Financiera al {new Date(dateRange.endDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+            <p className="text-sm text-blue-600 mt-1">
+              Periodo: {dateRange.label || `${dateRange.startDate} al ${dateRange.endDate}`}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Calendar className="w-4 h-4 mr-2" />
-              Cambiar Fecha
+            <div className="w-72">
+              <DateRangeSelector
+                value={dateRange}
+                onSelect={(range: DateRange) => {
+                  setDateRange(range)
+                  recalculateBalance()
+                }}
+              />
+            </div>
+            <Button variant="outline" onClick={recalculateBalance} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Recalcular
             </Button>
-            <Button>
-              Exportar PDF
+            <Button variant="outline" onClick={() => {
+              const csvData = generateBalanceCSV()
+              const blob = new Blob([csvData], { type: 'text/csv' })
+              const url = window.URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `balance-general-${dateRange.endDate}.csv`
+              a.click()
+              alert('✅ CSV exportado exitosamente')
+            }}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+            <Button onClick={() => {
+              window.print()
+            }}>
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir
             </Button>
           </div>
         </div>

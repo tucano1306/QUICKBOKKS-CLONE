@@ -365,15 +365,15 @@ export default function BudgetCreatePage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📋 Copiar Presupuesto 2025\n\nCopiando datos de 2025 como base...')}>
               <Copy className="w-4 h-4 mr-2" />
               Copiar de 2025
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando presupuesto a Excel')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('💾 Guardar Presupuesto\n\nGuardando presupuesto 2026...\nPOST /api/budgets')}>
               <Save className="w-4 h-4 mr-2" />
               Guardar Presupuesto
             </Button>

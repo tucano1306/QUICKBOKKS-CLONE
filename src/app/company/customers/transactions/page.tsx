@@ -351,7 +351,16 @@ export default function CustomerTransactionsPage() {
               Todas las facturas y pagos de tus clientes
             </p>
           </div>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => {
+            const csv = 'Fecha,Cliente,Tipo,Monto,Estado\nEjemplo de datos...'
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `transacciones-clientes-${new Date().toISOString().split('T')[0]}.csv`
+            a.click()
+            URL.revokeObjectURL(url)
+          }}>
             <Download className="w-4 h-4 mr-2" />
             Exportar Reporte
           </Button>

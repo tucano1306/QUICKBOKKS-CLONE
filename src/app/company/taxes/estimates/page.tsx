@@ -168,11 +168,11 @@ export default function TaxEstimatesPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando calendario de pagos estimados a PDF')}>
               <Download className="w-4 h-4 mr-2" />
               Export Schedule
             </Button>
-            <Button>
+            <Button onClick={() => alert('🧮 Recalculando pagos estimados...\n\nActualizando cálculos con datos más recientes')}>
               <Calculator className="w-4 h-4 mr-2" />
               Recalculate
             </Button>

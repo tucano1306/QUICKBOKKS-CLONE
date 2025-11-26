@@ -447,11 +447,11 @@ export default function ScheduledTasksPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📅 Historial de Ejecuciones\n\nViendo historial de tareas programadas')}>
               <RotateCcw className="w-4 h-4 mr-2" />
               Run History
             </Button>
-            <Button>
+            <Button onClick={() => alert('📅 Create Task\n\nProgramar nueva tarea automática')}>
               <Plus className="w-4 h-4 mr-2" />
               Create Task
             </Button>

@@ -375,13 +375,13 @@ export default function TaxDeductionsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando deducciones a CSV')}>
               <Download className="w-4 h-4 mr-2" />
-              Export Report
+              Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('💰 Nueva Deducción\n\nRegistrar deducción fiscal')}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Deduction
+              Nueva Deducción
             </Button>
           </div>
         </div>

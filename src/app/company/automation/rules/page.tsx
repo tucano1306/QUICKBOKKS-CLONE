@@ -383,11 +383,11 @@ export default function RulesPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📊 Templates\n\nPlantillas de reglas disponibles')}>
               <Copy className="w-4 h-4 mr-2" />
               Templates
             </Button>
-            <Button>
+            <Button onClick={() => alert('📜 Create Rule\n\nCrear nueva regla de automatización')}>
               <Plus className="w-4 h-4 mr-2" />
               Create Rule
             </Button>

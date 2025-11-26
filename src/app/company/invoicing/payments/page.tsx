@@ -271,11 +271,13 @@ export default function PaymentsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              alert('📥 Exportando pagos a CSV')
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('💰 Registrar Pago\n\nRegistra pago recibido\nPOST /api/payments')}>
               <Plus className="w-4 h-4 mr-2" />
               Registrar Pago
             </Button>

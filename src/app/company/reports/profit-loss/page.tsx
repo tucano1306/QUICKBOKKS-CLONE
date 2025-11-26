@@ -1,18 +1,31 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react'
+import DateRangeSelector from '@/components/ui/date-range-selector'
+import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Calendar, Download, Printer, RefreshCw } from 'lucide-react'
+
+interface DateRange {
+  startDate: string
+  endDate: string
+  label: string
+}
 
 export default function ProfitLossPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
+  const [dateRange, setDateRange] = useState<DateRange>({
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    label: 'Este Mes'
+  })
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -21,6 +34,15 @@ export default function ProfitLossPage() {
   }, [status, router])
 
   const currentMonth = new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+
+  // Función para recalcular P&L basado en rango de fechas
+  const recalculatePL = () => {
+    setLoading(true)
+    setTimeout(() => {
+      setLoading(false)
+      alert(`✅ Estado de Resultados recalculado para:\n${dateRange.startDate} al ${dateRange.endDate}\n\nEn producción, esto consultaría transacciones, facturas, gastos y nómina del periodo seleccionado.`)
+    }, 1000)
+  }
 
   const reportData = {
     ingresos: [
@@ -47,6 +69,34 @@ export default function ProfitLossPage() {
   const utilidadNeta = utilidadOperativa - totalOtrosGastos
   const margenNeto = (utilidadNeta / totalIngresos) * 100
 
+  // Función para generar CSV
+  const generatePLCSV = () => {
+    let csv = 'ESTADO DE RESULTADOS (P&L)\n'
+    csv += `Empresa: ${activeCompany?.name || 'N/A'}\n`
+    csv += `Periodo: ${dateRange.startDate} al ${dateRange.endDate}\n`
+    csv += `Generado: ${new Date().toLocaleString('es-MX')}\n\n`
+    csv += 'Concepto,Monto,Cambio %\n'
+    csv += '\nINGRESOS\n'
+    reportData.ingresos.forEach(item => {
+      csv += `"${item.concepto}",${item.monto},${item.cambio}%\n`
+    })
+    csv += `TOTAL INGRESOS,${totalIngresos},\n\n`
+    csv += 'GASTOS OPERATIVOS\n'
+    reportData.gastosOperativos.forEach(item => {
+      csv += `"${item.concepto}",${item.monto},${item.cambio}%\n`
+    })
+    csv += `TOTAL GASTOS OPERATIVOS,${totalGastosOp},\n`
+    csv += `UTILIDAD OPERATIVA,${utilidadOperativa},\n\n`
+    csv += 'OTROS GASTOS\n'
+    reportData.otrosGastos.forEach(item => {
+      csv += `"${item.concepto}",${item.monto},${item.cambio}%\n`
+    })
+    csv += `TOTAL OTROS GASTOS,${totalOtrosGastos},\n\n`
+    csv += `UTILIDAD NETA,${utilidadNeta},\n`
+    csv += `MARGEN NETO,${margenNeto.toFixed(2)}%,\n`
+    return csv
+  }
+
   if (status === 'loading') {
     return (
       <CompanyTabsLayout>
@@ -65,16 +115,42 @@ export default function ProfitLossPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Estado de Resultados</h1>
             <p className="text-gray-600 mt-1">
-              Pérdidas y Ganancias (Profit & Loss) - {currentMonth}
+              Pérdidas y Ganancias (Profit & Loss)
+            </p>
+            <p className="text-sm text-blue-600 mt-1">
+              Periodo: {dateRange.label || `${dateRange.startDate} al ${dateRange.endDate}`}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Calendar className="w-4 h-4 mr-2" />
-              Cambiar Periodo
+            <div className="w-72">
+              <DateRangeSelector
+                value={dateRange}
+                onSelect={(range: DateRange) => {
+                  setDateRange(range)
+                  recalculatePL()
+                }}
+              />
+            </div>
+            <Button variant="outline" onClick={recalculatePL} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Recalcular
             </Button>
-            <Button>
-              Exportar PDF
+            <Button variant="outline" onClick={() => {
+              const csvData = generatePLCSV()
+              const blob = new Blob([csvData], { type: 'text/csv' })
+              const url = window.URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `estado-resultados-${dateRange.endDate}.csv`
+              a.click()
+              alert('✅ CSV exportado exitosamente')
+            }}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+            <Button onClick={() => window.print()}>
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir
             </Button>
           </div>
         </div>

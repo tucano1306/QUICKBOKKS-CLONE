@@ -308,11 +308,11 @@ export default function TurboTaxPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('🔄 Sincronizando con TurboTax...\n\nActualizando datos fiscales')}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Sync Now
             </Button>
-            <Button>
+            <Button onClick={() => alert('⚡ Start Import\n\nIniciando importación a TurboTax Business...')}>
               <Zap className="w-4 h-4 mr-2" />
               Start Import
             </Button>

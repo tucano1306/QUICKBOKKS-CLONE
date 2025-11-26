@@ -378,7 +378,19 @@ export default function VendorHistoryPage() {
               Registro completo de transacciones con proveedores
             </p>
           </div>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => {
+            const csv = 'ID,Proveedor,Tipo,Fecha,Monto,Balance,Estado\n' + 
+              filteredTransactions.map(t => 
+                `${t.transactionId},"${t.vendor}",${t.type},${t.date},$${t.amount},$${t.balance},${t.status}`
+              ).join('\n')
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `historial-proveedores-${new Date().toISOString().split('T')[0]}.csv`
+            a.click()
+            URL.revokeObjectURL(url)
+          }}>
             <Download className="w-4 h-4 mr-2" />
             Exportar Historial
           </Button>

@@ -52,6 +52,7 @@ export default function BankAccountsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [showBankModal, setShowBankModal] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -282,7 +283,7 @@ export default function BankAccountsPage() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowBankModal(true)}>
               <LinkIcon className="w-4 h-4 mr-2" />
               Conectar Banco
             </Button>
@@ -511,6 +512,68 @@ export default function BankAccountsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Connect Bank Modal */}
+        {showBankModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-2xl w-full">
+              <CardHeader className="border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Conectar Banco</CardTitle>
+                  <Button variant="outline" onClick={() => setShowBankModal(false)}>Cerrar</Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <p className="text-gray-600 mb-4">Selecciona tu institución bancaria para conectar tu cuenta</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button className="p-6 border-2 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                      <div className="text-3xl mb-2">🏦</div>
+                      <div className="font-semibold text-lg">BBVA</div>
+                      <div className="text-xs text-gray-500">Conexión Segura</div>
+                    </button>
+                    <button className="p-6 border-2 rounded-lg hover:border-red-500 hover:bg-red-50 transition">
+                      <div className="text-3xl mb-2">🏦</div>
+                      <div className="font-semibold text-lg">Santander</div>
+                      <div className="text-xs text-gray-500">Conexión Segura</div>
+                    </button>
+                    <button className="p-6 border-2 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition">
+                      <div className="text-3xl mb-2">🏦</div>
+                      <div className="font-semibold text-lg">Banorte</div>
+                      <div className="text-xs text-gray-500">Conexión Segura</div>
+                    </button>
+                    <button className="p-6 border-2 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition">
+                      <div className="text-3xl mb-2">🏦</div>
+                      <div className="font-semibold text-lg">Citibanamex</div>
+                      <div className="text-xs text-gray-500">Conexión Segura</div>
+                    </button>
+                    <button className="p-6 border-2 rounded-lg hover:border-green-500 hover:bg-green-50 transition">
+                      <div className="text-3xl mb-2">🏦</div>
+                      <div className="font-semibold text-lg">HSBC</div>
+                      <div className="text-xs text-gray-500">Conexión Segura</div>
+                    </button>
+                    <button className="p-6 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition">
+                      <div className="text-3xl mb-2">🏦</div>
+                      <div className="font-semibold text-lg">American Express</div>
+                      <div className="text-xs text-gray-500">Tarjetas de Crédito</div>
+                    </button>
+                  </div>
+                  <div className="pt-4 border-t bg-blue-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5" /> Seguridad Bancaria
+                    </h3>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• 🔒 Encriptación SSL 256-bit</li>
+                      <li>• 🚫 No almacenamos credenciales</li>
+                      <li>• ✅ Conexión API oficial del banco</li>
+                      <li>• 🔐 OAuth 2.0 Authentication</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

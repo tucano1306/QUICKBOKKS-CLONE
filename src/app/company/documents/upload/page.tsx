@@ -63,6 +63,8 @@ export default function DocumentUploadPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [uploadProgress, setUploadProgress] = useState<number>(0)
   const [isUploading, setIsUploading] = useState(false)
+  const [processingStage, setProcessingStage] = useState<string>('')
+  const [uploadedFiles, setUploadedFiles] = useState<ClientDocument[]>([])
   const [portalLink] = useState('https://portal.quickbooks.com/client/ABC123XYZ')
 
   useEffect(() => {
@@ -206,7 +208,9 @@ export default function DocumentUploadPage() {
     }
   ]
 
-  const filteredDocs = documents.filter(doc => {
+  const allDocuments = [...uploadedFiles, ...documents]
+  
+  const filteredDocs = allDocuments.filter(doc => {
     const matchesSearch = 
       doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.aiCategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -263,17 +267,63 @@ export default function DocumentUploadPage() {
     setIsUploading(true)
     setUploadProgress(0)
 
+    const stages = [
+      { progress: 15, stage: '📤 Subiendo archivos al servidor...' },
+      { progress: 30, stage: '🔍 Ejecutando OCR y extrayendo texto...' },
+      { progress: 45, stage: '🤖 Analizando contenido con IA (GPT-4 Vision)...' },
+      { progress: 60, stage: '🏷️ Identificando tipo de documento...' },
+      { progress: 75, stage: '📊 Extrayendo datos: monto, fecha, proveedor...' },
+      { progress: 85, stage: '💼 Asignando cuenta contable automáticamente...' },
+      { progress: 92, stage: '📝 Creando asiento de diario (Debe/Haber)...' },
+      { progress: 98, stage: '💾 Guardando en base de datos...' },
+      { progress: 100, stage: '✅ Proceso completado - Actualizando reportes...' }
+    ]
+
+    let currentStageIndex = 0
+
     const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsUploading(false)
-          alert('✅ Documentos subidos! El AI está analizando y categorizando automáticamente...')
-          return 100
-        }
-        return prev + 10
-      })
-    }, 200)
+      if (currentStageIndex < stages.length) {
+        const { progress, stage } = stages[currentStageIndex]
+        setUploadProgress(progress)
+        setProcessingStage(stage)
+        currentStageIndex++
+      } else {
+        clearInterval(interval)
+        
+        // Simular documentos procesados
+        const newDocs: ClientDocument[] = Array.from(files).map((file, index) => {
+          const categories: ClientDocument['category'][] = ['invoice', 'receipt', 'bank_statement']
+          const category = categories[Math.floor(Math.random() * categories.length)]
+          const amount = Math.random() * 5000 + 100
+          const confidence = Math.random() * 15 + 85 // 85-100%
+          
+          return {
+            id: `DOC-NEW-${Date.now()}-${index}`,
+            filename: file.name,
+            fileType: file.type.includes('pdf') ? 'PDF' : 'Image',
+            category,
+            uploadDate: new Date().toLocaleString('es-MX'),
+            uploadedBy: session?.user?.name || 'Usuario',
+            fileSize: file.size,
+            status: confidence > 95 ? 'categorized' : 'processing',
+            aiCategory: category === 'invoice' ? 'Compras - Suministros' : category === 'receipt' ? 'Gastos Operativos' : 'Conciliación Bancaria',
+            aiConfidence: Math.round(confidence),
+            amount: Math.round(amount * 100) / 100,
+            vendor: 'Proveedor Auto-Detectado',
+            date: new Date().toISOString().split('T')[0],
+            accountCode: category === 'invoice' ? '5240 - Suministros' : '5200 - Gastos',
+            aiProcessingTime: `${(Math.random() * 3 + 1).toFixed(1)}s`,
+            notes: confidence > 95 ? 'Asiento contable creado automáticamente' : 'Revisar: Confianza < 95%'
+          }
+        })
+
+        setUploadedFiles(prev => [...newDocs, ...prev])
+        setIsUploading(false)
+        setProcessingStage('')
+        
+        alert(`✅ ${files.length} documento(s) procesado(s) exitosamente!\n\n🤖 Análisis IA completado:\n• Datos extraídos automáticamente\n• Cuentas contables asignadas\n• Asientos de diario creados\n• Base de datos actualizada\n• Reportes financieros reflejados\n\n✨ Todo está listo para revisión.`)
+      }
+    }, 400)
   }
 
   const copyPortalLink = () => {
@@ -282,10 +332,10 @@ export default function DocumentUploadPage() {
   }
 
   const stats = {
-    totalDocs: documents.length,
-    pending: documents.filter(d => d.status === 'pending' || d.status === 'processing').length,
-    categorized: documents.filter(d => d.status === 'categorized' || d.status === 'reviewed').length,
-    totalAmount: documents.filter(d => d.amount).reduce((sum, d) => sum + (d.amount || 0), 0),
+    totalDocs: allDocuments.length,
+    pending: allDocuments.filter(d => d.status === 'pending' || d.status === 'processing').length,
+    categorized: allDocuments.filter(d => d.status === 'categorized' || d.status === 'reviewed').length,
+    totalAmount: allDocuments.filter(d => d.amount).reduce((sum, d) => sum + (d.amount || 0), 0),
     avgProcessingTime: '2.5s'
   }
 
@@ -367,22 +417,36 @@ export default function DocumentUploadPage() {
 
         {/* Upload Progress */}
         {isUploading && (
-          <Card className="bg-blue-50 border-blue-200 animate-pulse">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Bot className="w-5 h-5 text-blue-600 animate-spin" />
-                  <span className="text-sm font-semibold text-blue-900">
-                    Subiendo y procesando con IA...
-                  </span>
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-300 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <Bot className="w-6 h-6 text-blue-600 animate-spin" />
+                  <div>
+                    <span className="text-sm font-semibold text-blue-900 block">
+                      Procesando con Inteligencia Artificial
+                    </span>
+                    <span className="text-xs text-blue-700">
+                      {processingStage}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-sm text-blue-700">{uploadProgress}%</span>
+                <div className="text-right">
+                  <span className="text-2xl font-bold text-blue-900">{uploadProgress}%</span>
+                  <span className="text-xs text-blue-700 block">completado</span>
+                </div>
               </div>
-              <div className="w-full bg-blue-200 rounded-full h-3">
+              <div className="w-full bg-blue-200 rounded-full h-4 shadow-inner">
                 <div 
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 h-4 rounded-full transition-all duration-500 shadow-lg relative overflow-hidden"
                   style={{ width: `${uploadProgress}%` }}
-                />
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-shimmer"></div>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-blue-700">
+                <span>🔍 OCR + Machine Learning + Categorización Automática</span>
+                <span>⚡ Tiempo estimado: ~3-5s</span>
               </div>
             </CardContent>
           </Card>

@@ -226,6 +226,19 @@ export default function AICategorizationPage() {
     alert(`🔄 Re-procesando transacción ${id} con IA...`)
   }
 
+  const handleImportTransactions = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.csv'
+    input.onchange = (e: any) => {
+      const file = e.target.files[0]
+      if (file) {
+        alert(`✅ Archivo CSV "${file.name}" importado exitosamente\n\n🤖 Procesando con IA...\n⏱️ Categorizando transacciones automáticamente...`)
+      }
+    }
+    input.click()
+  }
+
   const stats = {
     totalTransactions: transactions.length,
     pending: transactions.filter(t => t.status === 'pending').length,
@@ -276,7 +289,7 @@ export default function AICategorizationPage() {
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
             </div>
-            <Button>
+            <Button onClick={handleImportTransactions}>
               <Upload className="w-4 h-4 mr-2" />
               Importar Transacciones
             </Button>

@@ -52,6 +52,7 @@ export default function VendorPayablesPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterVendor, setFilterVendor] = useState<string>('all')
   const [dateRange, setDateRange] = useState<string>('all')
+  const [showNewPayableModal, setShowNewPayableModal] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -321,11 +322,23 @@ export default function VendorPayablesPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              const csv = 'Factura,Proveedor,Fecha,Vencimiento,Monto,Pagado,Balance,Estado\n' + 
+                filteredPayables.map(p => 
+                  `${p.billNumber},"${p.vendor}",${p.date},${p.dueDate},$${p.amount},$${p.paidAmount},$${p.balance},${p.status}`
+                ).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `cuentas-por-pagar-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewPayableModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Registrar Factura
             </Button>
@@ -572,6 +585,101 @@ export default function VendorPayablesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal Registrar Factura */}
+        {showNewPayableModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewPayableModal(false)}>
+            <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <CardHeader>
+                <CardTitle>Registrar Factura de Proveedor</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Proveedor</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>Acme Corp</option>
+                      <option>Office Supplies Co.</option>
+                      <option>Servicios de Limpieza</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Número de Factura</label>
+                    <Input placeholder="BILL-001" />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Fecha de Factura</label>
+                    <Input type="date" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Fecha de Vencimiento</label>
+                    <Input type="date" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Descripción</label>
+                  <Input placeholder="Suministros de oficina - Noviembre 2025" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Categoría</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>Suministros</option>
+                      <option>Servicios</option>
+                      <option>Arrendamiento</option>
+                      <option>Gastos Generales</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Términos</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>Net 30</option>
+                      <option>Net 15</option>
+                      <option>Due on Receipt</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Subtotal</label>
+                    <Input type="number" placeholder="10000.00" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">IVA (16%)</label>
+                    <Input type="number" placeholder="1600.00" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Total</label>
+                    <Input type="number" placeholder="11600.00" className="font-bold" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Referencia (Opcional)</label>
+                  <Input placeholder="PO-12345" />
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button variant="outline" onClick={() => setShowNewPayableModal(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={() => {
+                    alert('✅ Factura registrada exitosamente\n\nEn producción, esto enviaría:\nPOST /api/vendors/payables')
+                    setShowNewPayableModal(false)
+                  }}>
+                    Registrar Factura
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

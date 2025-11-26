@@ -229,11 +229,11 @@ export default function PayrollChecksPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('🖨️ Imprimir Lote\n\nImprimiendo cheques seleccionados...')}>
               <Printer className="w-4 h-4 mr-2" />
               Imprimir Lote
             </Button>
-            <Button>
+            <Button onClick={() => alert('💵 Nuevo Cheque\n\nCrear cheque de nómina')}>
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Cheque
             </Button>

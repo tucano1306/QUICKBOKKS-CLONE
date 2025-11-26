@@ -287,11 +287,11 @@ export default function RemindersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('⚙️ Configuración de Recordatorios\n\nConfigura plantillas, horarios y canales')}>
               <Settings className="w-4 h-4 mr-2" />
               Configuración
             </Button>
-            <Button>
+            <Button onClick={() => alert('⏰ Nuevo Recordatorio\n\nCrea recordatorio automático')}>
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Recordatorio
             </Button>

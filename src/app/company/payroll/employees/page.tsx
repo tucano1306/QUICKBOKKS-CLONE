@@ -41,6 +41,7 @@ export default function EmployeesPage() {
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showNewEmployeeModal, setShowNewEmployeeModal] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -128,7 +129,7 @@ export default function EmployeesPage() {
               Gestiona el equipo y la nómina de tu empresa
             </p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={() => setShowNewEmployeeModal(true)}>
             <Plus className="w-4 h-4" />
             Nuevo Empleado
           </Button>
@@ -262,6 +263,142 @@ export default function EmployeesPage() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Modal Nuevo Empleado */}
+        {showNewEmployeeModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewEmployeeModal(false)}>
+            <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <CardHeader>
+                <CardTitle>Nuevo Empleado</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Nombre</label>
+                    <Input placeholder="Juan" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Apellido</label>
+                    <Input placeholder="Pérez" />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Email</label>
+                    <Input type="email" placeholder="juan.perez@empresa.com" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Teléfono</label>
+                    <Input placeholder="(555) 123-4567" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Puesto</label>
+                    <Input placeholder="Contador Senior" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Departamento</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>Contabilidad</option>
+                      <option>Ventas</option>
+                      <option>Operaciones</option>
+                      <option>Administración</option>
+                      <option>IT</option>
+                      <option>RRHH</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Salario Anual</label>
+                    <Input type="number" placeholder="75000" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Fecha de Inicio</label>
+                    <Input type="date" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">SSN / RFC</label>
+                    <Input placeholder="123-45-6789" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Tipo de Empleado</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>W-2 Employee</option>
+                      <option>1099 Contractor</option>
+                      <option>1099-NEC</option>
+                      <option>1099-MISC</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Dirección</label>
+                  <Input placeholder="123 Main Street, Miami, FL 33101" />
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">Información de Nómina</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Método de Pago</label>
+                      <select className="w-full border rounded-md p-2">
+                        <option>Depósito Directo</option>
+                        <option>Cheque</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Frecuencia de Pago</label>
+                      <select className="w-full border rounded-md p-2">
+                        <option>Quincenal</option>
+                        <option>Semanal</option>
+                        <option>Mensual</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">Retenciones (W-4)</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Filing Status</label>
+                      <select className="w-full border rounded-md p-2">
+                        <option>Single</option>
+                        <option>Married Filing Jointly</option>
+                        <option>Married Filing Separately</option>
+                        <option>Head of Household</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Allowances</label>
+                      <Input type="number" placeholder="1" defaultValue="1" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button variant="outline" onClick={() => setShowNewEmployeeModal(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={() => {
+                    toast.success('✅ Empleado creado exitosamente\n\nEn producción, esto enviaría:\nPOST /api/payroll/employees')
+                    setShowNewEmployeeModal(false)
+                  }}>
+                    Crear Empleado
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

@@ -342,11 +342,11 @@ export default function TaxReportsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando reportes fiscales a PDF')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('📄 Nueva Declaración\n\nIniciando nueva declaración fiscal')}>
               <FileText className="w-4 h-4 mr-2" />
               Nueva Declaración
             </Button>

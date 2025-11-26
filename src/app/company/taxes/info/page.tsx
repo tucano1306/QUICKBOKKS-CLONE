@@ -299,11 +299,11 @@ export default function TaxInfoPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando información fiscal completa...')}>
               <Download className="w-4 h-4 mr-2" />
               Export Report
             </Button>
-            <Button>
+            <Button onClick={() => alert('📅 Calendario Fiscal\n\nViendo fechas importantes de impuestos')}>
               <FileText className="w-4 h-4 mr-2" />
               View Tax Calendar
             </Button>

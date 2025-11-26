@@ -391,11 +391,11 @@ export default function RemindersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('🔔 Test Reminder\n\nEnviando recordatorio de prueba...')}>
               <Bell className="w-4 h-4 mr-2" />
               Test Reminder
             </Button>
-            <Button>
+            <Button onClick={() => alert('⏰ Create Reminder\n\nConfigurar nuevo recordatorio automático')}>
               <Plus className="w-4 h-4 mr-2" />
               Create Reminder
             </Button>

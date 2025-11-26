@@ -371,11 +371,11 @@ export default function BankTransfersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando transferencias a CSV')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('🔁 Nueva Transferencia\n\nTransferir entre cuentas')}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Transferencia
             </Button>

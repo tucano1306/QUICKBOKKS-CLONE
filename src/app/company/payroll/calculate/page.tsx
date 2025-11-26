@@ -403,15 +403,15 @@ export default function PayrollCalculatePage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando cálculos de nómina a CSV')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('🧮 Calculando nómina para todos los empleados...\n\nProcesando sueldos, deducciones e impuestos')}>
               <Calculator className="w-4 h-4 mr-2" />
               Calcular Todo
             </Button>
-            <Button>
+            <Button onClick={() => alert('📄 Nueva Nómina\n\nIniciando nuevo periodo de nómina')}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Nómina
             </Button>

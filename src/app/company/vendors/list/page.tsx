@@ -58,6 +58,7 @@ export default function VendorsListPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [showNewVendorModal, setShowNewVendorModal] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -281,11 +282,23 @@ export default function VendorsListPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              const csv = 'Código,Nombre,Email,Teléfono,Ciudad,Balance\n' + 
+                filteredVendors.map(v => 
+                  `${v.vendorNumber},"${v.name}",${v.email},${v.phone},${v.city},$${v.currentBalance}`
+                ).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `proveedores-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewVendorModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Proveedor
             </Button>
@@ -499,6 +512,107 @@ export default function VendorsListPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal Nuevo Proveedor */}
+        {showNewVendorModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewVendorModal(false)}>
+            <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <CardHeader>
+                <CardTitle>Nuevo Proveedor</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Nombre del Proveedor</label>
+                    <Input placeholder="Acme Corp" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Nombre de Contacto</label>
+                    <Input placeholder="Juan Pérez" />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Email</label>
+                    <Input type="email" placeholder="contacto@proveedor.com" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Teléfono</label>
+                    <Input placeholder="+52 55 1234-5678" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Dirección</label>
+                  <Input placeholder="Calle Principal 123" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Ciudad</label>
+                    <Input placeholder="Ciudad de México" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">País</label>
+                    <Input placeholder="México" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">RFC / Tax ID</label>
+                    <Input placeholder="ABC123456XYZ" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Categoría</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>Suministros</option>
+                      <option>Servicios</option>
+                      <option>Arrendamiento</option>
+                      <option>Tecnología</option>
+                      <option>Profesionales</option>
+                      <option>Otro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Términos de Pago</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>Net 30</option>
+                      <option>Net 15</option>
+                      <option>Net 7</option>
+                      <option>Due on Receipt</option>
+                      <option>Net 45</option>
+                      <option>Net 60</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Estado</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>Activo</option>
+                      <option>Inactivo</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button variant="outline" onClick={() => setShowNewVendorModal(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={() => {
+                    alert('✅ Proveedor creado exitosamente\n\nEn producción, esto enviaría:\nPOST /api/vendors')
+                    setShowNewVendorModal(false)
+                  }}>
+                    Crear Proveedor
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

@@ -230,11 +230,18 @@ export default function EstimatesPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              const csv = 'Número,Cliente,Fecha,Monto,Estado\nDatos cotizaciones...'
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const a = document.createElement('a')
+              a.href = URL.createObjectURL(blob)
+              a.download = `cotizaciones-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('📋 Nueva Cotización\n\nCreando cotización...\nPOST /api/estimates')}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Cotización
             </Button>

@@ -406,11 +406,20 @@ export default function BudgetVsActualPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              const csv = 'Categoría,Presupuestado,Real,Variación,% Uso\nEjemplo de datos...'
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `presupuesto-vs-real-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar Reporte
             </Button>
-            <Button>
+            <Button onClick={() => window.location.href = '/company/dashboard'}>
               <BarChart3 className="w-4 h-4 mr-2" />
               Dashboard
             </Button>

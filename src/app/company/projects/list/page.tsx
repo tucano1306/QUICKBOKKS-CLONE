@@ -400,11 +400,11 @@ export default function ProjectsListPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando proyectos a CSV')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('📁 Nuevo Proyecto\n\nCrear proyecto\nPOST /api/projects')}>
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Proyecto
             </Button>

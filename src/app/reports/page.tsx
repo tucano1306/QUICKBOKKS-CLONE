@@ -252,7 +252,7 @@ export default function ReportsPage() {
                     <td className="text-right">${(customer.totalSales || 0).toFixed(2)}</td>
                     <td className="text-right">${(customer.totalOutstanding || 0).toFixed(2)}</td>
                   </tr>
-                )))
+                ))}
               </tbody>
             </table>
           </div>

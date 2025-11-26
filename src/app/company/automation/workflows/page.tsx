@@ -331,11 +331,11 @@ export default function WorkflowsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📊 Templates de Workflows\n\nPlantillas predefinidas disponibles')}>
               <Copy className="w-4 h-4 mr-2" />
               Templates
             </Button>
-            <Button>
+            <Button onClick={() => alert('⚙️ Crear Workflow\n\nConfigurar nueva automatización')}>
               <Plus className="w-4 h-4 mr-2" />
               Create Workflow
             </Button>

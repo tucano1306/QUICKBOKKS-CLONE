@@ -149,7 +149,7 @@ export default function InvoicesPage() {
               Gestiona y crea facturas profesionales
             </p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={() => alert('📄 Nueva Factura\n\nCreando factura...\nPOST /api/invoices')}>
             <Plus className="w-4 h-4" />
             Nueva Factura
           </Button>

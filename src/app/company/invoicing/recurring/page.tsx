@@ -229,7 +229,7 @@ export default function RecurringInvoicesPage() {
               Automatiza la facturación periódica a tus clientes
             </p>
           </div>
-          <Button>
+          <Button onClick={() => alert('🔄 Nueva Factura Recurrente\n\nConfigura:\n- Frecuencia (mensual, trimestral, anual)\n- Cliente\n- Monto\n- Fecha de inicio')}>
             <Plus className="w-4 h-4 mr-2" />
             Nueva Factura Recurrente
           </Button>

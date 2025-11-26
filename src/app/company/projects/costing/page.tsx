@@ -380,11 +380,20 @@ export default function ProjectCostingPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              const csv = 'Proyecto,Presupuestado,Gastado,Variación,Margen\nEjemplo de datos...'
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `costeo-proyectos-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar Reporte
             </Button>
-            <Button>
+            <Button onClick={() => alert('📊 Calculando costos de proyectos...\n\nAnalizando:\n- Horas trabajadas\n- Gastos directos\n- Overhead\n- Márgenes')}>
               <Calculator className="w-4 h-4 mr-2" />
               Calcular Costos
             </Button>

@@ -296,13 +296,13 @@ export default function TimesheetPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando hojas de tiempo a CSV')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('⏱️ Registrar Horas\n\nRegistra horas trabajadas')}>
               <Plus className="w-4 h-4 mr-2" />
-              Nueva Entrada
+              Registrar Horas
             </Button>
           </div>
         </div>

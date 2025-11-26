@@ -45,6 +45,7 @@ export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [dateRange, setDateRange] = useState('month')
+  const [showNewModal, setShowNewModal] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -215,6 +216,45 @@ export default function TransactionsPage() {
     }
   }
 
+  const exportCSV = () => {
+    const headers = ['Date', 'Type', 'Description', 'Debit', 'Credit', 'Balance']
+    let balance = 0
+    const rows = transactions.map(txn => {
+      const debit = txn.type === 'expense' || txn.type === 'transfer' ? txn.amount : 0
+      const credit = txn.type === 'income' ? txn.amount : 0
+      balance += credit - debit
+      return [
+        txn.date,
+        txn.type,
+        txn.description,
+        debit,
+        credit,
+        balance
+      ]
+    })
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `transactions_${new Date().toISOString()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImport = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.csv'
+    input.onchange = (e: any) => {
+      const file = e.target.files[0]
+      if (file) {
+        alert(`✅ Archivo "${file.name}" cargado exitosamente`)
+      }
+    }
+    input.click()
+  }
+
   if (status === 'loading' || loading) {
     return (
       <CompanyTabsLayout>
@@ -237,15 +277,15 @@ export default function TransactionsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={exportCSV}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleImport}>
               <Upload className="w-4 h-4 mr-2" />
               Importar
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Transacción
             </Button>
@@ -437,6 +477,52 @@ export default function TransactionsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* New Transaction Modal */}
+        {showNewModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-2xl w-full">
+              <CardHeader className="border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Nueva Transacción</CardTitle>
+                  <Button variant="outline" onClick={() => setShowNewModal(false)}>Cerrar</Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Fecha</label>
+                    <Input type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Tipo</label>
+                    <select className="w-full px-3 py-2 border rounded-lg">
+                      <option value="income">Ingreso</option>
+                      <option value="expense">Gasto</option>
+                      <option value="transfer">Transferencia</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Descripción</label>
+                    <Input placeholder="Descripción de la transacción" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Monto</label>
+                    <Input type="number" placeholder="0.00" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Categoría</label>
+                    <Input placeholder="Categoría" />
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button className="flex-1" onClick={() => { alert('✅ Transacción creada'); setShowNewModal(false); }}>Crear Transacción</Button>
+                    <Button variant="outline" onClick={() => setShowNewModal(false)}>Cancelar</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

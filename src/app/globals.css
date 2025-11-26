@@ -91,3 +91,17 @@
 .hover-lift {
   @apply transition-transform duration-200 hover:-translate-y-1;
 }
+
+/* Shimmer Animation for AI Processing */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}

@@ -134,11 +134,11 @@ export default function ExpensesPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2" onClick={() => alert('📷 Escanear Recibo\n\nUsando cámara/scanner para capturar recibo')}>
               <Camera className="w-4 h-4" />
               Escanear Recibo
             </Button>
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" onClick={() => alert('📄 Nuevo Gasto\n\nRegistrar nuevo gasto\nPOST /api/expenses')}>
               <Plus className="w-4 h-4" />
               Nuevo Gasto
             </Button>

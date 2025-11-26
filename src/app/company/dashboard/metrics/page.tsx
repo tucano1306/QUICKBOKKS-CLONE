@@ -230,7 +230,16 @@ export default function MetricsPage() {
                 Año
               </button>
             </div>
-            <Button>
+            <Button onClick={() => {
+              const csv = `Métrica,Valor,Período\n"Score Financiero",85%,${period}\n"Liquidez Actual",2.34,${period}\n"ROI Promedio",18.5%,${period}\n"Eficiencia Operativa",76%,${period}`
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `metricas-${period}-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}>
               Exportar Reporte
             </Button>
           </div>

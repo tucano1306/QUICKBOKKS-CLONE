@@ -55,6 +55,7 @@ export default function ReconciliationPage() {
   const [selectedAccount, setSelectedAccount] = useState<string>('1')
   const [searchTerm, setSearchTerm] = useState('')
   const [showOnlyUnmatched, setShowOnlyUnmatched] = useState(false)
+  const [showNewModal, setShowNewModal] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -221,6 +222,36 @@ export default function ReconciliationPage() {
     return true
   })
 
+  const exportReport = () => {
+    const currentAccount = bankAccounts.find(acc => acc.id === selectedAccount)!
+    const headers = ['Fecha', 'Descripción', 'Tipo', 'Monto', 'Estado Banco', 'Estado Libros', 'Estado']
+    const rows = reconciliationItems.map(item => [
+      item.date,
+      item.description,
+      item.type,
+      item.amount,
+      item.bankStatement ? 'Sí' : 'No',
+      item.bookRecord ? 'Sí' : 'No',
+      item.status
+    ])
+    const summary = [
+      [''],
+      ['RESUMEN DE CONCILIACIÓN'],
+      ['Cuenta', currentAccount.name],
+      ['Saldo Bancario', currentAccount.bankBalance],
+      ['Saldo en Libros', currentAccount.bookBalance],
+      ['Diferencia', Math.abs(currentAccount.bookBalance - currentAccount.bankBalance)]
+    ]
+    const csvContent = [...summary, [''], headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `reconciliation_${currentAccount.name}_${new Date().toISOString()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'matched':
@@ -262,11 +293,11 @@ export default function ReconciliationPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={exportReport}>
               <Download className="w-4 h-4 mr-2" />
               Exportar Reporte
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Conciliación
             </Button>
@@ -550,6 +581,48 @@ export default function ReconciliationPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* New Reconciliation Modal */}
+        {showNewModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-2xl w-full">
+              <CardHeader className="border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Nueva Conciliación</CardTitle>
+                  <Button variant="outline" onClick={() => setShowNewModal(false)}>Cerrar</Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
+                    <select className="w-full px-3 py-2 border rounded-lg">
+                      {bankAccounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>{acc.name} - {acc.accountNumber}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Fecha Inicio</label>
+                    <Input type="date" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Fecha Fin</label>
+                    <Input type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Saldo Final del Estado de Cuenta</label>
+                    <Input type="number" placeholder="0.00" />
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button className="flex-1" onClick={() => { alert('✅ Conciliación iniciada'); setShowNewModal(false); }}>Iniciar Conciliación</Button>
+                    <Button variant="outline" onClick={() => setShowNewModal(false)}>Cancelar</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

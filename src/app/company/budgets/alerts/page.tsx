@@ -395,11 +395,11 @@ export default function BudgetAlertsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('📥 Exportando alertas a CSV')}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => alert('🔔 Configurar Alertas\n\nEstablecer límites y notificaciones')}>
               <Bell className="w-4 h-4 mr-2" />
               Configurar Alertas
             </Button>

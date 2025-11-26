@@ -254,11 +254,11 @@ export default function AIPredictionsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => alert('🔄 Update Models\n\nActualizando modelos de IA con datos más recientes...')}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Update Models
             </Button>
-            <Button>
+            <Button onClick={() => alert('📥 Export Forecast\n\nExportando predicciones a CSV')}>
               <Download className="w-4 h-4 mr-2" />
               Export Forecast
             </Button>

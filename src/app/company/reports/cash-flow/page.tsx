@@ -1,24 +1,45 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import DateRangeSelector from '@/components/ui/date-range-selector'
+import { Calendar, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download, Printer, RefreshCw } from 'lucide-react'
+
+interface DateRange {
+  startDate: string
+  endDate: string
+  label: string
+}
 
 export default function CashFlowPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
+  const [dateRange, setDateRange] = useState<DateRange>({
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    label: 'Este Mes'
+  })
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
   }, [status, router])
+
+  const recalculateCashFlow = () => {
+    setLoading(true)
+    setTimeout(() => {
+      setLoading(false)
+      alert(`✅ Flujo de Efectivo recalculado\n\nPeriodo: ${dateRange.startDate} al ${dateRange.endDate}\n\nEn producción, esto consultaría todas las transacciones de efectivo del periodo.`)
+    }, 1000)
+  }
 
   const cashFlowData = {
     operaciones: [
@@ -69,14 +90,40 @@ export default function CashFlowPage() {
             <p className="text-gray-600 mt-1">
               Movimientos de efectivo del período
             </p>
+            <p className="text-sm text-blue-600 mt-1">
+              Periodo: {dateRange.label || `${dateRange.startDate} al ${dateRange.endDate}`}
+            </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Calendar className="w-4 h-4 mr-2" />
-              Cambiar Período
+            <div className="w-72">
+              <DateRangeSelector
+                value={dateRange}
+                onSelect={(range: DateRange) => {
+                  setDateRange(range)
+                  recalculateCashFlow()
+                }}
+              />
+            </div>
+            <Button variant="outline" onClick={recalculateCashFlow} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Recalcular
             </Button>
-            <Button>
-              Exportar PDF
+            <Button variant="outline" onClick={() => {
+              const csv = `Estado de Flujo de Efectivo\nEmpresa: ${activeCompany?.name}\nPeriodo: ${dateRange.startDate} al ${dateRange.endDate}\n\nActividades de Operación\n`
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = window.URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `flujo-efectivo-${dateRange.endDate}.csv`
+              a.click()
+              alert('✅ CSV exportado')
+            }}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+            <Button onClick={() => window.print()}>
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir
             </Button>
           </div>
         </div>

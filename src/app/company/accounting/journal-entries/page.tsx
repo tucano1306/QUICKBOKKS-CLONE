@@ -56,6 +56,16 @@ export default function JournalEntriesPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [showDetail, setShowDetail] = useState(false)
+  const [showNewModal, setShowNewModal] = useState(false)
+  
+  // Estados para nueva póliza
+  const [newEntryDate, setNewEntryDate] = useState(new Date().toISOString().split('T')[0])
+  const [newEntryRef, setNewEntryRef] = useState('')
+  const [newEntryDesc, setNewEntryDesc] = useState('')
+  const [newEntryLines, setNewEntryLines] = useState<JournalLine[]>([
+    { id: '1', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 },
+    { id: '2', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 }
+  ])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -67,6 +77,69 @@ export default function JournalEntriesPage() {
     setLoading(true)
     setTimeout(() => setLoading(false), 800)
   }, [])
+
+  // Funciones para manejar la nueva póliza
+  const addNewLine = () => {
+    const newId = (newEntryLines.length + 1).toString()
+    setNewEntryLines([...newEntryLines, { 
+      id: newId, 
+      accountCode: '', 
+      accountName: '', 
+      description: '', 
+      debit: 0, 
+      credit: 0 
+    }])
+  }
+
+  const updateLine = (id: string, field: keyof JournalLine, value: any) => {
+    setNewEntryLines(newEntryLines.map(line => 
+      line.id === id ? { ...line, [field]: value } : line
+    ))
+  }
+
+  const removeLine = (id: string) => {
+    if (newEntryLines.length > 2) {
+      setNewEntryLines(newEntryLines.filter(line => line.id !== id))
+    }
+  }
+
+  const calculateTotals = () => {
+    const totalDebit = newEntryLines.reduce((sum, line) => sum + (Number(line.debit) || 0), 0)
+    const totalCredit = newEntryLines.reduce((sum, line) => sum + (Number(line.credit) || 0), 0)
+    return { totalDebit, totalCredit, balanced: totalDebit === totalCredit && totalDebit > 0 }
+  }
+
+  const createJournalEntry = () => {
+    const { totalDebit, totalCredit, balanced } = calculateTotals()
+    
+    if (!newEntryDesc) {
+      alert('❌ Falta la descripción de la póliza')
+      return
+    }
+
+    if (!balanced) {
+      alert(`❌ La póliza no está balanceada:\n\nTotal Cargos: $${totalDebit.toFixed(2)}\nTotal Abonos: $${totalCredit.toFixed(2)}\nDiferencia: $${Math.abs(totalDebit - totalCredit).toFixed(2)}\n\n⚠️ Los cargos y abonos deben ser iguales.`)
+      return
+    }
+
+    // Validar que todas las líneas tengan cuenta
+    const invalidLines = newEntryLines.filter(line => !line.accountCode || (!line.debit && !line.credit))
+    if (invalidLines.length > 0) {
+      alert('❌ Todas las partidas deben tener código de cuenta y monto (cargo o abono)')
+      return
+    }
+
+    alert(`✅ Póliza Contable Creada Exitosamente\n\n📋 Número: JE-${new Date().getFullYear()}-${String(journalEntries.length + 1).padStart(3, '0')}\n📅 Fecha: ${newEntryDate}\n💰 Total Cargos: $${totalDebit.toLocaleString()}\n💰 Total Abonos: $${totalCredit.toLocaleString()}\n✅ Estado: Borrador\n\nEn producción, esto se guardaría en la base de datos y se reflejaría en el balance y estado de resultados.`)
+    
+    // Reset form
+    setShowNewModal(false)
+    setNewEntryDesc('')
+    setNewEntryRef('')
+    setNewEntryLines([
+      { id: '1', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 },
+      { id: '2', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 }
+    ])
+  }
 
   const journalEntries: JournalEntry[] = [
     {
@@ -236,7 +309,7 @@ export default function JournalEntriesPage() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Póliza
             </Button>
@@ -529,6 +602,175 @@ export default function JournalEntriesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* New Journal Entry Modal */}
+        {showNewModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+              <CardHeader className="border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Nueva Póliza Contable</CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">Registro de asiento contable - Partida doble</p>
+                  </div>
+                  <Button variant="outline" onClick={() => setShowNewModal(false)}>✕</Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {/* Información General */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Fecha *</label>
+                      <Input 
+                        type="date" 
+                        value={newEntryDate}
+                        onChange={(e) => setNewEntryDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Referencia</label>
+                      <Input 
+                        placeholder="REF-001, FAC-123, etc." 
+                        value={newEntryRef}
+                        onChange={(e) => setNewEntryRef(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Descripción *</label>
+                    <Input 
+                      placeholder="Descripción detallada de la póliza contable" 
+                      value={newEntryDesc}
+                      onChange={(e) => setNewEntryDesc(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Partidas Contables */}
+                  <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold">Partidas Contables</h3>
+                      <Button variant="outline" size="sm" onClick={addNewLine}>
+                        <Plus className="w-4 h-4 mr-1" /> Agregar Partida
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-700 bg-gray-100 p-2 rounded">
+                      <div className="col-span-2">Cuenta</div>
+                      <div className="col-span-4">Descripción</div>
+                      <div className="col-span-2 text-right">Cargo (Debe)</div>
+                      <div className="col-span-2 text-right">Abono (Haber)</div>
+                      <div className="col-span-2"></div>
+                    </div>
+
+                    {newEntryLines.map((line, index) => (
+                      <div key={line.id} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border">
+                        <Input 
+                          className="col-span-2 text-sm" 
+                          placeholder="1120"
+                          value={line.accountCode}
+                          onChange={(e) => updateLine(line.id, 'accountCode', e.target.value)}
+                        />
+                        <Input 
+                          className="col-span-4 text-sm" 
+                          placeholder="Concepto o descripción"
+                          value={line.description}
+                          onChange={(e) => updateLine(line.id, 'description', e.target.value)}
+                        />
+                        <Input 
+                          className="col-span-2 text-sm text-right" 
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={line.debit || ''}
+                          onChange={(e) => updateLine(line.id, 'debit', parseFloat(e.target.value) || 0)}
+                        />
+                        <Input 
+                          className="col-span-2 text-sm text-right" 
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={line.credit || ''}
+                          onChange={(e) => updateLine(line.id, 'credit', parseFloat(e.target.value) || 0)}
+                        />
+                        <div className="col-span-2 flex gap-1 justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => removeLine(line.id)}
+                            disabled={newEntryLines.length <= 2}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Totales */}
+                    <div className="border-t-2 pt-3 mt-3">
+                      <div className="grid grid-cols-12 gap-2 text-sm font-semibold">
+                        <div className="col-span-6 text-right">TOTALES:</div>
+                        <div className={`col-span-2 text-right px-3 py-1 rounded ${
+                          calculateTotals().totalDebit > 0 ? 'bg-blue-100 text-blue-900' : 'text-gray-500'
+                        }`}>
+                          ${calculateTotals().totalDebit.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div className={`col-span-2 text-right px-3 py-1 rounded ${
+                          calculateTotals().totalCredit > 0 ? 'bg-green-100 text-green-900' : 'text-gray-500'
+                        }`}>
+                          ${calculateTotals().totalCredit.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div className="col-span-2"></div>
+                      </div>
+                      
+                      {/* Balance Status */}
+                      <div className="mt-2 p-3 rounded-lg bg-white border">
+                        {calculateTotals().balanced ? (
+                          <div className="flex items-center gap-2 text-green-700">
+                            <CheckCircle2 className="w-5 h-5" />
+                            <span className="font-semibold">✅ Póliza Balanceada - Los cargos y abonos coinciden</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-red-700">
+                            <XCircle className="w-5 h-5" />
+                            <span className="font-semibold">
+                              ❌ Desbalanceada - Diferencia: $
+                              {Math.abs(calculateTotals().totalDebit - calculateTotals().totalCredit).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ayuda */}
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                    <p className="text-xs text-blue-800">
+                      <strong>💡 Recordatorio:</strong> En el sistema de partida doble, toda transacción debe tener al menos un cargo y un abono, 
+                      y el total de cargos debe ser igual al total de abonos. Cargo (Debe) aumenta activos/gastos. Abono (Haber) aumenta pasivos/ingresos.
+                    </p>
+                  </div>
+
+                  {/* Botones de Acción */}
+                  <div className="flex gap-2 pt-4 border-t">
+                    <Button 
+                      className="flex-1" 
+                      onClick={createJournalEntry}
+                      disabled={!calculateTotals().balanced}
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Crear Póliza Contable
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowNewModal(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

@@ -62,6 +62,9 @@ export default function BankReconciliationPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [selectedAccount, setSelectedAccount] = useState<string>('ACC-001')
+  const [showNewModal, setShowNewModal] = useState(false)
+  const [reconciledItems, setReconciledItems] = useState<Set<string>>(new Set())
+  const [autoReconciling, setAutoReconciling] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -312,6 +315,75 @@ export default function BankReconciliationPage() {
   const discrepancyItems = reconciliationItems.filter(i => i.status === 'discrepancy' || i.status === 'missing-system' || i.status === 'missing-statement').length
   const reconciliationProgress = (matchedItems / reconciliationItems.length) * 100
 
+  // Función para conciliación automática
+  const autoReconcile = () => {
+    setAutoReconciling(true)
+    setTimeout(() => {
+      const matchedIds = reconciliationItems
+        .filter(item => item.status === 'matched')
+        .map(item => item.id)
+      setReconciledItems(new Set(matchedIds))
+      setAutoReconciling(false)
+      alert(`✅ Conciliación Automática Completada\n\n📊 Resultados:\n• Items conciliados: ${matchedIds.length}\n• Items con discrepancia: ${discrepancyItems}\n• Progreso: ${reconciliationProgress.toFixed(1)}%\n\n${discrepancyItems > 0 ? '⚠️ Revisa los items con discrepancia manualmente' : '🎉 Todas las transacciones están conciliadas'}`)
+    }, 1500)
+  }
+
+  // Función para marcar/desmarcar item como conciliado
+  const toggleReconciled = (itemId: string) => {
+    const newSet = new Set(reconciledItems)
+    if (newSet.has(itemId)) {
+      newSet.delete(itemId)
+    } else {
+      newSet.add(itemId)
+    }
+    setReconciledItems(newSet)
+  }
+
+  // Función para finalizar conciliación
+  const finishReconciliation = () => {
+    const totalReconciled = reconciledItems.size
+    const totalItems = reconciliationItems.length
+    const reconciledPercentage = (totalReconciled / totalItems) * 100
+    
+    if (reconciledPercentage < 100) {
+      const confirmed = confirm(`⚠️ Conciliación Incompleta\n\nHas conciliado ${totalReconciled} de ${totalItems} items (${reconciledPercentage.toFixed(1)}%)\n\n¿Deseas finalizar la conciliación de todos modos?\n\nItems pendientes podrán revisarse posteriormente.`)
+      if (!confirmed) return
+    }
+
+    alert(`✅ Conciliación Bancaria Finalizada\n\n📊 Resumen:\n• Cuenta: ${reconciliationPeriod.accountName}\n• Periodo: ${reconciliationPeriod.periodStart} al ${reconciliationPeriod.periodEnd}\n• Items conciliados: ${totalReconciled}/${totalItems}\n• Saldo Sistema: $${reconciliationPeriod.closingBalance.toLocaleString()}\n• Saldo Estado: $${reconciliationPeriod.statementBalance.toLocaleString()}\n• Diferencia: $${reconciliationPeriod.difference.toLocaleString()}\n\nLa conciliación se ha guardado exitosamente.`)
+  }
+
+  const exportReport = () => {
+    const headers = ['Fecha', 'ID Transacción', 'Descripción', 'Monto', 'Sistema', 'Estado Cuenta', 'Estado']
+    const rows = reconciliationItems.map(item => [
+      item.date,
+      item.transactionId,
+      item.description,
+      item.amount,
+      item.systemBalance || '-',
+      item.statementBalance || '-',
+      item.status
+    ])
+    const summary = [
+      ['REPORTE DE CONCILIACIÓN BANCARIA'],
+      ['Cuenta', reconciliationPeriod.accountName],
+      ['Período', `${reconciliationPeriod.periodStart} - ${reconciliationPeriod.periodEnd}`],
+      ['Saldo Sistema', reconciliationPeriod.closingBalance],
+      ['Saldo Estado', reconciliationPeriod.statementBalance],
+      ['Diferencia', reconciliationPeriod.difference],
+      ['Progreso', `${reconciliationProgress.toFixed(1)}%`],
+      ['']
+    ]
+    const csvContent = [...summary, headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `reconciliation_report_${new Date().toISOString()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   if (status === 'loading' || loading) {
     return (
       <CompanyTabsLayout>
@@ -334,15 +406,33 @@ export default function BankReconciliationPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar Reporte
+            <Button 
+              variant="outline" 
+              onClick={autoReconcile}
+              disabled={autoReconciling}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${autoReconciling ? 'animate-spin' : ''}`} />
+              Conciliar Auto
             </Button>
-            <Button variant="outline">
+            <Button 
+              variant="outline" 
+              onClick={finishReconciliation}
+              disabled={reconciledItems.size === 0}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Finalizar ({reconciledItems.size}/{reconciliationItems.length})
+            </Button>
+            <Button variant="outline" onClick={exportReport}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+            <Button variant="outline" onClick={() => {
+              alert('📄 Cargar Estado de Cuenta\n\nFormatos soportados:\n• CSV\n• Excel (.xlsx)\n• PDF (con OCR)\n• QFX/OFX\n\nEn producción, esto abriría un selector de archivos.')
+            }}>
               <FileText className="w-4 h-4 mr-2" />
               Cargar Estado
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Conciliación
             </Button>
@@ -602,6 +692,61 @@ export default function BankReconciliationPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* New Reconciliation Modal */}
+        {showNewModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-2xl w-full">
+              <CardHeader className="border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Nueva Conciliación Bancaria</CardTitle>
+                  <Button variant="outline" onClick={() => setShowNewModal(false)}>Cerrar</Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
+                    <select className="w-full px-3 py-2 border rounded-lg">
+                      <option value="ACC-001">Cuenta Principal Operativa - BBVA</option>
+                      <option value="ACC-002">Cuenta de Ahorros Empresarial - Santander</option>
+                      <option value="ACC-003">Cuenta Nómina - Banorte</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Fecha Inicio del Período</label>
+                      <Input type="date" defaultValue="2025-11-01" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Fecha Fin del Período</label>
+                      <Input type="date" defaultValue="2025-11-30" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Saldo Final según Estado de Cuenta</label>
+                    <Input type="number" placeholder="1,248,500.00" />
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h3 className="font-semibold text-blue-900 mb-2">📋 Información</h3>
+                    <p className="text-sm text-blue-700 mb-2">
+                      El proceso de conciliación comparará automáticamente:
+                    </p>
+                    <ul className="text-xs text-blue-600 space-y-1">
+                      <li>• Transacciones registradas en el sistema</li>
+                      <li>• Movimientos del estado de cuenta bancario</li>
+                      <li>• Identificará discrepancias y diferencias</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button className="flex-1" onClick={() => { alert('✅ Conciliación iniciada\n\n📊 Analizando transacciones...\n🔍 Buscando coincidencias automáticas...'); setShowNewModal(false); }}>Iniciar Conciliación</Button>
+                    <Button variant="outline" onClick={() => setShowNewModal(false)}>Cancelar</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

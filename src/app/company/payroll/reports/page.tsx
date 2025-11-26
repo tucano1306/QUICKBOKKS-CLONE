@@ -232,7 +232,7 @@ export default function PayrollReportsPage() {
               Análisis completo de costos, impuestos y distribución de nómina
             </p>
           </div>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => alert('📥 Exportando todos los reportes de nómina...')}>
             <Download className="w-4 h-4 mr-2" />
             Exportar Todos
           </Button>

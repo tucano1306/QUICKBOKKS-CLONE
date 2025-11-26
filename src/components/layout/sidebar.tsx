@@ -5,20 +5,12 @@ import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import {
   LayoutDashboard,
-  Users,
-  Package,
-  FileText,
-  CreditCard,
-  DollarSign,
   TrendingUp,
   Settings,
   LogOut,
   Menu,
   X,
   Building2,
-  Receipt,
-  Warehouse,
-  Scale,
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -27,19 +19,7 @@ import CompanySelector from '@/components/CompanySelector'
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Empresas', href: '/companies', icon: Building2 },
-  { name: 'Clientes', href: '/customers', icon: Users },
-  { name: 'Productos', href: '/products', icon: Package },
-  { name: 'Facturas', href: '/invoices', icon: FileText },
-  { name: 'Gastos', href: '/expenses', icon: Receipt },
-  { name: 'Inventario', href: '/inventory', icon: Warehouse },
-  { name: 'Nómina', href: '/payroll', icon: DollarSign },
-  { name: 'Bancos', href: '/banking', icon: Building2 },
-  { name: 'Tax Compliance', href: '/tax-compliance', icon: Scale },
-  { name: 'Formularios Fiscales', href: '/tax-forms', icon: FileText },
-  { name: 'Reportes', href: '/reports', icon: TrendingUp },
-  { name: 'Reportes Avanzados', href: '/reports/advanced', icon: Scale },
   { name: '🤖 Agente IA', href: '/ai-agent', icon: TrendingUp },
-  { name: '👥 Portal Clientes', href: '/portal', icon: Users },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ]
 

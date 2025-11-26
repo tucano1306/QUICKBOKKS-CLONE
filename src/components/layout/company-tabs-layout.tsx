@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
 import FloatingAssistant from '@/components/ai-assistant/floating-assistant'
+import RealTimeUpdates from '@/components/ui/real-time-updates'
 import {
   LayoutDashboard,
   FileText,
@@ -128,6 +129,7 @@ const tabSections: TabSection[] = [
       { name: 'Lista de Clientes', href: '/company/customers/list', description: 'Directorio completo' },
       { name: 'Portal del Cliente', href: '/company/customers/portal', description: 'Acceso para clientes' },
       { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir docs con IA' },
+      { name: '🤖 Revisión IA Docs', href: '/company/documents/review', description: 'Aprobar y reclasificar' },
       { name: 'Historial de Transacciones', href: '/company/customers/transactions', description: 'Facturas y pagos' },
       { name: 'Notas y Seguimiento', href: '/company/customers/notes', description: 'CRM básico' }
     ]
@@ -150,6 +152,7 @@ const tabSections: TabSection[] = [
     icon: DollarSign,
     color: 'emerald',
     submenus: [
+      { name: '🇺🇸 Nómina Florida', href: '/company/payroll/florida', description: 'Sistema completo Florida con RT-6, 941, 940, W-2, 1099' },
       { name: 'Empleados', href: '/company/payroll/employees', description: 'Registro de personal' },
       { name: 'Control de Horas', href: '/company/payroll/timesheet', description: 'Horas trabajadas' },
       { name: 'Cálculo de Nómina', href: '/company/payroll/calculate', description: 'Procesar pagos' },
@@ -203,9 +206,9 @@ const tabSections: TabSection[] = [
       { name: 'Pérdidas y Ganancias', href: '/company/reports/profit-loss', description: 'Estado de resultados' },
       { name: 'Balance General', href: '/company/reports/balance-sheet', description: 'Activos, pasivos y capital' },
       { name: 'Flujo de Caja', href: '/company/reports/cash-flow', description: 'Entradas y salidas' },
-      { name: 'Mayor Analítico', href: '/reports/advanced', description: 'Detalle de cuenta contable' },
-      { name: 'Balance de Comprobación', href: '/reports/advanced', description: 'Verificación de saldos' },
-      { name: 'Libro Diario Legal', href: '/reports/advanced', description: 'Asientos contables oficiales' },
+      { name: '📖 Mayor Analítico', href: '/company/reports/advanced', description: 'Detalle de cuenta contable' },
+      { name: '⚖️ Balance de Comprobación', href: '/company/reports/advanced', description: 'Verificación de saldos' },
+      { name: '📒 Libro Diario Legal', href: '/company/reports/advanced', description: 'Asientos contables oficiales' },
       { name: 'Reportes por Impuestos', href: '/company/reports/tax-reports', description: 'Para declaraciones' },
       { name: 'Reportes Personalizados', href: '/company/reports/custom', description: 'Crear reportes a medida' },
       { name: 'Envío Automático', href: '/company/reports/scheduled', description: 'Programar reportes' }
@@ -269,9 +272,24 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
   const { activeCompany } = useCompany()
   const pathname = usePathname()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<string>('dashboard')
-  const [showSubmenu, setShowSubmenu] = useState(false)
+  
+  // Detectar la pestaña activa según la URL (ANTES del return condicional)
+  const currentTab = tabSections.find(tab => 
+    pathname?.startsWith(`/company/${tab.id}`)
+  ) || tabSections[0]
 
+  const [activeTab, setActiveTab] = useState<string>(currentTab.id)
+  const [showSubmenu, setShowSubmenu] = useState<{[key: string]: boolean}>({ [currentTab.id]: true })
+
+  const activeSection = tabSections.find(tab => tab.id === activeTab) || currentTab
+
+  // Sincronizar activeTab con la URL actual
+  useEffect(() => {
+    setActiveTab(currentTab.id)
+    setShowSubmenu(prev => ({ ...prev, [currentTab.id]: true }))
+  }, [currentTab.id])
+
+  // Return condicional DESPUÉS de todos los hooks
   if (!activeCompany) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -287,13 +305,6 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
       </div>
     )
   }
-
-  // Detectar la pestaña activa según la URL
-  const currentTab = tabSections.find(tab => 
-    pathname?.startsWith(`/company/${tab.id}`)
-  ) || tabSections[0]
-
-  const activeSection = tabSections.find(tab => tab.id === activeTab) || currentTab
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -332,13 +343,17 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
               {tabSections.map((tab) => {
                 const Icon = tab.icon
                 const isActive = currentTab.id === tab.id
+                const isSubmenuOpen = showSubmenu[tab.id] || false
                 
                 return (
                   <button
                     key={tab.id}
                     onClick={() => {
                       setActiveTab(tab.id)
-                      setShowSubmenu(!showSubmenu || activeTab !== tab.id)
+                      setShowSubmenu(prev => ({
+                        ...prev,
+                        [tab.id]: !prev[tab.id]
+                      }))
                     }}
                     className={cn(
                       'group relative flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
@@ -352,12 +367,10 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                       isActive ? `text-${tab.color}-600` : 'text-gray-400 group-hover:text-gray-600'
                     )} />
                     <span>{tab.name}</span>
-                    {isActive && (
-                      <ChevronDown className={cn(
-                        'w-4 h-4 transition-transform',
-                        showSubmenu && activeTab === tab.id ? 'rotate-180' : ''
-                      )} />
-                    )}
+                    <ChevronDown className={cn(
+                      'w-4 h-4 transition-transform',
+                      isSubmenuOpen ? 'rotate-180' : ''
+                    )} />
                   </button>
                 )
               })}
@@ -366,7 +379,7 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
         </div>
 
         {/* Submenú desplegable */}
-        {showSubmenu && (
+        {showSubmenu[activeTab] && (
           <div className="bg-white border-t border-gray-200 shadow-lg">
             <div className="max-w-7xl mx-auto px-6 py-4">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -374,12 +387,11 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                   <Link
                     key={submenu.href}
                     href={submenu.href}
-                    onClick={() => setShowSubmenu(false)}
                     className="group p-3 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className={cn(
-                      'text-sm font-medium mb-1 group-hover:text-${activeSection.color}-600',
-                      pathname === submenu.href ? `text-${activeSection.color}-600` : 'text-gray-900'
+                      'text-sm font-medium mb-1',
+                      pathname === submenu.href ? `text-${activeSection.color}-600` : 'text-gray-900 group-hover:text-blue-600'
                     )}>
                       {submenu.name}
                     </div>
@@ -403,6 +415,9 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
 
       {/* AI Assistant flotante disponible en todas las páginas de company */}
       <FloatingAssistant />
+      
+      {/* Actualizaciones en tiempo real */}
+      <RealTimeUpdates />
     </div>
   )
 }

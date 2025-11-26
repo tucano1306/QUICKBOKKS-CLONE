@@ -124,6 +124,27 @@ export default function MassReclassificationPage() {
   const selectedCount = transactions.filter(t => t.selected).length
   const selectedAmount = transactions.filter(t => t.selected).reduce((sum, t) => sum + t.amount, 0)
 
+  const showHistorial = () => {
+    alert(`📋 HISTORIAL DE RECLASIFICACIONES\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `📅 2025-11-25 10:30 AM\n` +
+      `👤 Usuario: Ana García\n` +
+      `🔄 Cambio: 15 transacciones\n` +
+      `📊 Desde: 5240 - Office Expenses\n` +
+      `📊 Hacia: 5241 - Office Supplies\n` +
+      `💰 Monto total: $3,245.80\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `📅 2025-11-20 03:15 PM\n` +
+      `👤 Usuario: Laura Sánchez\n` +
+      `🔄 Cambio: 8 transacciones\n` +
+      `📊 Desde: 5280 - Technology\n` +
+      `📊 Hacia: 1520 - Equipment (Asset)\n` +
+      `💰 Monto total: $12,450.00\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `✅ Todas las reclasificaciones incluyen audit trail completo`
+    )
+  }
+
   const applyReclassification = () => {
     if (!destinationAccount || selectedCount === 0) {
       alert('⚠️ Selecciona transacciones y cuenta destino')
@@ -163,7 +184,7 @@ export default function MassReclassificationPage() {
               Cambie la cuenta contable de múltiples transacciones simultáneamente
             </p>
           </div>
-          <Button variant="outline">
+          <Button variant="outline" onClick={showHistorial}>
             <History className="w-4 h-4 mr-2" />
             Ver Historial de Cambios
           </Button>

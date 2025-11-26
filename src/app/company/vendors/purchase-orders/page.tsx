@@ -53,6 +53,7 @@ export default function PurchaseOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [showNewPOModal, setShowNewPOModal] = useState(false)
   const [filterVendor, setFilterVendor] = useState<string>('all')
 
   useEffect(() => {
@@ -287,11 +288,23 @@ export default function PurchaseOrdersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              const csv = 'Número,Proveedor,Fecha,Entrega,Items,Total,Estado\n' + 
+                filteredOrders.map(po => 
+                  `${po.poNumber},"${po.vendor}",${po.date},${po.expectedDate},${po.items},$${po.total},${po.status}`
+                ).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `ordenes-compra-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewPOModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Orden
             </Button>
@@ -526,6 +539,96 @@ export default function PurchaseOrdersPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal Nueva Orden de Compra */}
+        {showNewPOModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewPOModal(false)}>
+            <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <CardHeader>
+                <CardTitle>Nueva Orden de Compra</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Proveedor</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>Acme Corp</option>
+                      <option>Office Supplies Co.</option>
+                      <option>Tech Equipment Inc.</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Número de PO</label>
+                    <Input placeholder="PO-001" defaultValue={`PO-${Date.now().toString().slice(-6)}`} />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Fecha de Pedido</label>
+                    <Input type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Fecha de Entrega Esperada</label>
+                    <Input type="date" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Descripción</label>
+                  <Input placeholder="Pedido de suministros de oficina" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Solicitado por</label>
+                    <Input placeholder="Juan Pérez" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Número de Items</label>
+                    <Input type="number" placeholder="5" />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">Montos</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Subtotal</label>
+                      <Input type="number" placeholder="10000.00" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">IVA (16%)</label>
+                      <Input type="number" placeholder="1600.00" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Total</label>
+                      <Input type="number" placeholder="11600.00" className="font-bold" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button variant="outline" onClick={() => setShowNewPOModal(false)}>
+                    Cancelar
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    alert('📄 Guardado como borrador\n\nPuedes completar los detalles después')
+                    setShowNewPOModal(false)
+                  }}>
+                    Guardar Borrador
+                  </Button>
+                  <Button onClick={() => {
+                    alert('✅ Orden de compra creada y enviada\n\nEn producción, esto enviaría:\nPOST /api/vendors/purchase-orders')
+                    setShowNewPOModal(false)
+                  }}>
+                    Crear y Enviar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

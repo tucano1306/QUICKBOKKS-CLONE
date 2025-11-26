@@ -47,6 +47,7 @@ export default function ChartOfAccountsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
+  const [showNewAccountModal, setShowNewAccountModal] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -669,15 +670,46 @@ export default function ChartOfAccountsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              const flattenAccounts = (accs: Account[]): Account[] => {
+                const result: Account[] = []
+                accs.forEach(acc => {
+                  result.push(acc)
+                  if (acc.children) result.push(...flattenAccounts(acc.children))
+                })
+                return result
+              }
+              const allAccounts = flattenAccounts(accounts)
+              const csv = 'Código,Nombre,Tipo,Saldo\n' + 
+                allAccounts.map(acc => 
+                  `${acc.code},"${acc.name}",${acc.type},${acc.balance || 0}`
+                ).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `catalogo-cuentas-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              const input = document.createElement('input')
+              input.type = 'file'
+              input.accept = '.csv'
+              input.onchange = (e: any) => {
+                const file = e.target.files[0]
+                if (file) {
+                  alert(`Importando ${file.name}...\n\nFormato esperado: Código,Nombre,Tipo,Saldo\n\nEsta funcionalidad procesa el CSV y crea las cuentas automáticamente.`)
+                }
+              }
+              input.click()
+            }}>
               <Upload className="w-4 h-4 mr-2" />
               Importar
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewAccountModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Cuenta
             </Button>
@@ -785,6 +817,50 @@ export default function ChartOfAccountsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal Nueva Cuenta */}
+        {showNewAccountModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewAccountModal(false)}>
+            <Card className="w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+              <CardHeader>
+                <CardTitle>Nueva Cuenta Contable</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Código</label>
+                    <Input placeholder="1001" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Tipo</label>
+                    <select className="w-full border rounded-md p-2">
+                      <option>Activo</option>
+                      <option>Pasivo</option>
+                      <option>Capital</option>
+                      <option>Ingreso</option>
+                      <option>Gasto</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Nombre de la Cuenta</label>
+                  <Input placeholder="Caja General" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Descripción</label>
+                  <Input placeholder="Efectivo disponible en caja" />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setShowNewAccountModal(false)}>Cancelar</Button>
+                  <Button onClick={() => {
+                    alert('✅ Cuenta creada exitosamente\n\nEn producción, esto enviaría los datos a:\nPOST /api/accounting/chart-of-accounts')
+                    setShowNewAccountModal(false)
+                  }}>Crear Cuenta</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

@@ -292,7 +292,7 @@ export default function CustomerNotesPage() {
               CRM básico para gestión de relaciones con clientes
             </p>
           </div>
-          <Button>
+          <Button onClick={() => alert('📝 Nueva Nota\n\nAñadir nota a cliente')}>
             <Plus className="w-4 h-4 mr-2" />
             Nueva Nota
           </Button>
