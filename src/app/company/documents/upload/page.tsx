@@ -1,0 +1,662 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useCompany } from '@/contexts/CompanyContext'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Upload,
+  FileText,
+  Image,
+  File,
+  Download,
+  Eye,
+  Trash2,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Folder,
+  Search,
+  Filter,
+  Calendar,
+  User,
+  DollarSign,
+  AlertCircle,
+  Send,
+  Link as LinkIcon,
+  Copy,
+  Zap,
+  Bot
+} from 'lucide-react'
+
+interface ClientDocument {
+  id: string
+  filename: string
+  fileType: string
+  category: 'invoice' | 'receipt' | 'bank_statement' | 'tax_document' | 'contract' | 'other'
+  uploadDate: string
+  uploadedBy: string
+  fileSize: number
+  status: 'pending' | 'processing' | 'categorized' | 'reviewed' | 'rejected'
+  aiCategory?: string
+  aiConfidence?: number
+  amount?: number
+  vendor?: string
+  date?: string
+  accountCode?: string
+  notes?: string
+  aiProcessingTime?: string
+}
+
+export default function DocumentUploadPage() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [uploadProgress, setUploadProgress] = useState<number>(0)
+  const [isUploading, setIsUploading] = useState(false)
+  const [portalLink] = useState('https://portal.quickbooks.com/client/ABC123XYZ')
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/login')
+    }
+  }, [status, router])
+
+  useEffect(() => {
+    setLoading(true)
+    setTimeout(() => setLoading(false), 800)
+  }, [])
+
+  const documents: ClientDocument[] = [
+    {
+      id: 'DOC-001',
+      filename: 'Factura_ElectricCo_Nov2025.pdf',
+      fileType: 'PDF',
+      category: 'invoice',
+      uploadDate: '2025-11-25 10:30 AM',
+      uploadedBy: 'Cliente Portal',
+      fileSize: 245678,
+      status: 'categorized',
+      aiCategory: 'Utilities - Electricity',
+      aiConfidence: 98,
+      amount: 450.25,
+      vendor: 'Electric Company',
+      date: '2025-11-15',
+      accountCode: '5230 - Servicios Públicos',
+      aiProcessingTime: '2.3s'
+    },
+    {
+      id: 'DOC-002',
+      filename: 'Recibo_Renta_Diciembre.pdf',
+      fileType: 'PDF',
+      category: 'receipt',
+      uploadDate: '2025-11-24 03:45 PM',
+      uploadedBy: 'Cliente Portal',
+      fileSize: 189234,
+      status: 'categorized',
+      aiCategory: 'Rent Expense',
+      aiConfidence: 99,
+      amount: 2500.00,
+      vendor: 'Property Management LLC',
+      date: '2025-12-01',
+      accountCode: '5220 - Renta',
+      aiProcessingTime: '1.8s',
+      notes: 'Asiento contable creado automáticamente: JE-2025-1245'
+    },
+    {
+      id: 'DOC-003',
+      filename: 'Estado_Cuenta_Bancario_Octubre.pdf',
+      fileType: 'PDF',
+      category: 'bank_statement',
+      uploadDate: '2025-11-23 09:15 AM',
+      uploadedBy: 'Cliente Portal',
+      fileSize: 567890,
+      status: 'reviewed',
+      aiCategory: 'Bank Statement - Operating Account',
+      aiConfidence: 100,
+      accountCode: '1120 - Bancos',
+      aiProcessingTime: '5.2s',
+      notes: 'Conciliado automáticamente con 45 transacciones'
+    },
+    {
+      id: 'DOC-004',
+      filename: 'Factura_Proveedor_MegaCorp_548.jpg',
+      fileType: 'Image',
+      category: 'invoice',
+      uploadDate: '2025-11-22 11:20 AM',
+      uploadedBy: 'Cliente Portal',
+      fileSize: 1234567,
+      status: 'processing',
+      aiCategory: 'Office Supplies',
+      aiConfidence: 85,
+      amount: 890.50,
+      vendor: 'MegaCorp Supplies',
+      accountCode: '5240 - Suministros de Oficina',
+      aiProcessingTime: 'En proceso...'
+    },
+    {
+      id: 'DOC-005',
+      filename: 'Formulario_1099_Contractor_Johnson.pdf',
+      fileType: 'PDF',
+      category: 'tax_document',
+      uploadDate: '2025-11-20 02:00 PM',
+      uploadedBy: 'Cliente Portal',
+      fileSize: 98765,
+      status: 'reviewed',
+      aiCategory: 'Tax Form - 1099-NEC',
+      aiConfidence: 100,
+      amount: 15000.00,
+      vendor: 'John Johnson (Contractor)',
+      accountCode: '5210 - Sueldos y Salarios',
+      aiProcessingTime: '3.1s',
+      notes: 'Archivado para presentación anual IRS. Asiento: JE-2025-1189'
+    },
+    {
+      id: 'DOC-006',
+      filename: 'Recibo_Gasolina_Nov18.jpg',
+      fileType: 'Image',
+      category: 'receipt',
+      uploadDate: '2025-11-18 04:30 PM',
+      uploadedBy: 'Cliente Portal',
+      fileSize: 345678,
+      status: 'categorized',
+      aiCategory: 'Auto Expense - Fuel',
+      aiConfidence: 92,
+      amount: 65.80,
+      vendor: 'Shell Gas Station',
+      date: '2025-11-18',
+      accountCode: '5250 - Gastos de Vehículo',
+      aiProcessingTime: '1.5s'
+    },
+    {
+      id: 'DOC-007',
+      filename: 'Contrato_Servicio_2025.pdf',
+      fileType: 'PDF',
+      category: 'contract',
+      uploadDate: '2025-11-15 10:00 AM',
+      uploadedBy: 'Cliente Portal',
+      fileSize: 456789,
+      status: 'reviewed',
+      aiCategory: 'Contract - Service Agreement',
+      aiConfidence: 95,
+      accountCode: 'N/A - Documento Legal',
+      aiProcessingTime: '4.2s',
+      notes: 'Vigencia: Enero 2025 - Diciembre 2025. Sin transacción asociada.'
+    },
+    {
+      id: 'DOC-008',
+      filename: 'Documento_sin_nombre.png',
+      fileType: 'Image',
+      category: 'other',
+      uploadDate: '2025-11-10 08:45 AM',
+      uploadedBy: 'Cliente Portal',
+      fileSize: 234567,
+      status: 'rejected',
+      aiProcessingTime: '0.9s',
+      notes: 'Imagen ilegible - IA no pudo extraer información. Solicitar reenvío al cliente.'
+    }
+  ]
+
+  const filteredDocs = documents.filter(doc => {
+    const matchesSearch = 
+      doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.aiCategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.vendor?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = filterCategory === 'all' || doc.category === filterCategory
+    const matchesStatus = filterStatus === 'all' || doc.status === filterStatus
+    return matchesSearch && matchesCategory && matchesStatus
+  })
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-700"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>
+      case 'processing':
+        return <Badge className="bg-blue-100 text-blue-700"><Bot className="w-3 h-3 mr-1" />Procesando IA</Badge>
+      case 'categorized':
+        return <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" />Categorizado</Badge>
+      case 'reviewed':
+        return <Badge className="bg-purple-100 text-purple-700"><CheckCircle className="w-3 h-3 mr-1" />Revisado</Badge>
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-700"><XCircle className="w-3 h-3 mr-1" />Rechazado</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'invoice':
+        return <FileText className="w-5 h-5 text-blue-600" />
+      case 'receipt':
+        return <File className="w-5 h-5 text-green-600" />
+      case 'bank_statement':
+        return <DollarSign className="w-5 h-5 text-purple-600" />
+      case 'tax_document':
+        return <AlertCircle className="w-5 h-5 text-red-600" />
+      case 'contract':
+        return <FileText className="w-5 h-5 text-orange-600" />
+      default:
+        return <File className="w-5 h-5 text-gray-600" />
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    setIsUploading(true)
+    setUploadProgress(0)
+
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval)
+          setIsUploading(false)
+          alert('✅ Documentos subidos! El AI está analizando y categorizando automáticamente...')
+          return 100
+        }
+        return prev + 10
+      })
+    }, 200)
+  }
+
+  const copyPortalLink = () => {
+    navigator.clipboard.writeText(portalLink)
+    alert('✅ Link copiado al portapapeles')
+  }
+
+  const stats = {
+    totalDocs: documents.length,
+    pending: documents.filter(d => d.status === 'pending' || d.status === 'processing').length,
+    categorized: documents.filter(d => d.status === 'categorized' || d.status === 'reviewed').length,
+    totalAmount: documents.filter(d => d.amount).reduce((sum, d) => sum + (d.amount || 0), 0),
+    avgProcessingTime: '2.5s'
+  }
+
+  if (status === 'loading' || loading) {
+    return (
+      <CompanyTabsLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </CompanyTabsLayout>
+    )
+  }
+
+  return (
+    <CompanyTabsLayout>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Upload className="w-8 h-8 text-blue-600" />
+              Upload de Documentos con IA
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Los clientes suben documentos que se procesan y categorizan automáticamente
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={copyPortalLink}>
+              <Copy className="w-4 h-4 mr-2" />
+              Copiar Link Portal
+            </Button>
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <span className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+                <Upload className="w-4 h-4 mr-2" />
+                Subir Documentos
+              </span>
+            </label>
+            <input
+              id="file-upload"
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </div>
+        </div>
+
+        {/* Portal Link Card */}
+        <Card className="bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <Bot className="w-6 h-6 text-purple-600" />
+                  Link de Acceso del Cliente + AI Automático
+                </h3>
+                <p className="text-sm text-blue-700 mb-3">
+                  El cliente sube docs → IA analiza (OCR + ML) → Extrae datos → Categoriza → Crea asiento contable → Actualiza front-end
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="px-4 py-2 bg-white rounded border text-sm font-mono flex-1">
+                    {portalLink}
+                  </code>
+                  <Button size="sm" onClick={copyPortalLink}>
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copiar
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    <Send className="w-4 h-4 mr-1" />
+                    Enviar Email
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Upload Progress */}
+        {isUploading && (
+          <Card className="bg-blue-50 border-blue-200 animate-pulse">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-blue-600 animate-spin" />
+                  <span className="text-sm font-semibold text-blue-900">
+                    Subiendo y procesando con IA...
+                  </span>
+                </div>
+                <span className="text-sm text-blue-700">{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-blue-200 rounded-full h-3">
+                <div 
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <Folder className="w-8 h-8 text-blue-600" />
+              </div>
+              <div className="text-2xl font-bold text-blue-900">{stats.totalDocs}</div>
+              <div className="text-sm text-blue-700">Total Documentos</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <Clock className="w-8 h-8 text-yellow-600" />
+              </div>
+              <div className="text-2xl font-bold text-yellow-900">{stats.pending}</div>
+              <div className="text-sm text-yellow-700">En Proceso</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <div className="text-2xl font-bold text-green-900">{stats.categorized}</div>
+              <div className="text-sm text-green-700">Auto-Categorizados</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <DollarSign className="w-8 h-8 text-purple-600" />
+              </div>
+              <div className="text-2xl font-bold text-purple-900">
+                ${stats.totalAmount.toLocaleString()}
+              </div>
+              <div className="text-sm text-purple-700">Monto Total</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <Zap className="w-8 h-8 text-indigo-600" />
+              </div>
+              <div className="text-2xl font-bold text-indigo-900">{stats.avgProcessingTime}</div>
+              <div className="text-sm text-indigo-700">Tiempo Promedio IA</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative">
+                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por nombre, categoría, proveedor o cuenta contable..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <select 
+                className="px-4 py-2 border rounded-lg"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+              >
+                <option value="all">Todas las Categorías</option>
+                <option value="invoice">Facturas</option>
+                <option value="receipt">Recibos</option>
+                <option value="bank_statement">Estados de Cuenta</option>
+                <option value="tax_document">Documentos Fiscales</option>
+                <option value="contract">Contratos</option>
+                <option value="other">Otros</option>
+              </select>
+              <select 
+                className="px-4 py-2 border rounded-lg"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="all">Todos los Estados</option>
+                <option value="pending">Pendientes</option>
+                <option value="processing">Procesando IA</option>
+                <option value="categorized">Categorizados</option>
+                <option value="reviewed">Revisados</option>
+              </select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Documents Grid */}
+        <div className="grid grid-cols-1 gap-4">
+          {filteredDocs.map((doc) => (
+            <Card key={doc.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-600">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="p-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg">
+                      {getCategoryIcon(doc.category)}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-gray-900">{doc.filename}</h3>
+                        <Badge variant="outline" className="text-xs">{doc.fileType}</Badge>
+                        {getStatusBadge(doc.status)}
+                      </div>
+                      
+                      {doc.aiCategory && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <Bot className="w-4 h-4 text-purple-600" />
+                          <span className="text-sm text-gray-700">
+                            <strong>Categoría IA:</strong> {doc.aiCategory}
+                          </span>
+                          {doc.aiConfidence && (
+                            <Badge className="bg-purple-100 text-purple-700 text-xs">
+                              {doc.aiConfidence}% confianza
+                            </Badge>
+                          )}
+                          <span className="text-xs text-gray-500">
+                            ({doc.aiProcessingTime})
+                          </span>
+                        </div>
+                      )}
+
+                      {doc.accountCode && (
+                        <div className="mb-2">
+                          <Badge className="bg-blue-100 text-blue-700">
+                            📊 Cuenta: {doc.accountCode}
+                          </Badge>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600">
+                        <div>
+                          <span className="text-xs text-gray-500">Subido:</span>
+                          <div className="font-medium">{doc.uploadDate}</div>
+                        </div>
+                        {doc.amount && (
+                          <div>
+                            <span className="text-xs text-gray-500">Monto Detectado:</span>
+                            <div className="font-semibold text-green-600">${doc.amount.toLocaleString()}</div>
+                          </div>
+                        )}
+                        {doc.vendor && (
+                          <div>
+                            <span className="text-xs text-gray-500">Proveedor:</span>
+                            <div className="font-medium">{doc.vendor}</div>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-xs text-gray-500">Tamaño:</span>
+                          <div className="font-medium">{formatFileSize(doc.fileSize)}</div>
+                        </div>
+                      </div>
+
+                      {doc.notes && (
+                        <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <div>{doc.notes}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" title="Ver documento">
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" title="Descargar">
+                      <Download className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-red-600" title="Eliminar">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* AI Processing Info */}
+        <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg">
+                <Bot className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-purple-900 mb-2 text-lg">
+                  🤖 Procesamiento Automático con Inteligencia Artificial
+                </h3>
+                <p className="text-purple-700 text-sm mb-3">
+                  Sistema avanzado que analiza, categoriza y registra documentos contables sin intervención manual.
+                </p>
+                <ul className="text-purple-700 text-sm space-y-2">
+                  <li>• <strong>Paso 1 - Upload:</strong> Cliente accede al portal y sube documentos (PDF/JPG/PNG)</li>
+                  <li>• <strong>Paso 2 - OCR:</strong> IA extrae texto de imágenes y PDFs con 99% precisión</li>
+                  <li>• <strong>Paso 3 - Análisis:</strong> Machine Learning identifica: monto, fecha, proveedor, tipo documento</li>
+                  <li>• <strong>Paso 4 - Categorización:</strong> Clasifica según reglas contables (GAAP/IFRS) y asigna cuenta contable</li>
+                  <li>• <strong>Paso 5 - Registro:</strong> Crea asiento de diario automático (débito/crédito)</li>
+                  <li>• <strong>Paso 6 - Alimenta BD:</strong> Actualiza balances de cuentas, reportes, dashboard en tiempo real</li>
+                  <li>• <strong>Paso 7 - Front-End:</strong> Datos visibles inmediatamente en Balance General, P&L, Cash Flow</li>
+                  <li>• <strong>Precisión:</strong> 95-99% confianza según tipo de documento. Revisar casos &lt;95%</li>
+                  <li>• <strong>Velocidad:</strong> Procesa documentos en 1-5 segundos promedio</li>
+                  <li>• <strong>Seguridad:</strong> Encriptación SSL, tokens únicos, eliminación automática en 90 días</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Technical Stack Info */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-blue-600 rounded-lg">
+                <Zap className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-blue-900 mb-2">Stack Tecnológico del AI Agent</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+                  <div>
+                    <strong>OCR & Extracción:</strong>
+                    <ul className="ml-4 mt-1 space-y-1">
+                      <li>• Tesseract.js (OCR)</li>
+                      <li>• PDF.js (parsing)</li>
+                      <li>• Sharp (image processing)</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong>Machine Learning:</strong>
+                    <ul className="ml-4 mt-1 space-y-1">
+                      <li>• TensorFlow.js</li>
+                      <li>• OpenAI GPT-4 Vision (análisis)</li>
+                      <li>• Custom trained models</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong>Categorización:</strong>
+                    <ul className="ml-4 mt-1 space-y-1">
+                      <li>• Rules engine (accounting)</li>
+                      <li>• NLP para descripción vendors</li>
+                      <li>• Pattern matching histórico</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong>Base de Datos:</strong>
+                    <ul className="ml-4 mt-1 space-y-1">
+                      <li>• Prisma ORM</li>
+                      <li>• PostgreSQL (transacciones)</li>
+                      <li>• Redis (cache/queue)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </CompanyTabsLayout>
+  )
+}

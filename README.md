@@ -40,22 +40,31 @@ Sistema contable empresarial completo con 44,050+ líneas de código, 92 modelos
 -  Alertas de stock
 
 ###  Reportes y Análisis
+- 📊 **Reportes Contables Profesionales**
+  - Mayor Analítico (detalle por cuenta)
+  - Balance de Comprobación (trial balance)
+  - Libro Diario Legal (asientos contables oficiales)
 -  Balance General
 -  Estado de Resultados
 -  Flujo de Efectivo
+-  Búsqueda por número de cheque
 -  Exportación Excel, PDF, CSV
 
 ###  AI y Automatización
+- 🤖 **AI Assistant Personalizado** - Chatbot inteligente por empresa
 -  ML categorization
 -  OCR receipts
 -  Cash flow forecasting
 -  Anomaly detection
+-  Conversaciones contextuales con GPT-4
 
 ###  Enterprise Features
--  Multi-tenancy
+- 🏢 **Multi-tenancy Completo** - Aislamiento total por empresa
 -  RBAC (50+ permisos)
 -  Audit trails
 -  API keys y webhooks
+-  Company Switcher
+-  Datos aislados por companyId
 
 ###  Seguridad
 -  Sistema de validación completo (20+ validadores)
@@ -95,6 +104,9 @@ npm run dev
 - [PROYECTO-COMPLETADO-100.md](PROYECTO-COMPLETADO-100.md) - Resumen completo
 - [VALIDACIONES-COMPLETAS.md](VALIDACIONES-COMPLETAS.md) - Sistema de validación
 - [FASE-10-ENTERPRISE.md](FASE-10-ENTERPRISE.md) - Features empresariales
+- [MULTI-TENANT-ARCHITECTURE.md](MULTI-TENANT-ARCHITECTURE.md) - 🆕 Arquitectura Multi-Empresa
+- [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md) - 🆕 Guía del Asistente IA
+- [REPORTES-CONTABLES-AVANZADOS.md](REPORTES-CONTABLES-AVANZADOS.md) - 🆕 Mayor Analítico, Balance, Libro Diario
 
 ##  Stack Tecnológico
 

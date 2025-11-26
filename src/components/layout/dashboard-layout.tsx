@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import Sidebar from './sidebar'
+import FloatingAssistant from '@/components/ai-assistant/floating-assistant'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -16,6 +17,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </div>
       </main>
+      {/* AI Assistant flotante disponible en toda la app */}
+      <FloatingAssistant />
     </div>
   )
 }

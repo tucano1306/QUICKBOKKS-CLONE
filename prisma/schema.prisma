@@ -151,6 +151,12 @@ model Invoice {
   taxExemptReason  String?
   paymentTerms     String?
   companyId        String?
+  paymentLinkId    String?           @unique
+  paymentLinkUrl   String?
+  paymentLinkExpiry DateTime?
+  paymentLinkActive Boolean          @default(false)
+  paymentGateway   String?
+  paymentGatewayId String?
   bankTransactions BankTransaction[]
   creditNotes      CreditNote[]
   eInvoice         EInvoice?
@@ -303,6 +309,9 @@ model Payroll {
   bonuses        Float              @default(0)
   netSalary      Float
   paymentDate    DateTime?
+  checkNumber    String?
+  checkDate      DateTime?
+  paymentMethod  String             @default("Check")
   status         PayrollStatus      @default(DRAFT)
   notes          String?
   createdAt      DateTime           @default(now())

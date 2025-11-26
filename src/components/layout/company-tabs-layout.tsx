@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
+import FloatingAssistant from '@/components/ai-assistant/floating-assistant'
 import {
   LayoutDashboard,
   FileText,
@@ -59,6 +60,7 @@ const tabSections: TabSection[] = [
     submenus: [
       { name: 'Resumen General', href: '/company/dashboard', description: 'Vista general del negocio' },
       { name: 'Métricas Clave', href: '/company/dashboard/metrics', description: 'KPIs y estadísticas' },
+      { name: 'Asistente IA', href: '/company/ai-assistant', description: 'Chatbot inteligente personalizado' },
       { name: 'Insights IA', href: '/company/dashboard/ai-insights', description: 'Recomendaciones inteligentes' }
     ]
   },
@@ -70,6 +72,8 @@ const tabSections: TabSection[] = [
     submenus: [
       { name: 'Plan de Cuentas', href: '/company/accounting/chart-of-accounts', description: 'Catálogo de cuentas contables' },
       { name: 'Transacciones', href: '/company/accounting/transactions', description: 'Importar y clasificar transacciones' },
+      { name: 'AI Auto-Categorización', href: '/company/accounting/ai-categorization', description: 'Clasificación inteligente' },
+      { name: 'Reclasificación Masiva', href: '/company/accounting/mass-reclassification', description: 'Cambio de cuentas en lote' },
       { name: 'Conciliación Bancaria', href: '/company/accounting/reconciliation', description: 'Cuadrar cuentas bancarias' },
       { name: 'Asientos Contables', href: '/company/accounting/journal-entries', description: 'Registros manuales' },
       { name: 'Sincronización Bancaria', href: '/company/accounting/bank-sync', description: 'Conectar bancos y tarjetas' }
@@ -82,6 +86,7 @@ const tabSections: TabSection[] = [
     color: 'purple',
     submenus: [
       { name: 'Facturas', href: '/company/invoicing/invoices', description: 'Crear y gestionar facturas' },
+      { name: 'Links de Pago', href: '/company/invoicing/payment-links', description: 'URLs únicas para cobros' },
       { name: 'Facturas Recurrentes', href: '/company/invoicing/recurring', description: 'Facturación automática periódica' },
       { name: 'Cotizaciones', href: '/company/invoicing/estimates', description: 'Presupuestos y cotizaciones' },
       { name: 'Recordatorios', href: '/company/invoicing/reminders', description: 'Pagos pendientes automáticos' },
@@ -101,19 +106,19 @@ const tabSections: TabSection[] = [
       { name: 'Tarjetas Corporativas', href: '/company/expenses/corporate-cards', description: 'Sincronizar tarjetas empresa' }
     ]
   },
-  {
-    id: 'inventory',
-    name: 'Inventario',
-    icon: Package,
-    color: 'orange',
-    submenus: [
-      { name: 'Productos', href: '/company/inventory/products', description: 'Catálogo de productos/servicios' },
-      { name: 'Seguimiento en Tiempo Real', href: '/company/inventory/tracking', description: 'Stock disponible' },
-      { name: 'Ajustes de Inventario', href: '/company/inventory/adjustments', description: 'Correcciones y ajustes' },
-      { name: 'Órdenes de Compra', href: '/company/inventory/purchase-orders', description: 'Compras a proveedores' },
-      { name: 'Reportes de Inventario', href: '/company/inventory/reports', description: 'Análisis de stock' }
-    ]
-  },
+  // {
+  //   id: 'inventory',
+  //   name: 'Inventario',
+  //   icon: Package,
+  //   color: 'orange',
+  //   submenus: [
+  //     { name: 'Productos', href: '/company/inventory/products', description: 'Catálogo de productos/servicios' },
+  //     { name: 'Seguimiento en Tiempo Real', href: '/company/inventory/tracking', description: 'Stock disponible' },
+  //     { name: 'Ajustes de Inventario', href: '/company/inventory/adjustments', description: 'Correcciones y ajustes' },
+  //     { name: 'Órdenes de Compra', href: '/company/inventory/purchase-orders', description: 'Compras a proveedores' },
+  //     { name: 'Reportes de Inventario', href: '/company/inventory/reports', description: 'Análisis de stock' }
+  //   ]
+  // },
   {
     id: 'customers',
     name: 'Clientes',
@@ -122,6 +127,7 @@ const tabSections: TabSection[] = [
     submenus: [
       { name: 'Lista de Clientes', href: '/company/customers/list', description: 'Directorio completo' },
       { name: 'Portal del Cliente', href: '/company/customers/portal', description: 'Acceso para clientes' },
+      { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir docs con IA' },
       { name: 'Historial de Transacciones', href: '/company/customers/transactions', description: 'Facturas y pagos' },
       { name: 'Notas y Seguimiento', href: '/company/customers/notes', description: 'CRM básico' }
     ]
@@ -147,6 +153,7 @@ const tabSections: TabSection[] = [
       { name: 'Empleados', href: '/company/payroll/employees', description: 'Registro de personal' },
       { name: 'Control de Horas', href: '/company/payroll/timesheet', description: 'Horas trabajadas' },
       { name: 'Cálculo de Nómina', href: '/company/payroll/calculate', description: 'Procesar pagos' },
+      { name: 'Cheques de Pago', href: '/company/payroll/checks', description: 'Emisión de cheques con número' },
       { name: 'Impuestos de Nómina', href: '/company/payroll/taxes', description: 'Retenciones y contribuciones' },
       { name: 'Reportes de Nómina', href: '/company/payroll/reports', description: 'Análisis de costos laborales' }
     ]
@@ -196,6 +203,9 @@ const tabSections: TabSection[] = [
       { name: 'Pérdidas y Ganancias', href: '/company/reports/profit-loss', description: 'Estado de resultados' },
       { name: 'Balance General', href: '/company/reports/balance-sheet', description: 'Activos, pasivos y capital' },
       { name: 'Flujo de Caja', href: '/company/reports/cash-flow', description: 'Entradas y salidas' },
+      { name: 'Mayor Analítico', href: '/reports/advanced', description: 'Detalle de cuenta contable' },
+      { name: 'Balance de Comprobación', href: '/reports/advanced', description: 'Verificación de saldos' },
+      { name: 'Libro Diario Legal', href: '/reports/advanced', description: 'Asientos contables oficiales' },
       { name: 'Reportes por Impuestos', href: '/company/reports/tax-reports', description: 'Para declaraciones' },
       { name: 'Reportes Personalizados', href: '/company/reports/custom', description: 'Crear reportes a medida' },
       { name: 'Envío Automático', href: '/company/reports/scheduled', description: 'Programar reportes' }
@@ -245,6 +255,7 @@ const tabSections: TabSection[] = [
     color: 'gray',
     submenus: [
       { name: 'Empresa', href: '/company/settings/company', description: 'Información de la empresa' },
+      { name: 'Multi-Empresa', href: '/company/settings/multi-company', description: 'Gestionar varias empresas' },
       { name: 'Usuarios y Permisos', href: '/company/settings/users', description: 'Control de accesos' },
       { name: 'Integraciones', href: '/company/settings/integrations', description: 'Apps conectadas' },
       { name: 'Multimoneda', href: '/company/settings/currency', description: 'Tipos de cambio' },
@@ -389,6 +400,9 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
       <main className="max-w-full">
         {children}
       </main>
+
+      {/* AI Assistant flotante disponible en todas las páginas de company */}
+      <FloatingAssistant />
     </div>
   )
 }
