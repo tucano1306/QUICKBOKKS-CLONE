@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import QuickAccessBar from '@/components/ui/quick-access-bar'
 import {
   FileText,
   DollarSign,
@@ -16,16 +17,32 @@ import {
   Users,
   Package,
   Clock,
+  LayoutDashboard,
+  PieChart,
+  Repeat,
+  Calculator,
+  TrendingDown,
+  Activity,
 } from 'lucide-react'
 
 export default function ReportsPage() {
   const { data: session, status } = useSession()
+  const router = useRouter()
   const [selectedReport, setSelectedReport] = useState<string | null>(null)
   const [reportData, setReportData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [asOfDate, setAsOfDate] = useState('')
+
+  const reportsLinks = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'blue' },
+    { label: 'Balance', href: '/company/reports/balance-sheet', icon: PieChart, color: 'purple' },
+    { label: 'Estado P&L', href: '/company/reports/income-statement', icon: TrendingUp, color: 'green' },
+    { label: 'Flujo Caja', href: '/company/reports/cash-flow', icon: Activity, color: 'orange' },
+    { label: 'Comparativos', href: '/company/reports/comparative', icon: Repeat, color: 'indigo' },
+    { label: 'Avanzados', href: '/company/reports/advanced', icon: Calculator, color: 'teal' }
+  ]
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -266,6 +283,8 @@ export default function ReportsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <QuickAccessBar title="Navegación Reportes" links={reportsLinks} />
+        
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
           <p className="text-gray-600 mt-1">Generate financial reports</p>

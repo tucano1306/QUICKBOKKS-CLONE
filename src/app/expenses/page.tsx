@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import QuickAccessBar from '@/components/ui/quick-access-bar'
 import {
   Table,
   TableBody,
@@ -17,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, Edit, Trash2, Receipt } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Receipt, LayoutDashboard, FileText, FolderOpen, CreditCard, PieChart } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import toast from 'react-hot-toast'
@@ -37,10 +38,20 @@ interface Expense {
 
 export default function ExpensesPage() {
   const { data: session, status } = useSession()
+  const router = useRouter()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+
+  const expensesLinks = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'blue' },
+    { label: 'Lista Gastos', href: '/expenses', icon: Receipt, color: 'red' },
+    { label: 'Recibos', href: '/company/expenses/receipts', icon: FileText, color: 'orange' },
+    { label: 'Categorías', href: '/expenses/categories', icon: FolderOpen, color: 'yellow' },
+    { label: 'Corporativos', href: '/company/expenses/corporate-cards', icon: CreditCard, color: 'green' },
+    { label: 'Reportes', href: '/reports', icon: PieChart, color: 'indigo' }
+  ]
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -106,6 +117,8 @@ export default function ExpensesPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <QuickAccessBar title="Navegación Gastos" links={expensesLinks} />
+        
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Gastos</h1>

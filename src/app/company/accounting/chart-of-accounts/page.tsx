@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import QuickAccessBar from '@/components/ui/quick-access-bar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,7 +24,12 @@ import {
   DollarSign,
   TrendingUp,
   Building2,
-  FileText
+  FileText,
+  Receipt,
+  Calculator,
+  LayoutDashboard,
+  PieChart,
+  ArrowRightLeft
 } from 'lucide-react'
 
 interface Account {
@@ -658,9 +664,20 @@ export default function ChartOfAccountsPage() {
     )
   }
 
+  const accountingLinks = [
+    { label: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard, color: 'blue' },
+    { label: 'Transacciones', href: '/company/accounting/transactions', icon: Receipt, color: 'green' },
+    { label: 'Asientos', href: '/company/accounting/journal-entries', icon: FileText, color: 'purple' },
+    { label: 'Reclasificación', href: '/company/accounting/mass-reclassification', icon: ArrowRightLeft, color: 'orange' },
+    { label: 'Reportes', href: '/company/reports/balance-sheet', icon: PieChart, color: 'indigo' }
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
+        {/* Quick Access Navigation */}
+        <QuickAccessBar title="Navegación Contable" links={accountingLinks} />
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

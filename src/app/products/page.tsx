@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import QuickAccessBar from '@/components/ui/quick-access-bar'
 import {
   Table,
   TableBody,
@@ -17,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, Edit, Trash2 } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, LayoutDashboard, Package, FolderOpen, BarChart3, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useCompany } from '@/contexts/CompanyContext'
 
@@ -34,10 +35,19 @@ interface Product {
 export default function ProductsPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+
+  const productsLinks = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'blue' },
+    { label: 'Productos', href: '/products', icon: Package, color: 'green' },
+    { label: 'Categorías', href: '/company/products/categories', icon: FolderOpen, color: 'purple' },
+    { label: 'Inventario', href: '/company/products/inventory', icon: BarChart3, color: 'orange' },
+    { label: 'Reportes', href: '/reports', icon: FileText, color: 'indigo' }
+  ]
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -110,6 +120,8 @@ export default function ProductsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <QuickAccessBar title="Navegación Productos" links={productsLinks} />
+        
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Productos y Servicios</h1>

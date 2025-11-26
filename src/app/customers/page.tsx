@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import QuickAccessBar from '@/components/ui/quick-access-bar'
 import {
   Table,
   TableBody,
@@ -17,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, Edit, Trash2, Mail, Phone, Building } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Mail, Phone, Building, LayoutDashboard, FileText, DollarSign, PieChart, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useCompany } from '@/contexts/CompanyContext'
 
@@ -37,10 +38,19 @@ interface Customer {
 export default function CustomersPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
+  const router = useRouter()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+
+  const customersLinks = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'blue' },
+    { label: 'Clientes', href: '/customers', icon: Users, color: 'purple' },
+    { label: 'Facturas', href: '/invoices', icon: FileText, color: 'green' },
+    { label: 'Cobros', href: '/company/customers/receivables', icon: DollarSign, color: 'yellow' },
+    { label: 'Reportes', href: '/reports', icon: PieChart, color: 'indigo' }
+  ]
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -114,6 +124,8 @@ export default function CustomersPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <QuickAccessBar title="Navegación Clientes" links={customersLinks} />
+        
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>

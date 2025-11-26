@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import {
   TrendingUp,
   TrendingDown,
@@ -21,7 +22,14 @@ import {
   Activity,
   Calendar,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Calculator,
+  PieChart,
+  Receipt,
+  Building2,
+  Home,
+  ArrowRight,
+  Sparkles
 } from 'lucide-react'
 
 export default function CompanyDashboardPage() {
@@ -107,14 +115,79 @@ export default function CompanyDashboardPage() {
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
-        {/* Título */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Dashboard - {activeCompany.name}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Resumen general de tu negocio
-          </p>
+        {/* Header con Acceso Rápido */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Sparkles className="w-6 h-6 text-blue-600" />
+                Dashboard - {activeCompany.name}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Resumen general de tu negocio en tiempo real
+              </p>
+            </div>
+            <Button
+              onClick={() => router.push('/company')}
+              variant="outline"
+              className="gap-2"
+            >
+              <Home className="w-4 h-4" />
+              Inicio
+            </Button>
+          </div>
+
+          {/* Botones de Acceso Rápido */}
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <ArrowRight className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-semibold text-gray-700">Acceso Rápido a Secciones</h3>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Button
+                  onClick={() => router.push('/company/accounting/chart-of-accounts')}
+                  variant="outline"
+                  className="h-auto py-3 px-4 flex-col gap-2 hover:bg-white hover:border-green-400 hover:shadow-md transition-all"
+                >
+                  <Calculator className="w-5 h-5 text-green-600" />
+                  <div className="text-center">
+                    <div className="text-xs font-semibold">Contabilidad</div>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => router.push('/company/reports/balance-sheet')}
+                  variant="outline"
+                  className="h-auto py-3 px-4 flex-col gap-2 hover:bg-white hover:border-purple-400 hover:shadow-md transition-all"
+                >
+                  <PieChart className="w-5 h-5 text-purple-600" />
+                  <div className="text-center">
+                    <div className="text-xs font-semibold">Reportes</div>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => router.push('/company/expenses/list')}
+                  variant="outline"
+                  className="h-auto py-3 px-4 flex-col gap-2 hover:bg-white hover:border-red-400 hover:shadow-md transition-all"
+                >
+                  <Receipt className="w-5 h-5 text-red-600" />
+                  <div className="text-center">
+                    <div className="text-xs font-semibold">Gastos</div>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => router.push('/company/banking/accounts')}
+                  variant="outline"
+                  className="h-auto py-3 px-4 flex-col gap-2 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all"
+                >
+                  <Building2 className="w-5 h-5 text-blue-600" />
+                  <div className="text-center">
+                    <div className="text-xs font-semibold">Banca</div>
+                  </div>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Estadísticas principales */}

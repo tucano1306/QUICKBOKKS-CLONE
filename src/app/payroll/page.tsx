@@ -1,14 +1,15 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, DollarSign, Calendar, TrendingUp } from 'lucide-react'
+import { Users, DollarSign, Calendar, TrendingUp, LayoutDashboard, FileText, Calculator, PieChart, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
+import QuickAccessBar from '@/components/ui/quick-access-bar'
 
 interface PayrollRun {
   id: string
@@ -28,9 +29,19 @@ interface PayrollRun {
 
 export default function PayrollPage() {
   const { status } = useSession()
+  const router = useRouter()
   const [stats, setStats] = useState({ employees: 0, monthlyPayroll: 0, payrolls: 0 })
   const [recentPayrolls, setRecentPayrolls] = useState<PayrollRun[]>([])
   const [loading, setLoading] = useState(true)
+
+  const payrollLinks = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'blue' },
+    { label: 'Empleados', href: '/company/payroll/employees', icon: Users, color: 'purple' },
+    { label: 'Nóminas', href: '/payroll', icon: DollarSign, color: 'green' },
+    { label: 'Reportes', href: '/company/payroll/reports', icon: FileText, color: 'orange' },
+    { label: 'Impuestos', href: '/company/payroll/tax-filings', icon: Calculator, color: 'red' },
+    { label: 'Horas', href: '/company/payroll/time-tracking', icon: Clock, color: 'indigo' }
+  ]
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -107,6 +118,8 @@ export default function PayrollPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <QuickAccessBar title="Navegación Nómina" links={payrollLinks} />
+        
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Payroll Management</h1>

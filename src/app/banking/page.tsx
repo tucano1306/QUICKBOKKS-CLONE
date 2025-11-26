@@ -1,19 +1,29 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Building2, CreditCard, TrendingUp, RefreshCw, Trash2 } from 'lucide-react'
+import QuickAccessBar from '@/components/ui/quick-access-bar'
+import { Building2, CreditCard, TrendingUp, RefreshCw, Trash2, LayoutDashboard, Receipt, ArrowRightLeft, PieChart, FileText } from 'lucide-react'
 import { BankConnectionManager } from '@/components/banking/plaid-link'
 
 export default function BankingPage() {
   const { status } = useSession()
+  const router = useRouter()
   const [accounts, setAccounts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState<string | null>(null)
+
+  const bankingLinks = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'blue' },
+    { label: 'Cuentas', href: '/banking', icon: Building2, color: 'purple' },
+    { label: 'Transacciones', href: '/company/banking/transactions', icon: Receipt, color: 'green' },
+    { label: 'Conciliación', href: '/company/banking/reconciliation', icon: ArrowRightLeft, color: 'orange' },
+    { label: 'Reportes', href: '/reports', icon: PieChart, color: 'indigo' }
+  ]
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -98,6 +108,8 @@ export default function BankingPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <QuickAccessBar title="Navegación Banca" links={bankingLinks} />
+        
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Bancos y Conciliación</h1>
           <p className="text-gray-600 mt-1">

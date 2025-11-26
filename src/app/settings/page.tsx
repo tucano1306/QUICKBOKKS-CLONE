@@ -1,14 +1,25 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Settings as SettingsIcon, User, Building, Bell } from 'lucide-react'
+import { Settings as SettingsIcon, User, Building, Bell, LayoutDashboard, Shield, Globe, CreditCard, Database } from 'lucide-react'
+import QuickAccessBar from '@/components/ui/quick-access-bar'
 
 export default function SettingsPage() {
   const { data: session, status } = useSession()
+  const router = useRouter()
+
+  const settingsLinks = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'blue' },
+    { label: 'Perfil', href: '/settings', icon: User, color: 'purple' },
+    { label: 'Empresa', href: '/company/settings/company', icon: Building, color: 'green' },
+    { label: 'Seguridad', href: '/company/settings/security', icon: Shield, color: 'red' },
+    { label: 'Integraciones', href: '/company/settings/integrations', icon: Globe, color: 'orange' },
+    { label: 'Facturación', href: '/company/settings/billing', icon: CreditCard, color: 'indigo' }
+  ]
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -29,6 +40,8 @@ export default function SettingsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <QuickAccessBar title="Navegación Configuración" links={settingsLinks} />
+        
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Configuración</h1>
           <p className="text-gray-600 mt-1">
