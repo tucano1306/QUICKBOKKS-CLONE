@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -63,6 +63,27 @@ export default function RemindersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTab, setSelectedTab] = useState<'templates' | 'scheduled'>('templates')
+  const [reminders, setReminders] = useState<Reminder[]>([])
+  const [scheduledReminders, setScheduledReminders] = useState<ScheduledReminder[]>([])
+
+  const loadReminders = useCallback(async () => {
+    if (!activeCompany?.id) return
+    
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/invoices/reminders?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setReminders(data.templates || [])
+        setScheduledReminders(data.scheduledReminders || [])
+      }
+    } catch (error) {
+      console.error('Error loading reminders:', error)
+      toast.error('Error al cargar recordatorios')
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -71,137 +92,10 @@ export default function RemindersPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const reminders: Reminder[] = [
-    {
-      id: 'REM-001',
-      name: 'Recordatorio de Vencimiento',
-      type: 'upcoming',
-      schedule: 'before_due',
-      days: 3,
-      status: 'active',
-      channel: 'email',
-      sent: 156,
-      lastSent: '2025-11-24',
-      template: 'Su factura {invoice_number} vencerá en {days} días'
-    },
-    {
-      id: 'REM-002',
-      name: 'Primera Notificación de Mora',
-      type: 'overdue',
-      schedule: 'after_due',
-      days: 1,
-      status: 'active',
-      channel: 'both',
-      sent: 43,
-      lastSent: '2025-11-23',
-      template: 'Su factura {invoice_number} está vencida desde hace {days} día'
-    },
-    {
-      id: 'REM-003',
-      name: 'Segunda Notificación de Mora',
-      type: 'overdue',
-      schedule: 'after_due',
-      days: 7,
-      status: 'active',
-      channel: 'email',
-      sent: 28,
-      lastSent: '2025-11-22',
-      template: 'Recordatorio: Su factura {invoice_number} lleva {days} días vencida'
-    },
-    {
-      id: 'REM-004',
-      name: 'Notificación de Mora Final',
-      type: 'overdue',
-      schedule: 'after_due',
-      days: 15,
-      status: 'active',
-      channel: 'both',
-      sent: 12,
-      lastSent: '2025-11-20',
-      template: 'URGENTE: Su factura {invoice_number} está vencida desde hace {days} días'
-    },
-    {
-      id: 'REM-005',
-      name: 'Recordatorio 7 días antes',
-      type: 'upcoming',
-      schedule: 'before_due',
-      days: 7,
-      status: 'paused',
-      channel: 'email',
-      sent: 89,
-      lastSent: '2025-11-15',
-      template: 'Recordatorio amistoso: Su factura {invoice_number} vence el {due_date}'
-    },
-    {
-      id: 'REM-006',
-      name: 'Agradecimiento por Pago',
-      type: 'thank-you',
-      schedule: 'on_payment',
-      days: 0,
-      status: 'active',
-      channel: 'email',
-      sent: 234,
-      lastSent: '2025-11-25',
-      template: 'Gracias por su pago de ${amount}. Su factura {invoice_number} está liquidada'
+    if (status === 'authenticated' && activeCompany?.id) {
+      loadReminders()
     }
-  ]
-
-  const scheduledReminders: ScheduledReminder[] = [
-    {
-      id: 'SCH-001',
-      invoice: 'FAC-2025-001',
-      customer: 'Juan Pérez García',
-      amount: 15000,
-      dueDate: '2025-11-28',
-      reminderType: 'Recordatorio de Vencimiento',
-      scheduledFor: '2025-11-25',
-      status: 'sent'
-    },
-    {
-      id: 'SCH-002',
-      invoice: 'FAC-2025-015',
-      customer: 'María López Hernández',
-      amount: 8500,
-      dueDate: '2025-11-27',
-      reminderType: 'Recordatorio de Vencimiento',
-      scheduledFor: '2025-11-24',
-      status: 'sent'
-    },
-    {
-      id: 'SCH-003',
-      invoice: 'FAC-2025-022',
-      customer: 'Carlos Ramírez Sánchez',
-      amount: 12000,
-      dueDate: '2025-12-02',
-      reminderType: 'Recordatorio 7 días antes',
-      scheduledFor: '2025-11-25',
-      status: 'pending'
-    },
-    {
-      id: 'SCH-004',
-      invoice: 'FAC-2025-008',
-      customer: 'Empresa ABC Corp',
-      amount: 25000,
-      dueDate: '2025-11-20',
-      reminderType: 'Segunda Notificación de Mora',
-      scheduledFor: '2025-11-27',
-      status: 'pending'
-    },
-    {
-      id: 'SCH-005',
-      invoice: 'FAC-2025-003',
-      customer: 'TechStart S.A.',
-      amount: 5000,
-      dueDate: '2025-11-15',
-      reminderType: 'Notificación de Mora Final',
-      scheduledFor: '2025-11-30',
-      status: 'pending'
-    }
-  ]
+  }, [status, activeCompany?.id, loadReminders])
 
   const getTypeBadge = (type: string) => {
     switch (type) {

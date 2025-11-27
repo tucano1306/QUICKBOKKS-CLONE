@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -53,6 +53,28 @@ export default function EstimatesPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [estimates, setEstimates] = useState<Estimate[]>([])
+
+  const loadEstimates = useCallback(async () => {
+    if (!activeCompany?.id) return
+    
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({ companyId: activeCompany.id })
+      if (filterStatus !== 'all') params.append('status', filterStatus)
+      
+      const response = await fetch(`/api/invoices/estimates?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setEstimates(data.estimates || [])
+      }
+    } catch (error) {
+      console.error('Error loading estimates:', error)
+      toast.error('Error al cargar cotizaciones')
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id, filterStatus])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -61,103 +83,10 @@ export default function EstimatesPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const estimates: Estimate[] = [
-    {
-      id: 'EST-001',
-      estimateNumber: 'COT-2025-001',
-      customer: 'Juan Pérez García',
-      date: '2025-11-20',
-      expiryDate: '2025-12-20',
-      items: 3,
-      subtotal: 15000,
-      tax: 2400,
-      total: 17400,
-      status: 'sent',
-      notes: 'Incluye 3 meses de soporte gratuito'
-    },
-    {
-      id: 'EST-002',
-      estimateNumber: 'COT-2025-002',
-      customer: 'María López Hernández',
-      date: '2025-11-18',
-      expiryDate: '2025-12-18',
-      items: 5,
-      subtotal: 45000,
-      tax: 7200,
-      total: 52200,
-      status: 'accepted',
-      notes: 'Cliente aceptó propuesta'
-    },
-    {
-      id: 'EST-003',
-      estimateNumber: 'COT-2025-003',
-      customer: 'Carlos Ramírez Sánchez',
-      date: '2025-11-15',
-      expiryDate: '2025-11-30',
-      items: 2,
-      subtotal: 8000,
-      tax: 1280,
-      total: 9280,
-      status: 'declined',
-      notes: 'Cliente rechazó por presupuesto'
-    },
-    {
-      id: 'EST-004',
-      estimateNumber: 'COT-2025-004',
-      customer: 'Empresa ABC Corp',
-      date: '2025-11-25',
-      expiryDate: '2025-12-25',
-      items: 8,
-      subtotal: 120000,
-      tax: 19200,
-      total: 139200,
-      status: 'draft',
-      notes: 'Pendiente de revisión interna'
-    },
-    {
-      id: 'EST-005',
-      estimateNumber: 'COT-2025-005',
-      customer: 'TechStart S.A.',
-      date: '2025-10-15',
-      expiryDate: '2025-11-15',
-      items: 4,
-      subtotal: 25000,
-      tax: 4000,
-      total: 29000,
-      status: 'expired',
-      notes: 'Cotización expirada sin respuesta'
-    },
-    {
-      id: 'EST-006',
-      estimateNumber: 'COT-2025-006',
-      customer: 'Contadores Asociados',
-      date: '2025-11-22',
-      expiryDate: '2025-12-22',
-      items: 6,
-      subtotal: 35000,
-      tax: 5600,
-      total: 40600,
-      status: 'sent',
-      notes: 'Incluye descuento del 10%'
-    },
-    {
-      id: 'EST-007',
-      estimateNumber: 'COT-2025-007',
-      customer: 'Servicios Pro',
-      date: '2025-11-19',
-      expiryDate: '2025-12-19',
-      items: 3,
-      subtotal: 18000,
-      tax: 2880,
-      total: 20880,
-      status: 'accepted',
-      notes: 'Convertir a factura'
+    if (status === 'authenticated' && activeCompany?.id) {
+      loadEstimates()
     }
-  ]
+  }, [status, activeCompany?.id, filterStatus, loadEstimates])
 
   const getStatusBadge = (status: string) => {
     switch (status) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -51,6 +51,7 @@ export default function RecurringInvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [recurringInvoices, setRecurringInvoices] = useState<RecurringInvoice[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -58,92 +59,28 @@ export default function RecurringInvoicesPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadRecurringInvoices = useCallback(async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const recurringInvoices: RecurringInvoice[] = [
-    {
-      id: 'REC-001',
-      templateName: 'Servicio de Hosting Mensual',
-      customer: 'Juan Pérez García',
-      amount: 1500,
-      frequency: 'monthly',
-      startDate: '2025-01-01',
-      nextInvoice: '2025-12-01',
-      status: 'active',
-      totalGenerated: 11,
-      lastGenerated: '2025-11-01',
-      autoSend: true
-    },
-    {
-      id: 'REC-002',
-      templateName: 'Consultoría Trimestral',
-      customer: 'María López Hernández',
-      amount: 15000,
-      frequency: 'quarterly',
-      startDate: '2025-01-15',
-      nextInvoice: '2026-01-15',
-      status: 'active',
-      totalGenerated: 4,
-      lastGenerated: '2025-10-15',
-      autoSend: true
-    },
-    {
-      id: 'REC-003',
-      templateName: 'Mantenimiento Semanal',
-      customer: 'Carlos Ramírez Sánchez',
-      amount: 800,
-      frequency: 'weekly',
-      startDate: '2025-09-01',
-      nextInvoice: '2025-12-02',
-      status: 'active',
-      totalGenerated: 12,
-      lastGenerated: '2025-11-25',
-      autoSend: false
-    },
-    {
-      id: 'REC-004',
-      templateName: 'Licencia de Software Anual',
-      customer: 'Empresa ABC Corp',
-      amount: 25000,
-      frequency: 'yearly',
-      startDate: '2024-01-01',
-      nextInvoice: '2026-01-01',
-      status: 'active',
-      totalGenerated: 2,
-      lastGenerated: '2025-01-01',
-      autoSend: true
-    },
-    {
-      id: 'REC-005',
-      templateName: 'Soporte Técnico Quincenal',
-      customer: 'TechStart S.A.',
-      amount: 2500,
-      frequency: 'biweekly',
-      startDate: '2025-10-01',
-      nextInvoice: '2025-12-01',
-      status: 'paused',
-      totalGenerated: 3,
-      lastGenerated: '2025-11-15',
-      autoSend: true
-    },
-    {
-      id: 'REC-006',
-      templateName: 'Auditoría Mensual',
-      customer: 'Contadores Asociados',
-      amount: 5000,
-      frequency: 'monthly',
-      startDate: '2025-06-01',
-      nextInvoice: '2025-11-30',
-      endDate: '2025-12-01',
-      status: 'completed',
-      totalGenerated: 6,
-      lastGenerated: '2025-11-01',
-      autoSend: false
+    try {
+      const response = await fetch(`/api/invoices/recurring?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setRecurringInvoices(data)
+      }
+    } catch (error) {
+      console.error('Error loading recurring invoices:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadRecurringInvoices()
+    }
+  }, [status, activeCompany, loadRecurringInvoices])
 
   const getFrequencyLabel = (frequency: string) => {
     switch (frequency) {
