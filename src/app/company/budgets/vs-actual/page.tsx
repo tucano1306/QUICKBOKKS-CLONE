@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -43,9 +43,26 @@ export default function BudgetVsActualPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [budgetActuals, setBudgetActuals] = useState<BudgetActual[]>([])
   const [selectedPeriod, setSelectedPeriod] = useState('november-2025')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterDepartment, setFilterDepartment] = useState<string>('all')
+
+  const loadBudgetActuals = useCallback(async () => {
+    if (!activeCompany?.id) return
+    try {
+      setLoading(true)
+      const res = await fetch(`/api/budgets/vs-actual?companyId=${activeCompany.id}&period=${selectedPeriod}`)
+      if (res.ok) {
+        const data = await res.json()
+        setBudgetActuals(data.items || [])
+      }
+    } catch (error) {
+      console.error('Error loading budget vs actual:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id, selectedPeriod])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -54,289 +71,10 @@ export default function BudgetVsActualPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const budgetActuals: BudgetActual[] = [
-    // Revenue Items
-    {
-      id: 'BVA-001',
-      category: 'Ingresos por Servicios',
-      subcategory: 'Consultoría',
-      type: 'revenue',
-      department: 'Ventas',
-      budgeted: 2500000,
-      actual: 2680000,
-      variance: 180000,
-      variancePercent: 7.2,
-      ytdBudget: 22500000,
-      ytdActual: 23750000,
-      ytdVariance: 1250000,
-      ytdVariancePercent: 5.6
-    },
-    {
-      id: 'BVA-002',
-      category: 'Ingresos por Servicios',
-      subcategory: 'Desarrollo de Software',
-      type: 'revenue',
-      department: 'Ventas',
-      budgeted: 1800000,
-      actual: 1650000,
-      variance: -150000,
-      variancePercent: -8.3,
-      ytdBudget: 16200000,
-      ytdActual: 15800000,
-      ytdVariance: -400000,
-      ytdVariancePercent: -2.5
-    },
-    {
-      id: 'BVA-003',
-      category: 'Ingresos por Productos',
-      subcategory: 'Licencias de Software',
-      type: 'revenue',
-      department: 'Ventas',
-      budgeted: 1200000,
-      actual: 1280000,
-      variance: 80000,
-      variancePercent: 6.7,
-      ytdBudget: 10800000,
-      ytdActual: 11200000,
-      ytdVariance: 400000,
-      ytdVariancePercent: 3.7
-    },
-    {
-      id: 'BVA-004',
-      category: 'Ingresos por Servicios',
-      subcategory: 'Soporte y Mantenimiento',
-      type: 'revenue',
-      department: 'Ventas',
-      budgeted: 800000,
-      actual: 820000,
-      variance: 20000,
-      variancePercent: 2.5,
-      ytdBudget: 7200000,
-      ytdActual: 7450000,
-      ytdVariance: 250000,
-      ytdVariancePercent: 3.5
-    },
-    // Expense Items - Ventas
-    {
-      id: 'BVA-005',
-      category: 'Nómina',
-      subcategory: 'Salarios Ventas',
-      type: 'expense',
-      department: 'Ventas',
-      budgeted: 650000,
-      actual: 645000,
-      variance: -5000,
-      variancePercent: -0.8,
-      ytdBudget: 5850000,
-      ytdActual: 5820000,
-      ytdVariance: -30000,
-      ytdVariancePercent: -0.5
-    },
-    {
-      id: 'BVA-006',
-      category: 'Comisiones',
-      subcategory: 'Comisiones Ventas',
-      type: 'expense',
-      department: 'Ventas',
-      budgeted: 180000,
-      actual: 195000,
-      variance: 15000,
-      variancePercent: 8.3,
-      ytdBudget: 1620000,
-      ytdActual: 1680000,
-      ytdVariance: 60000,
-      ytdVariancePercent: 3.7
-    },
-    // Expense Items - Marketing
-    {
-      id: 'BVA-007',
-      category: 'Nómina',
-      subcategory: 'Salarios Marketing',
-      type: 'expense',
-      department: 'Marketing',
-      budgeted: 420000,
-      actual: 418000,
-      variance: -2000,
-      variancePercent: -0.5,
-      ytdBudget: 3780000,
-      ytdActual: 3760000,
-      ytdVariance: -20000,
-      ytdVariancePercent: -0.5
-    },
-    {
-      id: 'BVA-008',
-      category: 'Publicidad',
-      subcategory: 'Marketing Digital',
-      type: 'expense',
-      department: 'Marketing',
-      budgeted: 250000,
-      actual: 285000,
-      variance: 35000,
-      variancePercent: 14.0,
-      ytdBudget: 2250000,
-      ytdActual: 2480000,
-      ytdVariance: 230000,
-      ytdVariancePercent: 10.2
-    },
-    {
-      id: 'BVA-009',
-      category: 'Eventos',
-      subcategory: 'Ferias y Conferencias',
-      type: 'expense',
-      department: 'Marketing',
-      budgeted: 150000,
-      actual: 165000,
-      variance: 15000,
-      variancePercent: 10.0,
-      ytdBudget: 1350000,
-      ytdActual: 1420000,
-      ytdVariance: 70000,
-      ytdVariancePercent: 5.2
-    },
-    // Expense Items - Operaciones
-    {
-      id: 'BVA-010',
-      category: 'Nómina',
-      subcategory: 'Salarios Operaciones',
-      type: 'expense',
-      department: 'Operaciones',
-      budgeted: 850000,
-      actual: 842000,
-      variance: -8000,
-      variancePercent: -0.9,
-      ytdBudget: 7650000,
-      ytdActual: 7590000,
-      ytdVariance: -60000,
-      ytdVariancePercent: -0.8
-    },
-    {
-      id: 'BVA-011',
-      category: 'Infraestructura',
-      subcategory: 'Servidores y Cloud',
-      type: 'expense',
-      department: 'Operaciones',
-      budgeted: 120000,
-      actual: 138000,
-      variance: 18000,
-      variancePercent: 15.0,
-      ytdBudget: 1080000,
-      ytdActual: 1180000,
-      ytdVariance: 100000,
-      ytdVariancePercent: 9.3
-    },
-    // Expense Items - Tecnología
-    {
-      id: 'BVA-012',
-      category: 'Nómina',
-      subcategory: 'Salarios Desarrollo',
-      type: 'expense',
-      department: 'Tecnología',
-      budgeted: 1200000,
-      actual: 1195000,
-      variance: -5000,
-      variancePercent: -0.4,
-      ytdBudget: 10800000,
-      ytdActual: 10750000,
-      ytdVariance: -50000,
-      ytdVariancePercent: -0.5
-    },
-    {
-      id: 'BVA-013',
-      category: 'Software',
-      subcategory: 'Licencias y Herramientas',
-      type: 'expense',
-      department: 'Tecnología',
-      budgeted: 180000,
-      actual: 185000,
-      variance: 5000,
-      variancePercent: 2.8,
-      ytdBudget: 1620000,
-      ytdActual: 1650000,
-      ytdVariance: 30000,
-      ytdVariancePercent: 1.9
-    },
-    // Expense Items - RRHH
-    {
-      id: 'BVA-014',
-      category: 'Nómina',
-      subcategory: 'Salarios RRHH',
-      type: 'expense',
-      department: 'Recursos Humanos',
-      budgeted: 380000,
-      actual: 378000,
-      variance: -2000,
-      variancePercent: -0.5,
-      ytdBudget: 3420000,
-      ytdActual: 3400000,
-      ytdVariance: -20000,
-      ytdVariancePercent: -0.6
-    },
-    {
-      id: 'BVA-015',
-      category: 'Capacitación',
-      subcategory: 'Formación y Desarrollo',
-      type: 'expense',
-      department: 'Recursos Humanos',
-      budgeted: 200000,
-      actual: 175000,
-      variance: -25000,
-      variancePercent: -12.5,
-      ytdBudget: 1800000,
-      ytdActual: 1650000,
-      ytdVariance: -150000,
-      ytdVariancePercent: -8.3
-    },
-    // Expense Items - Administración
-    {
-      id: 'BVA-016',
-      category: 'Nómina',
-      subcategory: 'Salarios Administración',
-      type: 'expense',
-      department: 'Administración',
-      budgeted: 520000,
-      actual: 518000,
-      variance: -2000,
-      variancePercent: -0.4,
-      ytdBudget: 4680000,
-      ytdActual: 4660000,
-      ytdVariance: -20000,
-      ytdVariancePercent: -0.4
-    },
-    {
-      id: 'BVA-017',
-      category: 'Instalaciones',
-      subcategory: 'Renta de Oficina',
-      type: 'expense',
-      department: 'Administración',
-      budgeted: 300000,
-      actual: 300000,
-      variance: 0,
-      variancePercent: 0,
-      ytdBudget: 2700000,
-      ytdActual: 2700000,
-      ytdVariance: 0,
-      ytdVariancePercent: 0
-    },
-    {
-      id: 'BVA-018',
-      category: 'Servicios',
-      subcategory: 'Servicios Generales',
-      type: 'expense',
-      department: 'Administración',
-      budgeted: 80000,
-      actual: 92000,
-      variance: 12000,
-      variancePercent: 15.0,
-      ytdBudget: 720000,
-      ytdActual: 795000,
-      ytdVariance: 75000,
-      ytdVariancePercent: 10.4
+    if (status === 'authenticated' && activeCompany?.id) {
+      loadBudgetActuals()
     }
-  ]
+  }, [status, activeCompany?.id, loadBudgetActuals])
 
   const getVarianceBadge = (variancePercent: number, type: 'revenue' | 'expense') => {
     const isGood = type === 'revenue' ? variancePercent > 0 : variancePercent < 0
