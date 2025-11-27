@@ -118,41 +118,26 @@ export default function PayrollCalculatePage() {
           setEmployees(empList)
           setSelectedEmployees(empList.map((e: any) => e.id))
         } else {
-          // Usar empleados de ejemplo si no hay en la BD
-          const sampleEmployees = [
-            { id: 'EMP-001', firstName: 'Juan Carlos', lastName: 'Pérez', department: 'Desarrollo', salary: 35000, position: 'Desarrollador Senior' },
-            { id: 'EMP-002', firstName: 'María', lastName: 'González', department: 'Administración', salary: 40000, position: 'Gerente Admin' },
-            { id: 'EMP-003', firstName: 'Roberto', lastName: 'Hernández', department: 'Ventas', salary: 28000, position: 'Ejecutivo de Ventas' },
-            { id: 'EMP-004', firstName: 'Ana', lastName: 'López', department: 'Contabilidad', salary: 32000, position: 'Contadora' },
-            { id: 'EMP-005', firstName: 'Carlos', lastName: 'Martínez', department: 'IT', salary: 38000, position: 'Ingeniero de Sistemas' }
-          ]
-          setEmployees(sampleEmployees)
-          setSelectedEmployees(sampleEmployees.map(e => e.id))
+          // No hay empleados en la base de datos
+          setEmployees([])
+          setSelectedEmployees([])
+          setMessage({ type: 'error', text: 'No hay empleados activos. Primero agregue empleados en Nómina > Empleados.' })
+          setTimeout(() => setMessage(null), 5000)
         }
       } else {
-        // Usar empleados de ejemplo si la API falla
-        const sampleEmployees = [
-          { id: 'EMP-001', firstName: 'Juan Carlos', lastName: 'Pérez', department: 'Desarrollo', salary: 35000, position: 'Desarrollador Senior' },
-          { id: 'EMP-002', firstName: 'María', lastName: 'González', department: 'Administración', salary: 40000, position: 'Gerente Admin' },
-          { id: 'EMP-003', firstName: 'Roberto', lastName: 'Hernández', department: 'Ventas', salary: 28000, position: 'Ejecutivo de Ventas' },
-          { id: 'EMP-004', firstName: 'Ana', lastName: 'López', department: 'Contabilidad', salary: 32000, position: 'Contadora' },
-          { id: 'EMP-005', firstName: 'Carlos', lastName: 'Martínez', department: 'IT', salary: 38000, position: 'Ingeniero de Sistemas' }
-        ]
-        setEmployees(sampleEmployees)
-        setSelectedEmployees(sampleEmployees.map(e => e.id))
+        // Error al obtener empleados
+        setEmployees([])
+        setSelectedEmployees([])
+        setMessage({ type: 'error', text: 'Error al cargar empleados. Verifique la conexión.' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error fetching employees:', error)
-      // Usar empleados de ejemplo si hay error
-      const sampleEmployees = [
-        { id: 'EMP-001', firstName: 'Juan Carlos', lastName: 'Pérez', department: 'Desarrollo', salary: 35000, position: 'Desarrollador Senior' },
-        { id: 'EMP-002', firstName: 'María', lastName: 'González', department: 'Administración', salary: 40000, position: 'Gerente Admin' },
-        { id: 'EMP-003', firstName: 'Roberto', lastName: 'Hernández', department: 'Ventas', salary: 28000, position: 'Ejecutivo de Ventas' },
-        { id: 'EMP-004', firstName: 'Ana', lastName: 'López', department: 'Contabilidad', salary: 32000, position: 'Contadora' },
-        { id: 'EMP-005', firstName: 'Carlos', lastName: 'Martínez', department: 'IT', salary: 38000, position: 'Ingeniero de Sistemas' }
-      ]
-      setEmployees(sampleEmployees)
-      setSelectedEmployees(sampleEmployees.map(e => e.id))
+      // Error de conexión
+      setEmployees([])
+      setSelectedEmployees([])
+      setMessage({ type: 'error', text: 'Error de conexión al cargar empleados.' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setProcessing(false)
     }
