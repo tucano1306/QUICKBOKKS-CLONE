@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -23,7 +23,9 @@ import {
   RefreshCw,
   CheckCircle2,
   Clock,
-  Filter
+  Filter,
+  Loader2,
+  AlertCircle
 } from 'lucide-react'
 
 interface BankTransaction {
@@ -32,15 +34,27 @@ interface BankTransaction {
   date: string
   account: string
   accountId: string
-  type: 'deposit' | 'withdrawal' | 'transfer' | 'fee' | 'interest'
+  type: 'deposit' | 'withdrawal' | 'transfer' | 'fee' | 'interest' | 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER'
   category: string
   description: string
   amount: number
   balance: number
   reference?: string
   counterparty?: string
-  status: 'completed' | 'pending' | 'reconciled' | 'cancelled'
+  status: 'completed' | 'pending' | 'reconciled' | 'cancelled' | 'COMPLETED' | 'PENDING' | 'RECONCILED'
   reconciledDate?: string
+  bankAccount?: {
+    id: string
+    accountName: string
+    bankName: string
+  }
+}
+
+interface BankAccount {
+  id: string
+  accountName: string
+  bankName: string
+  currentBalance: number
 }
 
 export default function BankTransactionsPage() {
@@ -48,6 +62,8 @@ export default function BankTransactionsPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [transactions, setTransactions] = useState<BankTransaction[]>([])
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterAccount, setFilterAccount] = useState<string>('all')
@@ -55,6 +71,7 @@ export default function BankTransactionsPage() {
   const [dateRange, setDateRange] = useState<string>('month')
   const [showNewTransactionModal, setShowNewTransactionModal] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [newTransaction, setNewTransaction] = useState({
     accountId: '',
     type: 'deposit',
@@ -72,243 +89,153 @@ export default function BankTransactionsPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const transactions: BankTransaction[] = [
-    {
-      id: 'TRX-001',
-      transactionId: 'DEP-2025-001',
-      date: '2025-11-25',
-      account: 'Cuenta Principal Operativa',
-      accountId: 'ACC-001',
-      type: 'deposit',
-      category: 'Cobro Cliente',
-      description: 'Pago factura INV-2025-042 - Acme Corp',
-      amount: 145000,
-      balance: 1250000,
-      reference: 'INV-2025-042',
-      counterparty: 'Acme Corp S.A. de C.V.',
-      status: 'reconciled',
-      reconciledDate: '2025-11-25'
-    },
-    {
-      id: 'TRX-002',
-      transactionId: 'WTH-2025-012',
-      date: '2025-11-24',
-      account: 'Cuenta Principal Operativa',
-      accountId: 'ACC-001',
-      type: 'withdrawal',
-      category: 'Pago Proveedor',
-      description: 'Pago a Distribuidora Tech Solutions - BILL-2025-001',
-      amount: -25000,
-      balance: 1105000,
-      reference: 'BILL-2025-001',
-      counterparty: 'Distribuidora Tech Solutions',
-      status: 'reconciled',
-      reconciledDate: '2025-11-24'
-    },
-    {
-      id: 'TRX-003',
-      transactionId: 'TRF-2025-008',
-      date: '2025-11-23',
-      account: 'Cuenta Nómina',
-      accountId: 'ACC-003',
-      type: 'transfer',
-      category: 'Transferencia Interna',
-      description: 'Transferencia para pago de nómina quincena 2',
-      amount: -250000,
-      balance: 450000,
-      reference: 'PAY-2025-Q2',
-      status: 'completed'
-    },
-    {
-      id: 'TRX-004',
-      transactionId: 'DEP-2025-002',
-      date: '2025-11-22',
-      account: 'Cuenta Principal Operativa',
-      accountId: 'ACC-001',
-      type: 'deposit',
-      category: 'Cobro Cliente',
-      description: 'Pago factura INV-2025-038 - GlobalTech Inc',
-      amount: 85000,
-      balance: 1130000,
-      reference: 'INV-2025-038',
-      counterparty: 'GlobalTech Inc.',
-      status: 'reconciled',
-      reconciledDate: '2025-11-22'
-    },
-    {
-      id: 'TRX-005',
-      transactionId: 'WTH-2025-013',
-      date: '2025-11-21',
-      account: 'Cuenta Fiscal - Impuestos',
-      accountId: 'ACC-007',
-      type: 'withdrawal',
-      category: 'Pago Impuestos',
-      description: 'Pago ISR y IVA - Octubre 2025',
-      amount: -125000,
-      balance: 350000,
-      reference: 'TAX-OCT-2025',
-      counterparty: 'SAT - Servicio de Administración Tributaria',
-      status: 'reconciled',
-      reconciledDate: '2025-11-21'
-    },
-    {
-      id: 'TRX-006',
-      transactionId: 'FEE-2025-004',
-      date: '2025-11-20',
-      account: 'Cuenta Principal Operativa',
-      accountId: 'ACC-001',
-      type: 'fee',
-      category: 'Comisión Bancaria',
-      description: 'Comisión por manejo de cuenta - Noviembre 2025',
-      amount: -450,
-      balance: 1045000,
-      status: 'completed'
-    },
-    {
-      id: 'TRX-007',
-      transactionId: 'INT-2025-002',
-      date: '2025-11-20',
-      account: 'Cuenta de Ahorros Empresarial',
-      accountId: 'ACC-002',
-      type: 'interest',
-      category: 'Intereses Ganados',
-      description: 'Intereses generados - Octubre 2025 (4.5% anual)',
-      amount: 3187.50,
-      balance: 850000,
-      status: 'reconciled',
-      reconciledDate: '2025-11-20'
-    },
-    {
-      id: 'TRX-008',
-      transactionId: 'DEP-2025-003',
-      date: '2025-11-19',
-      account: 'Cuenta USD Internacional',
-      accountId: 'ACC-005',
-      type: 'deposit',
-      category: 'Cobro Internacional',
-      description: 'Pago cliente internacional - Project Alpha',
-      amount: 5000,
-      balance: 45000,
-      reference: 'INV-INT-2025-012',
-      counterparty: 'Tech Solutions LLC (USA)',
-      status: 'completed'
-    },
-    {
-      id: 'TRX-009',
-      transactionId: 'WTH-2025-014',
-      date: '2025-11-18',
-      account: 'Tarjeta de Crédito Corporativa',
-      accountId: 'ACC-004',
-      type: 'withdrawal',
-      category: 'Gastos Operativos',
-      description: 'Compra suministros de oficina - Amazon Business',
-      amount: -8500,
-      balance: -125000,
-      reference: 'EXP-2025-089',
-      counterparty: 'Amazon Business',
-      status: 'pending'
-    },
-    {
-      id: 'TRX-010',
-      transactionId: 'WTH-2025-015',
-      date: '2025-11-17',
-      account: 'Cuenta Principal Operativa',
-      accountId: 'ACC-001',
-      type: 'withdrawal',
-      category: 'Pago Servicios',
-      description: 'Pago renta oficina - Noviembre 2025',
-      amount: -60000,
-      balance: 1045450,
-      reference: 'BILL-2025-003',
-      counterparty: 'Inmobiliaria del Centro',
-      status: 'reconciled',
-      reconciledDate: '2025-11-17'
-    },
-    {
-      id: 'TRX-011',
-      transactionId: 'DEP-2025-004',
-      date: '2025-11-15',
-      account: 'Cuenta Principal Operativa',
-      accountId: 'ACC-001',
-      type: 'deposit',
-      category: 'Cobro Cliente',
-      description: 'Pago factura INV-2025-035 - Innovatech',
-      amount: 120000,
-      balance: 1105450,
-      reference: 'INV-2025-035',
-      counterparty: 'Innovatech S.A.',
-      status: 'reconciled',
-      reconciledDate: '2025-11-15'
-    },
-    {
-      id: 'TRX-012',
-      transactionId: 'TRF-2025-009',
-      date: '2025-11-14',
-      account: 'Cuenta Principal Operativa',
-      accountId: 'ACC-001',
-      type: 'transfer',
-      category: 'Transferencia Interna',
-      description: 'Transferencia a cuenta fiscal para impuestos',
-      amount: -150000,
-      balance: 985450,
-      reference: 'TRF-FISCAL-NOV',
-      status: 'completed'
-    },
-    {
-      id: 'TRX-013',
-      transactionId: 'WTH-2025-016',
-      date: '2025-11-13',
-      account: 'Cuenta Principal Operativa',
-      accountId: 'ACC-001',
-      type: 'withdrawal',
-      category: 'Pago Proveedor',
-      description: 'Pago servicios de limpieza - Octubre 2025',
-      amount: -5500,
-      balance: 1135450,
-      reference: 'BILL-2025-008',
-      counterparty: 'Servicios de Limpieza ProClean',
-      status: 'reconciled',
-      reconciledDate: '2025-11-13'
-    },
-    {
-      id: 'TRX-014',
-      transactionId: 'DEP-2025-005',
-      date: '2025-11-12',
-      account: 'Cuenta Principal Operativa',
-      accountId: 'ACC-001',
-      type: 'deposit',
-      category: 'Cobro Cliente',
-      description: 'Pago factura INV-2025-033 - MegaCorp',
-      amount: 95000,
-      balance: 1140950,
-      reference: 'INV-2025-033',
-      counterparty: 'MegaCorp International',
-      status: 'reconciled',
-      reconciledDate: '2025-11-12'
-    },
-    {
-      id: 'TRX-015',
-      transactionId: 'WTH-2025-017',
-      date: '2025-11-10',
-      account: 'Cuenta Nómina',
-      accountId: 'ACC-003',
-      type: 'withdrawal',
-      category: 'Pago Nómina',
-      description: 'Dispersión nómina quincena 1 - Noviembre 2025',
-      amount: -254798,
-      balance: 700000,
-      reference: 'PAY-2025-Q1',
-      status: 'completed'
+  // Fetch bank accounts
+  const fetchBankAccounts = useCallback(async () => {
+    if (!activeCompany) return
+    
+    try {
+      const response = await fetch(`/api/banking/accounts?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setBankAccounts(data.accounts || data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error)
     }
-  ]
+  }, [activeCompany])
+
+  // Fetch transactions
+  const fetchTransactions = useCallback(async () => {
+    if (!activeCompany) return
+    
+    setLoading(true)
+    try {
+      let url = `/api/banking/transactions?limit=100`
+      
+      if (filterAccount !== 'all') {
+        url += `&bankAccountId=${filterAccount}`
+      }
+      
+      // Add date range filter
+      const now = new Date()
+      let startDate: Date | null = null
+      
+      if (dateRange === 'today') {
+        startDate = new Date(now.setHours(0, 0, 0, 0))
+      } else if (dateRange === 'week') {
+        startDate = new Date(now.setDate(now.getDate() - 7))
+      } else if (dateRange === 'month') {
+        startDate = new Date(now.setMonth(now.getMonth() - 1))
+      } else if (dateRange === 'quarter') {
+        startDate = new Date(now.setMonth(now.getMonth() - 3))
+      } else if (dateRange === 'year') {
+        startDate = new Date(now.setFullYear(now.getFullYear() - 1))
+      }
+      
+      if (startDate) {
+        url += `&startDate=${startDate.toISOString()}`
+      }
+      
+      const response = await fetch(url)
+      if (response.ok) {
+        const data = await response.json()
+        const txns = data.transactions || data || []
+        
+        // Map API response to component format
+        const mappedTxns = txns.map((t: any) => ({
+          id: t.id,
+          transactionId: t.transactionId || t.id,
+          date: t.date,
+          account: t.bankAccount?.accountName || 'Cuenta',
+          accountId: t.bankAccountId || t.bankAccount?.id,
+          type: (t.type || 'deposit').toLowerCase(),
+          category: t.category || 'General',
+          description: t.description || t.memo || '',
+          amount: t.amount,
+          balance: t.runningBalance || t.balance || 0,
+          reference: t.reference,
+          counterparty: t.payee || t.counterparty,
+          status: (t.status || 'completed').toLowerCase(),
+          reconciledDate: t.reconciledDate,
+          bankAccount: t.bankAccount
+        }))
+        
+        setTransactions(mappedTxns)
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error)
+      setMessage({ type: 'error', text: 'Error al cargar transacciones' })
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany, filterAccount, dateRange])
+
+  useEffect(() => {
+    if (activeCompany) {
+      fetchBankAccounts()
+      fetchTransactions()
+    }
+  }, [activeCompany, fetchBankAccounts, fetchTransactions])
+
+  // Create new transaction
+  const handleCreateTransaction = async () => {
+    if (!activeCompany || !newTransaction.accountId) {
+      setMessage({ type: 'error', text: 'Seleccione una cuenta bancaria' })
+      return
+    }
+    
+    if (!newTransaction.description || !newTransaction.amount) {
+      setMessage({ type: 'error', text: 'Complete todos los campos requeridos' })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await fetch('/api/banking/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bankAccountId: newTransaction.accountId,
+          type: newTransaction.type.toUpperCase(),
+          description: newTransaction.description,
+          amount: newTransaction.type === 'withdrawal' ? -Math.abs(newTransaction.amount) : Math.abs(newTransaction.amount),
+          date: newTransaction.date,
+          category: newTransaction.category,
+          payee: newTransaction.counterparty,
+          reference: newTransaction.reference,
+          status: 'PENDING'
+        })
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Transacción creada exitosamente' })
+        setShowNewTransactionModal(false)
+        setNewTransaction({
+          accountId: '',
+          type: 'deposit',
+          category: '',
+          description: '',
+          amount: 0,
+          date: new Date().toISOString().split('T')[0],
+          counterparty: '',
+          reference: ''
+        })
+        fetchTransactions()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al crear transacción' })
+      }
+    } catch (error) {
+      console.error('Error creating transaction:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const getTypeBadge = (type: string) => {
-    switch (type) {
+    const typeLower = type.toLowerCase()
+    switch (typeLower) {
       case 'deposit':
         return <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
           <ArrowDownLeft className="w-3 h-3" /> Depósito
@@ -335,7 +262,8 @@ export default function BankTransactionsPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    const statusLower = status.toLowerCase()
+    switch (statusLower) {
       case 'completed':
         return <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3" /> Completada
@@ -358,37 +286,38 @@ export default function BankTransactionsPage() {
   }
 
   const filteredTransactions = transactions.filter(trx => {
-    if (filterType !== 'all' && trx.type !== filterType) return false
+    const trxType = trx.type.toLowerCase()
+    const trxStatus = trx.status.toLowerCase()
+    if (filterType !== 'all' && trxType !== filterType) return false
     if (filterAccount !== 'all' && trx.accountId !== filterAccount) return false
-    if (filterStatus !== 'all' && trx.status !== filterStatus) return false
+    if (filterStatus !== 'all' && trxStatus !== filterStatus) return false
     if (searchTerm && !trx.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !trx.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !trx.counterparty?.toLowerCase().includes(searchTerm.toLowerCase())) return false
     
-    if (dateRange !== 'all') {
-      const trxDate = new Date(trx.date)
-      const now = new Date()
-      const daysDiff = Math.floor((now.getTime() - trxDate.getTime()) / (1000 * 60 * 60 * 24))
-      
-      if (dateRange === 'week' && daysDiff > 7) return false
-      if (dateRange === 'month' && daysDiff > 30) return false
-      if (dateRange === 'quarter' && daysDiff > 90) return false
-    }
-    
     return true
   })
 
-  const uniqueAccounts = Array.from(new Set(transactions.map(t => t.account)))
-    .map(name => transactions.find(t => t.account === name)!)
+  const uniqueAccounts = bankAccounts.length > 0 
+    ? bankAccounts 
+    : Array.from(new Set(transactions.map(t => t.account)))
+        .map(name => transactions.find(t => t.account === name)!)
+        .filter(Boolean)
 
   const totalDeposits = transactions
-    .filter(t => t.type === 'deposit' || t.type === 'interest')
-    .reduce((sum, t) => sum + t.amount, 0)
+    .filter(t => {
+      const type = t.type.toLowerCase()
+      return type === 'deposit' || type === 'interest'
+    })
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
   const totalWithdrawals = transactions
-    .filter(t => t.type === 'withdrawal' || t.type === 'fee')
+    .filter(t => {
+      const type = t.type.toLowerCase()
+      return type === 'withdrawal' || type === 'fee'
+    })
     .reduce((sum, t) => sum + Math.abs(t.amount), 0)
   const totalTransactions = transactions.length
-  const reconciledCount = transactions.filter(t => t.status === 'reconciled').length
+  const reconciledCount = transactions.filter(t => t.status.toLowerCase() === 'reconciled').length
 
   if (status === 'loading' || loading) {
     return (
@@ -412,7 +341,23 @@ export default function BankTransactionsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📥 Exportando transacciones bancarias a CSV')}>
+            <Button variant="outline" onClick={() => fetchTransactions()}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Actualizar
+            </Button>
+            <Button variant="outline" onClick={() => {
+              const csv = 'ID,Fecha,Cuenta,Tipo,Descripción,Monto,Estado\n' +
+                filteredTransactions.map(t => 
+                  `${t.transactionId},${t.date},${t.account},${t.type},"${t.description}",${t.amount},${t.status}`
+                ).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `transacciones-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              setMessage({ type: 'success', text: 'Archivo exportado exitosamente' })
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
@@ -422,6 +367,28 @@ export default function BankTransactionsPage() {
             </Button>
           </div>
         </div>
+
+        {/* Messages */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            {message.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              <AlertCircle className="w-5 h-5" />
+            )}
+            {message.text}
+            <button 
+              onClick={() => setMessage(null)} 
+              className="ml-auto text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

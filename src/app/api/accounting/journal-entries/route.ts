@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { date, description, reference, lines, costCenterId } = body;
+    const { date, description, reference, lines, costCenterId, companyId } = body;
 
     // Validar que los débitos y créditos cuadren
     const totalDebits = lines.reduce((sum: number, line: any) => sum + (line.debit || 0), 0);
@@ -79,6 +79,44 @@ export async function POST(request: NextRequest) {
 
     const entryNumber = `JE-${nextNumber}`;
 
+    // Resolver accountId desde accountCode si es necesario
+    const resolvedLines = await Promise.all(
+      lines.map(async (line: any, index: number) => {
+        let accountId = line.accountId;
+        
+        // Si no hay accountId pero hay accountCode, buscar la cuenta
+        if (!accountId && line.accountCode) {
+          const account = await prisma.chartOfAccounts.findFirst({
+            where: { code: line.accountCode },
+          });
+          if (account) {
+            accountId = account.id;
+          } else {
+            // Crear cuenta temporal si no existe
+            const newAccount = await prisma.chartOfAccounts.create({
+              data: {
+                code: line.accountCode,
+                name: line.accountName || `Cuenta ${line.accountCode}`,
+                type: 'ASSET',
+                balance: 0,
+              },
+            });
+            accountId = newAccount.id;
+          }
+        }
+
+        return {
+          accountId,
+          description: line.description,
+          debit: line.debit || 0,
+          credit: line.credit || 0,
+          currencyId: line.currencyId,
+          exchangeRate: line.exchangeRate || 1,
+          lineNumber: index + 1,
+        };
+      })
+    );
+
     // Crear asiento con sus líneas
     const entry = await prisma.journalEntry.create({
       data: {
@@ -89,15 +127,7 @@ export async function POST(request: NextRequest) {
         costCenterId,
         createdBy: session.user.id,
         lines: {
-          create: lines.map((line: any, index: number) => ({
-            accountId: line.accountId,
-            description: line.description,
-            debit: line.debit || 0,
-            credit: line.credit || 0,
-            currencyId: line.currencyId,
-            exchangeRate: line.exchangeRate || 1,
-            lineNumber: index + 1,
-          })),
+          create: resolvedLines,
         },
       },
       include: {
@@ -128,5 +158,101 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating journal entry:', error);
     return NextResponse.json({ error: 'Error al crear asiento contable' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, status, description, reference } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    }
+
+    // Verificar que existe el asiento
+    const existingEntry = await prisma.journalEntry.findUnique({
+      where: { id },
+      include: { lines: true },
+    });
+
+    if (!existingEntry) {
+      return NextResponse.json({ error: 'Asiento no encontrado' }, { status: 404 });
+    }
+
+    // Actualizar asiento
+    const updateData: any = {};
+    if (status) updateData.status = status;
+    if (description) updateData.description = description;
+    if (reference !== undefined) updateData.reference = reference;
+
+    const entry = await prisma.journalEntry.update({
+      where: { id },
+      data: updateData,
+      include: {
+        lines: {
+          include: {
+            account: true,
+            currency: true,
+          },
+        },
+        costCenter: true,
+      },
+    });
+
+    return NextResponse.json(entry);
+  } catch (error) {
+    console.error('Error updating journal entry:', error);
+    return NextResponse.json({ error: 'Error al actualizar asiento contable' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    }
+
+    // Verificar que existe el asiento
+    const existingEntry = await prisma.journalEntry.findUnique({
+      where: { id },
+    });
+
+    if (!existingEntry) {
+      return NextResponse.json({ error: 'Asiento no encontrado' }, { status: 404 });
+    }
+
+    // No permitir eliminar asientos registrados
+    if (existingEntry.status === 'POSTED') {
+      return NextResponse.json({ error: 'No se puede eliminar un asiento registrado' }, { status: 400 });
+    }
+
+    // Eliminar líneas primero
+    await prisma.journalEntryLine.deleteMany({
+      where: { journalEntryId: id },
+    });
+
+    // Eliminar asiento
+    await prisma.journalEntry.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ message: 'Asiento eliminado exitosamente' });
+  } catch (error) {
+    console.error('Error deleting journal entry:', error);
+    return NextResponse.json({ error: 'Error al eliminar asiento contable' }, { status: 500 });
   }
 }

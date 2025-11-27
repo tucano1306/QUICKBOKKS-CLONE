@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -25,7 +25,9 @@ import {
   Clock,
   XCircle,
   Receipt,
-  History
+  History,
+  Loader2,
+  AlertCircle
 } from 'lucide-react'
 
 interface JournalEntry {
@@ -34,7 +36,7 @@ interface JournalEntry {
   date: string
   description: string
   reference?: string
-  status: 'draft' | 'posted' | 'reversed'
+  status: 'draft' | 'posted' | 'reversed' | 'DRAFT' | 'POSTED' | 'REVERSED'
   createdBy: string
   totalDebit: number
   totalCredit: number
@@ -60,6 +62,10 @@ export default function JournalEntriesPage() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [showDetail, setShowDetail] = useState(false)
   const [showNewModal, setShowNewModal] = useState(false)
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([])
+  const [processing, setProcessing] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [accounts, setAccounts] = useState<any[]>([])
   
   // Estados para nueva póliza
   const [newEntryDate, setNewEntryDate] = useState(new Date().toISOString().split('T')[0])
@@ -70,6 +76,40 @@ export default function JournalEntriesPage() {
     { id: '2', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 }
   ])
 
+  // Fetch journal entries from API
+  const fetchJournalEntries = useCallback(async () => {
+    if (!activeCompany) return
+    
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/accounting/journal-entries?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setJournalEntries(data.entries || data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching journal entries:', error)
+      setMessage({ type: 'error', text: 'Error al cargar pólizas contables' })
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany])
+
+  // Fetch chart of accounts for dropdown
+  const fetchAccounts = useCallback(async () => {
+    if (!activeCompany) return
+    
+    try {
+      const response = await fetch(`/api/accounting/chart-of-accounts?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAccounts(data.accounts || data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching accounts:', error)
+    }
+  }, [activeCompany])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
@@ -77,9 +117,11 @@ export default function JournalEntriesPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    if (activeCompany) {
+      fetchJournalEntries()
+      fetchAccounts()
+    }
+  }, [activeCompany, fetchJournalEntries, fetchAccounts])
 
   // Funciones para manejar la nueva póliza
   const addNewLine = () => {
@@ -112,152 +154,146 @@ export default function JournalEntriesPage() {
     return { totalDebit, totalCredit, balanced: totalDebit === totalCredit && totalDebit > 0 }
   }
 
-  const createJournalEntry = () => {
+  // Create journal entry via API
+  const createJournalEntry = async () => {
     const { totalDebit, totalCredit, balanced } = calculateTotals()
     
     if (!newEntryDesc) {
-      alert('❌ Falta la descripción de la póliza')
+      setMessage({ type: 'error', text: 'Falta la descripción de la póliza' })
       return
     }
 
     if (!balanced) {
-      alert(`❌ La póliza no está balanceada:\n\nTotal Cargos: $${totalDebit.toFixed(2)}\nTotal Abonos: $${totalCredit.toFixed(2)}\nDiferencia: $${Math.abs(totalDebit - totalCredit).toFixed(2)}\n\n⚠️ Los cargos y abonos deben ser iguales.`)
+      setMessage({ type: 'error', text: `La póliza no está balanceada. Cargos: $${totalDebit.toFixed(2)}, Abonos: $${totalCredit.toFixed(2)}` })
       return
     }
 
     // Validar que todas las líneas tengan cuenta
     const invalidLines = newEntryLines.filter(line => !line.accountCode || (!line.debit && !line.credit))
     if (invalidLines.length > 0) {
-      alert('❌ Todas las partidas deben tener código de cuenta y monto (cargo o abono)')
+      setMessage({ type: 'error', text: 'Todas las partidas deben tener código de cuenta y monto' })
       return
     }
 
-    alert(`✅ Póliza Contable Creada Exitosamente\n\n📋 Número: JE-${new Date().getFullYear()}-${String(journalEntries.length + 1).padStart(3, '0')}\n📅 Fecha: ${newEntryDate}\n💰 Total Cargos: $${totalDebit.toLocaleString()}\n💰 Total Abonos: $${totalCredit.toLocaleString()}\n✅ Estado: Borrador\n\nEn producción, esto se guardaría en la base de datos y se reflejaría en el balance y estado de resultados.`)
-    
-    // Reset form
-    setShowNewModal(false)
-    setNewEntryDesc('')
-    setNewEntryRef('')
-    setNewEntryLines([
-      { id: '1', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 },
-      { id: '2', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 }
-    ])
+    if (!activeCompany) return
+
+    setProcessing(true)
+    try {
+      const response = await fetch('/api/accounting/journal-entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: activeCompany.id,
+          date: newEntryDate,
+          description: newEntryDesc,
+          reference: newEntryRef,
+          status: 'DRAFT',
+          lines: newEntryLines.map(line => ({
+            accountCode: line.accountCode,
+            accountName: line.accountName,
+            description: line.description,
+            debit: Number(line.debit) || 0,
+            credit: Number(line.credit) || 0
+          })),
+          totalDebit,
+          totalCredit
+        })
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Póliza creada exitosamente' })
+        setShowNewModal(false)
+        setNewEntryDesc('')
+        setNewEntryRef('')
+        setNewEntryLines([
+          { id: '1', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 },
+          { id: '2', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 }
+        ])
+        fetchJournalEntries()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al crear póliza' })
+      }
+    } catch (error) {
+      console.error('Error creating journal entry:', error)
+      setMessage({ type: 'error', text: 'Error de conexión al crear póliza' })
+    } finally {
+      setProcessing(false)
+    }
   }
 
-  const journalEntries: JournalEntry[] = [
-    {
-      id: 'JE-001',
-      entryNumber: 'JE-2025-001',
-      date: '2025-11-24',
-      description: 'Registro de venta a crédito - Factura #12345',
-      reference: 'FAC-12345',
-      status: 'posted',
-      createdBy: 'Ana García',
-      totalDebit: 17400,
-      totalCredit: 17400,
-      lines: [
-        { id: '1', accountCode: '1130', accountName: 'Cuentas por Cobrar', description: 'Cliente ABC Corp', debit: 17400, credit: 0 },
-        { id: '2', accountCode: '4110', accountName: 'Ventas de Productos', description: 'Venta según factura', debit: 0, credit: 15000 },
-        { id: '3', accountCode: '2120', accountName: 'IVA por Pagar', description: 'IVA trasladado 16%', debit: 0, credit: 2400 }
-      ]
-    },
-    {
-      id: 'JE-002',
-      entryNumber: 'JE-2025-002',
-      date: '2025-11-23',
-      description: 'Pago de renta mensual - Oficina Centro',
-      reference: 'RENT-NOV',
-      status: 'posted',
-      createdBy: 'Laura Sánchez',
-      totalDebit: 9280,
-      totalCredit: 9280,
-      lines: [
-        { id: '1', accountCode: '5220', accountName: 'Renta', description: 'Renta noviembre 2025', debit: 8000, credit: 0 },
-        { id: '2', accountCode: '1150', accountName: 'IVA Acreditable', description: 'IVA 16% deducible', debit: 1280, credit: 0 },
-        { id: '3', accountCode: '1120', accountName: 'Bancos', description: 'BBVA Empresarial', debit: 0, credit: 9280 }
-      ]
-    },
-    {
-      id: 'JE-003',
-      entryNumber: 'JE-2025-003',
-      date: '2025-11-22',
-      description: 'Registro de nómina quincenal',
-      reference: 'NOM-NOV-02',
-      status: 'posted',
-      createdBy: 'Ana García',
-      totalDebit: 14000,
-      totalCredit: 14000,
-      lines: [
-        { id: '1', accountCode: '5210', accountName: 'Sueldos y Salarios', description: 'Nómina 2da Nov', debit: 14000, credit: 0 },
-        { id: '2', accountCode: '1120', accountName: 'Bancos', description: 'Transferencia nómina', debit: 0, credit: 14000 }
-      ]
-    },
-    {
-      id: 'JE-004',
-      entryNumber: 'JE-2025-004',
-      date: '2025-11-21',
-      description: 'Depreciación mensual de activos fijos',
-      reference: 'DEP-NOV',
-      status: 'posted',
-      createdBy: 'Laura Sánchez',
-      totalDebit: 1167,
-      totalCredit: 1167,
-      lines: [
-        { id: '1', accountCode: '5250', accountName: 'Depreciación', description: 'Depreciación nov 2025', debit: 1167, credit: 0 },
-        { id: '2', accountCode: '1260', accountName: 'Depreciación Acumulada', description: 'Actualización depreciación', debit: 0, credit: 1167 }
-      ]
-    },
-    {
-      id: 'JE-005',
-      entryNumber: 'JE-2025-005',
-      date: '2025-11-20',
-      description: 'Compra de equipo de cómputo',
-      reference: 'COMP-001',
-      status: 'posted',
-      createdBy: 'Ana García',
-      totalDebit: 40600,
-      totalCredit: 40600,
-      lines: [
-        { id: '1', accountCode: '1240', accountName: 'Equipo de Cómputo', description: '2 Laptops Dell', debit: 35000, credit: 0 },
-        { id: '2', accountCode: '1150', accountName: 'IVA Acreditable', description: 'IVA 16% deducible', debit: 5600, credit: 0 },
-        { id: '3', accountCode: '2110', accountName: 'Cuentas por Pagar', description: 'Proveedor TechStore', debit: 0, credit: 40600 }
-      ]
-    },
-    {
-      id: 'JE-006',
-      entryNumber: 'JE-2025-006',
-      date: '2025-11-19',
-      description: 'Ajuste por diferencial cambiario',
-      reference: 'ADJ-FX-001',
-      status: 'draft',
-      createdBy: 'Laura Sánchez',
-      totalDebit: 500,
-      totalCredit: 500,
-      lines: [
-        { id: '1', accountCode: '4200', accountName: 'Otros Ingresos', description: 'Ganancia cambiaria', debit: 0, credit: 500 },
-        { id: '2', accountCode: '1120', accountName: 'Bancos', description: 'Ajuste USD', debit: 500, credit: 0 }
-      ]
-    },
-    {
-      id: 'JE-007',
-      entryNumber: 'JE-2025-007',
-      date: '2025-11-18',
-      description: 'Provisión de servicios profesionales',
-      reference: 'PROV-001',
-      status: 'posted',
-      createdBy: 'Ana García',
-      totalDebit: 11600,
-      totalCredit: 11600,
-      lines: [
-        { id: '1', accountCode: '5200', accountName: 'Gastos de Operación', description: 'Auditoría externa', debit: 10000, credit: 0 },
-        { id: '2', accountCode: '1150', accountName: 'IVA Acreditable', description: 'IVA 16%', debit: 1600, credit: 0 },
-        { id: '3', accountCode: '2110', accountName: 'Cuentas por Pagar', description: 'Por pagar', debit: 0, credit: 11600 }
-      ]
+  // Delete journal entry via API
+  const deleteJournalEntry = async (entry: JournalEntry) => {
+    if (!activeCompany) return
+    
+    const status = entry.status.toLowerCase()
+    if (status === 'posted') {
+      setMessage({ type: 'error', text: 'No se puede eliminar una póliza registrada. Primero debe ser revertida.' })
+      return
     }
-  ]
+
+    if (!confirm(`¿Eliminar póliza ${entry.entryNumber}? Esta acción no se puede deshacer.`)) {
+      return
+    }
+
+    setProcessing(true)
+    try {
+      const response = await fetch(`/api/accounting/journal-entries?id=${entry.id}&companyId=${activeCompany.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Póliza eliminada exitosamente' })
+        setSelectedEntry(null)
+        fetchJournalEntries()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al eliminar póliza' })
+      }
+    } catch (error) {
+      console.error('Error deleting journal entry:', error)
+      setMessage({ type: 'error', text: 'Error de conexión al eliminar póliza' })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Post/Reverse journal entry via API
+  const updateJournalEntryStatus = async (entry: JournalEntry, newStatus: 'POSTED' | 'REVERSED' | 'DRAFT') => {
+    if (!activeCompany) return
+
+    setProcessing(true)
+    try {
+      const response = await fetch('/api/accounting/journal-entries', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: entry.id,
+          companyId: activeCompany.id,
+          status: newStatus
+        })
+      })
+
+      if (response.ok) {
+        const statusText = newStatus === 'POSTED' ? 'registrada' : newStatus === 'REVERSED' ? 'revertida' : 'actualizada'
+        setMessage({ type: 'success', text: `Póliza ${statusText} exitosamente` })
+        setSelectedEntry(null)
+        fetchJournalEntries()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al actualizar póliza' })
+      }
+    } catch (error) {
+      console.error('Error updating journal entry:', error)
+      setMessage({ type: 'error', text: 'Error de conexión al actualizar póliza' })
+    } finally {
+      setProcessing(false)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    const statusLower = status.toLowerCase()
+    switch (statusLower) {
       case 'posted':
         return <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3" /> Registrada
@@ -276,15 +312,16 @@ export default function JournalEntriesPage() {
   }
 
   const filteredEntries = journalEntries.filter(entry => {
-    if (filterStatus !== 'all' && entry.status !== filterStatus) return false
+    const statusLower = entry.status.toLowerCase()
+    if (filterStatus !== 'all' && statusLower !== filterStatus) return false
     if (searchTerm && !entry.description.toLowerCase().includes(searchTerm.toLowerCase()) && 
         !entry.entryNumber.toLowerCase().includes(searchTerm.toLowerCase())) return false
     return true
   })
 
-  const totalPosted = journalEntries.filter(e => e.status === 'posted').length
-  const totalDraft = journalEntries.filter(e => e.status === 'draft').length
-  const totalAmount = journalEntries.filter(e => e.status === 'posted').reduce((sum, e) => sum + e.totalDebit, 0)
+  const totalPosted = journalEntries.filter(e => e.status.toLowerCase() === 'posted').length
+  const totalDraft = journalEntries.filter(e => e.status.toLowerCase() === 'draft').length
+  const totalAmount = journalEntries.filter(e => e.status.toLowerCase() === 'posted').reduce((sum, e) => sum + e.totalDebit, 0)
 
   if (status === 'loading' || loading) {
     return (
@@ -305,29 +342,49 @@ export default function JournalEntriesPage() {
       variant: 'primary' as const,
     },
     {
-      label: 'Editar asiento',
-      icon: Edit,
+      label: 'Registrar',
+      icon: CheckCircle2,
       onClick: () => {
         if (selectedEntry) {
-          alert(`✏️ Editando póliza ${selectedEntry.entryNumber}\n\nAbriendo formulario de edición...`)
+          const status = selectedEntry.status.toLowerCase()
+          if (status === 'posted') {
+            setMessage({ type: 'error', text: 'La póliza ya está registrada' })
+          } else if (status === 'reversed') {
+            setMessage({ type: 'error', text: 'No se puede registrar una póliza revertida' })
+          } else {
+            updateJournalEntryStatus(selectedEntry, 'POSTED')
+          }
         } else {
-          alert('⚠️ Selecciona una póliza de la tabla para editar')
+          setMessage({ type: 'error', text: 'Selecciona una póliza de la tabla para registrar' })
         }
       },
       variant: 'default' as const,
     },
     {
-      label: 'Eliminar asiento',
+      label: 'Revertir',
+      icon: XCircle,
+      onClick: () => {
+        if (selectedEntry) {
+          const status = selectedEntry.status.toLowerCase()
+          if (status !== 'posted') {
+            setMessage({ type: 'error', text: 'Solo se pueden revertir pólizas registradas' })
+          } else {
+            updateJournalEntryStatus(selectedEntry, 'REVERSED')
+          }
+        } else {
+          setMessage({ type: 'error', text: 'Selecciona una póliza de la tabla para revertir' })
+        }
+      },
+      variant: 'danger' as const,
+    },
+    {
+      label: 'Eliminar',
       icon: Trash2,
       onClick: () => {
         if (selectedEntry) {
-          if (selectedEntry.status === 'posted') {
-            alert('❌ No se puede eliminar una póliza registrada\n\nPrimero debe ser revertida.')
-          } else {
-            alert(`🗑️ ¿Eliminar póliza ${selectedEntry.entryNumber}?\n\nEsta acción no se puede deshacer.`)
-          }
+          deleteJournalEntry(selectedEntry)
         } else {
-          alert('⚠️ Selecciona una póliza de la tabla para eliminar')
+          setMessage({ type: 'error', text: 'Selecciona una póliza de la tabla para eliminar' })
         }
       },
       variant: 'danger' as const,
@@ -337,8 +394,7 @@ export default function JournalEntriesPage() {
       icon: History,
       onClick: () => {
         setFilterStatus('all')
-        const historySection = document.querySelector('[data-section="entries"]')
-        historySection?.scrollIntoView({ behavior: 'smooth' })
+        fetchJournalEntries()
       },
       variant: 'outline' as const,
     },
@@ -356,7 +412,7 @@ export default function JournalEntriesPage() {
         a.href = url
         a.download = `polizas-${new Date().toISOString().split('T')[0]}.csv`
         a.click()
-        alert('✅ Archivo exportado exitosamente')
+        setMessage({ type: 'success', text: 'Archivo exportado exitosamente' })
       },
       variant: 'outline' as const,
     },
@@ -374,6 +430,36 @@ export default function JournalEntriesPage() {
             </p>
           </div>
         </div>
+
+        {/* Messages */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            {message.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              <AlertCircle className="w-5 h-5" />
+            )}
+            {message.text}
+            <button 
+              onClick={() => setMessage(null)} 
+              className="ml-auto text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Processing Indicator */}
+        {processing && (
+          <div className="flex items-center justify-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+            <span className="text-blue-800">Procesando...</span>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <Card className="border-indigo-200 bg-indigo-50/30">
@@ -844,12 +930,21 @@ export default function JournalEntriesPage() {
                     <Button 
                       className="flex-1" 
                       onClick={createJournalEntry}
-                      disabled={!calculateTotals().balanced}
+                      disabled={!calculateTotals().balanced || processing}
                     >
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Crear Póliza Contable
+                      {processing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                          Crear Póliza Contable
+                        </>
+                      )}
                     </Button>
-                    <Button variant="outline" onClick={() => setShowNewModal(false)}>
+                    <Button variant="outline" onClick={() => setShowNewModal(false)} disabled={processing}>
                       Cancelar
                     </Button>
                   </div>
