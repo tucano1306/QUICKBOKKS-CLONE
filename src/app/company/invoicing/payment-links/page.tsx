@@ -226,7 +226,7 @@ export default function PaymentLinksPage() {
 
   const copyLink = (url: string) => {
     navigator.clipboard.writeText(url)
-    alert('✅ Link de pago copiado al portapapeles')
+    toast.success('Link de pago copiado al portapapeles')
   }
 
   const handleCopyLink = (linkId: string) => {
@@ -238,7 +238,7 @@ export default function PaymentLinksPage() {
   }
 
   const sendEmail = (email: string, invoiceNumber: string) => {
-    alert(`📧 Email de pago enviado a ${email} para factura ${invoiceNumber}`)
+    toast.success(`Email de pago enviado a ${email} para factura ${invoiceNumber}`)
   }
 
   const handleSendLinkViaEmail = (linkId: string) => {
@@ -250,7 +250,7 @@ export default function PaymentLinksPage() {
   }
 
   const regenerateLink = (invoiceNumber: string) => {
-    alert(`🔄 Link de pago regenerado para factura ${invoiceNumber}`)
+    toast.success(`Link de pago regenerado para factura ${invoiceNumber}`)
   }
 
   const handleDeactivateLink = (linkId: string) => {

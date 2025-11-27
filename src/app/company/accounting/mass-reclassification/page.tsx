@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { AlertCircle, CheckCircle } from 'lucide-react'
 
 interface Transaction {
   id: string
@@ -40,6 +41,7 @@ export default function MassReclassificationPage() {
   const [showPreview, setShowPreview] = useState(false)
   const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -160,7 +162,8 @@ export default function MassReclassificationPage() {
         setSelectedTransactions([])
         setTargetCategory('')
         await fetchData()
-        alert(`${selectedTransactions.length} transacciones reclasificadas exitosamente`)
+        setMessage({ type: 'success', text: `${selectedTransactions.length} transacciones reclasificadas` })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error executing reclassification:', error)
@@ -217,6 +220,18 @@ export default function MassReclassificationPage() {
             </p>
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-3 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+            'bg-blue-50 text-blue-800 border border-blue-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

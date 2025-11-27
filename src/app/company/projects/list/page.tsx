@@ -53,6 +53,7 @@ export default function ProjectsListPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
 
@@ -400,16 +401,23 @@ export default function ProjectsListPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📥 Exportando proyectos a CSV')}>
+            <Button variant="outline" onClick={() => { setMessage({ type: 'success', text: 'Exportando proyectos a CSV' }); setTimeout(() => setMessage(null), 3000); }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('📁 Nuevo Proyecto\n\nCrear proyecto\nPOST /api/projects')}>
+            <Button onClick={() => { setMessage({ type: 'success', text: 'Iniciando creación de nuevo proyecto' }); setTimeout(() => setMessage(null), 3000); }}>
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Proyecto
             </Button>
           </div>
         </div>
+
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

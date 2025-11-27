@@ -59,6 +59,7 @@ export default function AIPredictionsPage() {
   const [error, setError] = useState<string | null>(null)
   const [updatingModels, setUpdatingModels] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -104,11 +105,13 @@ export default function AIPredictionsPage() {
         setPredictions(data.predictions || [])
         setCashFlowForecast(data.cashFlowForecast || [])
         setCurrentMetrics(data.currentMetrics || null)
-        alert('✅ Modelos actualizados exitosamente\n\nLos modelos de IA han sido re-entrenados con los datos más recientes.')
+        setMessage({ type: 'success', text: 'Modelos IA actualizados con datos recientes' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (err) {
       console.error('Error updating models:', err)
-      alert('❌ Error al actualizar modelos')
+      setMessage({ type: 'error', text: 'Error al actualizar modelos' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setUpdatingModels(false)
     }
@@ -155,10 +158,12 @@ export default function AIPredictionsPage() {
       link.click()
       document.body.removeChild(link)
       
-      alert('✅ Archivo exportado exitosamente\n\nEl archivo CSV se ha descargado.')
+      setMessage({ type: 'success', text: 'Archivo CSV exportado exitosamente' })
+      setTimeout(() => setMessage(null), 3000)
     } catch (err) {
       console.error('Error exporting:', err)
-      alert('❌ Error al exportar predicciones')
+      setMessage({ type: 'error', text: 'Error al exportar predicciones' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setExporting(false)
     }
@@ -241,7 +246,21 @@ export default function AIPredictionsPage() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+            'bg-blue-50 text-blue-700 border border-blue-200'
+          }`}>
+            {message.type === 'success' && <CheckCircle className="w-5 h-5" />}
+            {message.type === 'error' && <AlertTriangle className="w-5 h-5" />}
+            {message.type === 'info' && <Info className="w-5 h-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
+        {/* Stats */}}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <CardContent className="p-6">

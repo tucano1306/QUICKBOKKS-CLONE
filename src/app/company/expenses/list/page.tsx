@@ -19,7 +19,8 @@ import {
   XCircle,
   Clock,
   DollarSign,
-  Receipt
+  Receipt,
+  AlertCircle
 } from 'lucide-react'
 
 interface Expense {
@@ -50,6 +51,7 @@ export default function ExpensesListPage() {
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
   const [categories, setCategories] = useState<any[]>([])
@@ -161,12 +163,16 @@ export default function ExpensesListPage() {
 
       if (response.ok) {
         setExpenses(expenses.filter(e => e.id !== id))
+        setMessage({ type: 'success', text: 'Gasto eliminado correctamente' })
+        setTimeout(() => setMessage(null), 3000)
       } else {
-        alert('Error al eliminar el gasto')
+        setMessage({ type: 'error', text: 'Error al eliminar el gasto' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al eliminar el gasto')
+      setMessage({ type: 'error', text: 'Error al eliminar el gasto' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -189,7 +195,8 @@ export default function ExpensesListPage() {
 
   const exportToCSV = () => {
     if (!Array.isArray(filteredExpenses) || filteredExpenses.length === 0) {
-      alert('No hay gastos para exportar')
+      setMessage({ type: 'error', text: 'No hay gastos para exportar' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -260,6 +267,20 @@ export default function ExpensesListPage() {
   return (
     <CompanyTabsLayout>
       <div className="space-y-6">
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' 
+              ? 'bg-green-50 text-green-800 border border-green-200' 
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message.type === 'success' 
+              ? <CheckCircle className="h-5 w-5" /> 
+              : <AlertCircle className="h-5 w-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

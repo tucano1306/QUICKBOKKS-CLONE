@@ -28,7 +28,8 @@ import {
   Eye,
   Edit,
   X,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react'
 
 interface PayrollCheck {
@@ -55,6 +56,7 @@ export default function PayrollChecksPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showNewCheckModal, setShowNewCheckModal] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [nextCheckNumber, setNextCheckNumber] = useState('10001')
   const [processing, setProcessing] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState('')
@@ -237,7 +239,8 @@ export default function PayrollChecksPage() {
 
   const createNewCheck = async () => {
     if (!selectedEmployee || !checkAmount) {
-      alert('Por favor selecciona un empleado e ingresa el monto')
+      setMessage({ type: 'error', text: 'Por favor selecciona un empleado e ingresa el monto' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -254,11 +257,13 @@ export default function PayrollChecksPage() {
         memo: checkMemo
       })
       
-      alert(`Cheque #${nextCheckNumber} creado exitosamente para ${employee?.name}`)
+      setMessage({ type: 'success', text: `Cheque #${nextCheckNumber} creado exitosamente para ${employee?.name}` })
+      setTimeout(() => setMessage(null), 3000)
       closeNewCheckModal()
     } catch (error) {
       console.error('Error al crear cheque:', error)
-      alert('Error al crear el cheque')
+      setMessage({ type: 'error', text: 'Error al crear el cheque' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setProcessing(false)
     }
@@ -267,7 +272,8 @@ export default function PayrollChecksPage() {
   const printBatch = () => {
     const pendingChecks = checks.filter(c => c.status === 'pending')
     if (pendingChecks.length === 0) {
-      alert('No hay cheques pendientes para imprimir')
+      setMessage({ type: 'error', text: 'No hay cheques pendientes para imprimir' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
     
@@ -305,6 +311,20 @@ export default function PayrollChecksPage() {
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' 
+              ? 'bg-green-50 text-green-800 border border-green-200' 
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message.type === 'success' 
+              ? <CheckCircle className="h-5 w-5" /> 
+              : <AlertCircle className="h-5 w-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

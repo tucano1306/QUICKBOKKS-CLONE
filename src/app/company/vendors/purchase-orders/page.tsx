@@ -20,6 +20,8 @@ import {
   Truck,
   Users,
   XCircle,
+  CheckCircle,
+  Info,
 } from 'lucide-react'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -192,6 +194,7 @@ export default function PurchaseOrdersPage() {
   const [assignState, setAssignState] = useState({ requestedBy: '', approvedBy: '', assignedTo: '' })
   const [assignSubmitting, setAssignSubmitting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -431,7 +434,8 @@ export default function PurchaseOrdersPage() {
       await loadOrders()
     } catch (error) {
       console.error('Delete PO error', error)
-      window.alert('No fue posible eliminar la orden de compra')
+      setMessage({ type: 'error', text: 'No fue posible eliminar la orden de compra' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -450,7 +454,8 @@ export default function PurchaseOrdersPage() {
       await loadOrders()
     } catch (error) {
       console.error('Send PO error', error)
-      window.alert('No fue posible enviar la orden')
+      setMessage({ type: 'error', text: 'No fue posible enviar la orden' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -469,7 +474,8 @@ export default function PurchaseOrdersPage() {
       await loadOrders()
     } catch (error) {
       console.error('Status update error', error)
-      window.alert('No fue posible actualizar el estado')
+      setMessage({ type: 'error', text: 'No fue posible actualizar el estado' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -501,7 +507,8 @@ export default function PurchaseOrdersPage() {
       await loadOrders()
     } catch (error) {
       console.error('Assign error', error)
-      window.alert('No fue posible asignar la orden')
+      setMessage({ type: 'error', text: 'No fue posible asignar la orden' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setAssignSubmitting(false)
     }
@@ -544,7 +551,8 @@ export default function PurchaseOrdersPage() {
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Export error', error)
-      window.alert('No fue posible exportar las órdenes')
+      setMessage({ type: 'error', text: 'No fue posible exportar las órdenes' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setExporting(false)
     }
@@ -563,7 +571,8 @@ export default function PurchaseOrdersPage() {
       setDetailOrder(data.purchaseOrder)
     } catch (error) {
       console.error('Detail error', error)
-      window.alert('No fue posible cargar el detalle de la orden')
+      setMessage({ type: 'error', text: 'No fue posible cargar el detalle de la orden' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setDetailLoading(false)
     }
@@ -599,6 +608,24 @@ export default function PurchaseOrdersPage() {
             </Button>
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-3 ${
+            message.type === 'success' ? 'bg-green-50 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 border border-red-200' :
+            'bg-blue-50 border border-blue-200'
+          }`}>
+            {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
+            {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
+            {message.type === 'info' && <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+            <span className={`${
+              message.type === 'success' ? 'text-green-800' :
+              message.type === 'error' ? 'text-red-800' :
+              'text-blue-800'
+            }`}>{message.text}</span>
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-4">
           <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">

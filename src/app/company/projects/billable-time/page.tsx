@@ -23,7 +23,8 @@ import {
   AlertCircle,
   TrendingUp,
   FileText,
-  Edit
+  Edit,
+  Info
 } from 'lucide-react'
 
 interface TimeEntry {
@@ -56,6 +57,7 @@ export default function BillableTimePage() {
   const [filterBillable, setFilterBillable] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterProject, setFilterProject] = useState<string>('all')
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -497,16 +499,40 @@ export default function BillableTimePage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📥 Exportando horas facturables a CSV')}>
+            <Button variant="outline" onClick={() => {
+              setMessage({ type: 'info', text: 'Exportando horas facturables a CSV' })
+              setTimeout(() => setMessage(null), 3000)
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('⏱️ Nueva Entrada\n\nRegistrar horas de proyecto')}>
+            <Button onClick={() => {
+              setMessage({ type: 'info', text: 'Nueva entrada de tiempo - Registrar horas de proyecto' })
+              setTimeout(() => setMessage(null), 3000)
+            }}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Entrada
             </Button>
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-3 ${
+            message.type === 'success' ? 'bg-green-50 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 border border-red-200' :
+            'bg-blue-50 border border-blue-200'
+          }`}>
+            {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
+            {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
+            {message.type === 'info' && <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+            <span className={`${
+              message.type === 'success' ? 'text-green-800' :
+              message.type === 'error' ? 'text-red-800' :
+              'text-blue-800'
+            }`}>{message.text}</span>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

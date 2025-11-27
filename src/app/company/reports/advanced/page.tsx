@@ -6,7 +6,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Printer, FileText, Download } from 'lucide-react';
+import { Printer, FileText, Download, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function AdvancedReportsPage() {
   const { activeCompany } = useCompany();
@@ -15,6 +15,8 @@ export default function AdvancedReportsPage() {
   const [reportData, setReportData] = useState<any>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
   
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
+
   // Parámetros
   const [accountId, setAccountId] = useState('');
   const [startDate, setStartDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
@@ -41,17 +43,20 @@ export default function AdvancedReportsPage() {
 
   const generateReport = async () => {
     if (!activeCompany) {
-      alert('Por favor selecciona una empresa');
+      setMessage({ type: 'error', text: 'Por favor selecciona una empresa' });
+      setTimeout(() => setMessage(null), 3000);
       return;
     }
 
     // Validaciones
     if (reportType === 'analytical-ledger' && !accountId) {
-      alert('Por favor selecciona una cuenta para el Mayor Analítico');
+      setMessage({ type: 'error', text: 'Selecciona una cuenta para el Mayor Analítico' });
+      setTimeout(() => setMessage(null), 3000);
       return;
     }
     if (reportType === 'check-search' && !checkNumber) {
-      alert('Por favor ingresa un número de cheque');
+      setMessage({ type: 'error', text: 'Ingresa un número de cheque' });
+      setTimeout(() => setMessage(null), 3000);
       return;
     }
 
@@ -76,7 +81,8 @@ export default function AdvancedReportsPage() {
       setReportData(data);
     } catch (error: any) {
       console.error('Error:', error);
-      alert(error.message || 'Error generando reporte');
+      setMessage({ type: 'error', text: error.message || 'Error generando reporte' });
+      setTimeout(() => setMessage(null), 3000);
     } finally {
       setLoading(false);
     }
@@ -164,6 +170,17 @@ export default function AdvancedReportsPage() {
 
   const renderAnalyticalLedger = (data: any) => (
     <div className="space-y-4">
+      {/* Message Display */}
+      {message && (
+        <div className={`p-3 rounded-lg flex items-center gap-2 ${
+          message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+          message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+          'bg-blue-50 text-blue-800 border border-blue-200'
+        }`}>
+          {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+          {message.text}
+        </div>
+      )}
       <div className="flex justify-between items-center border-b pb-4">
         <div>
           <h3 className="text-2xl font-bold">Mayor Analítico</h3>

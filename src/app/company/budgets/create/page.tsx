@@ -23,7 +23,8 @@ import {
   Package,
   Wrench,
   FileText,
-  AlertCircle
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react'
 
 interface BudgetCategory {
@@ -53,6 +54,7 @@ export default function BudgetCreatePage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [budgetYear, setBudgetYear] = useState('2026')
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [budgetName, setBudgetName] = useState('Presupuesto Anual 2026')
   const [selectedDepartment, setSelectedDepartment] = useState('all')
 
@@ -365,20 +367,27 @@ export default function BudgetCreatePage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📋 Copiar Presupuesto 2025\n\nCopiando datos de 2025 como base...')}>
+            <Button variant="outline" onClick={() => { setMessage({ type: 'success', text: 'Copiando datos de presupuesto 2025' }); setTimeout(() => setMessage(null), 3000); }}>
               <Copy className="w-4 h-4 mr-2" />
               Copiar de 2025
             </Button>
-            <Button variant="outline" onClick={() => alert('📥 Exportando presupuesto a Excel')}>
+            <Button variant="outline" onClick={() => { setMessage({ type: 'success', text: 'Exportando presupuesto a Excel' }); setTimeout(() => setMessage(null), 3000); }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('💾 Guardar Presupuesto\n\nGuardando presupuesto 2026...\nPOST /api/budgets')}>
+            <Button onClick={() => { setMessage({ type: 'success', text: 'Guardando presupuesto 2026' }); setTimeout(() => setMessage(null), 3000); }}>
               <Save className="w-4 h-4 mr-2" />
               Guardar Presupuesto
             </Button>
           </div>
         </div>
+
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Budget Configuration */}
         <Card>

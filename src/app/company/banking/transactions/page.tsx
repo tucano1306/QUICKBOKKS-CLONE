@@ -665,11 +665,13 @@ export default function BankTransactionsPage() {
                       })
                       window.location.reload()
                     } else {
-                      alert('Error al crear la transacción')
+                      setMessage({ type: 'error', text: 'Error al crear la transacción' })
+                      setTimeout(() => setMessage(null), 3000)
                     }
                   } catch (error) {
                     console.error('Error:', error)
-                    alert('Error al crear la transacción')
+                    setMessage({ type: 'error', text: 'Error al crear la transacción' })
+                    setTimeout(() => setMessage(null), 3000)
                   } finally {
                     setSaving(false)
                   }

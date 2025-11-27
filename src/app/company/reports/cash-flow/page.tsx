@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,12 +8,21 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { Calendar, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download, Printer, RefreshCw } from 'lucide-react'
+import { Calendar, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download, Printer, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react'
 
 interface DateRange {
   startDate: string
   endDate: string
   label: string
+}
+
+interface CashFlowData {
+  operating: { inflow: number; outflow: number; net: number }
+  investing: { inflow: number; outflow: number; net: number }
+  financing: { inflow: number; outflow: number; net: number }
+  netCashFlow: number
+  beginningBalance: number
+  endingBalance: number
 }
 
 export default function CashFlowPage() {
@@ -26,6 +35,37 @@ export default function CashFlowPage() {
     label: 'Este Mes'
   })
   const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [cashFlowData, setCashFlowData] = useState<CashFlowData>({
+    operating: { inflow: 0, outflow: 0, net: 0 },
+    investing: { inflow: 0, outflow: 0, net: 0 },
+    financing: { inflow: 0, outflow: 0, net: 0 },
+    netCashFlow: 0,
+    beginningBalance: 0,
+    endingBalance: 0
+  })
+
+  // Fetch cash flow data from API
+  const fetchCashFlow = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+      })
+      const response = await fetch(`/api/accounting/reports/cash-flow?${params}`)
+      if (!response.ok) throw new Error('Error al cargar flujo de efectivo')
+      const data = await response.json()
+      setCashFlowData(data.cashFlow)
+      setMessage({ type: 'success', text: 'Flujo de efectivo actualizado' })
+    } catch (error) {
+      console.error('Error fetching cash flow:', error)
+      setMessage({ type: 'error', text: 'Error al cargar flujo de efectivo' })
+    } finally {
+      setLoading(false)
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }, [dateRange.startDate, dateRange.endDate])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -33,42 +73,41 @@ export default function CashFlowPage() {
     }
   }, [status, router])
 
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchCashFlow()
+    }
+  }, [status, fetchCashFlow])
+
   const recalculateCashFlow = () => {
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      alert(`✅ Flujo de Efectivo recalculado\n\nPeriodo: ${dateRange.startDate} al ${dateRange.endDate}\n\nEn producción, esto consultaría todas las transacciones de efectivo del periodo.`)
-    }, 1000)
+    fetchCashFlow()
   }
 
-  const cashFlowData = {
+  // Convertir datos de API al formato para mostrar
+  const cashFlowDataDisplay = {
     operaciones: [
-      { concepto: 'Cobros de Clientes', monto: 125000, tipo: 'entrada' },
-      { concepto: 'Pago a Proveedores', monto: -45000, tipo: 'salida' },
-      { concepto: 'Pago de Nómina', monto: -28000, tipo: 'salida' },
-      { concepto: 'Pago de Renta', monto: -8000, tipo: 'salida' },
-      { concepto: 'Servicios e Impuestos', monto: -12500, tipo: 'salida' }
+      { concepto: 'Cobros de Clientes', monto: cashFlowData.operating.inflow, tipo: 'entrada' },
+      { concepto: 'Pagos Operativos', monto: -cashFlowData.operating.outflow, tipo: 'salida' }
     ],
     inversion: [
-      { concepto: 'Compra de Equipo', monto: -15000, tipo: 'salida' },
-      { concepto: 'Venta de Activos', monto: 5000, tipo: 'entrada' }
+      { concepto: 'Venta de Activos', monto: cashFlowData.investing.inflow, tipo: 'entrada' },
+      { concepto: 'Compra de Activos', monto: -cashFlowData.investing.outflow, tipo: 'salida' }
     ],
     financiamiento: [
-      { concepto: 'Préstamo Bancario', monto: 30000, tipo: 'entrada' },
-      { concepto: 'Pago de Préstamos', monto: -8000, tipo: 'salida' },
-      { concepto: 'Aportación de Capital', monto: 20000, tipo: 'entrada' }
+      { concepto: 'Préstamos Recibidos', monto: cashFlowData.financing.inflow, tipo: 'entrada' },
+      { concepto: 'Pago de Préstamos', monto: -cashFlowData.financing.outflow, tipo: 'salida' }
     ]
   }
 
-  const flujoOperaciones = cashFlowData.operaciones.reduce((sum, item) => sum + item.monto, 0)
-  const flujoInversion = cashFlowData.inversion.reduce((sum, item) => sum + item.monto, 0)
-  const flujoFinanciamiento = cashFlowData.financiamiento.reduce((sum, item) => sum + item.monto, 0)
-  const flujoNetoTotal = flujoOperaciones + flujoInversion + flujoFinanciamiento
+  const flujoOperaciones = cashFlowData.operating.net
+  const flujoInversion = cashFlowData.investing.net
+  const flujoFinanciamiento = cashFlowData.financing.net
+  const flujoNetoTotal = cashFlowData.netCashFlow
 
-  const efectivoInicial = 45000
-  const efectivoFinal = efectivoInicial + flujoNetoTotal
+  const efectivoInicial = cashFlowData.beginningBalance
+  const efectivoFinal = cashFlowData.endingBalance
 
-  const cambioPercentage = ((flujoNetoTotal / efectivoInicial) * 100).toFixed(1)
+  const cambioPercentage = efectivoInicial > 0 ? ((flujoNetoTotal / efectivoInicial) * 100).toFixed(1) : '0.0'
 
   if (status === 'loading') {
     return (
@@ -116,7 +155,7 @@ export default function CashFlowPage() {
               a.href = url
               a.download = `flujo-efectivo-${dateRange.endDate}.csv`
               a.click()
-              alert('✅ CSV exportado')
+              setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
             }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
@@ -207,7 +246,7 @@ export default function CashFlowPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-2">
-                {cashFlowData.operaciones.map((item, index) => (
+                {cashFlowDataDisplay.operaciones.filter(item => item.monto !== 0).map((item, index) => (
                   <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded hover:bg-gray-100 transition">
                     <div className="flex items-center gap-3">
                       {item.tipo === 'entrada' ? (
@@ -222,6 +261,9 @@ export default function CashFlowPage() {
                     </span>
                   </div>
                 ))}
+                {cashFlowDataDisplay.operaciones.filter(item => item.monto !== 0).length === 0 && (
+                  <div className="text-gray-500 text-sm py-2">No hay actividades de operación en este periodo</div>
+                )}
                 <div className="flex justify-between items-center py-3 px-4 bg-blue-100 rounded font-semibold mt-4">
                   <span className="text-blue-900">Flujo Neto de Operación</span>
                   <span className={`text-xl ${flujoOperaciones >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -239,7 +281,7 @@ export default function CashFlowPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-2">
-                {cashFlowData.inversion.map((item, index) => (
+                {cashFlowDataDisplay.inversion.filter(item => item.monto !== 0).map((item, index) => (
                   <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded hover:bg-gray-100 transition">
                     <div className="flex items-center gap-3">
                       {item.tipo === 'entrada' ? (
@@ -254,6 +296,9 @@ export default function CashFlowPage() {
                     </span>
                   </div>
                 ))}
+                {cashFlowDataDisplay.inversion.filter(item => item.monto !== 0).length === 0 && (
+                  <div className="text-gray-500 text-sm py-2">No hay actividades de inversión en este periodo</div>
+                )}
                 <div className="flex justify-between items-center py-3 px-4 bg-purple-100 rounded font-semibold mt-4">
                   <span className="text-purple-900">Flujo Neto de Inversión</span>
                   <span className={`text-xl ${flujoInversion >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -271,7 +316,7 @@ export default function CashFlowPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-2">
-                {cashFlowData.financiamiento.map((item, index) => (
+                {cashFlowDataDisplay.financiamiento.filter(item => item.monto !== 0).map((item, index) => (
                   <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded hover:bg-gray-100 transition">
                     <div className="flex items-center gap-3">
                       {item.tipo === 'entrada' ? (
@@ -286,6 +331,9 @@ export default function CashFlowPage() {
                     </span>
                   </div>
                 ))}
+                {cashFlowDataDisplay.financiamiento.filter(item => item.monto !== 0).length === 0 && (
+                  <div className="text-gray-500 text-sm py-2">No hay actividades de financiamiento en este periodo</div>
+                )}
                 <div className="flex justify-between items-center py-3 px-4 bg-green-100 rounded font-semibold mt-4">
                   <span className="text-green-900">Flujo Neto de Financiamiento</span>
                   <span className={`text-xl ${flujoFinanciamiento >= 0 ? 'text-green-700' : 'text-red-700'}`}>

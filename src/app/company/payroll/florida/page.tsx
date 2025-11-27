@@ -15,7 +15,9 @@ import {
   Users,
   DollarSign,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  CheckCircle,
+  Info
 } from 'lucide-react'
 
 // PORCENTAJES FLORIDA 2025
@@ -71,6 +73,7 @@ interface Employee {
 export default function FloridaPayrollPage() {
   const { activeCompany } = useCompany()
   const [selectedPeriod, setSelectedPeriod] = useState('')
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   const [employees, setEmployees] = useState<Employee[]>([
     {
       id: 'EMP001',
@@ -225,25 +228,21 @@ export default function FloridaPayrollPage() {
     const totalNet = results.reduce((sum: number, emp: any) => sum + (emp.netPay || 0), 0)
     const totalTaxes = results.reduce((sum: number, emp: any) => sum + (emp.totalDeductions || 0), 0)
     
-    alert(`✅ Nómina Calculada Exitosamente\n\n` +
-          `📊 Resumen del Período: ${selectedPeriod || 'Actual'}\n\n` +
-          `👥 Empleados procesados: ${results.length}\n` +
-          `💰 Total Gross Pay: $${totalGross.toFixed(2)}\n` +
-          `📉 Total Deducciones: $${totalTaxes.toFixed(2)}\n` +
-          `💵 Total Net Pay: $${totalNet.toFixed(2)}\n\n` +
-          `Los resultados se muestran en la tabla de abajo.\n` +
-          `Ahora puede generar los formularios RT-6, 941, 940, W-2 o 1099.`)
+    setMessage({ type: 'success', text: `Nómina calculada: ${results.length} empleados, Gross: $${totalGross.toFixed(2)}, Net: $${totalNet.toFixed(2)}` })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const generateRT6 = () => {
     // Florida Reemployment Tax Return (RT-6)
     // Filed quarterly
-    alert('Generando Formulario RT-6 (Florida Reemployment Tax)\n\nEste formulario se presenta trimestralmente al Florida Department of Revenue.\n\nIncluye:\n- Total wages paid\n- Taxable wages (first $7,000 per employee)\n- Tax rate (varía por empresa)\n- Tax due\n\nPróximo vencimiento: 30 días después del fin del trimestre')
+    setMessage({ type: 'info', text: 'Formulario RT-6 (Florida Reemployment Tax) generado exitosamente' })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const generateForm941 = () => {
     if (!calculatedPayroll) {
-      alert('Primero calcula la nómina')
+      setMessage({ type: 'error', text: 'Primero calcula la nómina' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -258,194 +257,75 @@ export default function FloridaPayrollPage() {
     
     const totalTaxes = totalFederalTax + (totalSS * 2) + (totalMedicare * 2)
 
-    alert(`📋 FORMULARIO 941 - Employer's Quarterly Federal Tax Return
-    
-Período: ${selectedPeriod || 'Q4 2025'}
-Empresa: ${activeCompany?.name}
-
-SALARIOS Y RETENCIONES:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Salarios totales W-2: $${totalGross.toFixed(2)}
-Empleados W-2: ${calculatedPayroll.filter((e: any) => e.type === 'W2').length}
-
-RETENCIONES:
-Federal Income Tax: $${totalFederalTax.toFixed(2)}
-
-Social Security:
-  Empleados: $${totalSS.toFixed(2)}
-  Empleador: $${employerSS.toFixed(2)}
-  Total: $${(totalSS * 2).toFixed(2)}
-
-Medicare:
-  Empleados: $${totalMedicare.toFixed(2)}
-  Empleador: $${employerMedicare.toFixed(2)}
-  Total: $${(totalMedicare * 2).toFixed(2)}
-
-TOTAL ADEUDADO: $${totalTaxes.toFixed(2)}
-
-Vencimiento: Último día del mes siguiente al trimestre
-Presentar en: IRS.gov o por correo`)
+    setMessage({ type: 'info', text: `Formulario 941 generado - Total adeudado: $${totalTaxes.toFixed(2)}` })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const generateForm940 = () => {
     if (!calculatedPayroll) {
-      alert('Primero calcula la nómina')
+      setMessage({ type: 'error', text: 'Primero calcula la nómina' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     const totalFUTA = calculatedPayroll.reduce((sum: number, emp: any) => 
       emp.type === 'W2' ? sum + (emp.futa || 0) : sum, 0)
 
-    alert(`📋 FORMULARIO 940 - Federal Unemployment (FUTA) Tax Return
-
-Año: 2025
-Empresa: ${activeCompany?.name}
-
-CÁLCULO FUTA:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Base salarial: $7,000 por empleado
-Tasa FUTA: 6.0% (antes de crédito)
-Crédito estatal: 5.4%
-Tasa neta: 0.6%
-
-Total FUTA Tax: $${totalFUTA.toFixed(2)}
-
-NOTA: Formulario anual
-Vencimiento: 31 de enero del año siguiente
-Presentar en: IRS.gov
-
-Florida tiene crédito completo de SUTA`)
+    setMessage({ type: 'info', text: `Formulario 940 (FUTA) generado - Total: $${totalFUTA.toFixed(2)}` })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const generateW2 = (employee: any) => {
     if (employee.type !== 'W2') {
-      alert('Este empleado no es W-2')
+      setMessage({ type: 'error', text: 'Este empleado no es W-2' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
-    alert(`📋 FORMULARIO W-2 - Wage and Tax Statement
-
-Año: 2025
-Employer: ${activeCompany?.name}
-EIN: [Tu EIN]
-
-EMPLEADO:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Nombre: ${employee.name}
-SSN: ${employee.ssn}
-Check #: ${employee.checkNumber}
-
-COMPENSACIÓN:
-Box 1 - Wages: $${employee.ytdGross.toFixed(2)}
-Box 2 - Federal tax withheld: $${employee.ytdFederalTax.toFixed(2)}
-Box 3 - Social security wages: $${employee.ytdGross.toFixed(2)}
-Box 4 - Social security tax: $${employee.ytdSocialSecurity.toFixed(2)}
-Box 5 - Medicare wages: $${employee.ytdGross.toFixed(2)}
-Box 6 - Medicare tax: $${employee.ytdMedicare.toFixed(2)}
-Box 16 - State wages: $${employee.ytdGross.toFixed(2)}
-Box 17 - State tax: $0.00 (Florida no tiene state income tax)
-
-Vencimiento: 31 de enero
-Copias: A (SSA), B,C (Empleado), D (Empleador), 1,2 (Estado)`)
+    setMessage({ type: 'info', text: `Formulario W-2 generado para ${employee.name}` })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const generateW3 = () => {
     if (!calculatedPayroll) {
-      alert('Primero calcula la nómina')
+      setMessage({ type: 'error', text: 'Primero calcula la nómina' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     const w2Employees = calculatedPayroll.filter((e: any) => e.type === 'W2')
     const totalWages = w2Employees.reduce((sum: number, emp: any) => sum + emp.ytdGross, 0)
-    const totalFederal = w2Employees.reduce((sum: number, emp: any) => sum + emp.ytdFederalTax, 0)
-    const totalSS = w2Employees.reduce((sum: number, emp: any) => sum + emp.ytdSocialSecurity, 0)
-    const totalMedicare = w2Employees.reduce((sum: number, emp: any) => sum + emp.ytdMedicare, 0)
 
-    alert(`📋 FORMULARIO W-3 - Transmittal of Wage and Tax Statements
-
-Año: 2025
-Employer: ${activeCompany?.name}
-EIN: [Tu EIN]
-
-RESUMEN DE TODOS LOS W-2:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Número de empleados W-2: ${w2Employees.length}
-
-Total wages (Box 1): $${totalWages.toFixed(2)}
-Federal tax withheld (Box 2): $${totalFederal.toFixed(2)}
-Social security wages (Box 3): $${totalWages.toFixed(2)}
-Social security tax (Box 4): $${totalSS.toFixed(2)}
-Medicare wages (Box 5): $${totalWages.toFixed(2)}
-Medicare tax (Box 6): $${totalMedicare.toFixed(2)}
-
-INSTRUCCIONES:
-- Presentar junto con todos los W-2
-- Enviar a Social Security Administration
-- Vencimiento: 31 de enero
-- Puede presentarse electrónicamente`)
+    setMessage({ type: 'info', text: `Formulario W-3 generado - ${w2Employees.length} empleados, Total: $${totalWages.toFixed(2)}` })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const generate1099NEC = (contractor: any) => {
     if (contractor.type !== '1099-NEC') {
-      alert('Este trabajador no es 1099-NEC')
+      setMessage({ type: 'error', text: 'Este trabajador no es 1099-NEC' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
-    alert(`📋 FORMULARIO 1099-NEC - Nonemployee Compensation
-
-Año: 2025
-Payer: ${activeCompany?.name}
-EIN: [Tu EIN]
-
-CONTRATISTA:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Nombre: ${contractor.name}
-TIN/SSN: ${contractor.ssn}
-
-COMPENSACIÓN:
-Box 1 - Nonemployee compensation: $${contractor.ytdGross.toFixed(2)}
-
-NOTAS:
-- Para pagos ≥ $600 a contratistas independientes
-- NO hay retenciones (contratista paga sus propios impuestos)
-- Vencimiento: 31 de enero
-- Copias: A (IRS), B (Contratista), 1 (Estado), 2 (Empleador)
-- Requiere 1096 como transmittal`)
+    setMessage({ type: 'info', text: `Formulario 1099-NEC generado para ${contractor.name}` })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const generate1099MISC = (recipient: any) => {
     if (recipient.type !== '1099-MISC') {
-      alert('Este receptor no es 1099-MISC')
+      setMessage({ type: 'error', text: 'Este receptor no es 1099-MISC' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
-    alert(`📋 FORMULARIO 1099-MISC - Miscellaneous Information
-
-Año: 2025
-Payer: ${activeCompany?.name}
-EIN: [Tu EIN]
-
-RECEPTOR:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Nombre: ${recipient.name}
-TIN: ${recipient.ssn}
-
-TIPOS DE PAGO (usar según aplique):
-Box 1 - Rents: $______
-Box 2 - Royalties: $______
-Box 3 - Other income: $______
-Box 8 - Substitute payments: $______
-Box 10 - Crop insurance proceeds: $______
-
-Total: $${recipient.ytdGross.toFixed(2)}
-
-Vencimiento: 31 de enero
-Requiere 1096 como transmittal`)
+    setMessage({ type: 'info', text: `Formulario 1099-MISC generado para ${recipient.name}` })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const generate1096 = () => {
     if (!calculatedPayroll) {
-      alert('Primero calcula la nómina')
+      setMessage({ type: 'error', text: 'Primero calcula la nómina' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -455,30 +335,8 @@ Requiere 1096 como transmittal`)
     const totalNEC = contractors1099NEC.reduce((sum: number, c: any) => sum + c.ytdGross, 0)
     const totalMISC = contractors1099MISC.reduce((sum: number, c: any) => sum + c.ytdGross, 0)
 
-    alert(`📋 FORMULARIO 1096 - Annual Summary and Transmittal
-
-Año: 2025
-Filer: ${activeCompany?.name}
-EIN: [Tu EIN]
-
-RESUMEN DE FORMULARIOS 1099:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1099-NEC (Nonemployee Compensation):
-  Número de formularios: ${contractors1099NEC.length}
-  Total pagado: $${totalNEC.toFixed(2)}
-
-1099-MISC (Miscellaneous):
-  Número de formularios: ${contractors1099MISC.length}
-  Total pagado: $${totalMISC.toFixed(2)}
-
-TOTAL GENERAL: $${(totalNEC + totalMISC).toFixed(2)}
-
-INSTRUCCIONES:
-- Presentar un 1096 por cada tipo de 1099
-- Enviar junto con copias A de los 1099
-- Enviar a: IRS, Austin, TX 73301
-- Vencimiento: 28 de febrero (papel) o 31 de marzo (electrónico)`)
+    setMessage({ type: 'info', text: `Formulario 1096 generado - ${contractors1099NEC.length + contractors1099MISC.length} formularios 1099, Total: $${(totalNEC + totalMISC).toFixed(2)}` })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   if (!activeCompany) {
@@ -500,6 +358,24 @@ INSTRUCCIONES:
             Cálculo automático con retenciones federales + Formularios RT-6, 941, 940, W-2, W-3, 1099-NEC, 1099-MISC, 1096
           </p>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-3 ${
+            message.type === 'success' ? 'bg-green-50 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 border border-red-200' :
+            'bg-blue-50 border border-blue-200'
+          }`}>
+            {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
+            {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
+            {message.type === 'info' && <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+            <span className={`${
+              message.type === 'success' ? 'text-green-800' :
+              message.type === 'error' ? 'text-red-800' :
+              'text-blue-800'
+            }`}>{message.text}</span>
+          </div>
+        )}
 
         {/* Tax Rates Reference */}
         <Card>

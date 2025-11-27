@@ -81,6 +81,7 @@ export default function BankTransfersPage() {
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null)
   const [processing, setProcessing] = useState(false)
   const [transferType, setTransferType] = useState<'internal' | 'external'>('internal')
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   
   // Form states
   const [transferForm, setTransferForm] = useState({
@@ -174,31 +175,36 @@ export default function BankTransfersPage() {
     setShowTransferModal(true)
   }
 
+  const showMessage = (type: 'success' | 'error', text: string) => {
+    setMessage({ type, text })
+    setTimeout(() => setMessage(null), 3000)
+  }
+
   const executeTransfer = async () => {
     if (!transferForm.fromAccountId || !transferForm.amount) {
-      alert('Cuenta origen y monto son requeridos')
+      showMessage('error', 'Cuenta origen y monto son requeridos')
       return
     }
 
     if (transferType === 'internal' && !transferForm.toAccountId) {
-      alert('Seleccione cuenta destino')
+      showMessage('error', 'Seleccione cuenta destino')
       return
     }
 
     if (transferType === 'internal' && transferForm.fromAccountId === transferForm.toAccountId) {
-      alert('Las cuentas de origen y destino deben ser diferentes')
+      showMessage('error', 'Las cuentas deben ser diferentes')
       return
     }
 
     if (transferType === 'external' && (!transferForm.externalBankName || !transferForm.externalAccountNumber)) {
-      alert('Complete los datos del banco externo')
+      showMessage('error', 'Complete datos del banco externo')
       return
     }
 
     // Check balance
     const fromAccount = accounts.find(a => a.id === transferForm.fromAccountId)
     if (fromAccount && fromAccount.balance < transferForm.amount) {
-      alert('Saldo insuficiente en cuenta origen')
+      showMessage('error', 'Saldo insuficiente en cuenta origen')
       return
     }
 
@@ -215,16 +221,16 @@ export default function BankTransfersPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(`✅ Transferencia ${transferType === 'external' ? 'iniciada' : 'completada'} exitosamente.\nReferencia: ${data.reference}`)
+        showMessage('success', `Transferencia ${transferType === 'external' ? 'iniciada' : 'completada'} - Ref: ${data.reference}`)
         setShowTransferModal(false)
         loadData()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al realizar transferencia')
+        showMessage('error', error.error || 'Error al realizar transferencia')
       }
     } catch (error) {
       console.error('Error executing transfer:', error)
-      alert('Error al realizar transferencia')
+      showMessage('error', 'Error al realizar transferencia')
     } finally {
       setProcessing(false)
     }
@@ -242,17 +248,17 @@ export default function BankTransfersPage() {
       })
 
       if (response.ok) {
-        alert(action === 'confirm' ? '✅ Transferencia confirmada' : '❌ Transferencia cancelada')
+        showMessage('success', action === 'confirm' ? 'Transferencia confirmada' : 'Transferencia cancelada')
         setShowConfirmModal(false)
         setSelectedTransfer(null)
         loadData()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al procesar transferencia')
+        showMessage('error', error.error || 'Error al procesar transferencia')
       }
     } catch (error) {
       console.error('Error confirming transfer:', error)
-      alert('Error al procesar transferencia')
+      showMessage('error', 'Error al procesar transferencia')
     } finally {
       setProcessing(false)
     }
@@ -280,7 +286,7 @@ export default function BankTransfersPage() {
     link.href = URL.createObjectURL(blob)
     link.download = `transferencias-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
-    alert('📥 Transferencias exportadas a CSV')
+    showMessage('success', 'Transferencias exportadas a CSV')
   }
 
   const formatCurrency = (amount: number) => {
@@ -393,6 +399,14 @@ const getTypeBadge = (type: string) => {
             </Button>
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            <span className="font-medium">{message.text}</span>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

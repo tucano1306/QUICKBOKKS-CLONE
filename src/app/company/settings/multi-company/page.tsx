@@ -24,7 +24,8 @@ import {
   Globe,
   Shield,
   Database,
-  ArrowRightLeft
+  ArrowRightLeft,
+  AlertCircle
 } from 'lucide-react'
 
 interface Company {
@@ -49,6 +50,7 @@ export default function MultiCompanyPage() {
   const [loading, setLoading] = useState(true)
   const [activeCompanyId, setActiveCompanyId] = useState('COMP-001')
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -133,7 +135,8 @@ export default function MultiCompanyPage() {
   const switchCompany = (companyId: string) => {
     setActiveCompanyId(companyId)
     const company = companies.find(c => c.id === companyId)
-    alert(`✅ Cambiado a: ${company?.name}. Todos los datos se filtrarán por esta empresa.`)
+    setMessage({ type: 'success', text: `Cambiado a: ${company?.name}. Todos los datos se filtrarán por esta empresa.` })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const stats = {
@@ -156,6 +159,16 @@ export default function MultiCompanyPage() {
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
+        {/* Message Display */}
+        {message && (
+          <div className={`flex items-center gap-2 p-4 rounded-lg ${
+            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

@@ -32,6 +32,7 @@ export default function AIAssistantPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -53,7 +54,8 @@ export default function AIAssistantPage() {
 
   // Función para ver tutorial
   const showTutorial = () => {
-    alert('📚 Tutorial del Asistente IA\n\n1. Haz clic en el botón flotante azul-púrpura en la esquina inferior derecha\n2. Escribe tu pregunta sobre finanzas, facturas, gastos, etc.\n3. Presiona Enter o el botón Enviar\n4. Recibe respuestas inteligentes con sugerencias\n5. Usa las acciones rápidas para navegar\n\n💡 Ejemplos de preguntas:\n• ¿Cuál es mi balance actual?\n• Facturas pendientes\n• Analiza mis gastos del mes\n• Predice mi flujo de caja\n• Próximas obligaciones fiscales')
+    setMessage({ type: 'info', text: 'Usa el botón flotante ↘️ para chatear. Pregunta sobre finanzas, facturas o gastos.' })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const capabilities = [
@@ -193,7 +195,21 @@ export default function AIAssistantPage() {
           </Badge>
         </div>
 
-        {/* Hero Card */}
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+            'bg-blue-50 text-blue-700 border border-blue-200'
+          }`}>
+            {message.type === 'success' && <CheckCircle className="w-5 h-5" />}
+            {message.type === 'error' && <AlertCircle className="w-5 h-5" />}
+            {message.type === 'info' && <Bot className="w-5 h-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
+        {/* Hero Card */}}
         <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 text-white overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>

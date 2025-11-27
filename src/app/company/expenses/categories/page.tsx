@@ -16,7 +16,9 @@ import {
   Briefcase,
   ShoppingCart,
   DollarSign,
-  Settings
+  Settings,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react'
 
 interface Category {
@@ -37,6 +39,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -91,14 +94,17 @@ export default function CategoriesPage() {
       if (response.ok) {
         await loadCategories()
         handleCloseModal()
-        alert(editingCategory ? 'Categoría actualizada' : 'Categoría creada exitosamente')
+        setMessage({ type: 'success', text: editingCategory ? 'Categoría actualizada' : 'Categoría creada exitosamente' })
+        setTimeout(() => setMessage(null), 3000)
       } else {
         const error = await response.json()
-        alert(error.message || 'Error al guardar la categoría')
+        setMessage({ type: 'error', text: error.message || 'Error al guardar la categoría' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al guardar la categoría')
+      setMessage({ type: 'error', text: 'Error al guardar la categoría' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -123,14 +129,17 @@ export default function CategoriesPage() {
 
       if (response.ok) {
         setCategories(categories.filter(c => c.id !== id))
-        alert('Categoría eliminada')
+        setMessage({ type: 'success', text: 'Categoría eliminada' })
+        setTimeout(() => setMessage(null), 3000)
       } else {
         const error = await response.json()
-        alert(error.message || 'Error al eliminar la categoría')
+        setMessage({ type: 'error', text: error.message || 'Error al eliminar la categoría' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al eliminar la categoría')
+      setMessage({ type: 'error', text: 'Error al eliminar la categoría' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -195,6 +204,20 @@ export default function CategoriesPage() {
   return (
     <CompanyTabsLayout>
       <div className="space-y-6">
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' 
+              ? 'bg-green-50 text-green-800 border border-green-200' 
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message.type === 'success' 
+              ? <CheckCircle className="h-5 w-5" /> 
+              : <AlertCircle className="h-5 w-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

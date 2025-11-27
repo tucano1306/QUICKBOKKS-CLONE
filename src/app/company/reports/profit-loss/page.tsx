@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,12 +8,33 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Calendar, Download, Printer, RefreshCw } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Calendar, Download, Printer, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react'
 
 interface DateRange {
   startDate: string
   endDate: string
   label: string
+}
+
+interface AccountData {
+  code: string
+  name: string
+  balance: number
+}
+
+interface IncomeStatementData {
+  revenue: {
+    operating: AccountData[]
+    nonOperating: AccountData[]
+    total: number
+  }
+  expenses: {
+    operating: AccountData[]
+    nonOperating: AccountData[]
+    costOfSales: AccountData[]
+    total: number
+  }
+  netIncome: number
 }
 
 export default function ProfitLossPage() {
@@ -26,6 +47,34 @@ export default function ProfitLossPage() {
     label: 'Este Mes'
   })
   const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [incomeData, setIncomeData] = useState<IncomeStatementData>({
+    revenue: { operating: [], nonOperating: [], total: 0 },
+    expenses: { operating: [], nonOperating: [], costOfSales: [], total: 0 },
+    netIncome: 0
+  })
+
+  // Fetch income statement from API
+  const fetchIncomeStatement = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+      })
+      const response = await fetch(`/api/accounting/reports/income-statement?${params}`)
+      if (!response.ok) throw new Error('Error al cargar estado de resultados')
+      const data = await response.json()
+      setIncomeData(data.incomeStatement)
+      setMessage({ type: 'success', text: 'Estado de resultados actualizado' })
+    } catch (error) {
+      console.error('Error fetching income statement:', error)
+      setMessage({ type: 'error', text: 'Error al cargar estado de resultados' })
+    } finally {
+      setLoading(false)
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }, [dateRange.startDate, dateRange.endDate])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -33,41 +82,39 @@ export default function ProfitLossPage() {
     }
   }, [status, router])
 
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchIncomeStatement()
+    }
+  }, [status, fetchIncomeStatement])
+
   const currentMonth = new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
 
   // Función para recalcular P&L basado en rango de fechas
   const recalculatePL = () => {
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      alert(`✅ Estado de Resultados recalculado para:\n${dateRange.startDate} al ${dateRange.endDate}\n\nEn producción, esto consultaría transacciones, facturas, gastos y nómina del periodo seleccionado.`)
-    }, 1000)
+    fetchIncomeStatement()
   }
 
-  const reportData = {
-    ingresos: [
-      { concepto: 'Ventas de Productos', monto: 125000, cambio: 12.5 },
-      { concepto: 'Servicios', monto: 45000, cambio: 8.3 },
-      { concepto: 'Otros Ingresos', monto: 5000, cambio: -2.1 }
-    ],
-    gastosOperativos: [
-      { concepto: 'Nómina', monto: 65000, cambio: 5.2 },
-      { concepto: 'Renta', monto: 12000, cambio: 0 },
-      { concepto: 'Servicios', monto: 8000, cambio: 3.5 },
-      { concepto: 'Marketing', monto: 15000, cambio: 25.0 }
-    ],
-    otrosGastos: [
-      { concepto: 'Impuestos', monto: 18000, cambio: 10.5 },
-      { concepto: 'Intereses', monto: 2000, cambio: -5.0 }
-    ]
-  }
+  // Convertir datos de API al formato para mostrar
+  const ingresos = [
+    ...incomeData.revenue.operating.map(a => ({ concepto: a.name, monto: a.balance, cambio: 0 })),
+    ...incomeData.revenue.nonOperating.map(a => ({ concepto: a.name, monto: a.balance, cambio: 0 }))
+  ]
+  
+  const gastosOperativos = [
+    ...incomeData.expenses.costOfSales.map(a => ({ concepto: a.name, monto: a.balance, cambio: 0 })),
+    ...incomeData.expenses.operating.map(a => ({ concepto: a.name, monto: a.balance, cambio: 0 }))
+  ]
+  
+  const otrosGastos = incomeData.expenses.nonOperating.map(a => ({ concepto: a.name, monto: a.balance, cambio: 0 }))
 
-  const totalIngresos = reportData.ingresos.reduce((sum, item) => sum + item.monto, 0)
-  const totalGastosOp = reportData.gastosOperativos.reduce((sum, item) => sum + item.monto, 0)
-  const totalOtrosGastos = reportData.otrosGastos.reduce((sum, item) => sum + item.monto, 0)
+  const totalIngresos = incomeData.revenue.total
+  const totalGastosOp = incomeData.expenses.costOfSales.reduce((s, a) => s + a.balance, 0) + 
+                        incomeData.expenses.operating.reduce((s, a) => s + a.balance, 0)
+  const totalOtrosGastos = incomeData.expenses.nonOperating.reduce((s, a) => s + a.balance, 0)
   const utilidadOperativa = totalIngresos - totalGastosOp
-  const utilidadNeta = utilidadOperativa - totalOtrosGastos
-  const margenNeto = (utilidadNeta / totalIngresos) * 100
+  const utilidadNeta = incomeData.netIncome
+  const margenNeto = totalIngresos > 0 ? (utilidadNeta / totalIngresos) * 100 : 0
 
   // Función para generar CSV
   const generatePLCSV = () => {
@@ -77,18 +124,18 @@ export default function ProfitLossPage() {
     csv += `Generado: ${new Date().toLocaleString('es-MX')}\n\n`
     csv += 'Concepto,Monto,Cambio %\n'
     csv += '\nINGRESOS\n'
-    reportData.ingresos.forEach(item => {
+    ingresos.forEach(item => {
       csv += `"${item.concepto}",${item.monto},${item.cambio}%\n`
     })
     csv += `TOTAL INGRESOS,${totalIngresos},\n\n`
     csv += 'GASTOS OPERATIVOS\n'
-    reportData.gastosOperativos.forEach(item => {
+    gastosOperativos.forEach(item => {
       csv += `"${item.concepto}",${item.monto},${item.cambio}%\n`
     })
     csv += `TOTAL GASTOS OPERATIVOS,${totalGastosOp},\n`
     csv += `UTILIDAD OPERATIVA,${utilidadOperativa},\n\n`
     csv += 'OTROS GASTOS\n'
-    reportData.otrosGastos.forEach(item => {
+    otrosGastos.forEach(item => {
       csv += `"${item.concepto}",${item.monto},${item.cambio}%\n`
     })
     csv += `TOTAL OTROS GASTOS,${totalOtrosGastos},\n\n`
@@ -143,7 +190,7 @@ export default function ProfitLossPage() {
               a.href = url
               a.download = `estado-resultados-${dateRange.endDate}.csv`
               a.click()
-              alert('✅ CSV exportado exitosamente')
+              setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
             }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
@@ -154,6 +201,16 @@ export default function ProfitLossPage() {
             </Button>
           </div>
         </div>
+
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

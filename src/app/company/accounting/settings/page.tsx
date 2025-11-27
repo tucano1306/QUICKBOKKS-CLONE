@@ -49,6 +49,7 @@ export default function AccountingSettingsPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -144,7 +145,8 @@ export default function AccountingSettingsPage() {
     a.download = `backup-${activeCompany?.name || 'empresa'}-${new Date().toISOString().split('T')[0]}.json`
     a.click()
 
-    alert('✅ Respaldo descargado exitosamente\n\nEl archivo contiene:\n- Plan de cuentas\n- Transacciones\n- Facturas y gastos\n- Configuraciones\n- Conexiones bancarias')
+    setMessage({ type: 'success', text: 'Respaldo descargado exitosamente' })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   // Botones de acción de Configuración
@@ -213,6 +215,18 @@ export default function AccountingSettingsPage() {
             </p>
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-3 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+            'bg-blue-50 text-blue-800 border border-blue-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Action Buttons */}
         <Card className="border-gray-300 bg-gray-50/30">

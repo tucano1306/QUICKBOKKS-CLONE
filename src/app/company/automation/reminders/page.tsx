@@ -57,6 +57,7 @@ export default function RemindersPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [reminders, setReminders] = useState<Reminder[]>([])
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -198,7 +199,8 @@ export default function RemindersPage() {
       lastSent: new Date().toISOString(),
       timesSent: r.timesSent + 1 
     } : r))
-    alert(`✅ Recordatorio "${reminder.name}" enviado correctamente`)
+    setMessage({ type: 'success', text: `Recordatorio "${reminder.name}" enviado` })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const handleDeleteReminder = (id: string) => {
@@ -313,7 +315,21 @@ export default function RemindersPage() {
           </div>
         </div>
 
-        {/* Summary Stats */}
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+            'bg-blue-50 text-blue-700 border border-blue-200'
+          }`}>
+            {message.type === 'success' && <CheckCircle className="w-5 h-5" />}
+            {message.type === 'error' && <AlertCircle className="w-5 h-5" />}
+            {message.type === 'info' && <Info className="w-5 h-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
+        {/* Summary Stats */}}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardContent className="p-6">

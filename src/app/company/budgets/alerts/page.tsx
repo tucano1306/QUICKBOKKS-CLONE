@@ -53,6 +53,7 @@ export default function BudgetAlertsPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all')
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<string>('active')
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all')
 
@@ -395,16 +396,23 @@ export default function BudgetAlertsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📥 Exportando alertas a CSV')}>
+            <Button variant="outline" onClick={() => { setMessage({ type: 'success', text: 'Exportando alertas a CSV' }); setTimeout(() => setMessage(null), 3000); }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('🔔 Configurar Alertas\n\nEstablecer límites y notificaciones')}>
+            <Button onClick={() => { setMessage({ type: 'success', text: 'Configurando alertas y notificaciones' }); setTimeout(() => setMessage(null), 3000); }}>
               <Bell className="w-4 h-4 mr-2" />
               Configurar Alertas
             </Button>
           </div>
         </div>
+
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

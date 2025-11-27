@@ -79,6 +79,7 @@ export default function AIAgentPage() {
   const [error, setError] = useState<string | null>(null)
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   const [agentConfig, setAgentConfig] = useState({
     autoCategorizeTx: true,
     autoCategorizeThreshold: 85,
@@ -160,17 +161,20 @@ export default function AIAgentPage() {
       
       if (response.ok) {
         setShowConfigModal(false)
-        alert('Configuración guardada exitosamente')
+        setMessage({ type: 'success', text: 'Configuración guardada exitosamente' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (err) {
       console.error('Error saving config:', err)
-      alert('Error al guardar la configuración')
+      setMessage({ type: 'error', text: 'Error al guardar la configuración' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
   const handleCreateTask = async () => {
     if (!newTask.title.trim()) {
-      alert('Por favor ingresa un título para la tarea')
+      setMessage({ type: 'error', text: 'Ingresa un título para la tarea' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -207,10 +211,13 @@ export default function AIAgentPage() {
           priority: 'Normal',
           schedule: 'now'
         })
+        setMessage({ type: 'success', text: 'Tarea creada exitosamente' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (err) {
       console.error('Error creating task:', err)
-      alert('Error al crear la tarea')
+      setMessage({ type: 'error', text: 'Error al crear la tarea' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -301,7 +308,21 @@ export default function AIAgentPage() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+            'bg-blue-50 text-blue-700 border border-blue-200'
+          }`}>
+            {message.type === 'success' && <CheckCircle className="w-5 h-5" />}
+            {message.type === 'error' && <AlertCircle className="w-5 h-5" />}
+            {message.type === 'info' && <Info className="w-5 h-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
+        {/* Stats */}}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardContent className="p-6">

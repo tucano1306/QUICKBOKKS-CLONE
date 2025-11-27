@@ -58,6 +58,7 @@ export default function TurboTaxPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected'>('connected')
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
   const [dataMappings, setDataMappings] = useState<DataMapping[]>([])
@@ -129,7 +130,7 @@ export default function TurboTaxPage() {
         }
         setImportHistory(prev => [newImport, ...prev])
         
-        alert(`✅ Sincronización completada!\n\nRegistros sincronizados: ${data.sync.recordsSynced}\nFormularios actualizados: ${data.sync.formsUpdated.join(', ')}\n\nSiguiente paso: ${data.sync.nextStep}`)
+        setMessage({ type: 'success', text: `Sincronización completada: ${data.sync.recordsSynced} registros sincronizados` }); setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error syncing with TurboTax:', error)
@@ -211,6 +212,13 @@ export default function TurboTaxPage() {
             </Button>
           </div>
         </div>
+
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">

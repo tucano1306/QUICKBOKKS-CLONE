@@ -13,7 +13,8 @@ import {
   Calendar,
   DollarSign,
   Filter,
-  CheckCircle
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react'
 
 interface DeductibleExpense {
@@ -40,6 +41,7 @@ export default function TaxDeductibleExpensesPage() {
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
   const [categories, setCategories] = useState<any[]>([])
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   
   const [stats, setStats] = useState({
     totalDeductible: 0,
@@ -132,7 +134,8 @@ export default function TaxDeductibleExpensesPage() {
 
   const exportReport = () => {
     if (!Array.isArray(filteredExpenses) || filteredExpenses.length === 0) {
-      alert('No hay gastos para exportar')
+      setMessage({ type: 'error', text: 'No hay gastos para exportar' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -199,6 +202,16 @@ export default function TaxDeductibleExpensesPage() {
             Exportar Reporte
           </Button>
         </div>
+
+        {/* Message */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -18,6 +18,7 @@ import {
   DollarSign,
   AlertTriangle,
   CheckCircle2,
+  CheckCircle,
   RefreshCw,
   TrendingUp,
   TrendingDown,
@@ -81,6 +82,7 @@ export default function BalanceCheckPage() {
   const [balanceChecks, setBalanceChecks] = useState<BalanceCheck[]>([])
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([])
   const [detailedCheck, setDetailedCheck] = useState<any>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   
   // Adjustment form
   const [adjustmentForm, setAdjustmentForm] = useState({
@@ -180,10 +182,12 @@ export default function BalanceCheckPage() {
     setProcessing(true)
     try {
       await loadBalanceCheck(accountId)
-      alert('✅ Verificación de saldo completada')
+      setMessage({ type: 'success', text: 'Verificación de saldo completada' })
+      setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       console.error('Error running balance check:', error)
-      alert('Error al verificar saldos')
+      setMessage({ type: 'error', text: 'Error al verificar saldos' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setProcessing(false)
     }
@@ -191,7 +195,8 @@ export default function BalanceCheckPage() {
 
   const createAdjustment = async () => {
     if (!adjustmentForm.accountId || !adjustmentForm.targetBalance) {
-      alert('Seleccione cuenta y especifique el saldo objetivo')
+      setMessage({ type: 'error', text: 'Seleccione cuenta y saldo objetivo' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -210,16 +215,19 @@ export default function BalanceCheckPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(`✅ Ajuste registrado exitosamente\n\nMonto del ajuste: ${formatCurrency(data.adjustment.amount)}\nNuevo saldo: ${formatCurrency(data.newBalance)}`)
+        setMessage({ type: 'success', text: `Ajuste registrado: ${formatCurrency(data.adjustment.amount)}` })
+        setTimeout(() => setMessage(null), 3000)
         setShowAdjustmentModal(false)
         loadData()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al crear ajuste')
+        setMessage({ type: 'error', text: error.error || 'Error al crear ajuste' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error creating adjustment:', error)
-      alert('Error al crear ajuste')
+      setMessage({ type: 'error', text: 'Error al crear ajuste' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setProcessing(false)
     }
@@ -259,11 +267,13 @@ export default function BalanceCheckPage() {
         a.click()
         URL.revokeObjectURL(url)
         
-        alert('📥 Reporte de cuadre de saldos exportado')
+        setMessage({ type: 'success', text: 'Reporte de cuadre exportado' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error generating report:', error)
-      alert('Error al generar reporte')
+      setMessage({ type: 'error', text: 'Error al generar reporte' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -320,6 +330,18 @@ export default function BalanceCheckPage() {
             </Button>
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-3 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+            'bg-blue-50 text-blue-800 border border-blue-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

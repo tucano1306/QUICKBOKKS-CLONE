@@ -23,7 +23,10 @@ import {
   Eye,
   X,
   Loader2,
-  Printer
+  Printer,
+  CheckCircle,
+  AlertCircle,
+  Info
 } from 'lucide-react'
 
 interface PayrollReport {
@@ -57,6 +60,7 @@ export default function PayrollReportsPage() {
   const [exporting, setExporting] = useState(false)
   const [filterStartDate, setFilterStartDate] = useState('')
   const [filterEndDate, setFilterEndDate] = useState('')
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -305,7 +309,8 @@ export default function PayrollReportsPage() {
       
     } catch (error) {
       console.error('Error al exportar:', error)
-      alert('Error al exportar los reportes')
+      setMessage({ type: 'error', text: 'Error al exportar los reportes' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setExporting(false)
     }
@@ -351,6 +356,24 @@ export default function PayrollReportsPage() {
             </Button>
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-3 ${
+            message.type === 'success' ? 'bg-green-50 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 border border-red-200' :
+            'bg-blue-50 border border-blue-200'
+          }`}>
+            {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
+            {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
+            {message.type === 'info' && <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+            <span className={`${
+              message.type === 'success' ? 'text-green-800' :
+              message.type === 'error' ? 'text-red-800' :
+              'text-blue-800'
+            }`}>{message.text}</span>
+          </div>
+        )}
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

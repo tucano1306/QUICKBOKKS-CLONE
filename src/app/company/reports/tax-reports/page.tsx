@@ -47,6 +47,7 @@ export default function TaxReportsPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [selectedYear, setSelectedYear] = useState('2025')
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [selectedType, setSelectedType] = useState<string>('all')
 
   useEffect(() => {
@@ -342,16 +343,23 @@ export default function TaxReportsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📥 Exportando reportes fiscales a PDF')}>
+            <Button variant="outline" onClick={() => { setMessage({ type: 'success', text: 'Exportando reportes fiscales a PDF' }); setTimeout(() => setMessage(null), 3000); }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('📄 Nueva Declaración\n\nIniciando nueva declaración fiscal')}>
+            <Button onClick={() => { setMessage({ type: 'success', text: 'Iniciando nueva declaración fiscal' }); setTimeout(() => setMessage(null), 3000); }}>
               <FileText className="w-4 h-4 mr-2" />
               Nueva Declaración
             </Button>
           </div>
         </div>
+
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -85,6 +85,7 @@ export default function DocumentReviewPage() {
   const [aiSuggestions, setAiSuggestions] = useState<AccountSuggestion[]>([])
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -254,28 +255,33 @@ export default function DocumentReviewPage() {
   const applyReclassification = (doc: ProcessedDocument, newAccountCode: string, newAccountName: string) => {
     // ============ VALIDACIONES ============
     if (!doc || !doc.id) {
-      alert('❌ Error: Documento inválido')
+      setMessage({ type: 'error', text: 'Error: Documento inválido' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     if (!newAccountCode || !newAccountCode.match(/^[1-9]\d{3}$/)) {
-      alert('❌ Error: Código de cuenta inválido (debe ser 4 dígitos)')
+      setMessage({ type: 'error', text: 'Error: Código de cuenta inválido (debe ser 4 dígitos)' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     if (!newAccountName || newAccountName.trim().length < 3) {
-      alert('❌ Error: Nombre de cuenta inválido (mínimo 3 caracteres)')
+      setMessage({ type: 'error', text: 'Error: Nombre de cuenta inválido (mínimo 3 caracteres)' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     if (newAccountCode === doc.suggestedAccountCode) {
-      alert('⚠️ Advertencia: La cuenta seleccionada es la misma que la actual')
+      setMessage({ type: 'warning', text: 'La cuenta seleccionada es la misma que la actual' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     // Validar que el monto sea válido
     if (!doc.amount || doc.amount <= 0) {
-      alert('❌ Error: Monto del documento inválido')
+      setMessage({ type: 'error', text: 'Error: Monto del documento inválido' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -284,9 +290,8 @@ export default function DocumentReviewPage() {
     const creditAmount = doc.journalEntry.credit.amount
     
     if (Math.abs(newDebitAmount - creditAmount) > 0.01) {
-      alert(`❌ Error: El asiento no balancearía después de la reclasificación\n\n` +
-            `Debe: $${newDebitAmount.toFixed(2)}\n` +
-            `Haber: $${creditAmount.toFixed(2)}`)
+      setMessage({ type: 'error', text: `Error: El asiento no balancearía (Debe: $${newDebitAmount.toFixed(2)}, Haber: $${creditAmount.toFixed(2)})` })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -326,45 +331,44 @@ export default function DocumentReviewPage() {
     setSelectedDoc(null)
 
     // Notificación de éxito
-    alert(`✅ Reclasificación aplicada exitosamente!\n\n` +
-          `Documento: ${doc.filename}\n` +
-          `De: ${doc.suggestedAccountCode} - ${doc.suggestedAccount}\n` +
-          `A: ${newAccountCode} - ${newAccountName}\n\n` +
-          `✨ Asiento contable actualizado automáticamente\n` +
-          `📊 Balance General actualizado\n` +
-          `📈 Estado de Resultados actualizado\n` +
-          `💼 Reportes reflejados en tiempo real`)
+    setMessage({ type: 'success', text: `Reclasificación aplicada: ${doc.suggestedAccountCode} → ${newAccountCode}` })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const approveDocument = (docId: string) => {
     // ============ VALIDACIONES ============
     if (!docId || typeof docId !== 'string') {
-      alert('❌ Error: ID de documento inválido')
+      setMessage({ type: 'error', text: 'Error: ID de documento inválido' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     const doc = documents.find(d => d.id === docId)
     
     if (!doc) {
-      alert('❌ Error: Documento no encontrado')
+      setMessage({ type: 'error', text: 'Error: Documento no encontrado' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     // Validar que el documento esté pendiente
     if (doc.status !== 'pending_review' && doc.status !== 'reclassified') {
-      alert(`⚠️ Error: El documento ya fue ${doc.status === 'approved' ? 'aprobado' : 'rechazado'}`)
+      setMessage({ type: 'error', text: `El documento ya fue ${doc.status === 'approved' ? 'aprobado' : 'rechazado'}` })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     // Validar monto
     if (!doc.amount || doc.amount <= 0) {
-      alert('❌ Error: Monto del documento inválido')
+      setMessage({ type: 'error', text: 'Error: Monto del documento inválido' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     // Validar que tenga asiento contable
     if (!doc.journalEntry || !doc.journalEntry.debit || !doc.journalEntry.credit) {
-      alert('❌ Error: Asiento contable incompleto')
+      setMessage({ type: 'error', text: 'Error: Asiento contable incompleto' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -373,23 +377,23 @@ export default function DocumentReviewPage() {
     const creditAmount = doc.journalEntry.credit.amount
     
     if (Math.abs(debitAmount - creditAmount) > 0.01) {
-      alert(`❌ Error: Asiento contable no balanceado\n\n` +
-            `Debe: $${debitAmount.toFixed(2)}\n` +
-            `Haber: $${creditAmount.toFixed(2)}\n` +
-            `Diferencia: $${Math.abs(debitAmount - creditAmount).toFixed(2)}`)
+      setMessage({ type: 'error', text: `Asiento no balanceado (Debe: $${debitAmount.toFixed(2)}, Haber: $${creditAmount.toFixed(2)})` })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     // Validar fecha
     const docDate = new Date(doc.date)
     if (isNaN(docDate.getTime())) {
-      alert('❌ Error: Fecha del documento inválida')
+      setMessage({ type: 'error', text: 'Error: Fecha del documento inválida' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     // Validar proveedor
     if (!doc.vendor || doc.vendor.trim().length < 2) {
-      alert('❌ Error: Nombre de proveedor inválido')
+      setMessage({ type: 'error', text: 'Error: Nombre de proveedor inválido' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -418,32 +422,30 @@ export default function DocumentReviewPage() {
       d.id === docId ? { ...d, status: 'approved' as const } : d
     ))
     
-    alert('✅ Documento aprobado exitosamente!\n\n' +
-          '📝 Asiento contable creado\n' +
-          '💰 Saldos de cuentas actualizados\n' +
-          '📊 Balance General actualizado\n' +
-          '📈 Estado de Resultados actualizado\n' +
-          '💵 Flujo de Efectivo actualizado\n' +
-          '🔒 Registrado en audit trail')
+    setMessage({ type: 'success', text: 'Documento aprobado exitosamente' })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const rejectDocument = (docId: string) => {
     // ============ VALIDACIONES ============
     if (!docId || typeof docId !== 'string') {
-      alert('❌ Error: ID de documento inválido')
+      setMessage({ type: 'error', text: 'Error: ID de documento inválido' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     const doc = documents.find(d => d.id === docId)
     
     if (!doc) {
-      alert('❌ Error: Documento no encontrado')
+      setMessage({ type: 'error', text: 'Error: Documento no encontrado' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     // Validar que el documento esté pendiente
     if (doc.status !== 'pending_review' && doc.status !== 'reclassified') {
-      alert(`⚠️ Error: El documento ya fue ${doc.status === 'approved' ? 'aprobado' : 'rechazado'}`)
+      setMessage({ type: 'error', text: `El documento ya fue ${doc.status === 'approved' ? 'aprobado' : 'rechazado'}` })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -457,7 +459,8 @@ export default function DocumentReviewPage() {
     )
 
     if (!reason || reason.trim().length < 10) {
-      alert('⚠️ Rechazo cancelado: Debes proporcionar una razón válida (mínimo 10 caracteres)')
+      setMessage({ type: 'warning', text: 'Rechazo cancelado: Debes proporcionar una razón válida (mínimo 10 caracteres)' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -478,7 +481,8 @@ export default function DocumentReviewPage() {
       d.id === docId ? { ...d, status: 'rejected' as const, notes: `Rechazado: ${reason}` } : d
     ))
 
-    alert(`✅ Documento rechazado\n\nRazón: ${reason}\n\nEl documento no será procesado contablemente.`)
+    setMessage({ type: 'success', text: `Documento rechazado: ${reason.substring(0, 30)}...` })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const stats = {
@@ -513,6 +517,18 @@ export default function DocumentReviewPage() {
   return (
     <CompanyTabsLayout>
       <div className="space-y-6">
+        {/* Message Display */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+            'bg-yellow-50 text-yellow-800 border border-yellow-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -922,8 +938,8 @@ export default function DocumentReviewPage() {
                     variant="outline"
                     className="flex-1"
                     onClick={() => {
-                      alert('🔍 Búsqueda manual de cuentas contables\n\n' +
-                            'Funcionalidad para buscar en el catálogo completo de cuentas.')
+                      setMessage({ type: 'success', text: 'Búsqueda manual de cuentas contables disponible' })
+                      setTimeout(() => setMessage(null), 3000)
                     }}
                   >
                     <Search className="w-4 h-4 mr-2" />

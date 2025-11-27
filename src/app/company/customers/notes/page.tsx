@@ -21,12 +21,14 @@ import {
   Tag,
   AlertCircle,
   CheckCircle2,
+  CheckCircle,
   Clock,
   MessageSquare,
   Bell,
   Phone,
   Mail,
-  FileText
+  FileText,
+  Info
 } from 'lucide-react'
 
 interface CustomerNote {
@@ -56,6 +58,7 @@ export default function CustomerNotesPage() {
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [showPinnedOnly, setShowPinnedOnly] = useState(false)
   const [selectedNote, setSelectedNote] = useState<CustomerNote | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -292,11 +295,27 @@ export default function CustomerNotesPage() {
               CRM básico para gestión de relaciones con clientes
             </p>
           </div>
-          <Button onClick={() => alert('📝 Nueva Nota\n\nAñadir nota a cliente')}>
+          <Button onClick={() => {
+            setMessage({ type: 'info', text: 'Función Nueva Nota próximamente' });
+            setTimeout(() => setMessage(null), 3000);
+          }}>
             <Plus className="w-4 h-4 mr-2" />
             Nueva Nota
           </Button>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-3 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+            'bg-blue-50 text-blue-800 border border-blue-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : 
+             message.type === 'info' ? <Info className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

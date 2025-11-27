@@ -69,6 +69,9 @@ export default function PayrollCalculatePage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterDepartment, setFilterDepartment] = useState<string>('all')
   
+  // Message state
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  
   // Modal states
   const [showNewPayrollModal, setShowNewPayrollModal] = useState(false)
   const [modalStep, setModalStep] = useState<'config' | 'preview' | 'complete'>('config')
@@ -178,7 +181,8 @@ export default function PayrollCalculatePage() {
 
   const calculatePayroll = () => {
     if (!periodStart || !periodEnd || selectedEmployees.length === 0) {
-      alert('Por favor complete todos los campos y seleccione al menos un empleado')
+      setMessage({ type: 'error', text: 'Complete todos los campos y seleccione empleados' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -229,11 +233,13 @@ export default function PayrollCalculatePage() {
         setModalStep('complete')
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al procesar la nómina')
+        setMessage({ type: 'error', text: error.error || 'Error al procesar la nómina' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error processing payroll:', error)
-      alert('Error al procesar la nómina')
+      setMessage({ type: 'error', text: 'Error al procesar la nómina' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setProcessing(false)
     }
@@ -616,6 +622,16 @@ export default function PayrollCalculatePage() {
             </Button>
           </div>
         </div>
+
+        {/* Message */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

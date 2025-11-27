@@ -78,6 +78,7 @@ export default function BankReconciliationPage() {
   const [reconciledItems, setReconciledItems] = useState<Set<string>>(new Set())
   const [autoReconciling, setAutoReconciling] = useState(false)
   const [processing, setProcessing] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   
   // Real data from API
   const [accounts, setAccounts] = useState<BankAccount[]>([])
@@ -183,9 +184,14 @@ export default function BankReconciliationPage() {
     }
   }
 
+  const showMessage = (type: 'success' | 'error', text: string) => {
+    setMessage({ type, text })
+    setTimeout(() => setMessage(null), 3000)
+  }
+
   const createReconciliation = async () => {
     if (!newReconciliationForm.accountId) {
-      alert('Seleccione una cuenta bancaria')
+      showMessage('error', 'Seleccione una cuenta bancaria')
       return
     }
 
@@ -205,16 +211,16 @@ export default function BankReconciliationPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(`✅ Conciliación creada exitosamente\n\nTransacciones incluidas: ${data.transactionCount || 0}\nEstado: ${data.reconciliation.status}`)
+        showMessage('success', `Conciliación creada - ${data.transactionCount || 0} transacciones`)
         setShowNewModal(false)
         loadData()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al crear conciliación')
+        showMessage('error', error.error || 'Error al crear conciliación')
       }
     } catch (error) {
       console.error('Error creating reconciliation:', error)
-      alert('Error al crear conciliación')
+      showMessage('error', 'Error al crear conciliación')
     } finally {
       setProcessing(false)
     }
@@ -222,7 +228,7 @@ export default function BankReconciliationPage() {
 
   const importStatement = async () => {
     if (!importForm.accountId) {
-      alert('Seleccione una cuenta bancaria')
+      showMessage('error', 'Seleccione una cuenta bancaria')
       return
     }
 
@@ -246,16 +252,16 @@ export default function BankReconciliationPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(`✅ Estado de cuenta importado\n\nTransacciones importadas: ${data.imported}\nCoincidencias encontradas: ${data.matched}\nNuevas transacciones: ${data.newTransactions}`)
+        showMessage('success', `Estado importado: ${data.imported} trans., ${data.matched} coincidencias`)
         setShowImportModal(false)
         loadData()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al importar estado de cuenta')
+        showMessage('error', error.error || 'Error al importar estado de cuenta')
       }
     } catch (error) {
       console.error('Error importing statement:', error)
-      alert('Error al importar estado de cuenta')
+      showMessage('error', 'Error al importar estado de cuenta')
     } finally {
       setProcessing(false)
     }
@@ -271,15 +277,15 @@ export default function BankReconciliationPage() {
       })
 
       if (response.ok) {
-        alert('✅ Conciliación confirmada exitosamente')
+        showMessage('success', 'Conciliación confirmada exitosamente')
         loadData()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al confirmar conciliación')
+        showMessage('error', error.error || 'Error al confirmar conciliación')
       }
     } catch (error) {
       console.error('Error confirming reconciliation:', error)
-      alert('Error al confirmar conciliación')
+      showMessage('error', 'Error al confirmar conciliación')
     } finally {
       setProcessing(false)
     }
@@ -314,11 +320,11 @@ export default function BankReconciliationPage() {
         a.click()
         URL.revokeObjectURL(url2)
         
-        alert('📥 Reporte de conciliación exportado')
+        showMessage('success', 'Reporte de conciliación exportado')
       }
     } catch (error) {
       console.error('Error generating report:', error)
-      alert('Error al generar reporte')
+      showMessage('error', 'Error al generar reporte')
     }
   }
 
@@ -404,7 +410,7 @@ export default function BankReconciliationPage() {
   // Función para conciliación automática
   const autoReconcile = async () => {
     if (!currentPeriod.id) {
-      alert('No hay conciliación activa. Cree una nueva conciliación primero.')
+      showMessage('error', 'Cree una nueva conciliación primero')
       return
     }
     
@@ -416,7 +422,7 @@ export default function BankReconciliationPage() {
         .map(item => item.id)
       
       if (pendingIds.length === 0) {
-        alert('Todas las transacciones ya están conciliadas')
+        showMessage('success', 'Todas las transacciones ya están conciliadas')
         setAutoReconciling(false)
         return
       }
@@ -434,15 +440,15 @@ export default function BankReconciliationPage() {
         const data = await response.json()
         const matchedIds = pendingIds
         setReconciledItems(new Set(matchedIds))
-        alert(`✅ Conciliación Automática Completada\n\n📊 Resultados:\n• Items conciliados: ${matchedIds.length}\n• Progreso: ${((matchedItems + matchedIds.length) / reconciliationItems.length * 100).toFixed(1)}%`)
+        showMessage('success', `Conciliación automática: ${matchedIds.length} items conciliados`)
         loadData()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error en conciliación automática')
+        showMessage('error', error.error || 'Error en conciliación automática')
       }
     } catch (error) {
       console.error('Error in auto reconcile:', error)
-      alert('Error en conciliación automática')
+      showMessage('error', 'Error en conciliación automática')
     } finally {
       setAutoReconciling(false)
     }
@@ -462,7 +468,7 @@ export default function BankReconciliationPage() {
   // Función para finalizar conciliación
   const finishReconciliation = async () => {
     if (!currentPeriod.id) {
-      alert('No hay conciliación activa')
+      showMessage('error', 'No hay conciliación activa')
       return
     }
 
@@ -534,6 +540,14 @@ export default function BankReconciliationPage() {
             </Button>
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            <span className="font-medium">{message.text}</span>
+          </div>
+        )}
 
         {/* Reconciliation Period Summary */}
         <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">

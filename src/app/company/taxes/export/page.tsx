@@ -64,6 +64,7 @@ export default function TaxExportPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [selectedFormat, setSelectedFormat] = useState<string>('txf')
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
   const [dateRange, setDateRange] = useState({ start: `${new Date().getFullYear()}-01-01`, end: `${new Date().getFullYear()}-12-31` })
@@ -141,7 +142,7 @@ export default function TaxExportPage() {
           a.click()
           URL.revokeObjectURL(url)
         } else {
-          alert(`✅ Exportación completada!\n\nArchivo: ${data.export.fileName}\nTamaño: ${data.export.fileSize}\nRegistros: ${data.export.recordCount}`)
+          setMessage({ type: 'success', text: `Exportación completada: ${data.export.fileName} (${data.export.recordCount} registros)` }); setTimeout(() => setMessage(null), 3000)
         }
       }
     } catch (error) {
@@ -262,6 +263,13 @@ export default function TaxExportPage() {
             </Button>
           </div>
         </div>
+
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">

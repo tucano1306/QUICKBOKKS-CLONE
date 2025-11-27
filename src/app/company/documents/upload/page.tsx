@@ -67,6 +67,7 @@ export default function DocumentUploadPage() {
   const [processingStage, setProcessingStage] = useState<string>('')
   const [uploadedFiles, setUploadedFiles] = useState<ClientDocument[]>([])
   const [portalLink] = useState('https://portal.quickbooks.com/client/ABC123XYZ')
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -322,14 +323,16 @@ export default function DocumentUploadPage() {
         setIsUploading(false)
         setProcessingStage('')
         
-        alert(`✅ ${files.length} documento(s) procesado(s) exitosamente!\n\n🤖 Análisis IA completado:\n• Datos extraídos automáticamente\n• Cuentas contables asignadas\n• Asientos de diario creados\n• Base de datos actualizada\n• Reportes financieros reflejados\n\n✨ Todo está listo para revisión.`)
+        setMessage({ type: 'success', text: `${files.length} documento(s) procesado(s) exitosamente` })
+        setTimeout(() => setMessage(null), 3000)
       }
     }, 400)
   }
 
   const copyPortalLink = () => {
     navigator.clipboard.writeText(portalLink)
-    alert('✅ Link copiado al portapapeles')
+    setMessage({ type: 'success', text: 'Link copiado al portapapeles' })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const stats = {
@@ -353,6 +356,18 @@ export default function DocumentUploadPage() {
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
+        {/* Message Display */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+            'bg-yellow-50 text-yellow-800 border border-yellow-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -631,7 +646,10 @@ export default function DocumentUploadPage() {
                       size="sm" 
                       variant="outline" 
                       title="Ver documento"
-                      onClick={() => alert(`Ver documento: ${doc.filename}\n\nEn producción abriría un visor de PDF/imágenes inline.`)}
+                      onClick={() => {
+                        setMessage({ type: 'success', text: `Abriendo: ${doc.filename}` })
+                        setTimeout(() => setMessage(null), 3000)
+                      }}
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
@@ -642,8 +660,8 @@ export default function DocumentUploadPage() {
                       onClick={() => {
                         const newCategory = prompt(`Editar categoría de: ${doc.filename}\n\nCategoría actual: ${doc.category}\n\nOpciones: invoice, receipt, bank_statement, tax_document, contract, other`)
                         if (newCategory) {
-                          alert(`✅ Categoría actualizada a: ${newCategory}`)
-                          // En producción: actualizar en BD
+                          setMessage({ type: 'success', text: `Categoría actualizada a: ${newCategory}` })
+                          setTimeout(() => setMessage(null), 3000)
                         }
                       }}
                     >
@@ -653,7 +671,10 @@ export default function DocumentUploadPage() {
                       size="sm" 
                       variant="outline" 
                       title="Descargar"
-                      onClick={() => alert(`Descargando: ${doc.filename}`)}
+                      onClick={() => {
+                        setMessage({ type: 'success', text: `Descargando: ${doc.filename}` })
+                        setTimeout(() => setMessage(null), 3000)
+                      }}
                     >
                       <Download className="w-4 h-4" />
                     </Button>
@@ -665,7 +686,8 @@ export default function DocumentUploadPage() {
                       onClick={() => {
                         if (confirm(`¿Eliminar ${doc.filename}?\n\nEsta acción no se puede deshacer.`)) {
                           setUploadedFiles(prev => prev.filter(d => d.id !== doc.id))
-                          alert('✅ Documento eliminado')
+                          setMessage({ type: 'success', text: 'Documento eliminado' })
+                          setTimeout(() => setMessage(null), 3000)
                         }
                       }}
                     >

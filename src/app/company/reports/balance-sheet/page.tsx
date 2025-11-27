@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,12 +8,35 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { Calendar, TrendingUp, Building2, Wallet, CreditCard, Package, Download, Printer, RefreshCw } from 'lucide-react'
+import { Calendar, TrendingUp, Building2, Wallet, CreditCard, Package, Download, Printer, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react'
 
 interface DateRange {
   startDate: string
   endDate: string
   label: string
+}
+
+interface AccountData {
+  code: string
+  name: string
+  balance: number
+}
+
+interface BalanceSheetData {
+  assets: {
+    current: AccountData[]
+    fixed: AccountData[]
+    total: number
+  }
+  liabilities: {
+    current: AccountData[]
+    longTerm: AccountData[]
+    total: number
+  }
+  equity: {
+    accounts: AccountData[]
+    total: number
+  }
 }
 
 export default function BalanceSheetPage() {
@@ -26,6 +49,34 @@ export default function BalanceSheetPage() {
     label: 'Este Año'
   })
   const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [balanceData, setBalanceData] = useState<BalanceSheetData>({
+    assets: { current: [], fixed: [], total: 0 },
+    liabilities: { current: [], longTerm: [], total: 0 },
+    equity: { accounts: [], total: 0 }
+  })
+
+  // Fetch balance sheet data from API
+  const fetchBalanceSheet = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+      })
+      const response = await fetch(`/api/accounting/reports/balance-sheet?${params}`)
+      if (!response.ok) throw new Error('Error al cargar balance general')
+      const data = await response.json()
+      setBalanceData(data.balanceSheet)
+      setMessage({ type: 'success', text: 'Balance general actualizado' })
+    } catch (error) {
+      console.error('Error fetching balance sheet:', error)
+      setMessage({ type: 'error', text: 'Error al cargar balance general' })
+    } finally {
+      setLoading(false)
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }, [dateRange.startDate, dateRange.endDate])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -33,59 +84,35 @@ export default function BalanceSheetPage() {
     }
   }, [status, router])
 
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchBalanceSheet()
+    }
+  }, [status, fetchBalanceSheet])
+
   const currentDate = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
 
   // Función para recalcular balance basado en rango de fechas
   const recalculateBalance = () => {
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      alert(`✅ Balance recalculado para el periodo:\n${dateRange.startDate} al ${dateRange.endDate}\n\nEn producción, esto consultaría la base de datos y recalcularía todos los montos basándose en las transacciones del periodo seleccionado.`)
-    }, 1000)
+    fetchBalanceSheet()
   }
 
-  const balanceData = {
-    activos: {
-      circulantes: [
-        { concepto: 'Efectivo y Bancos', monto: 89450 },
-        { concepto: 'Cuentas por Cobrar', monto: 45200 },
-        { concepto: 'Inventario', monto: 32000 },
-        { concepto: 'Otros Activos Circulantes', monto: 8500 }
-      ],
-      fijos: [
-        { concepto: 'Mobiliario y Equipo', monto: 45000 },
-        { concepto: 'Equipo de Cómputo', monto: 25000 },
-        { concepto: 'Vehículos', monto: 80000 },
-        { concepto: 'Menos: Depreciación', monto: -25000 }
-      ]
-    },
-    pasivos: {
-      corto: [
-        { concepto: 'Cuentas por Pagar', monto: 12800 },
-        { concepto: 'Impuestos por Pagar', monto: 8500 },
-        { concepto: 'Préstamos a Corto Plazo', monto: 15000 }
-      ],
-      largo: [
-        { concepto: 'Préstamos Bancarios', monto: 50000 },
-        { concepto: 'Hipotecas', monto: 120000 }
-      ]
-    },
-    capital: [
-      { concepto: 'Capital Social', monto: 100000 },
-      { concepto: 'Utilidades Retenidas', monto: 45850 },
-      { concepto: 'Utilidad del Ejercicio', monto: 79000 }
-    ]
-  }
+  // Convertir datos de API al formato para mostrar
+  const activosCirculantes = balanceData.assets.current.map(a => ({ concepto: a.name, monto: a.balance }))
+  const activosFijos = balanceData.assets.fixed.map(a => ({ concepto: a.name, monto: a.balance }))
+  const pasivosCorto = balanceData.liabilities.current.map(l => ({ concepto: l.name, monto: l.balance }))
+  const pasivosLargo = balanceData.liabilities.longTerm.map(l => ({ concepto: l.name, monto: l.balance }))
+  const capital = balanceData.equity.accounts.map(e => ({ concepto: e.name, monto: e.balance }))
 
-  const totalActivosCirc = balanceData.activos.circulantes.reduce((sum, item) => sum + item.monto, 0)
-  const totalActivosFijos = balanceData.activos.fijos.reduce((sum, item) => sum + item.monto, 0)
-  const totalActivos = totalActivosCirc + totalActivosFijos
+  const totalActivosCirc = activosCirculantes.reduce((sum, item) => sum + item.monto, 0)
+  const totalActivosFijos = activosFijos.reduce((sum, item) => sum + item.monto, 0)
+  const totalActivos = balanceData.assets.total
 
-  const totalPasivosCorto = balanceData.pasivos.corto.reduce((sum, item) => sum + item.monto, 0)
-  const totalPasivosLargo = balanceData.pasivos.largo.reduce((sum, item) => sum + item.monto, 0)
-  const totalPasivos = totalPasivosCorto + totalPasivosLargo
+  const totalPasivosCorto = pasivosCorto.reduce((sum, item) => sum + item.monto, 0)
+  const totalPasivosLargo = pasivosLargo.reduce((sum, item) => sum + item.monto, 0)
+  const totalPasivos = balanceData.liabilities.total
 
-  const totalCapital = balanceData.capital.reduce((sum, item) => sum + item.monto, 0)
+  const totalCapital = balanceData.equity.total
   const totalPasivosCapital = totalPasivos + totalCapital
 
   // Función para generar CSV
@@ -97,30 +124,30 @@ export default function BalanceSheetPage() {
     csv += 'Concepto,Monto\n'
     csv += '\nACTIVOS\n'
     csv += 'Activos Circulantes\n'
-    balanceData.activos.circulantes.forEach(item => {
+    activosCirculantes.forEach(item => {
       csv += `"${item.concepto}",${item.monto}\n`
     })
     csv += `TOTAL ACTIVOS CIRCULANTES,${totalActivosCirc}\n\n`
     csv += 'Activos Fijos\n'
-    balanceData.activos.fijos.forEach(item => {
+    activosFijos.forEach(item => {
       csv += `"${item.concepto}",${item.monto}\n`
     })
     csv += `TOTAL ACTIVOS FIJOS,${totalActivosFijos}\n`
     csv += `TOTAL ACTIVOS,${totalActivos}\n\n`
     csv += 'PASIVOS\n'
     csv += 'Pasivos a Corto Plazo\n'
-    balanceData.pasivos.corto.forEach(item => {
+    pasivosCorto.forEach(item => {
       csv += `"${item.concepto}",${item.monto}\n`
     })
     csv += `TOTAL PASIVOS CORTO PLAZO,${totalPasivosCorto}\n\n`
     csv += 'Pasivos a Largo Plazo\n'
-    balanceData.pasivos.largo.forEach(item => {
+    pasivosLargo.forEach(item => {
       csv += `"${item.concepto}",${item.monto}\n`
     })
     csv += `TOTAL PASIVOS LARGO PLAZO,${totalPasivosLargo}\n`
     csv += `TOTAL PASIVOS,${totalPasivos}\n\n`
     csv += 'CAPITAL\n'
-    balanceData.capital.forEach(item => {
+    capital.forEach(item => {
       csv += `"${item.concepto}",${item.monto}\n`
     })
     csv += `TOTAL CAPITAL,${totalCapital}\n\n`
@@ -174,7 +201,7 @@ export default function BalanceSheetPage() {
               a.href = url
               a.download = `balance-general-${dateRange.endDate}.csv`
               a.click()
-              alert('✅ CSV exportado exitosamente')
+              setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
             }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
@@ -187,6 +214,16 @@ export default function BalanceSheetPage() {
             </Button>
           </div>
         </div>
+
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -243,12 +280,14 @@ export default function BalanceSheetPage() {
                 <div className="mb-6">
                   <h3 className="font-semibold text-gray-900 mb-3 text-lg">Activos Circulantes</h3>
                   <div className="space-y-2">
-                    {balanceData.activos.circulantes.map((item, index) => (
+                    {activosCirculantes.length > 0 ? activosCirculantes.map((item, index) => (
                       <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                         <span className="text-gray-700">{item.concepto}</span>
                         <span className="font-semibold">${item.monto.toLocaleString()}</span>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-gray-500 text-sm py-2">No hay activos circulantes registrados</div>
+                    )}
                     <div className="flex justify-between items-center py-2 px-3 bg-blue-100 rounded font-semibold">
                       <span>Subtotal Activos Circulantes</span>
                       <span className="text-blue-900">${totalActivosCirc.toLocaleString()}</span>
@@ -260,7 +299,7 @@ export default function BalanceSheetPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3 text-lg">Activos Fijos</h3>
                   <div className="space-y-2">
-                    {balanceData.activos.fijos.map((item, index) => (
+                    {activosFijos.length > 0 ? activosFijos.map((item, index) => (
                       <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                         <span className={item.monto < 0 ? 'text-gray-700 italic' : 'text-gray-700'}>
                           {item.concepto}
@@ -269,7 +308,9 @@ export default function BalanceSheetPage() {
                           ${item.monto.toLocaleString()}
                         </span>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-gray-500 text-sm py-2">No hay activos fijos registrados</div>
+                    )}
                     <div className="flex justify-between items-center py-2 px-3 bg-blue-100 rounded font-semibold">
                       <span>Subtotal Activos Fijos</span>
                       <span className="text-blue-900">${totalActivosFijos.toLocaleString()}</span>
@@ -303,12 +344,14 @@ export default function BalanceSheetPage() {
                 <div className="mb-6">
                   <h3 className="font-semibold text-gray-900 mb-3 text-lg">Pasivos a Corto Plazo</h3>
                   <div className="space-y-2">
-                    {balanceData.pasivos.corto.map((item, index) => (
+                    {pasivosCorto.length > 0 ? pasivosCorto.map((item, index) => (
                       <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                         <span className="text-gray-700">{item.concepto}</span>
                         <span className="font-semibold">${item.monto.toLocaleString()}</span>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-gray-500 text-sm py-2">No hay pasivos a corto plazo</div>
+                    )}
                     <div className="flex justify-between items-center py-2 px-3 bg-orange-100 rounded font-semibold">
                       <span>Subtotal Pasivos Corto Plazo</span>
                       <span className="text-orange-900">${totalPasivosCorto.toLocaleString()}</span>
@@ -320,12 +363,14 @@ export default function BalanceSheetPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3 text-lg">Pasivos a Largo Plazo</h3>
                   <div className="space-y-2">
-                    {balanceData.pasivos.largo.map((item, index) => (
+                    {pasivosLargo.length > 0 ? pasivosLargo.map((item, index) => (
                       <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                         <span className="text-gray-700">{item.concepto}</span>
                         <span className="font-semibold">${item.monto.toLocaleString()}</span>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-gray-500 text-sm py-2">No hay pasivos a largo plazo</div>
+                    )}
                     <div className="flex justify-between items-center py-2 px-3 bg-orange-100 rounded font-semibold">
                       <span>Subtotal Pasivos Largo Plazo</span>
                       <span className="text-orange-900">${totalPasivosLargo.toLocaleString()}</span>
@@ -353,12 +398,14 @@ export default function BalanceSheetPage() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-2">
-                  {balanceData.capital.map((item, index) => (
+                  {capital.length > 0 ? capital.map((item, index) => (
                     <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                       <span className="text-gray-700">{item.concepto}</span>
                       <span className="font-semibold">${item.monto.toLocaleString()}</span>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-gray-500 text-sm py-2">No hay cuentas de capital registradas</div>
+                  )}
                 </div>
 
                 {/* Total Capital */}

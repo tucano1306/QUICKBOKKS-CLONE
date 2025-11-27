@@ -19,7 +19,9 @@ import {
   RefreshCw,
   BarChart3,
   PieChart,
-  LineChart
+  LineChart,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react'
 
 interface DateRange {
@@ -50,6 +52,7 @@ export default function ComparativeReportsPage() {
   })
   const [viewMode, setViewMode] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly')
   const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -93,7 +96,8 @@ export default function ComparativeReportsPage() {
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
-      alert(`✅ Reportes Comparativos Recalculados\n\nPeriodo: ${dateRange.startDate} al ${dateRange.endDate}\nVista: ${viewMode === 'monthly' ? 'Mensual' : viewMode === 'quarterly' ? 'Trimestral' : 'Anual'}\n\nEn producción, esto consultaría todas las transacciones del periodo.`)
+      setMessage({ type: 'success', text: `Reportes Comparativos Recalculados - Periodo: ${dateRange.startDate} al ${dateRange.endDate} - Vista: ${viewMode === 'monthly' ? 'Mensual' : viewMode === 'quarterly' ? 'Trimestral' : 'Anual'}` })
+      setTimeout(() => setMessage(null), 3000)
     }, 1000)
   }
 
@@ -111,7 +115,8 @@ export default function ComparativeReportsPage() {
     a.href = url
     a.download = `reporte-comparativo-${viewMode}-${dateRange.endDate}.csv`
     a.click()
-    alert('✅ CSV exportado exitosamente')
+    setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const totalIngresos = currentData.reduce((sum, d) => sum + d.ingresos, 0)
@@ -132,6 +137,16 @@ export default function ComparativeReportsPage() {
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
+        {/* Message Display */}
+        {message && (
+          <div className={`flex items-center gap-2 p-4 rounded-lg ${
+            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

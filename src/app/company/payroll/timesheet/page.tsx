@@ -60,6 +60,9 @@ export default function TimesheetPage() {
   const [filterDepartment, setFilterDepartment] = useState<string>('all')
   const [weekFilter, setWeekFilter] = useState<string>('current')
   
+  // Message state
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  
   // Modal states
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [employees, setEmployees] = useState<any[]>([])
@@ -109,7 +112,8 @@ export default function TimesheetPage() {
 
   const saveTimeEntry = async () => {
     if (!selectedEmployee || !clockInTime) {
-      alert('Por favor seleccione un empleado y hora de entrada')
+      setMessage({ type: 'error', text: 'Seleccione un empleado y hora de entrada' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -129,15 +133,18 @@ export default function TimesheetPage() {
       })
 
       if (response.ok) {
-        alert('Registro guardado exitosamente')
+        setMessage({ type: 'success', text: 'Registro guardado exitosamente' })
+        setTimeout(() => setMessage(null), 3000)
         closeModal()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al guardar')
+        setMessage({ type: 'error', text: error.error || 'Error al guardar' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error saving time entry:', error)
-      alert('Error al guardar el registro')
+      setMessage({ type: 'error', text: 'Error al guardar el registro' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setProcessing(false)
     }
@@ -405,6 +412,16 @@ export default function TimesheetPage() {
             </Button>
           </div>
         </div>
+
+        {/* Message */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

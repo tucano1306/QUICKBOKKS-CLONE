@@ -18,7 +18,8 @@ import {
   Trash2,
   DollarSign,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react'
 
 interface CorporateCard {
@@ -41,6 +42,7 @@ export default function CorporateCardsPage() {
   const [loading, setLoading] = useState(true)
   const [syncingCard, setSyncingCard] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   const [stats, setStats] = useState({
     totalCards: 0,
@@ -125,10 +127,12 @@ export default function CorporateCardsPage() {
           : c
       ))
       
-      alert('Transacciones sincronizadas exitosamente')
+      setMessage({ type: 'success', text: 'Transacciones sincronizadas exitosamente' })
+      setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       console.error('Error syncing card:', error)
-      alert('Error al sincronizar la tarjeta')
+      setMessage({ type: 'error', text: 'Error al sincronizar la tarjeta' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setSyncingCard(null)
     }
@@ -182,6 +186,16 @@ export default function CorporateCardsPage() {
             Agregar Tarjeta
           </Button>
         </div>
+
+        {/* Message */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -445,7 +459,8 @@ export default function CorporateCardsPage() {
               // Reset form
               e.currentTarget.reset()
               
-              alert('Tarjeta agregada exitosamente')
+              setMessage({ type: 'success', text: 'Tarjeta agregada exitosamente' })
+              setTimeout(() => setMessage(null), 3000)
             }}>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

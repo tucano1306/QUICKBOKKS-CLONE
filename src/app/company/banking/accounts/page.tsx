@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -23,7 +23,11 @@ import {
   TrendingDown,
   AlertCircle,
   CheckCircle2,
-  Link as LinkIcon
+  CheckCircle,
+  Link as LinkIcon,
+  Loader2,
+  RefreshCw,
+  Trash2
 } from 'lucide-react'
 
 interface BankAccount {
@@ -31,17 +35,20 @@ interface BankAccount {
   accountNumber: string
   accountName: string
   bank: string
-  type: 'checking' | 'savings' | 'credit' | 'investment'
+  bankName?: string
+  type: 'checking' | 'savings' | 'credit' | 'investment' | 'CHECKING' | 'SAVINGS' | 'CREDIT'
   currency: string
   balance: number
+  currentBalance?: number
   availableBalance: number
   lastReconciled?: string
-  status: 'active' | 'inactive' | 'frozen'
+  status: 'active' | 'inactive' | 'frozen' | 'ACTIVE' | 'INACTIVE'
   openingDate: string
   interestRate?: number
   creditLimit?: number
   routing?: string
   swift?: string
+  isPrimary?: boolean
 }
 
 export default function BankAccountsPage() {
@@ -49,20 +56,22 @@ export default function BankAccountsPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [showBankModal, setShowBankModal] = useState(false)
   const [showNewAccountModal, setShowNewAccountModal] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [newAccount, setNewAccount] = useState({
     accountName: '',
-    bank: '',
+    bankName: '',
     accountNumber: '',
-    type: 'checking',
+    accountType: 'CHECKING',
     currency: 'MXN',
-    balance: 0,
+    currentBalance: 0,
     routing: '',
-    swift: ''
+    swift: '',
+    isPrimary: false
   })
   const [saving, setSaving] = useState(false)
 
@@ -72,133 +81,119 @@ export default function BankAccountsPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  // Fetch bank accounts from API
+  const fetchBankAccounts = useCallback(async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const bankAccounts: BankAccount[] = [
-    {
-      id: 'ACC-001',
-      accountNumber: '4152-3138-7856-4521',
-      accountName: 'Cuenta Principal Operativa',
-      bank: 'BBVA México',
-      type: 'checking',
-      currency: 'MXN',
-      balance: 1250000,
-      availableBalance: 1248500,
-      lastReconciled: '2025-11-20',
-      status: 'active',
-      openingDate: '2024-01-15',
-      routing: '012180015',
-      swift: 'BCMRMXMMPYM'
-    },
-    {
-      id: 'ACC-002',
-      accountNumber: '0128-4567-8901-2345',
-      accountName: 'Cuenta de Ahorros Empresarial',
-      bank: 'Banco Santander',
-      type: 'savings',
-      currency: 'MXN',
-      balance: 850000,
-      availableBalance: 850000,
-      lastReconciled: '2025-11-18',
-      status: 'active',
-      openingDate: '2024-03-20',
-      interestRate: 4.5,
-      swift: 'BMSXMXMMPYM'
-    },
-    {
-      id: 'ACC-003',
-      accountNumber: '5467-2319-4532-8876',
-      accountName: 'Cuenta Nómina',
-      bank: 'Banorte',
-      type: 'checking',
-      currency: 'MXN',
-      balance: 450000,
-      availableBalance: 450000,
-      lastReconciled: '2025-11-22',
-      status: 'active',
-      openingDate: '2024-01-15',
-      routing: '072180002',
-      swift: 'MENOMXMTXXX'
-    },
-    {
-      id: 'ACC-004',
-      accountNumber: '4539-9821-3456-7890',
-      accountName: 'Tarjeta de Crédito Corporativa',
-      bank: 'American Express',
-      type: 'credit',
-      currency: 'MXN',
-      balance: -125000,
-      availableBalance: 375000,
-      lastReconciled: '2025-11-15',
-      status: 'active',
-      openingDate: '2024-06-10',
-      creditLimit: 500000,
-      interestRate: 24.9
-    },
-    {
-      id: 'ACC-005',
-      accountNumber: 'USD-2468-1357-9024',
-      accountName: 'Cuenta USD Internacional',
-      bank: 'Citibanamex',
-      type: 'checking',
-      currency: 'USD',
-      balance: 45000,
-      availableBalance: 43500,
-      lastReconciled: '2025-11-10',
-      status: 'active',
-      openingDate: '2024-08-05',
-      routing: '021000089',
-      swift: 'BNMXMXMMXXX'
-    },
-    {
-      id: 'ACC-006',
-      accountNumber: '7821-4563-9087-1234',
-      accountName: 'Fondo de Inversión',
-      bank: 'GBM+ Casa de Bolsa',
-      type: 'investment',
-      currency: 'MXN',
-      balance: 2500000,
-      availableBalance: 2500000,
-      status: 'active',
-      openingDate: '2024-02-28',
-      interestRate: 11.2
-    },
-    {
-      id: 'ACC-007',
-      accountNumber: '3456-7890-1234-5678',
-      accountName: 'Cuenta Fiscal - Impuestos',
-      bank: 'HSBC México',
-      type: 'checking',
-      currency: 'MXN',
-      balance: 350000,
-      availableBalance: 350000,
-      lastReconciled: '2025-11-20',
-      status: 'active',
-      openingDate: '2024-01-15',
-      routing: '021180001',
-      swift: 'BIMEMXMMXXX'
-    },
-    {
-      id: 'ACC-008',
-      accountNumber: '9876-5432-1098-7654',
-      accountName: 'Cuenta Inactiva - Banamex',
-      bank: 'Citibanamex',
-      type: 'savings',
-      currency: 'MXN',
-      balance: 25000,
-      availableBalance: 25000,
-      lastReconciled: '2025-09-30',
-      status: 'inactive',
-      openingDate: '2023-05-12',
-      interestRate: 3.0
+    try {
+      const response = await fetch(`/api/banking/accounts?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        const accounts = data.accounts || data || []
+        // Map API response to component format
+        const mappedAccounts = accounts.map((acc: any) => ({
+          id: acc.id,
+          accountNumber: acc.accountNumber || acc.id.slice(-8),
+          accountName: acc.accountName || acc.name,
+          bank: acc.bankName || acc.bank || 'Banco',
+          bankName: acc.bankName,
+          type: (acc.accountType || acc.type || 'checking').toLowerCase(),
+          currency: acc.currency || 'MXN',
+          balance: acc.currentBalance || acc.balance || 0,
+          currentBalance: acc.currentBalance || acc.balance || 0,
+          availableBalance: acc.availableBalance || acc.currentBalance || acc.balance || 0,
+          lastReconciled: acc.lastReconciled,
+          status: (acc.status || 'active').toLowerCase(),
+          openingDate: acc.createdAt || new Date().toISOString(),
+          isPrimary: acc.isPrimary
+        }))
+        setBankAccounts(mappedAccounts)
+      }
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error)
+      setMessage({ type: 'error', text: 'Error al cargar cuentas bancarias' })
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (activeCompany) {
+      fetchBankAccounts()
+    }
+  }, [activeCompany, fetchBankAccounts])
+
+  // Create new bank account
+  const handleCreateAccount = async () => {
+    if (!activeCompany || !newAccount.accountName || !newAccount.bankName) {
+      setMessage({ type: 'error', text: 'Complete todos los campos requeridos' })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await fetch('/api/banking/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newAccount,
+          companyId: activeCompany.id
+        })
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Cuenta bancaria creada exitosamente' })
+        setShowNewAccountModal(false)
+        setNewAccount({
+          accountName: '',
+          bankName: '',
+          accountNumber: '',
+          accountType: 'CHECKING',
+          currency: 'MXN',
+          currentBalance: 0,
+          routing: '',
+          swift: '',
+          isPrimary: false
+        })
+        fetchBankAccounts()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al crear cuenta' })
+      }
+    } catch (error) {
+      console.error('Error creating account:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Delete bank account
+  const handleDeleteAccount = async (accountId: string) => {
+    if (!confirm('¿Está seguro de eliminar esta cuenta bancaria?')) return
+
+    try {
+      const response = await fetch(`/api/banking/accounts?id=${accountId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Cuenta eliminada exitosamente' })
+        fetchBankAccounts()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al eliminar cuenta' })
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
+    }
+  }
 
   const getAccountTypeBadge = (type: string) => {
-    switch (type) {
+    const typeLower = type.toLowerCase()
+    switch (typeLower) {
       case 'checking':
         return <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
           <Wallet className="w-3 h-3" /> Cuenta Corriente
@@ -221,7 +216,8 @@ export default function BankAccountsPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    const statusLower = status.toLowerCase()
+    switch (statusLower) {
       case 'active':
         return <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3" /> Activa
@@ -240,8 +236,10 @@ export default function BankAccountsPage() {
   }
 
   const filteredAccounts = bankAccounts.filter(acc => {
-    if (filterType !== 'all' && acc.type !== filterType) return false
-    if (filterStatus !== 'all' && acc.status !== filterStatus) return false
+    const accType = acc.type.toLowerCase()
+    const accStatus = acc.status.toLowerCase()
+    if (filterType !== 'all' && accType !== filterType) return false
+    if (filterStatus !== 'all' && accStatus !== filterStatus) return false
     if (searchTerm && !acc.accountName.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !acc.bank.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !acc.accountNumber.toLowerCase().includes(searchTerm.toLowerCase())) return false
@@ -249,16 +247,16 @@ export default function BankAccountsPage() {
   })
 
   const totalBalance = bankAccounts
-    .filter(acc => acc.status === 'active')
+    .filter(acc => acc.status.toLowerCase() === 'active')
     .reduce((sum, acc) => {
       if (acc.currency === 'MXN') return sum + acc.balance
-      if (acc.currency === 'USD') return sum + (acc.balance * 17.5) // Exchange rate approximation
+      if (acc.currency === 'USD') return sum + (acc.balance * 17.5)
       return sum
     }, 0)
 
-  const totalAccounts = bankAccounts.filter(acc => acc.status === 'active').length
+  const totalAccounts = bankAccounts.filter(acc => acc.status.toLowerCase() === 'active').length
   const totalAvailable = bankAccounts
-    .filter(acc => acc.status === 'active')
+    .filter(acc => acc.status.toLowerCase() === 'active')
     .reduce((sum, acc) => {
       if (acc.currency === 'MXN') return sum + acc.availableBalance
       if (acc.currency === 'USD') return sum + (acc.availableBalance * 17.5)
@@ -266,7 +264,7 @@ export default function BankAccountsPage() {
     }, 0)
 
   const creditUsed = bankAccounts
-    .filter(acc => acc.type === 'credit' && acc.status === 'active')
+    .filter(acc => acc.type.toLowerCase() === 'credit' && acc.status.toLowerCase() === 'active')
     .reduce((sum, acc) => sum + Math.abs(acc.balance), 0)
 
   if (status === 'loading' || loading) {
@@ -291,13 +289,25 @@ export default function BankAccountsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => fetchBankAccounts()}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Actualizar
+            </Button>
+            <Button variant="outline" onClick={() => {
+              const csv = 'Cuenta,Banco,Tipo,Moneda,Saldo,Estado\n' +
+                filteredAccounts.map(a => 
+                  `"${a.accountName}","${a.bank}",${a.type},${a.currency},${a.balance},${a.status}`
+                ).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const link = document.createElement('a')
+              link.href = url
+              link.download = `cuentas-bancarias-${new Date().toISOString().split('T')[0]}.csv`
+              link.click()
+              setMessage({ type: 'success', text: 'Archivo exportado exitosamente' })
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
-            </Button>
-            <Button variant="outline" onClick={() => setShowBankModal(true)}>
-              <LinkIcon className="w-4 h-4 mr-2" />
-              Conectar Banco
             </Button>
             <Button onClick={() => setShowNewAccountModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -305,6 +315,28 @@ export default function BankAccountsPage() {
             </Button>
           </div>
         </div>
+
+        {/* Messages */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            {message.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              <AlertCircle className="w-5 h-5" />
+            )}
+            {message.text}
+            <button 
+              onClick={() => setMessage(null)} 
+              className="ml-auto text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -626,11 +658,13 @@ export default function BankAccountsPage() {
                       })
                       window.location.reload()
                     } else {
-                      alert('Error al crear la cuenta')
+                      setMessage({ type: 'error', text: 'Error al crear la cuenta' })
+                      setTimeout(() => setMessage(null), 3000)
                     }
                   } catch (error) {
                     console.error('Error:', error)
-                    alert('Error al crear la cuenta')
+                    setMessage({ type: 'error', text: 'Error al crear la cuenta' })
+                    setTimeout(() => setMessage(null), 3000)
                   } finally {
                     setSaving(false)
                   }

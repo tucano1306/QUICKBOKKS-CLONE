@@ -25,6 +25,8 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   CheckCircle2,
+  CheckCircle,
+  AlertCircle,
   XCircle,
   Clock,
   DollarSign,
@@ -98,6 +100,7 @@ export default function BankingManagementPage() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   
   // Form states
   const [accountForm, setAccountForm] = useState({
@@ -228,7 +231,8 @@ export default function BankingManagementPage() {
 
   const saveAccount = async () => {
     if (!accountForm.accountName || !accountForm.bankName) {
-      alert('Nombre de cuenta y banco son requeridos')
+      setMessage({ type: 'error', text: 'Nombre de cuenta y banco son requeridos' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -245,16 +249,19 @@ export default function BankingManagementPage() {
       })
 
       if (response.ok) {
-        alert(editingAccount ? 'Cuenta actualizada exitosamente' : 'Cuenta creada exitosamente')
+        setMessage({ type: 'success', text: editingAccount ? 'Cuenta actualizada' : 'Cuenta creada exitosamente' })
+        setTimeout(() => setMessage(null), 3000)
         setShowAccountModal(false)
         loadAccounts()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al guardar cuenta')
+        setMessage({ type: 'error', text: error.error || 'Error al guardar cuenta' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error saving account:', error)
-      alert('Error al guardar cuenta')
+      setMessage({ type: 'error', text: 'Error al guardar cuenta' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setProcessing(false)
     }
@@ -271,15 +278,18 @@ export default function BankingManagementPage() {
       })
 
       if (response.ok) {
-        alert('Cuenta eliminada exitosamente')
+        setMessage({ type: 'success', text: 'Cuenta eliminada exitosamente' })
+        setTimeout(() => setMessage(null), 3000)
         loadAccounts()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al eliminar cuenta')
+        setMessage({ type: 'error', text: error.error || 'Error al eliminar cuenta' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error deleting account:', error)
-      alert('Error al eliminar cuenta')
+      setMessage({ type: 'error', text: 'Error al eliminar cuenta' })
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -302,7 +312,8 @@ export default function BankingManagementPage() {
 
   const saveTransaction = async () => {
     if (!transactionForm.bankAccountId || !transactionForm.name || !transactionForm.amount) {
-      alert('Cuenta, nombre y monto son requeridos')
+      setMessage({ type: 'error', text: 'Cuenta, nombre y monto son requeridos' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -316,16 +327,19 @@ export default function BankingManagementPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(`Transacción registrada. Nuevo balance: $${data.newBalance?.toFixed(2)}`)
+        setMessage({ type: 'success', text: `Transacción registrada. Balance: $${data.newBalance?.toFixed(2)}` })
+        setTimeout(() => setMessage(null), 3000)
         setShowTransactionModal(false)
         loadData()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al guardar transacción')
+        setMessage({ type: 'error', text: error.error || 'Error al guardar transacción' })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error saving transaction:', error)
-      alert('Error al guardar transacción')
+      setMessage({ type: 'error', text: 'Error al guardar transacción' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setProcessing(false)
     }
@@ -345,12 +359,14 @@ export default function BankingManagementPage() {
 
   const executeTransfer = async () => {
     if (!transferForm.fromAccountId || !transferForm.toAccountId || !transferForm.amount) {
-      alert('Seleccione cuentas y monto')
+      setMessage({ type: 'error', text: 'Seleccione cuentas y monto' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     if (transferForm.fromAccountId === transferForm.toAccountId) {
-      alert('Las cuentas de origen y destino deben ser diferentes')
+      setMessage({ type: 'error', text: 'Las cuentas de origen y destino deben ser diferentes' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -386,12 +402,14 @@ export default function BankingManagementPage() {
         })
       })
 
-      alert('Transferencia realizada exitosamente')
+      setMessage({ type: 'success', text: 'Transferencia realizada exitosamente' })
+      setTimeout(() => setMessage(null), 3000)
       setShowTransferModal(false)
       loadData()
     } catch (error) {
       console.error('Error executing transfer:', error)
-      alert('Error al realizar transferencia')
+      setMessage({ type: 'error', text: 'Error al realizar transferencia' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setProcessing(false)
     }
@@ -485,6 +503,18 @@ export default function BankingManagementPage() {
             </Button>
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`p-3 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+            'bg-blue-50 text-blue-800 border border-blue-200'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

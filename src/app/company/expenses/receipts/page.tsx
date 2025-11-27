@@ -16,7 +16,8 @@ import {
   Clock,
   Trash2,
   Eye,
-  Download
+  Download,
+  AlertCircle
 } from 'lucide-react'
 
 interface Receipt {
@@ -37,6 +38,7 @@ export default function ReceiptsPage() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
 
@@ -98,13 +100,15 @@ export default function ReceiptsPage() {
     // Validar tipo de archivo
     const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
     if (!validTypes.includes(file.type)) {
-      alert('Por favor sube una imagen (JPG, PNG) o PDF')
+      setMessage({ type: 'error', text: 'Por favor sube una imagen (JPG, PNG) o PDF' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
     // Validar tamaño (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('El archivo no debe exceder 10MB')
+      setMessage({ type: 'error', text: 'El archivo no debe exceder 10MB' })
+      setTimeout(() => setMessage(null), 3000)
       return
     }
 
@@ -192,10 +196,12 @@ export default function ReceiptsPage() {
         )
       }, 3000)
 
-      alert('¡Recibo subido exitosamente! Se está procesando con OCR...')
+      setMessage({ type: 'success', text: '¡Recibo subido exitosamente! Se está procesando con OCR...' })
+      setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       console.error('Error uploading receipt:', error)
-      alert('Error al subir el recibo')
+      setMessage({ type: 'error', text: 'Error al subir el recibo' })
+      setTimeout(() => setMessage(null), 3000)
     } finally {
       setUploading(false)
     }
@@ -247,6 +253,20 @@ export default function ReceiptsPage() {
   return (
     <CompanyTabsLayout>
       <div className="space-y-6">
+        {/* Message Feedback */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' 
+              ? 'bg-green-50 text-green-800 border border-green-200' 
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message.type === 'success' 
+              ? <CheckCircle className="h-5 w-5" /> 
+              : <AlertCircle className="h-5 w-5" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Captura de Recibos</h1>
