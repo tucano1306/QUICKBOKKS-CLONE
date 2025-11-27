@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -24,7 +24,10 @@ import {
   Wrench,
   FileText,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  RefreshCw,
+  Info,
+  Loader2
 } from 'lucide-react'
 
 interface BudgetCategory {
@@ -41,11 +44,12 @@ interface BudgetCategory {
   notes: string
 }
 
-interface Department {
+interface CostCenter {
   id: string
+  code: string
   name: string
-  manager: string
-  totalBudget: number
+  description?: string
+  isActive: boolean
 }
 
 export default function BudgetCreatePage() {
@@ -53,10 +57,27 @@ export default function BudgetCreatePage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [costCenters, setCostCenters] = useState<CostCenter[]>([])
   const [budgetYear, setBudgetYear] = useState('2026')
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   const [budgetName, setBudgetName] = useState('Presupuesto Anual 2026')
   const [selectedDepartment, setSelectedDepartment] = useState('all')
+
+  // Fetch cost centers from API
+  const fetchCostCenters = useCallback(async () => {
+    if (!activeCompany) return
+    
+    try {
+      const response = await fetch(`/api/accounting/cost-centers?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setCostCenters(data.costCenters || data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching cost centers:', error)
+    }
+  }, [activeCompany])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -65,20 +86,14 @@ export default function BudgetCreatePage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    if (status === 'authenticated' && activeCompany) {
+      setLoading(true)
+      fetchCostCenters().finally(() => setLoading(false))
+    }
+  }, [status, activeCompany, fetchCostCenters])
 
-  const departments: Department[] = [
-    { id: 'DEPT-001', name: 'Ventas', manager: 'Carlos Ramírez', totalBudget: 3500000 },
-    { id: 'DEPT-002', name: 'Marketing', manager: 'Ana Martínez', totalBudget: 2800000 },
-    { id: 'DEPT-003', name: 'Operaciones', manager: 'Roberto Silva', totalBudget: 4200000 },
-    { id: 'DEPT-004', name: 'Tecnología', manager: 'Laura Hernández', totalBudget: 3800000 },
-    { id: 'DEPT-005', name: 'Recursos Humanos', manager: 'Patricia Morales', totalBudget: 2500000 },
-    { id: 'DEPT-006', name: 'Administración', manager: 'Diego Torres', totalBudget: 1800000 }
-  ]
-
-  const budgetCategories: BudgetCategory[] = [
+  // Budget category templates - these are preset configurations the user can customize
+  const budgetCategoryTemplates: BudgetCategory[] = [
     // Revenue Categories
     {
       id: 'REV-001',
@@ -323,26 +338,26 @@ export default function BudgetCreatePage() {
   ]
 
   const filteredCategories = selectedDepartment === 'all' 
-    ? budgetCategories 
-    : budgetCategories.filter(cat => cat.department === selectedDepartment)
+    ? budgetCategoryTemplates 
+    : budgetCategoryTemplates.filter(cat => cat.department === selectedDepartment)
 
-  const totalRevenue = budgetCategories.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.annualBudget, 0)
-  const totalExpenses = budgetCategories.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.annualBudget, 0)
+  const totalRevenue = budgetCategoryTemplates.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.annualBudget, 0)
+  const totalExpenses = budgetCategoryTemplates.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.annualBudget, 0)
   const netProfit = totalRevenue - totalExpenses
-  const profitMargin = (netProfit / totalRevenue) * 100
+  const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
 
   const revenueByQuarter = {
-    q1: budgetCategories.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.q1Budget, 0),
-    q2: budgetCategories.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.q2Budget, 0),
-    q3: budgetCategories.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.q3Budget, 0),
-    q4: budgetCategories.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.q4Budget, 0)
+    q1: budgetCategoryTemplates.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.q1Budget, 0),
+    q2: budgetCategoryTemplates.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.q2Budget, 0),
+    q3: budgetCategoryTemplates.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.q3Budget, 0),
+    q4: budgetCategoryTemplates.filter(c => c.type === 'revenue').reduce((sum, c) => sum + c.q4Budget, 0)
   }
 
   const expensesByQuarter = {
-    q1: budgetCategories.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.q1Budget, 0),
-    q2: budgetCategories.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.q2Budget, 0),
-    q3: budgetCategories.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.q3Budget, 0),
-    q4: budgetCategories.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.q4Budget, 0)
+    q1: budgetCategoryTemplates.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.q1Budget, 0),
+    q2: budgetCategoryTemplates.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.q2Budget, 0),
+    q3: budgetCategoryTemplates.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.q3Budget, 0),
+    q4: budgetCategoryTemplates.filter(c => c.type === 'expense').reduce((sum, c) => sum + c.q4Budget, 0)
   }
 
   if (status === 'loading' || loading) {
@@ -427,9 +442,9 @@ export default function BudgetCreatePage() {
                   value={selectedDepartment}
                   onChange={(e) => setSelectedDepartment(e.target.value)}
                 >
-                  <option value="all">Todos los Departamentos</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.name}>{dept.name}</option>
+                  <option value="all">Todos los Centros de Costo</option>
+                  {costCenters.map(cc => (
+                    <option key={cc.id} value={cc.name}>{cc.name}</option>
                   ))}
                 </select>
               </div>
@@ -687,47 +702,53 @@ export default function BudgetCreatePage() {
         {/* Department Budget Summary */}
         <Card>
           <CardHeader>
-            <CardTitle>Presupuesto por Departamento</CardTitle>
+            <CardTitle>Presupuesto por Centro de Costo</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {departments.map(dept => {
-                const deptExpenses = budgetCategories
-                  .filter(c => c.department === dept.name && c.type === 'expense')
+              {costCenters.length === 0 ? (
+                <div className="col-span-3 text-center py-6 text-gray-500">
+                  <Info className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p>No hay centros de costo configurados.</p>
+                  <p className="text-sm">Agregue centros de costo en Contabilidad &gt; Centros de Costo</p>
+                </div>
+              ) : costCenters.map(cc => {
+                const ccExpenses = budgetCategoryTemplates
+                  .filter(c => c.department === cc.name && c.type === 'expense')
                   .reduce((sum, c) => sum + c.annualBudget, 0)
-                const deptRevenue = budgetCategories
-                  .filter(c => c.department === dept.name && c.type === 'revenue')
+                const ccRevenue = budgetCategoryTemplates
+                  .filter(c => c.department === cc.name && c.type === 'revenue')
                   .reduce((sum, c) => sum + c.annualBudget, 0)
                 
                 return (
-                  <div key={dept.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div key={cc.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-2 mb-3">
                       <Building className="w-5 h-5 text-blue-600" />
                       <div>
-                        <div className="font-semibold text-gray-900">{dept.name}</div>
-                        <div className="text-xs text-gray-500">{dept.manager}</div>
+                        <div className="font-semibold text-gray-900">{cc.name}</div>
+                        <div className="text-xs text-gray-500">{cc.code}</div>
                       </div>
                     </div>
-                    {deptRevenue > 0 && (
+                    {ccRevenue > 0 && (
                       <div className="mb-2">
                         <div className="text-xs text-gray-500">Ingresos</div>
                         <div className="text-sm font-bold text-green-600">
-                          ${(deptRevenue / 1000).toLocaleString('es-MX')}K
+                          ${(ccRevenue / 1000).toLocaleString('es-MX')}K
                         </div>
                       </div>
                     )}
-                    {deptExpenses > 0 && (
+                    {ccExpenses > 0 && (
                       <div className="mb-2">
                         <div className="text-xs text-gray-500">Gastos</div>
                         <div className="text-sm font-bold text-red-600">
-                          ${(deptExpenses / 1000).toLocaleString('es-MX')}K
+                          ${(ccExpenses / 1000).toLocaleString('es-MX')}K
                         </div>
                       </div>
                     )}
                     <div className="border-t pt-2 mt-2">
-                      <div className="text-xs text-gray-500">Total Presupuesto</div>
-                      <div className="text-lg font-bold text-blue-600">
-                        ${(dept.totalBudget / 1000).toLocaleString('es-MX')}K
+                      <div className="text-xs text-gray-500">Balance Neto</div>
+                      <div className={`text-lg font-bold ${ccRevenue - ccExpenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${((ccRevenue - ccExpenses) / 1000).toLocaleString('es-MX')}K
                       </div>
                     </div>
                   </div>
