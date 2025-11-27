@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import { useCompany } from '@/contexts/CompanyContext'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,6 +50,7 @@ interface ReconciliationMatch {
 
 export default function ReconcilePage() {
   const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
   const [unpaidInvoices, setUnpaidInvoices] = useState<UnpaidInvoice[]>([])
   const [unmatchedPayments, setUnmatchedPayments] = useState<UnmatchedPayment[]>([])
   const [selectedInvoice, setSelectedInvoice] = useState<UnpaidInvoice | null>(null)
@@ -64,81 +66,63 @@ export default function ReconcilePage() {
     }
   }, [status])
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      loadData()
-    }
-  }, [status])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    if (!activeCompany) return
+    
+    setIsLoading(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Fetch unpaid/overdue invoices
+      const invoicesRes = await fetch(`/api/invoices?companyId=${activeCompany.id}&status=PENDING,OVERDUE`)
+      const invoicesData = await invoicesRes.json()
+      
+      // Fetch bank transactions that might be unmatched payments
+      const transactionsRes = await fetch(`/api/banking/transactions?companyId=${activeCompany.id}&type=DEPOSIT&unmatched=true`)
+      const transactionsData = await transactionsRes.json()
 
-      const mockInvoices: UnpaidInvoice[] = [
-        {
-          id: 'inv-1',
-          invoiceNumber: 'INV-2024-010',
-          customerName: 'Acme Corp',
-          amount: 15000,
-          dueDate: '2024-01-10',
-          daysOverdue: 15
-        },
-        {
-          id: 'inv-2',
-          invoiceNumber: 'INV-2024-015',
-          customerName: 'Tech Solutions',
-          amount: 28500,
-          dueDate: '2024-01-15',
-          daysOverdue: 10
-        },
-        {
-          id: 'inv-3',
-          invoiceNumber: 'INV-2024-018',
-          customerName: 'Global Services',
-          amount: 12000,
-          dueDate: '2024-01-20',
-          daysOverdue: 5
+      // Transform invoices
+      const invoices: UnpaidInvoice[] = (invoicesData.data || []).map((inv: any) => {
+        const dueDate = new Date(inv.dueDate)
+        const today = new Date()
+        const daysOverdue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)))
+        
+        return {
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          customerName: inv.customer?.name || 'Cliente desconocido',
+          amount: inv.total - (inv.payments?.reduce((s: number, p: any) => s + p.amount, 0) || 0),
+          dueDate: inv.dueDate,
+          daysOverdue
         }
-      ]
+      }).filter((inv: UnpaidInvoice) => inv.amount > 0)
 
-      const mockPayments: UnmatchedPayment[] = [
-        {
-          id: 'pay-1',
-          reference: 'TRF-123456',
-          amount: 15000,
-          paymentDate: '2024-01-25',
-          paymentMethod: 'TRANSFER',
-          notes: 'Pago de factura enero'
-        },
-        {
-          id: 'pay-2',
-          reference: 'CASH-001',
-          amount: 12000,
-          paymentDate: '2024-01-26',
-          paymentMethod: 'CASH'
-        },
-        {
-          id: 'pay-3',
-          reference: 'TRF-789012',
-          amount: 28500,
-          paymentDate: '2024-01-27',
-          paymentMethod: 'TRANSFER',
-          notes: 'Servicios consultoria'
-        }
-      ]
+      // Transform transactions to payments
+      const payments: UnmatchedPayment[] = (transactionsData.transactions || []).map((txn: any) => ({
+        id: txn.id,
+        reference: txn.reference || txn.description,
+        amount: Math.abs(txn.amount),
+        paymentDate: txn.date,
+        paymentMethod: txn.type === 'DEPOSIT' ? 'TRANSFER' : 'OTHER',
+        notes: txn.description
+      }))
 
-      setUnpaidInvoices(mockInvoices)
-      setUnmatchedPayments(mockPayments)
+      setUnpaidInvoices(invoices)
+      setUnmatchedPayments(payments)
 
       // Auto-match by amount
       const matches: ReconciliationMatch[] = []
-      mockInvoices.forEach(inv => {
-        mockPayments.forEach(pay => {
+      invoices.forEach((inv: UnpaidInvoice) => {
+        payments.forEach((pay: UnmatchedPayment) => {
           if (Math.abs(inv.amount - pay.amount) < 0.01) {
             matches.push({
               invoiceId: inv.id,
               paymentId: pay.id,
               matchScore: 100
+            })
+          } else if (Math.abs(inv.amount - pay.amount) < inv.amount * 0.05) {
+            matches.push({
+              invoiceId: inv.id,
+              paymentId: pay.id,
+              matchScore: 80
             })
           }
         })
@@ -146,11 +130,18 @@ export default function ReconcilePage() {
       setAutoMatches(matches)
 
     } catch (error) {
+      console.error('Error loading data:', error)
       toast.error('Error al cargar datos')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadData()
+    }
+  }, [status, activeCompany, loadData])
 
   const handleManualMatch = () => {
     if (!selectedInvoice || !selectedPayment) {

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,6 +39,7 @@ interface CorporateCard {
 export default function CorporateCardsPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
   const [cards, setCards] = useState<CorporateCard[]>([])
   const [loading, setLoading] = useState(true)
   const [syncingCard, setSyncingCard] = useState<string | null>(null)
@@ -57,52 +59,6 @@ export default function CorporateCardsPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      loadCards()
-    }
-  }, [status])
-
-  const loadCards = async () => {
-    setLoading(true)
-    try {
-      // Simulación - en producción vendría de la base de datos
-      const mockCards: CorporateCard[] = [
-        {
-          id: '1',
-          cardNumber: '**** **** **** 1234',
-          cardHolder: 'Juan Pérez',
-          employeeId: 'emp1',
-          bankName: 'BBVA',
-          cardType: 'CREDIT',
-          limit: 50000,
-          balance: 35000,
-          status: 'ACTIVE',
-          lastSync: new Date().toISOString()
-        },
-        {
-          id: '2',
-          cardNumber: '**** **** **** 5678',
-          cardHolder: 'María García',
-          employeeId: 'emp2',
-          bankName: 'Santander',
-          cardType: 'CREDIT',
-          limit: 30000,
-          balance: 28000,
-          status: 'ACTIVE',
-          lastSync: new Date(Date.now() - 86400000).toISOString()
-        }
-      ]
-      setCards(Array.isArray(mockCards) ? mockCards : [])
-      calculateStats(Array.isArray(mockCards) ? mockCards : [])
-    } catch (error) {
-      console.error('Error loading cards:', error)
-      setCards([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const calculateStats = (data: CorporateCard[]) => {
     const totalSpent = data.reduce((sum, c) => sum + (c.limit - c.balance), 0)
     const availableCredit = data.reduce((sum, c) => sum + c.balance, 0)
@@ -115,19 +71,55 @@ export default function CorporateCardsPage() {
     })
   }
 
+  const loadCards = useCallback(async () => {
+    if (!activeCompany) return
+    
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/expenses/corporate-cards?companyId=${activeCompany.id}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar tarjetas')
+      }
+
+      const data = await response.json()
+      const cardsData = data.cards || []
+      setCards(cardsData)
+      
+      if (data.stats) {
+        setStats(data.stats)
+      } else {
+        calculateStats(cardsData)
+      }
+    } catch (error) {
+      console.error('Error loading cards:', error)
+      setCards([])
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadCards()
+    }
+  }, [status, activeCompany, loadCards])
+
   const handleSync = async (cardId: string) => {
     setSyncingCard(cardId)
     try {
-      // Simulación de sincronización
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const response = await fetch('/api/expenses/corporate-cards', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: cardId, sync: true })
+      })
       
-      setCards(cards.map(c =>
-        c.id === cardId
-          ? { ...c, lastSync: new Date().toISOString() }
-          : c
-      ))
-      
-      setMessage({ type: 'success', text: 'Transacciones sincronizadas exitosamente' })
+      if (response.ok) {
+        setCards(cards.map(c => c.id === cardId ? { ...c, lastSync: new Date().toISOString() } : c))
+        setMessage({ type: 'success', text: 'Transacciones sincronizadas exitosamente' })
+      } else {
+        throw new Error('Error en la respuesta')
+      }
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       console.error('Error syncing card:', error)

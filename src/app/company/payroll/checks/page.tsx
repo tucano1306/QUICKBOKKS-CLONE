@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -29,7 +29,8 @@ import {
   Edit,
   X,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react'
 
 interface PayrollCheck {
@@ -48,6 +49,11 @@ interface PayrollCheck {
   memo?: string
 }
 
+interface Employee {
+  id: string
+  name: string
+}
+
 export default function PayrollChecksPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -62,15 +68,8 @@ export default function PayrollChecksPage() {
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [checkAmount, setCheckAmount] = useState('')
   const [checkMemo, setCheckMemo] = useState('')
-  const [employees, setEmployees] = useState<{id: string, name: string}[]>([
-    { id: 'EMP-001', name: 'Sarah Johnson' },
-    { id: 'EMP-002', name: 'Michael Chen' },
-    { id: 'EMP-003', name: 'Emily Rodriguez' },
-    { id: 'EMP-004', name: 'David Kim' },
-    { id: 'EMP-005', name: 'Jessica Martinez' },
-    { id: 'EMP-006', name: 'Robert Taylor' },
-    { id: 'EMP-007', name: 'Amanda White' }
-  ])
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [checks, setChecks] = useState<PayrollCheck[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -78,116 +77,61 @@ export default function PayrollChecksPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    try {
+      // Load employees
+      const empResponse = await fetch(`/api/employees?companyId=${activeCompany.id}`)
+      if (empResponse.ok) {
+        const empData = await empResponse.json()
+        const empList = (empData.employees || empData || []).map((e: any) => ({
+          id: e.id,
+          name: `${e.firstName || ''} ${e.lastName || ''}`.trim() || e.name || 'Sin nombre'
+        }))
+        setEmployees(empList)
+      }
 
-  const checks: PayrollCheck[] = [
-    {
-      id: 'CHK-001',
-      checkNumber: '10001',
-      employeeName: 'Sarah Johnson',
-      employeeId: 'EMP-001',
-      periodStart: '2025-11-01',
-      periodEnd: '2025-11-15',
-      checkDate: '2025-11-16',
-      grossPay: 3200,
-      deductions: 640,
-      netPay: 2560,
-      paymentMethod: 'Check',
-      status: 'cleared',
-      memo: 'Regular payroll - Bi-weekly'
-    },
-    {
-      id: 'CHK-002',
-      checkNumber: '10002',
-      employeeName: 'Michael Chen',
-      employeeId: 'EMP-002',
-      periodStart: '2025-11-01',
-      periodEnd: '2025-11-15',
-      checkDate: '2025-11-16',
-      grossPay: 2800,
-      deductions: 560,
-      netPay: 2240,
-      paymentMethod: 'Check',
-      status: 'cleared'
-    },
-    {
-      id: 'CHK-003',
-      checkNumber: '10003',
-      employeeName: 'Emily Rodriguez',
-      employeeId: 'EMP-003',
-      periodStart: '2025-11-01',
-      periodEnd: '2025-11-15',
-      checkDate: '2025-11-16',
-      grossPay: 2400,
-      deductions: 480,
-      netPay: 1920,
-      paymentMethod: 'Check',
-      status: 'issued',
-      memo: 'Pending bank clearance'
-    },
-    {
-      id: 'CHK-004',
-      checkNumber: '10004',
-      employeeName: 'David Kim',
-      employeeId: 'EMP-004',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      checkDate: '2025-12-01',
-      grossPay: 3500,
-      deductions: 700,
-      netPay: 2800,
-      paymentMethod: 'Check',
-      status: 'pending',
-      memo: 'Ready to print'
-    },
-    {
-      id: 'CHK-005',
-      checkNumber: '10005',
-      employeeName: 'Jessica Martinez',
-      employeeId: 'EMP-005',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      checkDate: '2025-12-01',
-      grossPay: 2600,
-      deductions: 520,
-      netPay: 2080,
-      paymentMethod: 'Direct Deposit',
-      status: 'issued',
-      memo: 'ACH transfer initiated'
-    },
-    {
-      id: 'CHK-006',
-      checkNumber: '10006',
-      employeeName: 'Robert Taylor',
-      employeeId: 'EMP-006',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      checkDate: '2025-12-01',
-      grossPay: 4200,
-      deductions: 840,
-      netPay: 3360,
-      paymentMethod: 'Check',
-      status: 'pending'
-    },
-    {
-      id: 'CHK-007',
-      checkNumber: '10007',
-      employeeName: 'Amanda White',
-      employeeId: 'EMP-007',
-      periodStart: '2025-10-16',
-      periodEnd: '2025-10-31',
-      checkDate: '2025-11-01',
-      grossPay: 2200,
-      deductions: 440,
-      netPay: 1760,
-      paymentMethod: 'Check',
-      status: 'voided',
-      memo: 'Incorrect amount - voided and reissued'
+      // Load checks
+      const checksResponse = await fetch(`/api/payroll/checks?companyId=${activeCompany.id}`)
+      if (checksResponse.ok) {
+        const checksData = await checksResponse.json()
+        const checksList = (checksData.checks || []).map((c: any) => ({
+          id: c.id,
+          checkNumber: c.checkNumber || '',
+          employeeName: c.employee ? `${c.employee.firstName} ${c.employee.lastName}` : 'Empleado',
+          employeeId: c.employeeId,
+          periodStart: c.payroll?.periodStart || c.periodStart || '',
+          periodEnd: c.payroll?.periodEnd || c.periodEnd || '',
+          checkDate: c.checkDate,
+          grossPay: c.grossAmount || c.amount || 0,
+          deductions: c.deductions || 0,
+          netPay: c.netAmount || c.amount || 0,
+          paymentMethod: c.paymentMethod || 'Check',
+          status: (c.status || 'pending').toLowerCase(),
+          memo: c.memo
+        }))
+        setChecks(checksList)
+        
+        // Set next check number
+        if (checksList.length > 0) {
+          const maxNum = Math.max(...checksList.map((c: PayrollCheck) => parseInt(c.checkNumber) || 0))
+          setNextCheckNumber(String(maxNum + 1))
+        }
+      }
+    } catch (error) {
+      console.error('Error loading data:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadData()
+    }
+  }, [status, activeCompany, loadData])
 
   const filteredChecks = checks.filter(check => {
     const matchesSearch = 

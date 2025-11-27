@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import { useCompany } from '@/contexts/CompanyContext'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +22,8 @@ import {
   CheckCircle,
   Clock,
   Filter,
-  ArrowUpDown
+  ArrowUpDown,
+  RefreshCw
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -40,6 +42,7 @@ interface Payment {
 
 export default function PaymentsPage() {
   const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
   const [payments, setPayments] = useState<Payment[]>([])
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -55,81 +58,45 @@ export default function PaymentsPage() {
     }
   }, [status])
 
+  const loadPayments = useCallback(async () => {
+    if (!activeCompany) return
+    
+    setIsLoading(true)
+    try {
+      const params = new URLSearchParams({
+        companyId: activeCompany.id
+      })
+      
+      if (methodFilter !== 'ALL') params.append('method', methodFilter)
+      if (dateFrom) params.append('dateFrom', dateFrom)
+      if (dateTo) params.append('dateTo', dateTo)
+
+      const response = await fetch(`/api/invoices/payments?${params}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar pagos')
+      }
+
+      const data = await response.json()
+      setPayments(data.payments || [])
+    } catch (error) {
+      console.error('Error loading payments:', error)
+      toast.error('Error al cargar pagos')
+      setPayments([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [activeCompany, methodFilter, dateFrom, dateTo])
+
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && activeCompany) {
       loadPayments()
     }
-  }, [status])
+  }, [status, activeCompany, loadPayments])
 
   useEffect(() => {
     filterPayments()
   }, [searchTerm, methodFilter, statusFilter, dateFrom, dateTo, payments])
-
-  const loadPayments = async () => {
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      const mockPayments: Payment[] = [
-        {
-          id: '1',
-          invoiceNumber: 'INV-2024-001',
-          customerName: 'Acme Corp',
-          amount: 15000,
-          paymentDate: '2024-01-15',
-          paymentMethod: 'TRANSFER',
-          reference: 'TRF-001234',
-          status: 'COMPLETED'
-        },
-        {
-          id: '2',
-          invoiceNumber: 'INV-2024-002',
-          customerName: 'Tech Solutions SA',
-          amount: 28500,
-          paymentDate: '2024-01-18',
-          paymentMethod: 'CARD',
-          reference: 'CARD-5678',
-          status: 'COMPLETED'
-        },
-        {
-          id: '3',
-          invoiceNumber: 'INV-2024-003',
-          customerName: 'Global Services',
-          amount: 12000,
-          paymentDate: '2024-01-20',
-          paymentMethod: 'CASH',
-          reference: 'CASH-001',
-          status: 'COMPLETED'
-        },
-        {
-          id: '4',
-          invoiceNumber: 'INV-2024-004',
-          customerName: 'Innovation Labs',
-          amount: 35000,
-          paymentDate: '2024-01-22',
-          paymentMethod: 'CHECK',
-          reference: 'CHK-7890',
-          status: 'PENDING'
-        },
-        {
-          id: '5',
-          invoiceNumber: 'INV-2024-005',
-          customerName: 'Digital Marketing Co',
-          amount: 8500,
-          paymentDate: '2024-01-25',
-          paymentMethod: 'TRANSFER',
-          reference: 'TRF-002345',
-          status: 'COMPLETED'
-        }
-      ]
-
-      setPayments(mockPayments)
-    } catch (error) {
-      toast.error('Error al cargar pagos')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const filterPayments = () => {
     let filtered = payments.filter(payment =>

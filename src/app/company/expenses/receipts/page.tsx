@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,8 @@ import {
   Trash2,
   Eye,
   Download,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react'
 
 interface Receipt {
@@ -34,6 +36,7 @@ interface Receipt {
 export default function ReceiptsPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -48,46 +51,32 @@ export default function ReceiptsPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      loadReceipts()
-    }
-  }, [status])
-
-  const loadReceipts = async () => {
+  const loadReceipts = useCallback(async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
     try {
-      // Simulación - en producción esto vendría de la base de datos
-      const mockReceipts: Receipt[] = [
-        {
-          id: '1',
-          filename: 'recibo_office_depot_2024.jpg',
-          uploadDate: new Date().toISOString(),
-          processedDate: new Date().toISOString(),
-          status: 'processed',
-          amount: 1250.50,
-          vendor: 'Office Depot',
-          expenseId: null
-        },
-        {
-          id: '2',
-          filename: 'factura_gasolina.pdf',
-          uploadDate: new Date(Date.now() - 86400000).toISOString(),
-          processedDate: new Date(Date.now() - 86400000).toISOString(),
-          status: 'processed',
-          amount: 850.00,
-          vendor: 'Pemex',
-          expenseId: null
-        }
-      ]
-      setReceipts(Array.isArray(mockReceipts) ? mockReceipts : [])
+      const response = await fetch(`/api/expenses/receipts?companyId=${activeCompany.id}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar recibos')
+      }
+
+      const data = await response.json()
+      setReceipts(data.receipts || [])
     } catch (error) {
       console.error('Error loading receipts:', error)
       setReceipts([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadReceipts()
+    }
+  }, [status, activeCompany, loadReceipts])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -153,51 +142,30 @@ export default function ReceiptsPage() {
     try {
       const formData = new FormData()
       formData.append('file', selectedFile)
-
-      // En producción, esto enviaría a una API real con OCR
-      // const response = await fetch('/api/receipts/upload', {
-      //   method: 'POST',
-      //   body: formData
-      // })
-
-      // Simulación de éxito
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Simular procesamiento OCR
-      const newReceipt: Receipt = {
-        id: Date.now().toString(),
-        filename: selectedFile.name,
-        uploadDate: new Date().toISOString(),
-        processedDate: null,
-        status: 'pending',
-        amount: null,
-        vendor: null,
-        expenseId: null
+      if (activeCompany) {
+        formData.append('companyId', activeCompany.id)
       }
 
-      setReceipts([newReceipt, ...receipts])
+      const response = await fetch('/api/expenses/receipts', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al subir recibo')
+      }
+
+      const data = await response.json()
+      
+      setReceipts([data.receipt, ...receipts])
       setSelectedFile(null)
       setPreview(null)
 
-      // Simular procesamiento OCR después de 3 segundos
-      setTimeout(() => {
-        setReceipts(prev =>
-          prev.map(r =>
-            r.id === newReceipt.id
-              ? {
-                  ...r,
-                  status: 'processed',
-                  processedDate: new Date().toISOString(),
-                  amount: Math.random() * 1000 + 100,
-                  vendor: 'Proveedor Detectado'
-                }
-              : r
-          )
-        )
-      }, 3000)
-
-      setMessage({ type: 'success', text: '¡Recibo subido exitosamente! Se está procesando con OCR...' })
+      setMessage({ type: 'success', text: '¡Recibo subido exitosamente!' })
       setTimeout(() => setMessage(null), 3000)
+      
+      // Recargar para obtener estado actualizado
+      setTimeout(() => loadReceipts(), 2000)
     } catch (error) {
       console.error('Error uploading receipt:', error)
       setMessage({ type: 'error', text: 'Error al subir el recibo' })
@@ -209,7 +177,21 @@ export default function ReceiptsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar este recibo?')) return
-    setReceipts(receipts.filter(r => r.id !== id))
+    
+    try {
+      // El ID del recibo es compuesto (expenseId-index), extraemos el expenseId
+      const expenseId = id.split('-')[0]
+      
+      const response = await fetch(`/api/expenses/${expenseId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        setReceipts(receipts.filter(r => r.id !== id))
+      }
+    } catch (error) {
+      console.error('Error deleting receipt:', error)
+    }
   }
 
   const getStatusBadge = (status: string) => {
