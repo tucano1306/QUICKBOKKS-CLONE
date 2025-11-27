@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -26,7 +26,8 @@ import {
   AlertCircle,
   Info,
   Search,
-  Filter
+  Filter,
+  RefreshCw
 } from 'lucide-react'
 
 interface User {
@@ -62,6 +63,8 @@ export default function UsersSettingsPage() {
   const [selectedTab, setSelectedTab] = useState<'users' | 'roles'>('users')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRole, setSelectedRole] = useState<string>('All')
+  const [users, setUsers] = useState<User[]>([])
+  const [roles, setRoles] = useState<Role[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -69,196 +72,47 @@ export default function UsersSettingsPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 500)
-  }, [])
+    try {
+      const [usersRes, rolesRes] = await Promise.all([
+        fetch(`/api/settings/users?companyId=${activeCompany.id}`),
+        fetch(`/api/settings/roles?companyId=${activeCompany.id}`)
+      ])
 
-  const users: User[] = [
-    {
-      id: '1',
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@acmecorp.com',
-      role: 'Administrator',
-      department: 'Accounting',
-      status: 'Active',
-      lastLogin: '2025-11-25 09:30 AM',
-      joinedDate: '2023-01-15',
-      title: 'Controller',
-      phone: '+1 (305) 555-0101',
-      permissions: ['all']
-    },
-    {
-      id: '2',
-      name: 'Michael Chen',
-      email: 'michael.chen@acmecorp.com',
-      role: 'Accountant',
-      department: 'Accounting',
-      status: 'Active',
-      lastLogin: '2025-11-25 08:45 AM',
-      joinedDate: '2023-06-20',
-      title: 'Senior Accountant',
-      phone: '+1 (305) 555-0102',
-      permissions: ['banking', 'invoices', 'expenses', 'reports']
-    },
-    {
-      id: '3',
-      name: 'Emily Rodriguez',
-      email: 'emily.rodriguez@acmecorp.com',
-      role: 'Bookkeeper',
-      department: 'Accounting',
-      status: 'Active',
-      lastLogin: '2025-11-24 04:15 PM',
-      joinedDate: '2024-02-10',
-      title: 'Staff Accountant',
-      phone: '+1 (305) 555-0103',
-      permissions: ['invoices', 'expenses', 'banking-view']
-    },
-    {
-      id: '4',
-      name: 'David Kim',
-      email: 'david.kim@acmecorp.com',
-      role: 'Manager',
-      department: 'Operations',
-      status: 'Active',
-      lastLogin: '2025-11-25 07:20 AM',
-      joinedDate: '2023-09-01',
-      title: 'Operations Manager',
-      phone: '+1 (305) 555-0104',
-      permissions: ['expenses', 'reports-view', 'projects']
-    },
-    {
-      id: '5',
-      name: 'Jessica Martinez',
-      email: 'jessica.martinez@acmecorp.com',
-      role: 'Sales Representative',
-      department: 'Sales',
-      status: 'Active',
-      lastLogin: '2025-11-25 10:00 AM',
-      joinedDate: '2024-05-15',
-      title: 'Account Executive',
-      phone: '+1 (305) 555-0105',
-      permissions: ['customers', 'invoices', 'reports-view']
-    },
-    {
-      id: '6',
-      name: 'Robert Taylor',
-      email: 'robert.taylor@acmecorp.com',
-      role: 'Auditor',
-      department: 'Finance',
-      status: 'Active',
-      lastLogin: '2025-11-22 03:30 PM',
-      joinedDate: '2024-08-01',
-      title: 'Internal Auditor',
-      permissions: ['reports-view', 'banking-view', 'audit-logs']
-    },
-    {
-      id: '7',
-      name: 'Amanda White',
-      email: 'amanda.white@acmecorp.com',
-      role: 'Bookkeeper',
-      department: 'Accounting',
-      status: 'Pending',
-      lastLogin: 'Never',
-      joinedDate: '2025-11-20',
-      title: 'Junior Accountant',
-      phone: '+1 (305) 555-0107',
-      permissions: ['invoices', 'expenses']
-    },
-    {
-      id: '8',
-      name: 'James Wilson',
-      email: 'james.wilson@acmecorp.com',
-      role: 'Accountant',
-      department: 'Accounting',
-      status: 'Inactive',
-      lastLogin: '2025-10-15 02:45 PM',
-      joinedDate: '2022-11-10',
-      title: 'Senior Accountant',
-      permissions: []
-    }
-  ]
+      if (usersRes.ok) {
+        const usersData = await usersRes.json()
+        setUsers(usersData)
+      }
 
-  const roles: Role[] = [
-    {
-      id: '1',
-      name: 'Administrator',
-      description: 'Full access to all features and settings. Can manage users and configure system.',
-      userCount: 1,
-      permissions: [
-        { category: 'System', actions: ['View', 'Create', 'Edit', 'Delete', 'Configure'] },
-        { category: 'Users', actions: ['View', 'Create', 'Edit', 'Delete'] },
-        { category: 'Banking', actions: ['View', 'Create', 'Edit', 'Delete', 'Reconcile'] },
-        { category: 'Invoices', actions: ['View', 'Create', 'Edit', 'Delete', 'Send'] },
-        { category: 'Expenses', actions: ['View', 'Create', 'Edit', 'Delete', 'Approve'] },
-        { category: 'Reports', actions: ['View', 'Create', 'Edit', 'Export'] },
-        { category: 'Payroll', actions: ['View', 'Create', 'Edit', 'Process'] }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Accountant',
-      description: 'Full accounting access including banking, invoices, expenses, and financial reporting.',
-      userCount: 2,
-      permissions: [
-        { category: 'Banking', actions: ['View', 'Create', 'Edit', 'Reconcile'] },
-        { category: 'Invoices', actions: ['View', 'Create', 'Edit', 'Send'] },
-        { category: 'Expenses', actions: ['View', 'Create', 'Edit', 'Approve'] },
-        { category: 'Reports', actions: ['View', 'Create', 'Export'] },
-        { category: 'Customers', actions: ['View', 'Create', 'Edit'] },
-        { category: 'Vendors', actions: ['View', 'Create', 'Edit'] }
-      ]
-    },
-    {
-      id: '3',
-      name: 'Bookkeeper',
-      description: 'Data entry access for invoices and expenses. Limited banking and reporting access.',
-      userCount: 2,
-      permissions: [
-        { category: 'Banking', actions: ['View'] },
-        { category: 'Invoices', actions: ['View', 'Create', 'Edit'] },
-        { category: 'Expenses', actions: ['View', 'Create', 'Edit'] },
-        { category: 'Reports', actions: ['View'] },
-        { category: 'Customers', actions: ['View', 'Create'] }
-      ]
-    },
-    {
-      id: '4',
-      name: 'Manager',
-      description: 'Department manager access to view reports and approve expenses.',
-      userCount: 1,
-      permissions: [
-        { category: 'Expenses', actions: ['View', 'Approve'] },
-        { category: 'Reports', actions: ['View', 'Export'] },
-        { category: 'Projects', actions: ['View', 'Create', 'Edit'] },
-        { category: 'Budgets', actions: ['View'] }
-      ]
-    },
-    {
-      id: '5',
-      name: 'Sales Representative',
-      description: 'Customer and invoice management for sales team members.',
-      userCount: 1,
-      permissions: [
-        { category: 'Customers', actions: ['View', 'Create', 'Edit'] },
-        { category: 'Invoices', actions: ['View', 'Create', 'Send'] },
-        { category: 'Reports', actions: ['View'] }
-      ]
-    },
-    {
-      id: '6',
-      name: 'Auditor',
-      description: 'Read-only access to all financial data and audit logs.',
-      userCount: 1,
-      permissions: [
-        { category: 'Banking', actions: ['View'] },
-        { category: 'Invoices', actions: ['View'] },
-        { category: 'Expenses', actions: ['View'] },
-        { category: 'Reports', actions: ['View', 'Export'] },
-        { category: 'Audit Logs', actions: ['View', 'Export'] }
-      ]
+      if (rolesRes.ok) {
+        const rolesData = await rolesRes.json()
+        // Format roles to match expected structure
+        const formattedRoles = rolesData.map((role: Record<string, unknown>) => ({
+          ...role,
+          permissions: Array.isArray(role.permissions) 
+            ? role.permissions.map((p: string) => ({
+                category: p,
+                actions: ['View', 'Create', 'Edit', 'Delete']
+              }))
+            : []
+        }))
+        setRoles(formattedRoles)
+      }
+    } catch (error) {
+      console.error('Error loading data:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadData()
+    }
+  }, [status, activeCompany, loadData])
 
   const filteredUsers = users
     .filter(user => selectedRole === 'All' || user.role === selectedRole)

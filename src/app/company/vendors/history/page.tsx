@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -22,7 +22,8 @@ import {
   ShoppingBag,
   CreditCard,
   FileText,
-  Package
+  Package,
+  RefreshCw
 } from 'lucide-react'
 
 interface VendorTransaction {
@@ -48,6 +49,8 @@ export default function VendorHistoryPage() {
   const [filterVendor, setFilterVendor] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
   const [dateRange, setDateRange] = useState<string>('all')
+  const [transactions, setTransactions] = useState<VendorTransaction[]>([])
+  const [vendors, setVendors] = useState<{id: string, name: string}[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -55,246 +58,57 @@ export default function VendorHistoryPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    try {
+      // Load vendors
+      const vendorsRes = await fetch(`/api/vendors?companyId=${activeCompany.id}`)
+      if (vendorsRes.ok) {
+        const vendorsData = await vendorsRes.json()
+        const vendorsList = (vendorsData.vendors || vendorsData || []).map((v: any) => ({
+          id: v.id,
+          name: v.name
+        }))
+        setVendors(vendorsList)
+      }
 
-  const transactions: VendorTransaction[] = [
-    {
-      id: 'TRX-V-001',
-      transactionId: 'PO-2025-001',
-      vendor: 'Distribuidora Tech Solutions',
-      vendorId: 'VEND-001',
-      type: 'purchase-order',
-      date: '2025-11-20',
-      amount: 145000,
-      balance: 145000,
-      status: 'Enviada',
-      description: 'Equipos de cómputo para nueva oficina',
-      reference: '15 items'
-    },
-    {
-      id: 'TRX-V-002',
-      transactionId: 'BILL-2025-001',
-      vendor: 'Distribuidora Tech Solutions',
-      vendorId: 'VEND-001',
-      type: 'bill',
-      date: '2025-11-10',
-      amount: 25000,
-      balance: 25000,
-      status: 'Por Pagar',
-      description: 'Equipos de cómputo - Orden #12345'
-    },
-    {
-      id: 'TRX-V-003',
-      transactionId: 'PO-2025-003',
-      vendor: 'Distribuidora Tech Solutions',
-      vendorId: 'VEND-001',
-      type: 'purchase-order',
-      date: '2025-11-15',
-      amount: 52200,
-      balance: 0,
-      status: 'Recibida',
-      description: 'Licencias de software corporativas',
-      reference: '8 items'
-    },
-    {
-      id: 'TRX-V-004',
-      transactionId: 'BILL-2025-007',
-      vendor: 'Distribuidora Tech Solutions',
-      vendorId: 'VEND-001',
-      type: 'bill',
-      date: '2025-10-15',
-      amount: 45000,
-      balance: 0,
-      status: 'Pagado',
-      description: 'Software licencias anuales'
-    },
-    {
-      id: 'TRX-V-005',
-      transactionId: 'PAY-V-001',
-      vendor: 'Distribuidora Tech Solutions',
-      vendorId: 'VEND-001',
-      type: 'payment',
-      date: '2025-11-14',
-      amount: -45000,
-      balance: 0,
-      status: 'Completado',
-      description: 'Pago factura BILL-2025-007'
-    },
-    {
-      id: 'TRX-V-006',
-      transactionId: 'PO-2025-002',
-      vendor: 'Papelería Moderna S.A.',
-      vendorId: 'VEND-002',
-      type: 'purchase-order',
-      date: '2025-11-22',
-      amount: 21460,
-      balance: 21460,
-      status: 'Confirmada',
-      description: 'Suministros de oficina - Q4 2025',
-      reference: '45 items'
-    },
-    {
-      id: 'TRX-V-007',
-      transactionId: 'BILL-2025-002',
-      vendor: 'Papelería Moderna S.A.',
-      vendorId: 'VEND-002',
-      type: 'bill',
-      date: '2025-11-15',
-      amount: 8500,
-      balance: 8500,
-      status: 'Por Pagar',
-      description: 'Suministros de oficina - Noviembre'
-    },
-    {
-      id: 'TRX-V-008',
-      transactionId: 'BILL-2025-009',
-      vendor: 'Papelería Moderna S.A.',
-      vendorId: 'VEND-002',
-      type: 'bill',
-      date: '2025-10-20',
-      amount: 12000,
-      balance: 7000,
-      status: 'Pago Parcial',
-      description: 'Mobiliario de oficina'
-    },
-    {
-      id: 'TRX-V-009',
-      transactionId: 'PAY-V-002',
-      vendor: 'Papelería Moderna S.A.',
-      vendorId: 'VEND-002',
-      type: 'payment',
-      date: '2025-11-10',
-      amount: -5000,
-      balance: 7000,
-      status: 'Completado',
-      description: 'Pago parcial BILL-2025-009'
-    },
-    {
-      id: 'TRX-V-010',
-      transactionId: 'BILL-2025-003',
-      vendor: 'Inmobiliaria del Centro',
-      vendorId: 'VEND-004',
-      type: 'bill',
-      date: '2025-11-01',
-      amount: 60000,
-      balance: 0,
-      status: 'Pagado',
-      description: 'Renta mensual - Noviembre 2025'
-    },
-    {
-      id: 'TRX-V-011',
-      transactionId: 'PAY-V-003',
-      vendor: 'Inmobiliaria del Centro',
-      vendorId: 'VEND-004',
-      type: 'payment',
-      date: '2025-11-03',
-      amount: -60000,
-      balance: 0,
-      status: 'Completado',
-      description: 'Pago renta mensual'
-    },
-    {
-      id: 'TRX-V-012',
-      transactionId: 'PO-2025-006',
-      vendor: 'Transportes Express México',
-      vendorId: 'VEND-005',
-      type: 'purchase-order',
-      date: '2025-11-18',
-      amount: 29000,
-      balance: 29000,
-      status: 'Confirmada',
-      description: 'Contrato de servicios de logística',
-      reference: '1 item'
-    },
-    {
-      id: 'TRX-V-013',
-      transactionId: 'BILL-2025-004',
-      vendor: 'Transportes Express México',
-      vendorId: 'VEND-005',
-      type: 'bill',
-      date: '2025-11-12',
-      amount: 12000,
-      balance: 12000,
-      status: 'Por Pagar',
-      description: 'Servicios de envío - Octubre'
-    },
-    {
-      id: 'TRX-V-014',
-      transactionId: 'BILL-2025-010',
-      vendor: 'Transportes Express México',
-      vendorId: 'VEND-005',
-      type: 'bill',
-      date: '2025-10-01',
-      amount: 8500,
-      balance: 8500,
-      status: 'Vencido',
-      description: 'Servicios de envío - Septiembre'
-    },
-    {
-      id: 'TRX-V-015',
-      transactionId: 'BILL-2025-005',
-      vendor: 'Consultoría Legal Pérez & Asociados',
-      vendorId: 'VEND-006',
-      type: 'bill',
-      date: '2025-11-05',
-      amount: 35000,
-      balance: 35000,
-      status: 'Por Pagar',
-      description: 'Asesoría legal - Octubre 2025'
-    },
-    {
-      id: 'TRX-V-016',
-      transactionId: 'PO-2025-004',
-      vendor: 'Servicios de Limpieza ProClean',
-      vendorId: 'VEND-003',
-      type: 'purchase-order',
-      date: '2025-11-10',
-      amount: 14500,
-      balance: 7250,
-      status: 'Parcialmente Recibida',
-      description: 'Productos de limpieza',
-      reference: '25 items'
-    },
-    {
-      id: 'TRX-V-017',
-      transactionId: 'BILL-2025-008',
-      vendor: 'Servicios de Limpieza ProClean',
-      vendorId: 'VEND-003',
-      type: 'bill',
-      date: '2025-10-01',
-      amount: 5500,
-      balance: 0,
-      status: 'Pagado',
-      description: 'Servicios de limpieza - Septiembre'
-    },
-    {
-      id: 'TRX-V-018',
-      transactionId: 'PAY-V-004',
-      vendor: 'Servicios de Limpieza ProClean',
-      vendorId: 'VEND-003',
-      type: 'payment',
-      date: '2025-10-05',
-      amount: -5500,
-      balance: 0,
-      status: 'Completado',
-      description: 'Pago servicios de limpieza'
-    },
-    {
-      id: 'TRX-V-019',
-      transactionId: 'BILL-2025-006',
-      vendor: 'Internet y Telefonía Global',
-      vendorId: 'VEND-008',
-      type: 'bill',
-      date: '2025-11-18',
-      amount: 7800,
-      balance: 7800,
-      status: 'Por Pagar',
-      description: 'Servicios de internet y telefonía'
+      // Load vendor payables as transactions
+      const payablesRes = await fetch(`/api/vendors/payables?companyId=${activeCompany.id}`)
+      if (payablesRes.ok) {
+        const payablesData = await payablesRes.json()
+        const payables = payablesData.payables || []
+        
+        const txns: VendorTransaction[] = payables.map((p: any) => ({
+          id: p.id,
+          transactionId: p.billNumber || p.id,
+          vendor: p.vendor?.name || 'Proveedor',
+          vendorId: p.vendorId,
+          type: 'bill',
+          date: p.issueDate,
+          amount: p.total,
+          balance: p.balance,
+          status: p.status === 'PAID' ? 'Pagado' : 
+                  p.status === 'PARTIAL' ? 'Pago Parcial' : 
+                  p.status === 'OVERDUE' ? 'Vencido' : 'Por Pagar',
+          description: p.description || 'Factura de proveedor'
+        }))
+        
+        setTransactions(txns)
+      }
+    } catch (error) {
+      console.error('Error loading data:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadData()
+    }
+  }, [status, activeCompany, loadData])
 
   const getTypeBadge = (type: string) => {
     switch (type) {

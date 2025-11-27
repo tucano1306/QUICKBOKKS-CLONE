@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -25,7 +25,8 @@ import {
   FileText,
   Users,
   Calendar,
-  MapPin
+  MapPin,
+  RefreshCw
 } from 'lucide-react'
 
 interface AuditLog {
@@ -59,6 +60,8 @@ export default function SecuritySettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -66,10 +69,37 @@ export default function SecuritySettingsPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadSecurityData = useCallback(async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 500)
-  }, [])
+    try {
+      const [logsRes, sessionsRes] = await Promise.all([
+        fetch(`/api/settings/audit-logs?companyId=${activeCompany.id}`),
+        fetch(`/api/settings/sessions?companyId=${activeCompany.id}`)
+      ])
+
+      if (logsRes.ok) {
+        const logsData = await logsRes.json()
+        setAuditLogs(logsData)
+      }
+
+      if (sessionsRes.ok) {
+        const sessionsData = await sessionsRes.json()
+        setActiveSessions(sessionsData)
+      }
+    } catch (error) {
+      console.error('Error loading security data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadSecurityData()
+    }
+  }, [status, activeCompany, loadSecurityData])
 
   const [securitySettings, setSecuritySettings] = useState({
     // Two-Factor Authentication
@@ -106,145 +136,7 @@ export default function SecuritySettingsPage() {
     alertEmail: 'security@acmecorp.com'
   })
 
-  const auditLogs: AuditLog[] = [
-    {
-      id: '1',
-      timestamp: '2025-11-25 10:45:32',
-      user: 'sarah.johnson@acmecorp.com',
-      action: 'Invoice Created',
-      category: 'Invoicing',
-      ipAddress: '192.168.1.100',
-      device: 'Chrome/Windows',
-      status: 'Success',
-      details: 'Created invoice INV-1045 for $2,450.00'
-    },
-    {
-      id: '2',
-      timestamp: '2025-11-25 10:42:18',
-      user: 'michael.chen@acmecorp.com',
-      action: 'Bank Transaction Approved',
-      category: 'Banking',
-      ipAddress: '192.168.1.105',
-      device: 'Safari/macOS',
-      status: 'Success',
-      details: 'Approved transaction $850.00 to Vendor XYZ'
-    },
-    {
-      id: '3',
-      timestamp: '2025-11-25 10:38:55',
-      user: 'emily.rodriguez@acmecorp.com',
-      action: 'Expense Report Submitted',
-      category: 'Expenses',
-      ipAddress: '192.168.1.112',
-      device: 'Chrome/Windows',
-      status: 'Success',
-      details: 'Submitted expense report ER-235 for $345.67'
-    },
-    {
-      id: '4',
-      timestamp: '2025-11-25 10:35:12',
-      user: 'unknown@external.com',
-      action: 'Login Failed',
-      category: 'Authentication',
-      ipAddress: '185.220.101.45',
-      device: 'Unknown',
-      status: 'Failed',
-      details: 'Invalid credentials - 3rd attempt from this IP'
-    },
-    {
-      id: '5',
-      timestamp: '2025-11-25 10:30:08',
-      user: 'sarah.johnson@acmecorp.com',
-      action: 'User Role Updated',
-      category: 'User Management',
-      ipAddress: '192.168.1.100',
-      device: 'Chrome/Windows',
-      status: 'Success',
-      details: 'Changed role for david.kim@acmecorp.com to Manager'
-    },
-    {
-      id: '6',
-      timestamp: '2025-11-25 10:22:45',
-      user: 'michael.chen@acmecorp.com',
-      action: 'Report Exported',
-      category: 'Reporting',
-      ipAddress: '192.168.1.105',
-      device: 'Safari/macOS',
-      status: 'Success',
-      details: 'Exported Balance Sheet to PDF'
-    },
-    {
-      id: '7',
-      timestamp: '2025-11-25 10:15:33',
-      user: 'david.kim@acmecorp.com',
-      action: 'Settings Modified',
-      category: 'System',
-      ipAddress: '192.168.1.108',
-      device: 'Firefox/Linux',
-      status: 'Warning',
-      details: 'Attempted to modify company tax settings without permission'
-    },
-    {
-      id: '8',
-      timestamp: '2025-11-25 10:10:20',
-      user: 'sarah.johnson@acmecorp.com',
-      action: 'Login Successful',
-      category: 'Authentication',
-      ipAddress: '192.168.1.100',
-      device: 'Chrome/Windows',
-      status: 'Success',
-      details: 'Login from Miami, FL'
-    }
-  ]
-
-  const activeSessions: ActiveSession[] = [
-    {
-      id: '1',
-      user: 'sarah.johnson@acmecorp.com',
-      device: 'Windows Desktop',
-      browser: 'Chrome 119',
-      ipAddress: '192.168.1.100',
-      location: 'Miami, FL',
-      loginTime: '2025-11-25 08:30 AM',
-      lastActivity: '2025-11-25 10:45 AM',
-      status: 'Active'
-    },
-    {
-      id: '2',
-      user: 'michael.chen@acmecorp.com',
-      device: 'MacBook Pro',
-      browser: 'Safari 17',
-      ipAddress: '192.168.1.105',
-      location: 'Miami, FL',
-      loginTime: '2025-11-25 08:45 AM',
-      lastActivity: '2025-11-25 10:42 AM',
-      status: 'Active'
-    },
-    {
-      id: '3',
-      user: 'emily.rodriguez@acmecorp.com',
-      device: 'Windows Laptop',
-      browser: 'Chrome 119',
-      ipAddress: '192.168.1.112',
-      location: 'Miami, FL',
-      loginTime: '2025-11-25 09:00 AM',
-      lastActivity: '2025-11-25 10:38 AM',
-      status: 'Active'
-    },
-    {
-      id: '4',
-      user: 'david.kim@acmecorp.com',
-      device: 'Linux Workstation',
-      browser: 'Firefox 120',
-      ipAddress: '192.168.1.108',
-      location: 'Miami, FL',
-      loginTime: '2025-11-25 07:20 AM',
-      lastActivity: '2025-11-25 09:15 AM',
-      status: 'Idle'
-    }
-  ]
-
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
     setTimeout(() => {
       setSaving(false)
