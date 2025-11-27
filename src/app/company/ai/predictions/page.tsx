@@ -260,7 +260,7 @@ export default function AIPredictionsPage() {
           </div>
         )}
 
-        {/* Stats */}}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <CardContent className="p-6">

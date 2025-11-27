@@ -209,7 +209,7 @@ export default function AIAssistantPage() {
           </div>
         )}
 
-        {/* Hero Card */}}
+        {/* Hero Card */}
         <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 text-white overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>

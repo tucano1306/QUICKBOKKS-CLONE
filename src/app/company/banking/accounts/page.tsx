@@ -61,6 +61,7 @@ export default function BankAccountsPage() {
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showNewAccountModal, setShowNewAccountModal] = useState(false)
+  const [showBankModal, setShowBankModal] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [newAccount, setNewAccount] = useState({
     accountName: '',
@@ -648,13 +649,14 @@ export default function BankAccountsPage() {
                       setShowNewAccountModal(false)
                       setNewAccount({
                         accountName: '',
-                        bank: '',
+                        bankName: '',
                         accountNumber: '',
-                        type: 'checking',
+                        accountType: 'CHECKING',
                         currency: 'MXN',
-                        balance: 0,
+                        currentBalance: 0,
                         routing: '',
-                        swift: ''
+                        swift: '',
+                        isPrimary: false
                       })
                       window.location.reload()
                     } else {
@@ -690,8 +692,8 @@ export default function BankAccountsPage() {
                     </label>
                     <select
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      value={newAccount.bank}
-                      onChange={(e) => setNewAccount({ ...newAccount, bank: e.target.value })}
+                      value={newAccount.bankName}
+                      onChange={(e) => setNewAccount({ ...newAccount, bankName: e.target.value })}
                       required
                     >
                       <option value="">Seleccionar banco...</option>
@@ -731,14 +733,14 @@ export default function BankAccountsPage() {
                       </label>
                       <select
                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        value={newAccount.type}
-                        onChange={(e) => setNewAccount({ ...newAccount, type: e.target.value })}
+                        value={newAccount.accountType}
+                        onChange={(e) => setNewAccount({ ...newAccount, accountType: e.target.value })}
                         required
                       >
-                        <option value="checking">Cuenta Corriente</option>
-                        <option value="savings">Cuenta de Ahorros</option>
-                        <option value="credit">Tarjeta de Crédito</option>
-                        <option value="investment">Inversión</option>
+                        <option value="CHECKING">Cuenta Corriente</option>
+                        <option value="SAVINGS">Cuenta de Ahorros</option>
+                        <option value="CREDIT">Tarjeta de Crédito</option>
+                        <option value="INVESTMENT">Inversión</option>
                       </select>
                     </div>
 
@@ -772,12 +774,12 @@ export default function BankAccountsPage() {
                         step="0.01"
                         placeholder="0.00"
                         className="pl-8"
-                        value={newAccount.balance || ''}
-                        onChange={(e) => setNewAccount({ ...newAccount, balance: parseFloat(e.target.value) || 0 })}
+                        value={newAccount.currentBalance || ''}
+                        onChange={(e) => setNewAccount({ ...newAccount, currentBalance: parseFloat(e.target.value) || 0 })}
                       />
                     </div>
                     <p className="text-xs text-gray-500">
-                      {newAccount.type === 'credit' ? 'Para tarjetas de crédito, ingresa el saldo adeudado como número positivo' : 'Ingresa el saldo actual de la cuenta'}
+                      {newAccount.accountType === 'CREDIT' ? 'Para tarjetas de crédito, ingresa el saldo adeudado como número positivo' : 'Ingresa el saldo actual de la cuenta'}
                     </p>
                   </div>
 
@@ -835,7 +837,7 @@ export default function BankAccountsPage() {
                     <Button
                       type="submit"
                       className="flex-1"
-                      disabled={saving || !newAccount.accountName || !newAccount.bank || !newAccount.accountNumber}
+                      disabled={saving || !newAccount.accountName || !newAccount.bankName || !newAccount.accountNumber}
                     >
                       {saving ? (
                         <>

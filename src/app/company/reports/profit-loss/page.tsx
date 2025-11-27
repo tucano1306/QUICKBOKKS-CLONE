@@ -275,7 +275,7 @@ export default function ProfitLossPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-3">
-                {reportData.ingresos.map((item, index) => (
+                {ingresos.map((item, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="text-gray-900 font-medium">{item.concepto}</div>
@@ -303,7 +303,7 @@ export default function ProfitLossPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-3">
-                {reportData.gastosOperativos.map((item, index) => (
+                {gastosOperativos.map((item, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="text-gray-900 font-medium">{item.concepto}</div>
@@ -345,7 +345,7 @@ export default function ProfitLossPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-3">
-                {reportData.otrosGastos.map((item, index) => (
+                {otrosGastos.map((item, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="text-gray-900 font-medium">{item.concepto}</div>
