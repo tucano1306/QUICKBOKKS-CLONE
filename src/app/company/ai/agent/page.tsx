@@ -30,8 +30,11 @@ import {
   RefreshCw,
   Eye,
   Trash2,
-  Plus
+  Plus,
+  X,
+  Save
 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 
 interface Task {
   id: string
@@ -65,6 +68,37 @@ export default function AIAgentPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [selectedStatus, setSelectedStatus] = useState<string>('All')
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [capabilities, setCapabilities] = useState<AgentCapability[]>([])
+  const [stats, setStats] = useState({
+    activeTasks: 0,
+    completedToday: 0,
+    totalCompleted: 0,
+    avgSuccessRate: 0
+  })
+  const [error, setError] = useState<string | null>(null)
+  const [showConfigModal, setShowConfigModal] = useState(false)
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false)
+  const [agentConfig, setAgentConfig] = useState({
+    autoCategorizeTx: true,
+    autoCategorizeThreshold: 85,
+    autoReconcile: true,
+    sendPaymentReminders: true,
+    reminderDays: [7, 14, 30],
+    autoApproveExpenses: true,
+    expenseApprovalLimit: 100,
+    generateDailyReports: true,
+    reportTime: '06:00',
+    detectDuplicates: true,
+    backupFrequency: 'daily'
+  })
+  const [newTask, setNewTask] = useState({
+    type: 'categorize',
+    title: '',
+    description: '',
+    priority: 'Normal' as 'High' | 'Normal' | 'Low',
+    schedule: 'now'
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -73,259 +107,118 @@ export default function AIAgentPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const tasks: Task[] = [
-    {
-      id: '1',
-      type: 'Data Entry',
-      title: 'Process Bank Transactions',
-      description: 'Automatically categorize and post 45 new bank transactions from Wells Fargo checking account',
-      status: 'Running',
-      priority: 'High',
-      startedAt: '2025-12-07 09:15 AM',
-      logs: [
-        '09:15 AM - Task initiated by AI Agent',
-        '09:15 AM - Connected to Wells Fargo API',
-        '09:16 AM - Retrieved 45 new transactions',
-        '09:16 AM - Analyzing transaction patterns...',
-        '09:17 AM - Applied categorization rules (32/45 completed)',
-        '09:17 AM - Processing remaining 13 transactions...'
-      ],
-      nextRun: '2025-12-07 10:00 AM'
-    },
-    {
-      id: '2',
-      type: 'Reconciliation',
-      title: 'Monthly Credit Card Reconciliation',
-      description: 'Reconcile Chase Business Credit Card statement for November 2025',
-      status: 'Completed',
-      priority: 'Normal',
-      startedAt: '2025-12-06 11:30 PM',
-      completedAt: '2025-12-06 11:42 PM',
-      duration: '12m 35s',
-      result: 'Successfully reconciled 128 transactions. No discrepancies found. Balance matches statement: $18,459.32',
-      logs: [
-        '11:30 PM - Task initiated by scheduled automation',
-        '11:31 PM - Downloaded statement from Chase',
-        '11:32 PM - Matched 128 transactions against records',
-        '11:35 PM - Verified all amounts and dates',
-        '11:38 PM - Checked for duplicates (none found)',
-        '11:40 PM - Confirmed ending balance',
-        '11:42 PM - Generated reconciliation report',
-        '11:42 PM - Task completed successfully'
-      ]
-    },
-    {
-      id: '3',
-      type: 'Invoice Processing',
-      title: 'Generate Recurring Invoices',
-      description: 'Create and send monthly invoices to 23 subscription customers',
-      status: 'Completed',
-      priority: 'High',
-      startedAt: '2025-12-01 08:00 AM',
-      completedAt: '2025-12-01 08:08 AM',
-      duration: '8m 15s',
-      result: 'Generated 23 invoices totaling $34,580. All invoices sent successfully. Payment links included.',
-      logs: [
-        '08:00 AM - Task initiated by monthly schedule',
-        '08:01 AM - Retrieved 23 active subscriptions',
-        '08:02 AM - Calculated prorated amounts for mid-month starts',
-        '08:04 AM - Generated PDF invoices',
-        '08:06 AM - Sent invoice emails with payment links',
-        '08:07 AM - Updated customer accounts',
-        '08:08 AM - Task completed successfully'
-      ]
-    },
-    {
-      id: '4',
-      type: 'Collections',
-      title: 'Send Payment Reminders',
-      description: 'Send automated reminders for 18 invoices overdue by 7+ days',
-      status: 'Completed',
-      priority: 'Normal',
-      startedAt: '2025-12-07 08:00 AM',
-      completedAt: '2025-12-07 08:03 AM',
-      duration: '3m 20s',
-      result: 'Sent reminders for 18 overdue invoices ($47,230 total). 3 customers responded immediately with payment confirmation.',
-      logs: [
-        '08:00 AM - Task initiated by daily schedule',
-        '08:00 AM - Identified 18 overdue invoices (7+ days)',
-        '08:01 AM - Retrieved customer contact preferences',
-        '08:02 AM - Sent personalized reminder emails',
-        '08:02 AM - Updated last contact date',
-        '08:03 AM - Received 3 immediate payment confirmations',
-        '08:03 AM - Task completed successfully'
-      ]
-    },
-    {
-      id: '5',
-      type: 'Reporting',
-      title: 'Daily Financial Summary',
-      description: 'Compile and email daily financial metrics to management team',
-      status: 'Completed',
-      priority: 'Normal',
-      startedAt: '2025-12-07 06:00 AM',
-      completedAt: '2025-12-07 06:05 AM',
-      duration: '5m 10s',
-      result: 'Report generated covering revenue, expenses, cash position, and AR aging. Sent to 4 recipients.',
-      logs: [
-        '06:00 AM - Task initiated by daily schedule',
-        '06:01 AM - Gathered transaction data from yesterday',
-        '06:02 AM - Calculated key metrics and variances',
-        '06:03 AM - Generated charts and visualizations',
-        '06:04 AM - Compiled PDF report',
-        '06:05 AM - Sent to management team',
-        '06:05 AM - Task completed successfully'
-      ]
-    },
-    {
-      id: '6',
-      type: 'Expense Management',
-      title: 'Process Employee Expense Reports',
-      description: 'Review and approve 8 pending expense reports under auto-approval threshold',
-      status: 'Pending',
-      priority: 'Normal',
-      logs: [
-        'Task scheduled to run at 10:00 AM daily',
-        'Waiting for scheduled execution time'
-      ],
-      nextRun: '2025-12-07 10:00 AM'
-    },
-    {
-      id: '7',
-      type: 'Tax Compliance',
-      title: 'Calculate Quarterly Tax Estimates',
-      description: 'Prepare Q4 2025 estimated tax calculations for federal and Florida state',
-      status: 'Failed',
-      priority: 'High',
-      startedAt: '2025-12-06 02:00 PM',
-      duration: '2m 45s',
-      result: 'Failed: Unable to retrieve complete financial data for Q4. Recommend manual review.',
-      logs: [
-        '02:00 PM - Task initiated manually',
-        '02:01 PM - Retrieved Q4 revenue data ($3.42M)',
-        '02:02 PM - Error: Incomplete expense categorization for November',
-        '02:02 PM - Unable to calculate accurate net income',
-        '02:02 PM - Task failed - requires manual intervention',
-        '02:03 PM - Notification sent to accounting team'
-      ]
-    },
-    {
-      id: '8',
-      type: 'Data Cleanup',
-      title: 'Detect Duplicate Vendors',
-      description: 'Scan vendor database for potential duplicates and merge opportunities',
-      status: 'Paused',
-      priority: 'Low',
-      startedAt: '2025-12-05 03:00 PM',
-      logs: [
-        '03:00 PM - Task initiated manually',
-        '03:05 PM - Scanned 342 vendor records',
-        '03:10 PM - Identified 12 potential duplicate pairs',
-        '03:15 PM - Task paused by user for review',
-        'Awaiting confirmation before proceeding with merges'
-      ]
+    const fetchAgentData = async () => {
+      if (!activeCompany?.id) return
+      
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await fetch('/api/ai/agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyId: activeCompany.id })
+        })
+        
+        if (!response.ok) {
+          throw new Error('Error al cargar datos del agente')
+        }
+        
+        const data = await response.json()
+        setTasks(data.tasks || [])
+        setCapabilities(data.capabilities || [])
+        setStats(data.stats || {
+          activeTasks: 0,
+          completedToday: 0,
+          totalCompleted: 0,
+          avgSuccessRate: 0
+        })
+      } catch (err) {
+        console.error('Error fetching agent data:', err)
+        setError('Error al cargar los datos del agente IA')
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
-
-  const capabilities: AgentCapability[] = [
-    {
-      id: '1',
-      name: 'Transaction Categorization',
-      description: 'Automatically categorize bank and credit card transactions using ML patterns',
-      category: 'Data Entry',
-      icon: DollarSign,
-      enabled: true,
-      tasksCompleted: 2847,
-      successRate: 96.8
-    },
-    {
-      id: '2',
-      name: 'Invoice Generation',
-      description: 'Create recurring invoices and send to customers automatically',
-      category: 'Billing',
-      icon: FileText,
-      enabled: true,
-      tasksCompleted: 456,
-      successRate: 99.3
-    },
-    {
-      id: '3',
-      name: 'Bank Reconciliation',
-      description: 'Match bank transactions with accounting records and identify discrepancies',
-      category: 'Reconciliation',
-      icon: CheckCircle,
-      enabled: true,
-      tasksCompleted: 124,
-      successRate: 94.2
-    },
-    {
-      id: '4',
-      name: 'Payment Reminders',
-      description: 'Send automated reminders for overdue invoices',
-      category: 'Collections',
-      icon: Clock,
-      enabled: true,
-      tasksCompleted: 892,
-      successRate: 88.5
-    },
-    {
-      id: '5',
-      name: 'Expense Approval',
-      description: 'Auto-approve expense reports under threshold with policy compliance',
-      category: 'Expenses',
-      icon: Target,
-      enabled: true,
-      tasksCompleted: 1234,
-      successRate: 97.2
-    },
-    {
-      id: '6',
-      name: 'Financial Reporting',
-      description: 'Generate and distribute daily, weekly, and monthly financial reports',
-      category: 'Reporting',
-      icon: BarChart,
-      enabled: true,
-      tasksCompleted: 324,
-      successRate: 100
-    },
-    {
-      id: '7',
-      name: 'Vendor Management',
-      description: 'Detect duplicate vendors and suggest consolidation opportunities',
-      category: 'Data Quality',
-      icon: Users,
-      enabled: true,
-      tasksCompleted: 45,
-      successRate: 92.1
-    },
-    {
-      id: '8',
-      name: 'Tax Calculations',
-      description: 'Calculate quarterly tax estimates and prepare compliance documents',
-      category: 'Tax Compliance',
-      icon: Calendar,
-      enabled: false,
-      tasksCompleted: 8,
-      successRate: 75.0
+    
+    if (status === 'authenticated' && activeCompany) {
+      fetchAgentData()
     }
-  ]
+  }, [status, activeCompany])
+
+  const handleSaveConfig = async () => {
+    try {
+      // Guardar configuración del agente
+      const response = await fetch('/api/ai/agent', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          companyId: activeCompany?.id,
+          config: agentConfig 
+        })
+      })
+      
+      if (response.ok) {
+        setShowConfigModal(false)
+        alert('Configuración guardada exitosamente')
+      }
+    } catch (err) {
+      console.error('Error saving config:', err)
+      alert('Error al guardar la configuración')
+    }
+  }
+
+  const handleCreateTask = async () => {
+    if (!newTask.title.trim()) {
+      alert('Por favor ingresa un título para la tarea')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/ai/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          companyId: activeCompany?.id,
+          taskId: `task-${Date.now()}`,
+          action: 'create',
+          ...newTask
+        })
+      })
+      
+      if (response.ok) {
+        // Agregar tarea a la lista
+        const taskData: Task = {
+          id: `task-${Date.now()}`,
+          type: newTask.type,
+          title: newTask.title,
+          description: newTask.description,
+          status: newTask.schedule === 'now' ? 'Running' : 'Pending',
+          priority: newTask.priority,
+          logs: [`${new Date().toLocaleTimeString()} - Tarea creada`],
+          startedAt: newTask.schedule === 'now' ? new Date().toISOString() : undefined
+        }
+        setTasks([taskData, ...tasks])
+        setShowNewTaskModal(false)
+        setNewTask({
+          type: 'categorize',
+          title: '',
+          description: '',
+          priority: 'Normal',
+          schedule: 'now'
+        })
+      }
+    } catch (err) {
+      console.error('Error creating task:', err)
+      alert('Error al crear la tarea')
+    }
+  }
 
   const statusFilters = ['All', 'Running', 'Completed', 'Pending', 'Failed', 'Paused']
 
   const filteredTasks = selectedStatus === 'All' 
     ? tasks 
     : tasks.filter(task => task.status === selectedStatus)
-
-  const stats = {
-    activeTasks: tasks.filter(t => t.status === 'Running').length,
-    completedToday: tasks.filter(t => t.status === 'Completed' && t.completedAt?.includes('2025-12-07')).length,
-    totalCompleted: capabilities.reduce((sum, c) => sum + c.tasksCompleted, 0),
-    avgSuccessRate: capabilities.reduce((sum, c) => sum + c.successRate, 0) / capabilities.length
-  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -397,11 +290,11 @@ export default function AIAgentPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowConfigModal(true)}>
               <Settings className="w-4 h-4 mr-2" />
               Configure
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewTaskModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               New Task
             </Button>
@@ -710,6 +603,284 @@ export default function AIAgentPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Configure Modal */}
+        {showConfigModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b flex items-center justify-between">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Settings className="w-6 h-6 text-blue-600" />
+                  Configuración del Agente IA
+                </h2>
+                <button onClick={() => setShowConfigModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Auto Categorization */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Categorización Automática</h3>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">Categorizar transacciones automáticamente</p>
+                      <p className="text-sm text-gray-600">El agente clasificará las transacciones bancarias</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={agentConfig.autoCategorizeTx}
+                        onChange={(e) => setAgentConfig({...agentConfig, autoCategorizeTx: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  {agentConfig.autoCategorizeTx && (
+                    <div className="ml-4">
+                      <label className="text-sm text-gray-600">Umbral de confianza mínimo (%)</label>
+                      <Input 
+                        type="number" 
+                        min="50" 
+                        max="100"
+                        value={agentConfig.autoCategorizeThreshold}
+                        onChange={(e) => setAgentConfig({...agentConfig, autoCategorizeThreshold: parseInt(e.target.value)})}
+                        className="w-24 mt-1"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Reconciliation */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Conciliación automática</p>
+                    <p className="text-sm text-gray-600">Conciliar transacciones con facturas y pagos</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={agentConfig.autoReconcile}
+                      onChange={(e) => setAgentConfig({...agentConfig, autoReconcile: e.target.checked})}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                {/* Payment Reminders */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">Recordatorios de pago</p>
+                      <p className="text-sm text-gray-600">Enviar recordatorios automáticos para facturas vencidas</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={agentConfig.sendPaymentReminders}
+                        onChange={(e) => setAgentConfig({...agentConfig, sendPaymentReminders: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Expense Approval */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">Auto-aprobar gastos</p>
+                      <p className="text-sm text-gray-600">Aprobar automáticamente gastos bajo el límite</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={agentConfig.autoApproveExpenses}
+                        onChange={(e) => setAgentConfig({...agentConfig, autoApproveExpenses: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  {agentConfig.autoApproveExpenses && (
+                    <div className="ml-4">
+                      <label className="text-sm text-gray-600">Límite de aprobación ($)</label>
+                      <Input 
+                        type="number" 
+                        min="0"
+                        value={agentConfig.expenseApprovalLimit}
+                        onChange={(e) => setAgentConfig({...agentConfig, expenseApprovalLimit: parseInt(e.target.value)})}
+                        className="w-32 mt-1"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Daily Reports */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Reportes diarios</p>
+                    <p className="text-sm text-gray-600">Generar y enviar resumen financiero diario</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={agentConfig.generateDailyReports}
+                      onChange={(e) => setAgentConfig({...agentConfig, generateDailyReports: e.target.checked})}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                {/* Duplicate Detection */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Detectar duplicados</p>
+                    <p className="text-sm text-gray-600">Identificar transacciones y gastos duplicados</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={agentConfig.detectDuplicates}
+                      onChange={(e) => setAgentConfig({...agentConfig, detectDuplicates: e.target.checked})}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="p-6 border-t flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowConfigModal(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveConfig}>
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Configuración
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* New Task Modal */}
+        {showNewTaskModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+              <div className="p-6 border-b flex items-center justify-between">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Plus className="w-6 h-6 text-blue-600" />
+                  Nueva Tarea del Agente
+                </h2>
+                <button onClick={() => setShowNewTaskModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Tarea</label>
+                  <select 
+                    value={newTask.type}
+                    onChange={(e) => setNewTask({...newTask, type: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="categorize">Categorizar Transacciones</option>
+                    <option value="reconcile">Conciliación Bancaria</option>
+                    <option value="reminders">Enviar Recordatorios de Pago</option>
+                    <option value="duplicates">Detectar Duplicados</option>
+                    <option value="report">Generar Reporte</option>
+                    <option value="backup">Respaldo de Datos</option>
+                    <option value="cleanup">Limpieza de Datos</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Título de la Tarea</label>
+                  <Input 
+                    value={newTask.title}
+                    onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                    placeholder="Ej: Categorizar transacciones de noviembre"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción (opcional)</label>
+                  <textarea 
+                    value={newTask.description}
+                    onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                    placeholder="Describe los detalles de la tarea..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+                  <div className="flex gap-2">
+                    {(['High', 'Normal', 'Low'] as const).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setNewTask({...newTask, priority: p})}
+                        className={`px-4 py-2 rounded-lg border transition-colors ${
+                          newTask.priority === p 
+                            ? p === 'High' ? 'bg-red-100 border-red-500 text-red-700' 
+                              : p === 'Normal' ? 'bg-blue-100 border-blue-500 text-blue-700'
+                              : 'bg-green-100 border-green-500 text-green-700'
+                            : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {p === 'High' ? 'Alta' : p === 'Normal' ? 'Normal' : 'Baja'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Programación</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setNewTask({...newTask, schedule: 'now'})}
+                      className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
+                        newTask.schedule === 'now' 
+                          ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                          : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <PlayCircle className="w-4 h-4 inline mr-2" />
+                      Ejecutar Ahora
+                    </button>
+                    <button
+                      onClick={() => setNewTask({...newTask, schedule: 'scheduled'})}
+                      className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
+                        newTask.schedule === 'scheduled' 
+                          ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                          : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Clock className="w-4 h-4 inline mr-2" />
+                      Programar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowNewTaskModal(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreateTask}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Crear Tarea
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

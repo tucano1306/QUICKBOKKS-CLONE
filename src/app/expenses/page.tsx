@@ -1,219 +1,189 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { redirect, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import DashboardLayout from '@/components/layout/dashboard-layout'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { useRouter } from 'next/navigation'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import QuickAccessBar from '@/components/ui/quick-access-bar'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Plus, Search, Edit, Trash2, Receipt, LayoutDashboard, FileText, FolderOpen, CreditCard, PieChart } from 'lucide-react'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-import toast from 'react-hot-toast'
-
-interface Expense {
-  id: string
-  amount: number
-  date: string
-  description: string
-  vendor: string | null
-  status: string
-  category: {
-    name: string
-    type: string
-  }
-}
+  PlusCircle,
+  Receipt,
+  CreditCard,
+  TrendingUp,
+  FileText,
+  FolderOpen,
+  DollarSign,
+  Calendar,
+  BarChart3,
+  Settings
+} from 'lucide-react'
 
 export default function ExpensesPage() {
-  const { data: session, status } = useSession()
   const router = useRouter()
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
 
-  const expensesLinks = [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'blue' },
-    { label: 'Lista Gastos', href: '/expenses', icon: Receipt, color: 'red' },
-    { label: 'Recibos', href: '/company/expenses/receipts', icon: FileText, color: 'orange' },
-    { label: 'Categorías', href: '/expenses/categories', icon: FolderOpen, color: 'yellow' },
-    { label: 'Corporativos', href: '/company/expenses/corporate-cards', icon: CreditCard, color: 'green' },
-    { label: 'Reportes', href: '/reports', icon: PieChart, color: 'indigo' }
+  const quickActions = [
+    {
+      title: 'Registrar Gasto',
+      description: 'Crear un nuevo registro de gasto',
+      icon: PlusCircle,
+      color: 'bg-blue-500',
+      action: () => router.push('/expenses/new')
+    },
+    {
+      title: 'Subir Recibo',
+      description: 'Cargar imagen de recibo',
+      icon: Receipt,
+      color: 'bg-green-500',
+      action: () => router.push('/expenses/receipts/upload')
+    },
+    {
+      title: 'Escanear OCR',
+      description: 'Extraer datos automáticamente',
+      icon: FileText,
+      color: 'bg-purple-500',
+      action: () => router.push('/expenses/receipts/scan')
+    },
+    {
+      title: 'Tarjetas Corporativas',
+      description: 'Sincronizar gastos de tarjetas',
+      icon: CreditCard,
+      color: 'bg-orange-500',
+      action: () => router.push('/expenses/corporate-cards')
+    }
   ]
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/auth/login')
+  const managementActions = [
+    {
+      title: 'Lista de Gastos',
+      description: 'Ver todos los gastos registrados',
+      icon: FolderOpen,
+      action: () => router.push('/expenses/list')
+    },
+    {
+      title: 'Categorías',
+      description: 'Administrar categorías de gastos',
+      icon: Settings,
+      action: () => router.push('/expenses/categories')
+    },
+    {
+      title: 'Gastos Deducibles',
+      description: 'Ver gastos deducibles de impuestos',
+      icon: DollarSign,
+      action: () => router.push('/expenses/deductible')
+    },
+    {
+      title: 'Historial de Recibos',
+      description: 'Ver recibos procesados',
+      icon: Calendar,
+      action: () => router.push('/expenses/receipts/history')
+    },
+    {
+      title: 'Reportes',
+      description: 'Análisis y estadísticas',
+      icon: BarChart3,
+      action: () => router.push('/expenses/reports')
+    },
+    {
+      title: 'Por Clasificar',
+      description: 'Gastos pendientes de clasificar',
+      icon: TrendingUp,
+      action: () => router.push('/expenses/classification')
     }
-    if (status === 'authenticated') {
-      fetchExpenses()
-    }
-  }, [status])
-
-  useEffect(() => {
-    const filtered = expenses.filter(
-      (expense) =>
-        expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.category.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    setFilteredExpenses(filtered)
-  }, [searchTerm, expenses])
-
-  const fetchExpenses = async () => {
-    try {
-      const response = await fetch('/api/expenses')
-      if (response.ok) {
-        const result = await response.json()
-        // La API ahora devuelve { data: [...], pagination: {...} }
-        const data = result.data || result
-        setExpenses(Array.isArray(data) ? data : [])
-        setFilteredExpenses(Array.isArray(data) ? data : [])
-      }
-    } catch (error) {
-      console.error('Error fetching expenses:', error)
-      toast.error('Error al cargar gastos')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
-      PENDING: { variant: 'warning', label: 'Pendiente' },
-      APPROVED: { variant: 'default', label: 'Aprobado' },
-      REJECTED: { variant: 'destructive', label: 'Rechazado' },
-      PAID: { variant: 'success', label: 'Pagado' },
-    }
-
-    const config = variants[status] || variants.PENDING
-    return <Badge variant={config.variant}>{config.label}</Badge>
-  }
-
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
-
-  if (status === 'loading' || isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </DashboardLayout>
-    )
-  }
+  ]
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <QuickAccessBar title="Navegación Gastos" links={expensesLinks} />
-        
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gastos</h1>
-            <p className="text-gray-600 mt-1">
-              Registra y controla tus gastos empresariales
-            </p>
-          </div>
-          <Link href="/expenses/new">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Gasto
-            </Button>
-          </Link>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Gestión de Gastos</h1>
+          <p className="text-gray-600 mt-1">Administra todos tus gastos y recibos empresariales</p>
         </div>
+      </div>
 
-        <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-red-900">Total de Gastos</p>
-                <p className="text-3xl font-bold text-red-600 mt-1">
-                  ${totalExpenses.toLocaleString('es-MX')}
-                </p>
+      {/* Quick Actions */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickActions.map((action, index) => (
+            <Card
+              key={index}
+              className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-500"
+              onClick={action.action}
+            >
+              <div className="flex items-start space-x-4">
+                <div className={`${action.color} p-3 rounded-lg text-white`}>
+                  <action.icon className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-1">{action.title}</h3>
+                  <p className="text-sm text-gray-600">{action.description}</p>
+                </div>
               </div>
-              <Receipt className="h-12 w-12 text-red-400" />
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Management Actions */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Administración</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {managementActions.map((action, index) => (
+            <Card
+              key={index}
+              className="p-5 hover:shadow-md transition-shadow cursor-pointer hover:bg-gray-50"
+              onClick={action.action}
+            >
+              <div className="flex items-center space-x-3">
+                <action.icon className="h-5 w-5 text-gray-700" />
+                <div>
+                  <h3 className="font-medium text-gray-900">{action.title}</h3>
+                  <p className="text-sm text-gray-600">{action.description}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-blue-600 font-medium">Este Mes</p>
+              <p className="text-2xl font-bold text-blue-900 mt-1">$0.00</p>
             </div>
-          </CardContent>
+            <DollarSign className="h-8 w-8 text-blue-600 opacity-50" />
+          </div>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar gastos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-green-600 font-medium">Deducibles</p>
+              <p className="text-2xl font-bold text-green-900 mt-1">$0.00</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Proveedor</TableHead>
-                  <TableHead>Monto</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredExpenses.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                      {searchTerm ? 'No se encontraron gastos' : 'No hay gastos registrados'}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredExpenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>
-                        {format(new Date(expense.date), 'dd MMM yyyy', { locale: es })}
-                      </TableCell>
-                      <TableCell className="font-medium">{expense.description}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{expense.category.name}</Badge>
-                      </TableCell>
-                      <TableCell>{expense.vendor || '-'}</TableCell>
-                      <TableCell className="font-semibold text-red-600">
-                        ${expense.amount.toLocaleString('es-MX')}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(expense.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/expenses/${expense.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
+            <TrendingUp className="h-8 w-8 text-green-600 opacity-50" />
+          </div>
+        </Card>
+        <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-purple-600 font-medium">Recibos</p>
+              <p className="text-2xl font-bold text-purple-900 mt-1">0</p>
+            </div>
+            <Receipt className="h-8 w-8 text-purple-600 opacity-50" />
+          </div>
+        </Card>
+        <Card className="p-5 bg-gradient-to-br from-orange-50 to-orange-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-orange-600 font-medium">Pendientes</p>
+              <p className="text-2xl font-bold text-orange-900 mt-1">0</p>
+            </div>
+            <FileText className="h-8 w-8 text-orange-600 opacity-50" />
+          </div>
         </Card>
       </div>
-    </DashboardLayout>
+    </div>
   )
 }

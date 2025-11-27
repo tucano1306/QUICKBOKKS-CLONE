@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Botones - Invitar Cliente y Configuración Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tooltip {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .group:hover .tooltip {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-gray-800">🔧 Prueba de Botones de Clientes</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Tabla de Clientes (Simulada)</h2>
+            
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b">
+                        <th class="text-left py-3 px-4">Cliente</th>
+                        <th class="text-left py-3 px-4">Email</th>
+                        <th class="text-left py-3 px-4">Estado Portal</th>
+                        <th class="text-right py-3 px-4">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4">
+                            <div>
+                                <p class="font-medium">Acme Corporation</p>
+                                <p class="text-sm text-gray-500">Juan Pérez</p>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">juan.perez@acme.com</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Activo</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center justify-end gap-1">
+                                <!-- Botón Invitar Cliente -->
+                                <button
+                                    onclick="invitarCliente('Juan Pérez', 'juan.perez@acme.com')"
+                                    class="relative group p-2 hover:bg-blue-50 rounded transition-colors"
+                                    title="Invitar Cliente al Portal"
+                                >
+                                    <svg class="h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                    </svg>
+                                    <span class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap pointer-events-none z-10">
+                                        Invitar Cliente
+                                    </span>
+                                </button>
+
+                                <!-- Botón Configuración Portal -->
+                                <button
+                                    onclick="configurarPortal('Juan Pérez')"
+                                    class="relative group p-2 hover:bg-purple-50 rounded transition-colors"
+                                    title="Configuración Portal"
+                                >
+                                    <svg class="h-4 w-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap pointer-events-none z-10">
+                                        Configuración Portal
+                                    </span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4">
+                            <div>
+                                <p class="font-medium">Tech Solutions SA</p>
+                                <p class="text-sm text-gray-500">María García</p>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">maria.garcia@techsol.com</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Inactivo</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center justify-end gap-1">
+                                <!-- Botón Invitar Cliente -->
+                                <button
+                                    onclick="invitarCliente('María García', 'maria.garcia@techsol.com')"
+                                    class="relative group p-2 hover:bg-blue-50 rounded transition-colors"
+                                    title="Invitar Cliente al Portal"
+                                >
+                                    <svg class="h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                    </svg>
+                                    <span class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap pointer-events-none z-10">
+                                        Invitar Cliente
+                                    </span>
+                                </button>
+
+                                <!-- Botón Configuración Portal -->
+                                <button
+                                    onclick="configurarPortal('María García')"
+                                    class="relative group p-2 hover:bg-purple-50 rounded transition-colors"
+                                    title="Configuración Portal"
+                                >
+                                    <svg class="h-4 w-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap pointer-events-none z-10">
+                                        Configuración Portal
+                                    </span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Log de Eventos -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">📋 Log de Eventos</h2>
+            <div id="eventLog" class="space-y-2 max-h-64 overflow-y-auto">
+                <p class="text-gray-500 text-sm">Esperando acciones...</p>
+            </div>
+        </div>
+
+        <!-- Modal Invitar Cliente -->
+        <div id="inviteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg max-w-md w-full p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold flex items-center gap-2">
+                        <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        Invitar al Portal del Cliente
+                    </h3>
+                    <button onclick="cerrarModalInvitar()" class="text-gray-400 hover:text-gray-600 text-2xl">✕</button>
+                </div>
+
+                <div class="mb-6">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-blue-800">
+                            <strong>Cliente:</strong> <span id="inviteClientName"></span>
+                        </p>
+                        <p class="text-sm text-blue-800">
+                            <strong>Email:</strong> <span id="inviteClientEmail"></span>
+                        </p>
+                    </div>
+
+                    <p class="text-sm text-gray-700 mb-4">
+                        Se enviará un correo electrónico con las instrucciones para acceder al portal del cliente.
+                    </p>
+
+                    <ul class="space-y-2 text-sm text-gray-700">
+                        <li class="flex items-center gap-2">
+                            <div class="h-1.5 w-1.5 bg-blue-600 rounded-full"></div>
+                            Ver sus facturas y estados de cuenta
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <div class="h-1.5 w-1.5 bg-blue-600 rounded-full"></div>
+                            Descargar documentos (PDF, XML)
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <div class="h-1.5 w-1.5 bg-blue-600 rounded-full"></div>
+                            Realizar pagos en línea
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <div class="h-1.5 w-1.5 bg-blue-600 rounded-full"></div>
+                            Ver historial de transacciones
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="cerrarModalInvitar()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <button onclick="enviarInvitacion()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Enviar Invitación
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Configuración Portal -->
+        <div id="configModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg max-w-md w-full p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">
+                        Configurar Permisos - <span id="configClientName"></span>
+                    </h3>
+                    <button onclick="cerrarModalConfig()" class="text-gray-400 hover:text-gray-600 text-2xl">✕</button>
+                </div>
+
+                <form onsubmit="guardarPermisos(event)">
+                    <div class="space-y-4 mb-6">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                            <div>
+                                <p class="font-medium text-sm">Ver Facturas</p>
+                                <p class="text-xs text-gray-500">Permite ver todas sus facturas</p>
+                            </div>
+                            <input type="checkbox" name="viewInvoices" checked class="h-4 w-4 text-blue-600 rounded">
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                            <div>
+                                <p class="font-medium text-sm">Descargar Documentos</p>
+                                <p class="text-xs text-gray-500">Descargar PDFs y XMLs</p>
+                            </div>
+                            <input type="checkbox" name="downloadDocs" checked class="h-4 w-4 text-blue-600 rounded">
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                            <div>
+                                <p class="font-medium text-sm">Ver Estado de Cuenta</p>
+                                <p class="text-xs text-gray-500">Ver saldos y movimientos</p>
+                            </div>
+                            <input type="checkbox" name="viewStatement" checked class="h-4 w-4 text-blue-600 rounded">
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                            <div>
+                                <p class="font-medium text-sm">Realizar Pagos</p>
+                                <p class="text-xs text-gray-500">Pagar facturas en línea</p>
+                            </div>
+                            <input type="checkbox" name="makePayments" class="h-4 w-4 text-blue-600 rounded">
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                            <div>
+                                <p class="font-medium text-sm">Solicitar Facturas</p>
+                                <p class="text-xs text-gray-500">Pedir nuevas facturas</p>
+                            </div>
+                            <input type="checkbox" name="requestInvoices" class="h-4 w-4 text-blue-600 rounded">
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button type="button" onclick="cerrarModalConfig()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                            Guardar Permisos
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentClient = { name: '', email: '' };
+
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('eventLog');
+            const logEntry = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString('es-MX');
+            
+            const colors = {
+                info: 'bg-blue-50 text-blue-800 border-blue-200',
+                success: 'bg-green-50 text-green-800 border-green-200',
+                warning: 'bg-yellow-50 text-yellow-800 border-yellow-200'
+            };
+            
+            logEntry.className = `p-3 rounded border ${colors[type]}`;
+            logEntry.innerHTML = `<span class="text-xs font-mono">[${timestamp}]</span> ${message}`;
+            
+            if (logContainer.firstChild.textContent === 'Esperando acciones...') {
+                logContainer.innerHTML = '';
+            }
+            
+            logContainer.insertBefore(logEntry, logContainer.firstChild);
+        }
+
+        function invitarCliente(nombre, email) {
+            currentClient = { name: nombre, email: email };
+            document.getElementById('inviteClientName').textContent = nombre;
+            document.getElementById('inviteClientEmail').textContent = email;
+            document.getElementById('inviteModal').classList.remove('hidden');
+            addLog(`🎯 <strong>Botón "Invitar Cliente" clickeado</strong> para: ${nombre}`, 'info');
+        }
+
+        function configurarPortal(nombre) {
+            currentClient.name = nombre;
+            document.getElementById('configClientName').textContent = nombre;
+            document.getElementById('configModal').classList.remove('hidden');
+            addLog(`⚙️ <strong>Botón "Configuración Portal" clickeado</strong> para: ${nombre}`, 'info');
+        }
+
+        function cerrarModalInvitar() {
+            document.getElementById('inviteModal').classList.add('hidden');
+            addLog(`❌ Modal de invitación cerrado`, 'info');
+        }
+
+        function cerrarModalConfig() {
+            document.getElementById('configModal').classList.add('hidden');
+            addLog(`❌ Modal de configuración cerrado`, 'info');
+        }
+
+        function enviarInvitacion() {
+            addLog(`✉️ Enviando invitación a ${currentClient.email}...`, 'warning');
+            
+            setTimeout(() => {
+                cerrarModalInvitar();
+                addLog(`✅ <strong>Invitación enviada exitosamente</strong> a ${currentClient.name} (${currentClient.email})`, 'success');
+            }, 1500);
+        }
+
+        function guardarPermisos(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const permisos = {
+                viewInvoices: formData.get('viewInvoices') === 'on',
+                downloadDocs: formData.get('downloadDocs') === 'on',
+                viewStatement: formData.get('viewStatement') === 'on',
+                makePayments: formData.get('makePayments') === 'on',
+                requestInvoices: formData.get('requestInvoices') === 'on'
+            };
+            
+            addLog(`💾 Guardando permisos para ${currentClient.name}...`, 'warning');
+            console.log('Permisos:', permisos);
+            
+            setTimeout(() => {
+                cerrarModalConfig();
+                addLog(`✅ <strong>Permisos actualizados</strong> para ${currentClient.name}: ${Object.keys(permisos).filter(k => permisos[k]).join(', ')}`, 'success');
+            }, 500);
+        }
+
+        // Log inicial
+        addLog('✅ Página de prueba cargada correctamente', 'success');
+        addLog('🎯 Haz clic en los botones de la tabla para probar la funcionalidad', 'info');
+    </script>
+</body>
+</html>

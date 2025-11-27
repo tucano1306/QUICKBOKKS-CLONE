@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import toast from 'react-hot-toast'
 import { 
   Globe,
   Plus,
@@ -27,7 +28,8 @@ import {
   Download,
   Key,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react'
 
 interface CustomerPortal {
@@ -49,6 +51,25 @@ interface CustomerPortal {
   invitationSent?: string
 }
 
+type PortalPermissions = CustomerPortal['features']
+
+interface PortalSettings {
+  autoActivate: boolean
+  requireTwoFactor: boolean
+  notifyOnLogin: boolean
+  allowPayments: boolean
+  defaultPermissions: PortalPermissions
+}
+
+type PortalBooleanSetting = 'autoActivate' | 'requireTwoFactor' | 'notifyOnLogin' | 'allowPayments'
+
+const defaultPermissions: PortalPermissions = {
+  viewInvoices: true,
+  makePayments: true,
+  downloadDocuments: true,
+  updateInfo: false
+}
+
 export default function CustomerPortalPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -57,19 +78,7 @@ export default function CustomerPortalPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/login')
-    }
-  }, [status, router])
-
-  useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const customerPortals: CustomerPortal[] = [
+  const [customerPortals, setCustomerPortals] = useState<CustomerPortal[]>([
     {
       id: 'CP-001',
       customerId: 'CUST-001',
@@ -177,7 +186,105 @@ export default function CustomerPortalPage() {
       createdDate: '2025-03-05',
       invitationSent: '2025-03-05'
     }
+  ])
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [inviteForm, setInviteForm] = useState({
+    customerName: '',
+    email: '',
+    permissions: { ...defaultPermissions }
+  })
+  const [portalSettings, setPortalSettings] = useState<PortalSettings>({
+    autoActivate: true,
+    requireTwoFactor: true,
+    notifyOnLogin: true,
+    allowPayments: true,
+    defaultPermissions: { ...defaultPermissions }
+  })
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/login')
+    }
+  }, [status, router])
+
+  useEffect(() => {
+    setLoading(true)
+    setTimeout(() => setLoading(false), 800)
+  }, [])
+
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+
+  const handleInviteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!inviteForm.customerName.trim() || !inviteForm.email.trim()) {
+      toast.error('Nombre y correo son obligatorios')
+      return
+    }
+
+    const slug = slugify(inviteForm.customerName || inviteForm.email)
+    const newPortal: CustomerPortal = {
+      id: `CP-${String(customerPortals.length + 1).padStart(3, '0')}`,
+      customerId: `CUST-${Date.now()}`,
+      customerName: inviteForm.customerName.trim(),
+      email: inviteForm.email.trim(),
+      portalUrl: `https://portal.quickbooks.com/cliente/${slug}`,
+      status: 'pending',
+      accessCount: 0,
+      features: { ...inviteForm.permissions },
+      createdDate: new Date().toISOString(),
+      invitationSent: new Date().toISOString()
+    }
+
+    setCustomerPortals((prev) => [newPortal, ...prev])
+    toast.success('Invitación enviada correctamente')
+    setInviteForm({
+      customerName: '',
+      email: '',
+      permissions: { ...defaultPermissions }
+    })
+    setShowInviteModal(false)
+  }
+
+  const handleSettingsSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    toast.success('Configuración del portal actualizada')
+    setShowSettingsModal(false)
+  }
+
+  const toggleInvitePermission = (key: keyof PortalPermissions) => {
+    setInviteForm((prev) => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [key]: !prev.permissions[key]
+      }
+    }))
+  }
+
+  const toggleDefaultPermission = (key: keyof PortalPermissions) => {
+    setPortalSettings((prev) => ({
+      ...prev,
+      defaultPermissions: {
+        ...prev.defaultPermissions,
+        [key]: !prev.defaultPermissions[key]
+      }
+    }))
+  }
+
+  const portalBooleanSettings: { key: PortalBooleanSetting; label: string; desc: string }[] = [
+    { key: 'autoActivate', label: 'Activar automáticamente', desc: 'Habilita el portal al invitar' },
+    { key: 'requireTwoFactor', label: 'Exigir 2FA', desc: 'Solicita autenticación adicional' },
+    { key: 'notifyOnLogin', label: 'Notificar accesos', desc: 'Envía correo al detectar ingreso' },
+    { key: 'allowPayments', label: 'Permitir pagos', desc: 'Habilita pagos en el portal' }
   ]
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -239,11 +346,11 @@ export default function CustomerPortalPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowSettingsModal(true)}>
               <Settings className="w-4 h-4 mr-2" />
               Configuración Portal
             </Button>
-            <Button>
+            <Button onClick={() => setShowInviteModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Invitar Cliente
             </Button>
@@ -335,6 +442,154 @@ export default function CustomerPortalPage() {
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Globe className="w-5 h-5 text-blue-600" />
                       </div>
+
+                      {/* Modal: Invitar Cliente */}
+                      {showInviteModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                          <div className="w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl">
+                            <div className="mb-4 flex items-center justify-between">
+                              <div>
+                                <h3 className="text-xl font-semibold text-gray-900">Invitar Cliente al Portal</h3>
+                                <p className="text-sm text-gray-500">Envía una invitación con permisos personalizados</p>
+                              </div>
+                              <button onClick={() => setShowInviteModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <X className="h-5 w-5" />
+                              </button>
+                            </div>
+                            <form onSubmit={handleInviteSubmit} className="space-y-4">
+                              <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                  <label className="mb-1 block text-sm font-medium text-gray-700">Nombre completo *</label>
+                                  <Input
+                                    value={inviteForm.customerName}
+                                    onChange={(e) => setInviteForm((prev) => ({ ...prev, customerName: e.target.value }))}
+                                    placeholder="Ej. Carlos Rodríguez"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-sm font-medium text-gray-700">Correo electrónico *</label>
+                                  <Input
+                                    type="email"
+                                    value={inviteForm.email}
+                                    onChange={(e) => setInviteForm((prev) => ({ ...prev, email: e.target.value }))}
+                                    placeholder="cliente@empresa.com"
+                                    required
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="mb-2 text-sm font-semibold text-gray-800">Permisos del portal</p>
+                                <div className="grid gap-3 md:grid-cols-2">
+                                  {[
+                                    { key: 'viewInvoices', label: 'Ver facturas', desc: 'Consultar facturas emitidas' },
+                                    { key: 'downloadDocuments', label: 'Descargar documentos', desc: 'PDF y XML disponibles' },
+                                    { key: 'makePayments', label: 'Realizar pagos', desc: 'Pagar en línea desde el portal' },
+                                    { key: 'updateInfo', label: 'Actualizar información', desc: 'Modificar datos de contacto' }
+                                  ].map((perm) => (
+                                    <label key={perm.key} className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3">
+                                      <input
+                                        type="checkbox"
+                                        className="mt-1 h-4 w-4"
+                                        checked={inviteForm.permissions[perm.key as keyof PortalPermissions]}
+                                        onChange={() => toggleInvitePermission(perm.key as keyof PortalPermissions)}
+                                      />
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-900">{perm.label}</p>
+                                        <p className="text-xs text-gray-500">{perm.desc}</p>
+                                      </div>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="flex gap-3 pt-2">
+                                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowInviteModal(false)}>
+                                  Cancelar
+                                </Button>
+                                <Button type="submit" className="flex-1">
+                                  <Mail className="mr-2 h-4 w-4" />
+                                  Enviar Invitación
+                                </Button>
+                              </div>
+                            </form>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Modal: Configuración Portal */}
+                      {showSettingsModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-2xl">
+                            <div className="mb-4 flex items-center justify-between">
+                              <div>
+                                <h3 className="text-xl font-semibold text-gray-900">Configuración del Portal</h3>
+                                <p className="text-sm text-gray-500">Define la experiencia predeterminada para todos los clientes</p>
+                              </div>
+                              <button onClick={() => setShowSettingsModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <X className="h-5 w-5" />
+                              </button>
+                            </div>
+
+                            <form onSubmit={handleSettingsSubmit} className="space-y-4">
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {portalBooleanSettings.map((setting) => (
+                                  <label key={setting.key} className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3">
+                                    <input
+                                      type="checkbox"
+                                      className="mt-1 h-4 w-4"
+                                      checked={portalSettings[setting.key]}
+                                      onChange={(e) =>
+                                        setPortalSettings((prev) => ({
+                                          ...prev,
+                                          [setting.key]: e.target.checked
+                                        }))
+                                      }
+                                    />
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-900">{setting.label}</p>
+                                      <p className="text-xs text-gray-500">{setting.desc}</p>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+
+                              <div className="rounded-lg border border-dashed border-gray-200 p-4">
+                                <p className="mb-2 text-sm font-semibold text-gray-800">Permisos predeterminados</p>
+                                <div className="grid gap-3 md:grid-cols-2">
+                                  {[
+                                    { key: 'viewInvoices', label: 'Ver facturas' },
+                                    { key: 'downloadDocuments', label: 'Descargar documentos' },
+                                    { key: 'makePayments', label: 'Realizar pagos' },
+                                    { key: 'updateInfo', label: 'Actualizar datos' }
+                                  ].map((perm) => (
+                                    <label key={perm.key} className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3">
+                                      <input
+                                        type="checkbox"
+                                        className="h-4 w-4"
+                                        checked={portalSettings.defaultPermissions[perm.key as keyof PortalPermissions]}
+                                        onChange={() => toggleDefaultPermission(perm.key as keyof PortalPermissions)}
+                                      />
+                                      <span className="text-sm font-medium text-gray-900">{perm.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="flex gap-3 pt-2">
+                                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowSettingsModal(false)}>
+                                  Cancelar
+                                </Button>
+                                <Button type="submit" className="flex-1">
+                                  <Settings className="mr-2 h-4 w-4" />
+                                  Guardar Cambios
+                                </Button>
+                              </div>
+                            </form>
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
                           {portal.customerName}

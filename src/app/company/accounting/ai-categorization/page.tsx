@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,7 +28,8 @@ import {
   Activity,
   Settings,
   Download,
-  Upload
+  Upload,
+  Repeat
 } from 'lucide-react'
 
 interface Transaction {
@@ -262,6 +264,66 @@ export default function AICategorizationPage() {
     )
   }
 
+  // Botones de acción de Clasificación Inteligente
+  const aiCategorizationActions = [
+    {
+      label: 'Activar AI',
+      icon: Brain,
+      onClick: () => {
+        setAutoMode(true)
+        alert('✅ Auto-Categorización con IA activada\n\nTodas las nuevas transacciones serán clasificadas automáticamente usando el modelo de machine learning.')
+      },
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Revisar sugerencias',
+      icon: Eye,
+      onClick: () => {
+        setFilterStatus('categorized')
+        const reviewSection = document.querySelector('[data-section="transactions"]')
+        reviewSection?.scrollIntoView({ behavior: 'smooth' })
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Aceptar todo',
+      icon: ThumbsUp,
+      onClick: () => {
+        const pending = filteredTransactions.filter(t => t.status === 'categorized').length
+        if (pending > 0) {
+          alert(`✅ Se aceptarán ${pending} clasificaciones automáticas\n\nEstas transacciones se marcarán como revisadas y aprobadas.`)
+        } else {
+          alert('No hay transacciones pendientes de aprobación')
+        }
+      },
+      variant: 'success' as const,
+    },
+    {
+      label: 'Rechazar',
+      icon: ThumbsDown,
+      onClick: () => {
+        alert('❌ Selecciona transacciones de la tabla para rechazar su clasificación automática')
+      },
+      variant: 'danger' as const,
+    },
+    {
+      label: 'Reclasificar masiva',
+      icon: RefreshCw,
+      onClick: () => {
+        router.push('/company/accounting/mass-reclassification')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Cambio en lote',
+      icon: Repeat,
+      onClick: () => {
+        router.push('/company/accounting/mass-reclassification?action=batch')
+      },
+      variant: 'default' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
@@ -276,6 +338,24 @@ export default function AICategorizationPage() {
               Sistema inteligente que clasifica transacciones automáticamente
             </p>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <Card className="border-purple-200 bg-purple-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-purple-900 flex items-center">
+              <Brain className="w-4 h-4 mr-2" />
+              Acciones de Clasificación Inteligente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={aiCategorizationActions} />
+          </CardContent>
+        </Card>
+
+        {/* Original Header Section */}
+        <div className="flex items-center justify-between">
+          <div></div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-700">Modo Automático:</span>

@@ -115,6 +115,14 @@ export default function CompanyDashboardPage() {
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
+        {/* ✨ NUEVA INTERFAZ MEJORADA ✨ */}
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg shadow-lg mb-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 animate-pulse" />
+            <p className="font-semibold">¡Interfaz actualizada! Ahora con navegación rápida y diseño moderno</p>
+          </div>
+        </div>
+
         {/* Header con Acceso Rápido */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">

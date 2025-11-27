@@ -76,17 +76,17 @@ export default function AIAssistPage() {
     {
       id: '1',
       type: 'assistant',
-      content: `Hello! I'm your AI accounting assistant. I can help you with:
+      content: `¡Hola! Soy tu asistente contable IA. Estoy conectado a tu base de datos y puedo darte información precisa sobre:
 
-• Recording and categorizing transactions
-• Understanding financial reports
-• Tax deduction questions
-• Cash flow management
-• Reconciliation assistance
-• Accounting best practices
+• 📊 Balance y situación financiera
+• 📄 Facturas pendientes y vencidas
+• 💰 Análisis de gastos
+• 👥 Información de clientes
+• 📈 Predicciones de flujo de caja
+• 🏛️ Información fiscal
 
-What would you like help with today?`,
-      timestamp: '2025-11-25T09:00:00',
+¿En qué puedo ayudarte hoy?`,
+      timestamp: new Date().toISOString(),
       category: 'greeting'
     }
   ])
@@ -125,39 +125,39 @@ What would you like help with today?`,
   const quickQuestions: QuickQuestion[] = [
     {
       id: '1',
-      question: 'How do I categorize this expense?',
-      category: 'Categorization',
-      icon: <FileText className="w-4 h-4" />
+      question: '¿Cuál es mi situación financiera actual?',
+      category: 'Finanzas',
+      icon: <TrendingUp className="w-4 h-4" />
     },
     {
       id: '2',
-      question: 'What tax deductions am I eligible for?',
-      category: 'Tax',
-      icon: <Calculator className="w-4 h-4" />
+      question: '¿Tengo facturas vencidas?',
+      category: 'Cobranza',
+      icon: <FileText className="w-4 h-4" />
     },
     {
       id: '3',
-      question: 'How do I improve my cash flow?',
-      category: 'Cash Flow',
+      question: '¿Cuáles son mis principales gastos?',
+      category: 'Gastos',
       icon: <DollarSign className="w-4 h-4" />
     },
     {
       id: '4',
-      question: 'Explain this financial ratio',
-      category: 'Analysis',
+      question: '¿Cómo va mi flujo de caja?',
+      category: 'Cash Flow',
       icon: <TrendingUp className="w-4 h-4" />
     },
     {
       id: '5',
-      question: 'How do I reconcile my accounts?',
-      category: 'Reconciliation',
+      question: '¿Quiénes son mis mejores clientes?',
+      category: 'Clientes',
       icon: <RefreshCw className="w-4 h-4" />
     },
     {
       id: '6',
-      question: 'Best practices for invoicing',
-      category: 'Best Practices',
-      icon: <Lightbulb className="w-4 h-4" />
+      question: 'Información fiscal y deducciones',
+      category: 'Impuestos',
+      icon: <Calculator className="w-4 h-4" />
     }
   ]
 
@@ -168,7 +168,7 @@ What would you like help with today?`,
     conversationsSaved: 28
   }
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputMessage.trim()) return
 
     const userMessage: Message = {
@@ -182,94 +182,40 @@ What would you like help with today?`,
     setInputMessage('')
     setIsTyping(true)
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Llamar a la API real
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: inputMessage,
+          companyId: activeCompany?.id
+        })
+      })
+
+      const data = await response.json()
+
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: generateAIResponse(inputMessage),
+        content: data.response || 'Lo siento, no pude procesar tu consulta. Intenta de nuevo.',
         timestamp: new Date().toISOString(),
         category: 'response'
       }
       setMessages(prev => [...prev, aiResponse])
+    } catch (error) {
+      console.error('Error calling AI API:', error)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: 'Hubo un error al procesar tu consulta. Por favor, intenta de nuevo.',
+        timestamp: new Date().toISOString(),
+        category: 'error'
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
       setIsTyping(false)
-    }, 1500)
-  }
-
-  const generateAIResponse = (question: string): string => {
-    const lowerQuestion = question.toLowerCase()
-    
-    if (lowerQuestion.includes('expense') || lowerQuestion.includes('categorize')) {
-      return `To properly categorize expenses:
-
-1. **Operating Expenses**: Regular business costs like rent, utilities, supplies
-2. **Cost of Goods Sold (COGS)**: Direct costs of producing goods/services
-3. **Capital Expenditures**: Long-term assets like equipment, vehicles
-4. **Tax-Deductible**: Ordinary and necessary business expenses
-
-For your specific transaction, I'd need more details. Can you tell me:
-• What was purchased?
-• Amount spent?
-• Business purpose?
-
-I can then provide the exact category and whether it's deductible.`
     }
-    
-    if (lowerQuestion.includes('tax') || lowerQuestion.includes('deduct')) {
-      return `Common tax deductions for Florida businesses include:
-
-**Operating Expenses** (100% deductible):
-• Rent and utilities
-• Office supplies
-• Insurance premiums
-• Professional fees (legal, accounting)
-
-**Partial Deductions**:
-• Business meals (50% deductible)
-• Vehicle expenses (actual or mileage)
-• Home office (exclusive business use required)
-
-**Special Rules**:
-• Section 179: Up to $1.22M for equipment (2025)
-• Retirement contributions: SEP IRA (25% of compensation)
-• Charitable donations: 10% of taxable income (C-Corp)
-
-Would you like details on any specific deduction category?`
-    }
-    
-    if (lowerQuestion.includes('cash flow') || lowerQuestion.includes('improve')) {
-      return `Here are proven strategies to improve cash flow:
-
-**Accelerate Inflows**:
-1. Offer early payment discounts (e.g., 2/10 Net 30)
-2. Send invoices immediately upon delivery
-3. Accept multiple payment methods
-4. Follow up on overdue accounts promptly
-
-**Delay Outflows**:
-1. Negotiate extended payment terms with vendors
-2. Time large purchases strategically
-3. Use business credit cards (30-day float)
-4. Establish a line of credit for emergencies
-
-**Current Opportunities**:
-Based on your data, I see:
-• $142K in invoices over 30 days old
-• Average collection time: 38 days
-• Recommendation: Implement automated payment reminders
-
-Would you like me to analyze your specific cash flow situation?`
-    }
-    
-    return `I understand you're asking about "${question}". 
-
-I can provide detailed guidance on accounting and financial topics. To give you the most accurate answer, could you provide more context about:
-
-• Your specific situation or transaction
-• What you're trying to accomplish
-• Any relevant amounts or dates
-
-This will help me give you precise, actionable advice tailored to your business needs.`
   }
 
   const handleQuickQuestion = (question: string) => {

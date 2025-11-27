@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,8 +25,12 @@ import {
   XCircle,
   Calendar,
   DollarSign,
-  TrendingUp
+  TrendingUp,
+  PlusCircle,
+  FileSpreadsheet,
+  ArrowRight
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Estimate {
   id: string
@@ -218,13 +223,69 @@ export default function EstimatesPage() {
     )
   }
 
+  const quotesActions = [
+    {
+      label: 'Ver todas',
+      icon: Eye,
+      onClick: () => {
+        setFilterStatus('all')
+        setSearchTerm('')
+        toast.success('📋 Mostrando todas las cotizaciones')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Crear nueva',
+      icon: PlusCircle,
+      onClick: () => {
+        router.push('/company/invoicing/estimates/new')
+      },
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Convertir a factura',
+      icon: ArrowRight,
+      onClick: () => {
+        toast('✅ Selecciona una cotización para convertir a factura')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Enviar por email',
+      icon: Send,
+      onClick: () => {
+        toast('📧 Selecciona una cotización para enviar')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Editar',
+      icon: Edit,
+      onClick: () => {
+        toast('Selecciona una cotización para editar')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Eliminar',
+      icon: Trash2,
+      onClick: () => {
+        toast('🗑️ Selecciona una cotización para eliminar')
+      },
+      variant: 'danger' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cotizaciones y Presupuestos</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <FileSpreadsheet className="w-8 h-8 text-blue-600" />
+              Cotizaciones y Presupuestos
+            </h1>
             <p className="text-gray-600 mt-1">
               Gestiona propuestas y cotizaciones para tus clientes
             </p>
@@ -237,16 +298,30 @@ export default function EstimatesPage() {
               a.href = URL.createObjectURL(blob)
               a.download = `cotizaciones-${new Date().toISOString().split('T')[0]}.csv`
               a.click()
+              toast.success('📥 Exportando cotizaciones...')
             }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('📋 Nueva Cotización\n\nCreando cotización...\nPOST /api/estimates')}>
+            <Button onClick={() => router.push('/company/invoicing/estimates/new')}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Cotización
             </Button>
           </div>
         </div>
+
+        {/* Action Buttons */}
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-blue-900 flex items-center">
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Acciones de Cotizaciones
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={quotesActions} />
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

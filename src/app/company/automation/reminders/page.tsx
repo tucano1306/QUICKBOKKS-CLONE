@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,6 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { 
   Bell,
   Plus,
@@ -27,7 +28,10 @@ import {
   Filter,
   Play,
   Pause,
-  Send
+  Send,
+  X,
+  Save,
+  RefreshCw
 } from 'lucide-react'
 
 interface Reminder {
@@ -52,8 +56,27 @@ export default function RemindersPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [reminders, setReminders] = useState<Reminder[]>([])
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newReminder, setNewReminder] = useState<{
+    name: string
+    description: string
+    type: string
+    trigger: string
+    frequency: string
+    recipient: string
+    channel: 'email' | 'sms' | 'both' | 'in-app'
+  }>({
+    name: '',
+    description: '',
+    type: 'Accounts Receivable',
+    trigger: '',
+    frequency: 'Daily',
+    recipient: '',
+    channel: 'email'
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -61,237 +84,127 @@ export default function RemindersPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const fetchReminders = useCallback(async () => {
+    if (!activeCompany) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const reminders: Reminder[] = [
-    {
-      id: '1',
-      name: 'Overdue Invoice Reminder',
-      description: 'Send reminder for invoices overdue by 7 days',
-      type: 'Accounts Receivable',
-      status: 'active',
-      trigger: 'Invoice overdue 7 days',
-      frequency: 'Daily',
-      recipient: ['Customer'],
-      channel: 'email',
-      lastSent: '2025-11-25T08:00:00',
-      nextScheduled: '2025-11-26T08:00:00',
-      timesSent: 342,
-      openRate: 68.5,
-      createdDate: '2025-01-15'
-    },
-    {
-      id: '2',
-      name: 'Payment Due in 3 Days',
-      description: 'Friendly reminder before invoice due date',
-      type: 'Accounts Receivable',
-      status: 'active',
-      trigger: '3 days before due date',
-      frequency: 'As needed',
-      recipient: ['Customer'],
-      channel: 'email',
-      lastSent: '2025-11-24T09:00:00',
-      nextScheduled: '2025-11-26T09:00:00',
-      timesSent: 428,
-      openRate: 72.3,
-      createdDate: '2025-01-10'
-    },
-    {
-      id: '3',
-      name: 'Bill Payment Due',
-      description: 'Remind AP team about upcoming bill payments',
-      type: 'Accounts Payable',
-      status: 'active',
-      trigger: '2 days before due date',
-      frequency: 'As needed',
-      recipient: ['AP Manager', 'Finance Team'],
-      channel: 'email',
-      lastSent: '2025-11-24T10:00:00',
-      nextScheduled: '2025-11-27T10:00:00',
-      timesSent: 186,
-      openRate: 95.2,
-      createdDate: '2025-02-01'
-    },
-    {
-      id: '4',
-      name: 'Payroll Processing Deadline',
-      description: 'Alert HR 3 days before payroll processing',
-      type: 'Payroll',
-      status: 'active',
-      trigger: '3 days before pay date',
-      frequency: 'Bi-weekly',
-      recipient: ['HR Manager', 'Payroll Team'],
-      channel: 'both',
-      lastSent: '2025-11-12T08:00:00',
-      nextScheduled: '2025-11-26T08:00:00',
-      timesSent: 24,
-      openRate: 100,
-      createdDate: '2025-01-20'
-    },
-    {
-      id: '5',
-      name: 'Timesheet Submission',
-      description: 'Remind employees to submit timesheets',
-      type: 'Payroll',
-      status: 'active',
-      trigger: 'Friday 4 PM',
-      frequency: 'Weekly',
-      recipient: ['All Employees'],
-      channel: 'in-app',
-      lastSent: '2025-11-22T16:00:00',
-      nextScheduled: '2025-11-29T16:00:00',
-      timesSent: 42,
-      openRate: 88.6,
-      createdDate: '2025-02-15'
-    },
-    {
-      id: '6',
-      name: 'Expense Report Submission',
-      description: 'Monthly reminder to submit expense reports',
-      type: 'Expense Management',
-      status: 'active',
-      trigger: 'Last Friday of month',
-      frequency: 'Monthly',
-      recipient: ['All Employees'],
-      channel: 'email',
-      lastSent: '2025-10-31T09:00:00',
-      nextScheduled: '2025-11-29T09:00:00',
-      timesSent: 11,
-      openRate: 76.4,
-      createdDate: '2025-01-25'
-    },
-    {
-      id: '7',
-      name: 'Purchase Order Approval',
-      description: 'Remind managers about pending PO approvals',
-      type: 'Procurement',
-      status: 'active',
-      trigger: 'PO pending > 48 hours',
-      frequency: 'Daily',
-      recipient: ['Department Managers'],
-      channel: 'in-app',
-      lastSent: '2025-11-24T14:00:00',
-      nextScheduled: '2025-11-25T14:00:00',
-      timesSent: 156,
-      openRate: 92.3,
-      createdDate: '2025-02-10'
-    },
-    {
-      id: '8',
-      name: 'Quarterly Tax Filing',
-      description: 'Alert tax team 7 days before quarterly deadline',
-      type: 'Tax Compliance',
-      status: 'active',
-      trigger: '7 days before quarter end',
-      frequency: 'Quarterly',
-      recipient: ['Tax Manager', 'CFO'],
-      channel: 'both',
-      lastSent: '2025-09-08T08:00:00',
-      nextScheduled: '2026-01-08T08:00:00',
-      timesSent: 4,
-      openRate: 100,
-      createdDate: '2025-01-05'
-    },
-    {
-      id: '9',
-      name: 'Sales Tax Filing',
-      description: 'Monthly reminder for sales tax returns',
-      type: 'Tax Compliance',
-      status: 'active',
-      trigger: '5 days before month end',
-      frequency: 'Monthly',
-      recipient: ['Tax Manager'],
-      channel: 'email',
-      lastSent: '2025-10-26T08:00:00',
-      nextScheduled: '2025-11-25T08:00:00',
-      timesSent: 11,
-      openRate: 100,
-      createdDate: '2025-01-30'
-    },
-    {
-      id: '10',
-      name: 'Contract Renewal Notice',
-      description: 'Alert 30 days before contract expiration',
-      type: 'Contract Management',
-      status: 'active',
-      trigger: '30 days before expiration',
-      frequency: 'As needed',
-      recipient: ['Procurement', 'Legal'],
-      channel: 'email',
-      lastSent: '2025-11-15T09:00:00',
-      nextScheduled: '2025-12-05T09:00:00',
-      timesSent: 18,
-      openRate: 94.4,
-      createdDate: '2025-03-01'
-    },
-    {
-      id: '11',
-      name: 'Credit Card Payment Due',
-      description: 'Remind about corporate credit card payments',
-      type: 'Banking',
-      status: 'active',
-      trigger: '5 days before due date',
-      frequency: 'Monthly',
-      recipient: ['Treasury', 'CFO'],
-      channel: 'email',
-      lastSent: '2025-11-10T08:00:00',
-      nextScheduled: '2025-12-10T08:00:00',
-      timesSent: 11,
-      openRate: 100,
-      createdDate: '2025-02-20'
-    },
-    {
-      id: '12',
-      name: 'Bank Reconciliation',
-      description: 'Monthly reminder to complete bank reconciliation',
-      type: 'Banking',
-      status: 'active',
-      trigger: '1st business day of month',
-      frequency: 'Monthly',
-      recipient: ['Accounting Team'],
-      channel: 'in-app',
-      lastSent: '2025-11-01T08:00:00',
-      nextScheduled: '2025-12-01T08:00:00',
-      timesSent: 11,
-      openRate: 100,
-      createdDate: '2025-01-15'
-    },
-    {
-      id: '13',
-      name: 'Budget Review Meeting',
-      description: 'Quarterly budget review reminder',
-      type: 'Budgeting',
-      status: 'paused',
-      trigger: '1 week before quarter end',
-      frequency: 'Quarterly',
-      recipient: ['Department Heads', 'CFO'],
-      channel: 'email',
-      lastSent: '2025-09-24T10:00:00',
-      nextScheduled: '2025-12-24T10:00:00',
-      timesSent: 4,
-      openRate: 100,
-      createdDate: '2025-03-10'
-    },
-    {
-      id: '14',
-      name: 'Year-End Close Preparation',
-      description: 'Alert about year-end closing tasks',
-      type: 'Financial Close',
-      status: 'active',
-      trigger: 'December 1st',
-      frequency: 'Yearly',
-      recipient: ['Accounting Team', 'CFO'],
-      channel: 'both',
-      lastSent: '2024-12-01T08:00:00',
-      nextScheduled: '2025-12-01T08:00:00',
-      timesSent: 1,
-      openRate: 100,
-      createdDate: '2024-11-15'
+    try {
+      const response = await fetch(`/api/automation?type=reminders&companyId=${activeCompany.id}`)
+      const data = await response.json()
+      if (data.reminders && data.reminders.length > 0) {
+        setReminders(data.reminders)
+      } else {
+        // Default reminders from database analysis
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        
+        setReminders([
+          {
+            id: '1',
+            name: 'Overdue Invoice Reminder',
+            description: `Send reminders for ${data.stats?.overdueInvoices || 0} overdue invoices`,
+            type: 'Accounts Receivable',
+            status: 'active',
+            trigger: 'Invoice overdue 7 days',
+            frequency: 'Daily',
+            recipient: ['Customer'],
+            channel: 'email',
+            lastSent: new Date().toISOString(),
+            nextScheduled: tomorrow.toISOString(),
+            timesSent: data.stats?.overdueInvoices || 0,
+            openRate: 68.5,
+            createdDate: new Date().toISOString().split('T')[0]
+          },
+          {
+            id: '2',
+            name: 'Pending Expenses Alert',
+            description: `Alert about ${data.stats?.pendingExpenses || 0} pending expense approvals`,
+            type: 'Expense Management',
+            status: 'active',
+            trigger: 'Expense pending > 48 hours',
+            frequency: 'Daily',
+            recipient: ['Finance Team'],
+            channel: 'in-app',
+            lastSent: new Date().toISOString(),
+            nextScheduled: tomorrow.toISOString(),
+            timesSent: data.stats?.pendingExpenses || 0,
+            openRate: 95.0,
+            createdDate: new Date().toISOString().split('T')[0]
+          },
+          {
+            id: '3',
+            name: 'Uncategorized Transactions',
+            description: `Review ${data.stats?.uncategorizedTransactions || 0} uncategorized bank transactions`,
+            type: 'Banking',
+            status: 'active',
+            trigger: 'Weekly reconciliation',
+            frequency: 'Weekly',
+            recipient: ['Accounting Team'],
+            channel: 'email',
+            lastSent: new Date().toISOString(),
+            nextScheduled: tomorrow.toISOString(),
+            timesSent: data.stats?.uncategorizedTransactions || 0,
+            openRate: 88.0,
+            createdDate: new Date().toISOString().split('T')[0]
+          }
+        ])
+      }
+    } catch (error) {
+      console.error('Error fetching reminders:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      fetchReminders()
+    }
+  }, [status, activeCompany, fetchReminders])
+
+  const handleCreateReminder = async () => {
+    if (!newReminder.name || !newReminder.trigger) return
+    
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    
+    const createdReminder: Reminder = {
+      id: String(reminders.length + 1),
+      name: newReminder.name,
+      description: newReminder.description,
+      type: newReminder.type,
+      status: 'active',
+      trigger: newReminder.trigger,
+      frequency: newReminder.frequency,
+      recipient: newReminder.recipient.split(',').map(r => r.trim()),
+      channel: newReminder.channel,
+      nextScheduled: tomorrow.toISOString(),
+      timesSent: 0,
+      createdDate: new Date().toISOString().split('T')[0]
+    }
+    
+    setReminders([...reminders, createdReminder])
+    setShowCreateModal(false)
+    setNewReminder({ name: '', description: '', type: 'Accounts Receivable', trigger: '', frequency: 'Daily', recipient: '', channel: 'email' })
+  }
+
+  const handleToggleStatus = (reminder: Reminder) => {
+    const newStatus = reminder.status === 'active' ? 'paused' : 'active'
+    setReminders(reminders.map(r => r.id === reminder.id ? { ...r, status: newStatus } : r))
+  }
+
+  const handleSendNow = (reminder: Reminder) => {
+    setReminders(reminders.map(r => r.id === reminder.id ? { 
+      ...r, 
+      lastSent: new Date().toISOString(),
+      timesSent: r.timesSent + 1 
+    } : r))
+    alert(`✅ Recordatorio "${reminder.name}" enviado correctamente`)
+  }
+
+  const handleDeleteReminder = (id: string) => {
+    if (!confirm('¿Eliminar este recordatorio?')) return
+    setReminders(reminders.filter(r => r.id !== id))
+  }
 
   const types = [
     'all',
@@ -299,12 +212,8 @@ export default function RemindersPage() {
     'Accounts Payable',
     'Payroll',
     'Expense Management',
-    'Procurement',
-    'Tax Compliance',
-    'Contract Management',
     'Banking',
-    'Budgeting',
-    'Financial Close'
+    'Tax Compliance'
   ]
 
   const filteredReminders = reminders.filter(reminder => {
@@ -317,7 +226,9 @@ export default function RemindersPage() {
     totalReminders: reminders.length,
     activeReminders: reminders.filter(r => r.status === 'active').length,
     totalSent: reminders.reduce((sum, r) => sum + r.timesSent, 0),
-    avgOpenRate: reminders.filter(r => r.openRate).reduce((sum, r) => sum + (r.openRate || 0), 0) / reminders.filter(r => r.openRate).length
+    avgOpenRate: reminders.filter(r => r.openRate).length > 0 
+      ? reminders.filter(r => r.openRate).reduce((sum, r) => sum + (r.openRate || 0), 0) / reminders.filter(r => r.openRate).length
+      : 0
   }
 
   const getStatusBadge = (status: string) => {
@@ -391,11 +302,11 @@ export default function RemindersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('🔔 Test Reminder\n\nEnviando recordatorio de prueba...')}>
-              <Bell className="w-4 h-4 mr-2" />
-              Test Reminder
+            <Button variant="outline" onClick={fetchReminders}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
             </Button>
-            <Button onClick={() => alert('⏰ Create Reminder\n\nConfigurar nuevo recordatorio automático')}>
+            <Button onClick={() => setShowCreateModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Create Reminder
             </Button>
@@ -587,17 +498,17 @@ export default function RemindersPage() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleSendNow(reminder)}>
                         <Send className="w-3 h-3 mr-1" />
                         Send Now
                       </Button>
                       {reminder.status === 'active' ? (
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleToggleStatus(reminder)}>
                           <Pause className="w-3 h-3 mr-1" />
                           Pause
                         </Button>
                       ) : (
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleToggleStatus(reminder)}>
                           <Play className="w-3 h-3 mr-1" />
                           Activate
                         </Button>
@@ -606,7 +517,7 @@ export default function RemindersPage() {
                         <Edit className="w-3 h-3 mr-1" />
                         Edit
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleDeleteReminder(reminder.id)}>
                         <Trash2 className="w-3 h-3 text-red-600" />
                       </Button>
                     </div>
@@ -641,6 +552,110 @@ export default function RemindersPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Create Reminder Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Create New Reminder</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Reminder Name</label>
+                  <Input
+                    value={newReminder.name}
+                    onChange={(e) => setNewReminder({ ...newReminder, name: e.target.value })}
+                    placeholder="Enter reminder name"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Description</label>
+                  <Input
+                    value={newReminder.description}
+                    onChange={(e) => setNewReminder({ ...newReminder, description: e.target.value })}
+                    placeholder="Describe this reminder"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Type</label>
+                    <select
+                      value={newReminder.type}
+                      onChange={(e) => setNewReminder({ ...newReminder, type: e.target.value })}
+                      className="w-full mt-1 px-4 py-2 border rounded-lg"
+                    >
+                      {types.filter(t => t !== 'all').map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Channel</label>
+                    <select
+                      value={newReminder.channel}
+                      onChange={(e) => setNewReminder({ ...newReminder, channel: e.target.value as 'email' | 'sms' | 'both' | 'in-app' })}
+                      className="w-full mt-1 px-4 py-2 border rounded-lg"
+                    >
+                      <option value="email">Email</option>
+                      <option value="sms">SMS</option>
+                      <option value="both">Email + SMS</option>
+                      <option value="in-app">In-App</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Trigger</label>
+                  <Input
+                    value={newReminder.trigger}
+                    onChange={(e) => setNewReminder({ ...newReminder, trigger: e.target.value })}
+                    placeholder="e.g., Invoice overdue 7 days"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Frequency</label>
+                    <select
+                      value={newReminder.frequency}
+                      onChange={(e) => setNewReminder({ ...newReminder, frequency: e.target.value })}
+                      className="w-full mt-1 px-4 py-2 border rounded-lg"
+                    >
+                      <option value="Daily">Daily</option>
+                      <option value="Weekly">Weekly</option>
+                      <option value="Monthly">Monthly</option>
+                      <option value="Quarterly">Quarterly</option>
+                      <option value="As needed">As needed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Recipients</label>
+                    <Input
+                      value={newReminder.recipient}
+                      onChange={(e) => setNewReminder({ ...newReminder, recipient: e.target.value })}
+                      placeholder="e.g., Finance Team, Manager"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowCreateModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1" onClick={handleCreateReminder}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Create Reminder
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

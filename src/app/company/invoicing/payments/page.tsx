@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,8 +27,11 @@ import {
   Wallet,
   Building2,
   Smartphone,
-  Link as LinkIcon
+  Link as LinkIcon,
+  PlusCircle,
+  ArrowDownToLine
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Payment {
   id: string
@@ -259,30 +263,106 @@ export default function PaymentsPage() {
     )
   }
 
+  const paymentActions = [
+    {
+      label: 'Ver todos',
+      icon: Eye,
+      onClick: () => {
+        setFilterStatus('all')
+        setFilterMethod('all')
+        setSearchTerm('')
+        toast.success('📋 Mostrando todos los pagos')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Registrar pago',
+      icon: PlusCircle,
+      onClick: () => {
+        router.push('/company/invoicing/payments/new')
+      },
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Aplicar a factura',
+      icon: ArrowDownToLine,
+      onClick: () => {
+        toast('Selecciona un pago para aplicar a una factura')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Buscar',
+      icon: Search,
+      onClick: () => {
+        const input = document.querySelector('input[placeholder*="Buscar"]') as HTMLInputElement
+        input?.focus()
+        toast('🔍 Busca por factura, cliente o referencia')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Exportar',
+      icon: Download,
+      onClick: () => {
+        const csv = 'Número,Factura,Cliente,Fecha,Monto,Método,Estado\nDatos pagos...'
+        const blob = new Blob([csv], { type: 'text/csv' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `pagos-${new Date().toISOString().split('T')[0]}.csv`
+        a.click()
+        toast.success('📥 Exportando pagos a CSV...')
+      },
+      variant: 'outline' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pagos Recibidos</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <DollarSign className="w-8 h-8 text-green-600" />
+              Pagos Recibidos
+            </h1>
             <p className="text-gray-600 mt-1">
               Gestiona todos los pagos de tus clientes
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => {
-              alert('📥 Exportando pagos a CSV')
+              const csv = 'Número,Factura,Cliente,Fecha,Monto,Método,Estado\nDatos pagos...'
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const a = document.createElement('a')
+              a.href = URL.createObjectURL(blob)
+              a.download = `pagos-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              toast.success('📥 Exportando pagos...')
             }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('💰 Registrar Pago\n\nRegistra pago recibido\nPOST /api/payments')}>
+            <Button onClick={() => router.push('/company/invoicing/payments/new')}>
               <Plus className="w-4 h-4 mr-2" />
               Registrar Pago
             </Button>
           </div>
         </div>
+
+        {/* Action Buttons */}
+        <Card className="border-green-200 bg-green-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-green-900 flex items-center">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Acciones de Pagos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={paymentActions} />
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

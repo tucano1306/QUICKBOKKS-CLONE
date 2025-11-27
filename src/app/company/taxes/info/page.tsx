@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,6 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { 
   Download,
   FileText,
@@ -18,12 +19,15 @@ import {
   DollarSign,
   TrendingUp,
   Building,
-  Users,
   Receipt,
   Shield,
   Info,
   ArrowRight,
-  AlertTriangle
+  AlertTriangle,
+  X,
+  Save,
+  Edit,
+  RefreshCw
 } from 'lucide-react'
 
 interface TaxObligation {
@@ -35,6 +39,8 @@ interface TaxObligation {
   status: 'current' | 'upcoming' | 'overdue'
   amount?: number
   filingMethod: string
+  employeeCount?: number
+  vendorCount?: number
 }
 
 interface TaxPayment {
@@ -48,12 +54,45 @@ interface TaxPayment {
   confirmationNumber?: string
 }
 
+interface TaxSettings {
+  ein: string
+  taxYear: string
+  filingStatus: string
+  accountingMethod: string
+  fiscalYearEnd: string
+  state: string
+  stateId: string | null
+  industry: string
+  naicsCode: string
+  federalTaxRate: number
+  stateTaxRate: number
+}
+
+interface TaxSummary {
+  totalRevenue: number
+  totalExpenses: number
+  totalPayroll: number
+  payrollTaxes: number
+  netIncome: number
+  totalDeductions: number
+  estimatedFederalTax: number
+  estimatedStateTax: number
+  totalEstimatedTax: number
+}
+
 export default function TaxInfoPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
-  const [selectedYear, setSelectedYear] = useState('2025')
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [taxObligations, setTaxObligations] = useState<TaxObligation[]>([])
+  const [taxPayments, setTaxPayments] = useState<TaxPayment[]>([])
+  const [taxSettings, setTaxSettings] = useState<TaxSettings | null>(null)
+  const [summary, setSummary] = useState<TaxSummary | null>(null)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [editingSettings, setEditingSettings] = useState<Partial<TaxSettings>>({})
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -61,189 +100,69 @@ export default function TaxInfoPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const fetchTaxData = useCallback(async () => {
+    if (!activeCompany?.id) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const taxObligations: TaxObligation[] = [
-    {
-      id: 'OBL-001',
-      type: 'Federal Income Tax',
-      description: 'Corporate tax return (Form 1120)',
-      frequency: 'Annual',
-      nextDueDate: '2026-03-15',
-      status: 'upcoming',
-      filingMethod: 'Electronic (IRS e-file)'
-    },
-    {
-      id: 'OBL-002',
-      type: 'Quarterly Estimated Tax',
-      description: 'Q4 2025 estimated tax payment',
-      frequency: 'Quarterly',
-      nextDueDate: '2026-01-15',
-      status: 'upcoming',
-      amount: 285000,
-      filingMethod: 'EFTPS'
-    },
-    {
-      id: 'OBL-003',
-      type: 'Florida Corporate Income Tax',
-      description: 'State corporate income tax return',
-      frequency: 'Annual',
-      nextDueDate: '2026-05-01',
-      status: 'upcoming',
-      filingMethod: 'Florida Department of Revenue'
-    },
-    {
-      id: 'OBL-004',
-      type: 'Sales & Use Tax',
-      description: 'Florida sales tax return',
-      frequency: 'Monthly',
-      nextDueDate: '2025-12-20',
-      status: 'upcoming',
-      amount: 42500,
-      filingMethod: 'Electronic'
-    },
-    {
-      id: 'OBL-005',
-      type: 'Payroll Tax (Form 941)',
-      description: 'Federal quarterly payroll tax',
-      frequency: 'Quarterly',
-      nextDueDate: '2026-01-31',
-      status: 'upcoming',
-      amount: 156000,
-      filingMethod: 'IRS e-file'
-    },
-    {
-      id: 'OBL-006',
-      type: 'Annual Report',
-      description: 'Florida Division of Corporations annual report',
-      frequency: 'Annual',
-      nextDueDate: '2026-05-01',
-      status: 'upcoming',
-      amount: 150,
-      filingMethod: 'Sunbiz.org'
-    },
-    {
-      id: 'OBL-007',
-      type: 'Form W-2',
-      description: 'Employee wage statements',
-      frequency: 'Annual',
-      nextDueDate: '2026-01-31',
-      status: 'upcoming',
-      filingMethod: 'SSA Business Services Online'
-    },
-    {
-      id: 'OBL-008',
-      type: 'Form 1099-NEC',
-      description: 'Nonemployee compensation reporting',
-      frequency: 'Annual',
-      nextDueDate: '2026-01-31',
-      status: 'upcoming',
-      filingMethod: 'IRS FIRE System'
+    try {
+      const response = await fetch(`/api/taxes?companyId=${activeCompany.id}&year=${selectedYear}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setTaxObligations(data.taxObligations || [])
+        setTaxSettings(data.taxSettings || null)
+        setSummary(data.summary || null)
+        
+        if (data.quarterlyEstimates) {
+          const payments: TaxPayment[] = data.quarterlyEstimates.map((est: any, index: number) => ({
+            id: `PAY-${String(index + 1).padStart(3, '0')}`,
+            type: 'Quarterly Estimated Tax',
+            period: est.quarter,
+            amount: est.amountDue,
+            dueDate: est.dueDate,
+            paidDate: est.status === 'paid' ? est.dueDate : undefined,
+            status: est.status,
+            confirmationNumber: est.status === 'paid' ? `EFTPS-${Date.now()}` : undefined
+          }))
+          setTaxPayments(payments)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching tax data:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany?.id, selectedYear])
 
-  const taxPayments: TaxPayment[] = [
-    {
-      id: 'PAY-001',
-      type: 'Quarterly Estimated Tax - Q1',
-      period: 'Q1 2025',
-      amount: 275000,
-      dueDate: '2025-04-15',
-      paidDate: '2025-04-12',
-      status: 'paid',
-      confirmationNumber: 'EFTPS-2025041200123'
-    },
-    {
-      id: 'PAY-002',
-      type: 'Quarterly Estimated Tax - Q2',
-      period: 'Q2 2025',
-      amount: 280000,
-      dueDate: '2025-06-15',
-      paidDate: '2025-06-14',
-      status: 'paid',
-      confirmationNumber: 'EFTPS-2025061400456'
-    },
-    {
-      id: 'PAY-003',
-      type: 'Quarterly Estimated Tax - Q3',
-      period: 'Q3 2025',
-      amount: 282000,
-      dueDate: '2025-09-15',
-      paidDate: '2025-09-13',
-      status: 'paid',
-      confirmationNumber: 'EFTPS-2025091300789'
-    },
-    {
-      id: 'PAY-004',
-      type: 'Florida Corporate Income Tax',
-      period: '2024',
-      amount: 186500,
-      dueDate: '2025-05-01',
-      paidDate: '2025-04-28',
-      status: 'paid',
-      confirmationNumber: 'FDOR-2025042801234'
-    },
-    {
-      id: 'PAY-005',
-      type: 'Sales & Use Tax',
-      period: 'October 2025',
-      amount: 41200,
-      dueDate: '2025-11-20',
-      paidDate: '2025-11-18',
-      status: 'paid',
-      confirmationNumber: 'FLSALES-202511180567'
-    },
-    {
-      id: 'PAY-006',
-      type: 'Payroll Tax (Form 941)',
-      period: 'Q3 2025',
-      amount: 152000,
-      dueDate: '2025-10-31',
-      paidDate: '2025-10-29',
-      status: 'paid',
-      confirmationNumber: 'IRS941-2025102900234'
-    },
-    {
-      id: 'PAY-007',
-      type: 'Quarterly Estimated Tax - Q4',
-      period: 'Q4 2025',
-      amount: 285000,
-      dueDate: '2026-01-15',
-      status: 'pending'
-    },
-    {
-      id: 'PAY-008',
-      type: 'Sales & Use Tax',
-      period: 'November 2025',
-      amount: 42500,
-      dueDate: '2025-12-20',
-      status: 'pending'
+  useEffect(() => {
+    fetchTaxData()
+  }, [fetchTaxData])
+
+  const handleSaveSettings = async () => {
+    if (!activeCompany?.id) return
+    
+    setSaving(true)
+    try {
+      const response = await fetch('/api/taxes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save-settings',
+          companyId: activeCompany.id,
+          settings: editingSettings
+        })
+      })
+      
+      const data = await response.json()
+      if (data.success) {
+        setShowSettingsModal(false)
+        fetchTaxData()
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error)
+    } finally {
+      setSaving(false)
     }
-  ]
-
-  const companyInfo = {
-    legalName: 'QuickBooks Clone LLC',
-    ein: '65-1234567',
-    businessType: 'Limited Liability Company (LLC)',
-    taxClassification: 'C Corporation',
-    fiscalYearEnd: 'December 31',
-    incorporationState: 'Florida',
-    businessAddress: '123 Business Blvd, Miami, FL 33101',
-    taxFilingStatus: 'Active',
-    accountingMethod: 'Accrual',
-    naicsCode: '541512 - Computer Systems Design Services'
-  }
-
-  const complianceStatus = {
-    federalTaxID: true,
-    floridaTaxID: true,
-    salesTaxPermit: true,
-    employerAccount: true,
-    annualReport2025: false,
-    insuranceCoverage: true
   }
 
   const filteredPayments = taxPayments.filter(p => {
@@ -258,6 +177,15 @@ export default function TaxInfoPage() {
     nextPayment: taxObligations.filter(o => o.amount).sort((a, b) => 
       new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime()
     )[0]
+  }
+
+  const complianceStatus = {
+    federalTaxID: !!taxSettings?.ein && taxSettings.ein !== 'XX-XXXXXXX',
+    floridaTaxID: !!taxSettings?.stateId,
+    salesTaxPermit: true,
+    employerAccount: true,
+    annualReport: false,
+    insuranceCoverage: true
   }
 
   const getStatusBadge = (status: string) => {
@@ -290,201 +218,125 @@ export default function TaxInfoPage() {
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Tax Information Center</h1>
-            <p className="text-gray-600 mt-1">
-              Compliance dashboard and filing status
-            </p>
+            <p className="text-gray-600 mt-1">Compliance dashboard and filing status</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📥 Exportando información fiscal completa...')}>
-              <Download className="w-4 h-4 mr-2" />
-              Export Report
+            <Button variant="outline" onClick={fetchTaxData}>
+              <RefreshCw className="w-4 h-4 mr-2" />Refresh
             </Button>
-            <Button onClick={() => alert('📅 Calendario Fiscal\n\nViendo fechas importantes de impuestos')}>
-              <FileText className="w-4 h-4 mr-2" />
-              View Tax Calendar
+            <Button variant="outline" onClick={() => { setEditingSettings(taxSettings || {}); setShowSettingsModal(true) }}>
+              <Edit className="w-4 h-4 mr-2" />Edit Settings
+            </Button>
+            <Button onClick={() => router.push('/company/taxes/export')}>
+              <Download className="w-4 h-4 mr-2" />Export Report
             </Button>
           </div>
         </div>
 
-        {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-green-600" />
-              </div>
-              <div className="text-2xl font-bold text-green-900">
-                ${(stats.totalPaid / 1000).toFixed(0)}K
-              </div>
-              <div className="text-sm text-green-700">Taxes Paid {selectedYear}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-yellow-600" />
-              </div>
-              <div className="text-3xl font-bold text-yellow-900">
-                {stats.pending}
-              </div>
-              <div className="text-sm text-yellow-700">Pending Payments</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-red-600" />
-              </div>
-              <div className="text-3xl font-bold text-red-900">
-                {stats.overdue}
-              </div>
-              <div className="text-sm text-red-700">Overdue Items</div>
+              <DollarSign className="w-8 h-8 text-green-600 mb-2" />
+              <div className="text-2xl font-bold text-green-900">${((summary?.totalRevenue || 0) / 1000).toFixed(0)}K</div>
+              <div className="text-sm text-green-700">Revenue {selectedYear}</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Calendar className="w-8 h-8 text-blue-600" />
-              </div>
-              <div className="text-xl font-bold text-blue-900">
+              <TrendingUp className="w-8 h-8 text-blue-600 mb-2" />
+              <div className="text-2xl font-bold text-blue-900">${((summary?.totalEstimatedTax || 0) / 1000).toFixed(0)}K</div>
+              <div className="text-sm text-blue-700">Est. Tax Liability</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+            <CardContent className="p-6">
+              <Clock className="w-8 h-8 text-yellow-600 mb-2" />
+              <div className="text-3xl font-bold text-yellow-900">{stats.pending}</div>
+              <div className="text-sm text-yellow-700">Pending Payments</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <CardContent className="p-6">
+              <Calendar className="w-8 h-8 text-purple-600 mb-2" />
+              <div className="text-xl font-bold text-purple-900">
                 {stats.nextPayment ? new Date(stats.nextPayment.nextDueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
               </div>
-              <div className="text-sm text-blue-700">Next Due Date</div>
+              <div className="text-sm text-purple-700">Next Due Date</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Company Tax Information */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="w-5 h-5" /> Company Tax Profile
-              </CardTitle>
+              <CardTitle className="flex items-center gap-2"><Building className="w-5 h-5" /> Company Tax Profile</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-sm text-gray-600">Legal Name:</span>
-                  <span className="text-sm font-semibold text-gray-900">{companyInfo.legalName}</span>
+              {taxSettings ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between py-2 border-b"><span className="text-sm text-gray-600">Legal Name:</span><span className="text-sm font-semibold">{activeCompany?.name || 'N/A'}</span></div>
+                  <div className="flex justify-between py-2 border-b"><span className="text-sm text-gray-600">EIN:</span><span className="text-sm font-semibold">{taxSettings.ein}</span></div>
+                  <div className="flex justify-between py-2 border-b"><span className="text-sm text-gray-600">Filing Status:</span><span className="text-sm font-semibold">{taxSettings.filingStatus}</span></div>
+                  <div className="flex justify-between py-2 border-b"><span className="text-sm text-gray-600">Fiscal Year End:</span><span className="text-sm font-semibold">{taxSettings.fiscalYearEnd}</span></div>
+                  <div className="flex justify-between py-2 border-b"><span className="text-sm text-gray-600">State:</span><span className="text-sm font-semibold">{taxSettings.state}</span></div>
+                  <div className="flex justify-between py-2 border-b"><span className="text-sm text-gray-600">Accounting Method:</span><span className="text-sm font-semibold">{taxSettings.accountingMethod}</span></div>
+                  <div className="flex justify-between py-2 border-b"><span className="text-sm text-gray-600">Federal Tax Rate:</span><span className="text-sm font-semibold">{taxSettings.federalTaxRate}%</span></div>
+                  <div className="flex justify-between py-2"><span className="text-sm text-gray-600">State Tax Rate:</span><span className="text-sm font-semibold">{taxSettings.stateTaxRate}%</span></div>
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-sm text-gray-600">EIN (Federal Tax ID):</span>
-                  <span className="text-sm font-semibold text-gray-900">{companyInfo.ein}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-sm text-gray-600">Business Type:</span>
-                  <span className="text-sm font-semibold text-gray-900">{companyInfo.businessType}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-sm text-gray-600">Tax Classification:</span>
-                  <span className="text-sm font-semibold text-gray-900">{companyInfo.taxClassification}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-sm text-gray-600">Fiscal Year End:</span>
-                  <span className="text-sm font-semibold text-gray-900">{companyInfo.fiscalYearEnd}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-sm text-gray-600">State of Incorporation:</span>
-                  <span className="text-sm font-semibold text-gray-900">{companyInfo.incorporationState}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-sm text-gray-600">Accounting Method:</span>
-                  <span className="text-sm font-semibold text-gray-900">{companyInfo.accountingMethod}</span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-sm text-gray-600">NAICS Code:</span>
-                  <span className="text-sm font-semibold text-gray-900">{companyInfo.naicsCode}</span>
-                </div>
-              </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">No tax settings configured</div>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" /> Compliance Status
-              </CardTitle>
+              <CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5" /> Compliance Status</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">Federal Tax ID (EIN)</span>
+                {[
+                  { label: 'Federal Tax ID (EIN)', status: complianceStatus.federalTaxID },
+                  { label: 'State Tax Registration', status: complianceStatus.floridaTaxID, warning: true },
+                  { label: 'Sales Tax Permit', status: complianceStatus.salesTaxPermit },
+                  { label: 'Employer Account (Payroll)', status: complianceStatus.employerAccount },
+                  { label: `${selectedYear} Annual Report Filed`, status: complianceStatus.annualReport, warning: true },
+                  { label: 'Workers Comp Insurance', status: complianceStatus.insuranceCoverage },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-gray-700">{item.label}</span>
+                    {item.status ? <CheckCircle className="w-5 h-5 text-green-600" /> : 
+                     item.warning ? <AlertTriangle className="w-5 h-5 text-yellow-600" /> : <AlertCircle className="w-5 h-5 text-red-600" />}
                   </div>
-                  {complianceStatus.federalTaxID ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  )}
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">Florida Tax Registration</span>
-                  </div>
-                  {complianceStatus.floridaTaxID ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  )}
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">Sales Tax Permit</span>
-                  </div>
-                  {complianceStatus.salesTaxPermit ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  )}
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">Employer Account (Payroll)</span>
-                  </div>
-                  {complianceStatus.employerAccount ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  )}
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">2025 Annual Report Filed</span>
-                  </div>
-                  {complianceStatus.annualReport2025 ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                  )}
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">Workers' Comp Insurance</span>
-                  </div>
-                  {complianceStatus.insuranceCoverage ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                  )}
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Upcoming Tax Obligations */}
+        {summary && (
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Receipt className="w-5 h-5" /> Financial Summary - {selectedYear}</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="p-4 bg-blue-50 rounded-lg"><div className="text-sm text-blue-600 mb-1">Total Revenue</div><div className="text-xl font-bold text-blue-900">${summary.totalRevenue.toLocaleString()}</div></div>
+                <div className="p-4 bg-red-50 rounded-lg"><div className="text-sm text-red-600 mb-1">Total Expenses</div><div className="text-xl font-bold text-red-900">${summary.totalExpenses.toLocaleString()}</div></div>
+                <div className="p-4 bg-purple-50 rounded-lg"><div className="text-sm text-purple-600 mb-1">Payroll</div><div className="text-xl font-bold text-purple-900">${summary.totalPayroll.toLocaleString()}</div></div>
+                <div className="p-4 bg-green-50 rounded-lg"><div className="text-sm text-green-600 mb-1">Net Income</div><div className="text-xl font-bold text-green-900">${summary.netIncome.toLocaleString()}</div></div>
+                <div className="p-4 bg-orange-50 rounded-lg"><div className="text-sm text-orange-600 mb-1">Est. Tax</div><div className="text-xl font-bold text-orange-900">${summary.totalEstimatedTax.toLocaleString()}</div></div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Tax Obligations</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Upcoming Tax Obligations</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -500,73 +352,38 @@ export default function TaxInfoPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {taxObligations.sort((a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime()).map((obligation) => {
-                    const dueDate = new Date(obligation.nextDueDate)
-                    const today = new Date()
-                    const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-                    const isUrgent = daysUntil >= 0 && daysUntil <= 30
-
-                    return (
-                      <tr key={obligation.id} className={`hover:bg-gray-50 ${isUrgent ? 'bg-yellow-50' : ''}`}>
-                        <td className="px-4 py-3">
-                          <div className="text-sm font-semibold text-gray-900">{obligation.type}</div>
-                          <div className="text-xs text-gray-500">{obligation.filingMethod}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm text-gray-700">{obligation.description}</div>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <Badge variant="outline" className="text-xs">{obligation.frequency}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {obligation.amount ? (
-                            <div className="text-sm font-semibold text-gray-900">
-                              ${obligation.amount.toLocaleString('en-US')}
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-500">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <div className={`text-sm ${isUrgent ? 'font-bold text-orange-600' : 'text-gray-900'}`}>
-                            {dueDate.toLocaleDateString('en-US')}
-                          </div>
-                          {isUrgent && (
-                            <div className="text-xs text-orange-600">
-                              {daysUntil} days
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {getStatusBadge(obligation.status)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <Button size="sm" variant="outline">
-                            <ArrowRight className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    )
-                  })}
+                  {taxObligations.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No tax obligations found</td></tr>
+                  ) : (
+                    taxObligations.sort((a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime()).map((obligation) => {
+                      const dueDate = new Date(obligation.nextDueDate)
+                      const daysUntil = Math.ceil((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                      const isUrgent = daysUntil >= 0 && daysUntil <= 30
+                      return (
+                        <tr key={obligation.id} className={`hover:bg-gray-50 ${isUrgent ? 'bg-yellow-50' : ''}`}>
+                          <td className="px-4 py-3"><div className="text-sm font-semibold text-gray-900">{obligation.type}</div><div className="text-xs text-gray-500">{obligation.filingMethod}</div></td>
+                          <td className="px-4 py-3"><div className="text-sm text-gray-700">{obligation.description}</div></td>
+                          <td className="px-4 py-3 text-center"><Badge variant="outline" className="text-xs">{obligation.frequency}</Badge></td>
+                          <td className="px-4 py-3 text-right">{obligation.amount ? <div className="text-sm font-semibold">${obligation.amount.toLocaleString()}</div> : <span className="text-gray-500">-</span>}</td>
+                          <td className="px-4 py-3 text-center"><div className={`text-sm ${isUrgent ? 'font-bold text-orange-600' : ''}`}>{dueDate.toLocaleDateString()}</div>{isUrgent && <div className="text-xs text-orange-600">{daysUntil} days</div>}</td>
+                          <td className="px-4 py-3 text-center">{getStatusBadge(obligation.status)}</td>
+                          <td className="px-4 py-3 text-center"><Button size="sm" variant="outline"><ArrowRight className="w-4 h-4" /></Button></td>
+                        </tr>
+                      )
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
           </CardContent>
         </Card>
 
-        {/* Payment History */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Tax Payment History</CardTitle>
-              <select 
-                className="px-3 py-2 border rounded-lg text-sm"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-              >
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
+              <select className="px-3 py-2 border rounded-lg text-sm" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                <option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option>
               </select>
             </div>
           </CardHeader>
@@ -585,71 +402,37 @@ export default function TaxInfoPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredPayments.map((payment) => (
-                    <tr key={payment.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-gray-900">{payment.type}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm text-gray-700">{payment.period}</div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-bold text-gray-900">
-                          ${payment.amount.toLocaleString('en-US')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="text-sm text-gray-900">
-                          {new Date(payment.dueDate).toLocaleDateString('en-US')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {payment.paidDate ? (
-                          <div className="text-sm text-gray-900">
-                            {new Date(payment.paidDate).toLocaleDateString('en-US')}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {getStatusBadge(payment.status)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {payment.confirmationNumber ? (
-                          <div className="text-xs text-gray-600 font-mono">
-                            {payment.confirmationNumber}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-500">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredPayments.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No payments found for {selectedYear}</td></tr>
+                  ) : (
+                    filteredPayments.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3"><div className="text-sm font-semibold">{payment.type}</div></td>
+                        <td className="px-4 py-3"><div className="text-sm text-gray-700">{payment.period}</div></td>
+                        <td className="px-4 py-3 text-right"><div className="text-sm font-bold">${payment.amount.toLocaleString()}</div></td>
+                        <td className="px-4 py-3 text-center"><div className="text-sm">{new Date(payment.dueDate).toLocaleDateString()}</div></td>
+                        <td className="px-4 py-3 text-center">{payment.paidDate ? <div className="text-sm">{new Date(payment.paidDate).toLocaleDateString()}</div> : <span className="text-gray-500">-</span>}</td>
+                        <td className="px-4 py-3 text-center">{getStatusBadge(payment.status)}</td>
+                        <td className="px-4 py-3">{payment.confirmationNumber ? <div className="text-xs text-gray-600 font-mono">{payment.confirmationNumber}</div> : <span className="text-gray-500">-</span>}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </CardContent>
         </Card>
 
-        {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <Info className="w-6 h-6 text-white" />
-              </div>
+              <div className="p-3 bg-blue-600 rounded-lg"><Info className="w-6 h-6 text-white" /></div>
               <div>
                 <h3 className="font-semibold text-blue-900 mb-2">Tax Information Dashboard</h3>
-                <p className="text-blue-700 text-sm mb-2">
-                  Centralized hub for tax compliance, filing obligations, and payment tracking for Florida businesses.
-                </p>
+                <p className="text-blue-700 text-sm mb-2">Centralized hub for tax compliance, filing obligations, and payment tracking.</p>
                 <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• <strong>Federal Taxes:</strong> Corporate income tax (21%), quarterly estimates, payroll taxes (Form 941)</li>
-                  <li>• <strong>Florida State:</strong> Corporate income tax (5.5%), sales & use tax, annual report, reemployment tax</li>
-                  <li>• <strong>Filing Deadlines:</strong> March 15 (1120), quarterly estimates (15th of 4th, 6th, 9th, 12th month)</li>
-                  <li>• <strong>Payment Methods:</strong> EFTPS (federal), Florida Department of Revenue portal, electronic filing</li>
-                  <li>• <strong>Compliance Tracking:</strong> Monitor registration status, permits, licenses, insurance requirements</li>
+                  <li>• <strong>Federal Taxes:</strong> Corporate income tax ({taxSettings?.federalTaxRate || 21}%), quarterly estimates, payroll taxes</li>
+                  <li>• <strong>State:</strong> Corporate income tax ({taxSettings?.stateTaxRate || 5.5}%), sales & use tax, annual report</li>
                   <li>• <strong>Safe Harbor:</strong> 100% of prior year tax (110% if AGI exceeds $150K) to avoid penalties</li>
                 </ul>
               </div>
@@ -657,6 +440,38 @@ export default function TaxInfoPage() {
           </CardContent>
         </Card>
       </div>
+
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Tax Settings</h2>
+              <Button variant="outline" size="sm" onClick={() => setShowSettingsModal(false)}><X className="w-4 h-4" /></Button>
+            </div>
+            <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">EIN (Federal Tax ID)</label><Input value={editingSettings.ein || ''} onChange={(e) => setEditingSettings({ ...editingSettings, ein: e.target.value })} placeholder="XX-XXXXXXX" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Filing Status</label>
+                <select className="w-full px-3 py-2 border rounded-lg" value={editingSettings.filingStatus || ''} onChange={(e) => setEditingSettings({ ...editingSettings, filingStatus: e.target.value })}>
+                  <option value="Corporation (C-Corp)">Corporation (C-Corp)</option><option value="S Corporation">S Corporation</option><option value="LLC">LLC</option><option value="Partnership">Partnership</option>
+                </select>
+              </div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Accounting Method</label>
+                <select className="w-full px-3 py-2 border rounded-lg" value={editingSettings.accountingMethod || ''} onChange={(e) => setEditingSettings({ ...editingSettings, accountingMethod: e.target.value })}>
+                  <option value="Accrual">Accrual</option><option value="Cash">Cash</option>
+                </select>
+              </div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fiscal Year End</label><Input value={editingSettings.fiscalYearEnd || ''} onChange={(e) => setEditingSettings({ ...editingSettings, fiscalYearEnd: e.target.value })} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">State</label><Input value={editingSettings.state || ''} onChange={(e) => setEditingSettings({ ...editingSettings, state: e.target.value })} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Industry</label><Input value={editingSettings.industry || ''} onChange={(e) => setEditingSettings({ ...editingSettings, industry: e.target.value })} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">NAICS Code</label><Input value={editingSettings.naicsCode || ''} onChange={(e) => setEditingSettings({ ...editingSettings, naicsCode: e.target.value })} /></div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <Button variant="outline" onClick={() => setShowSettingsModal(false)}>Cancel</Button>
+              <Button onClick={handleSaveSettings} disabled={saving}>{saving ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Saving...</> : <><Save className="w-4 h-4 mr-2" />Save Settings</>}</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </CompanyTabsLayout>
   )
 }

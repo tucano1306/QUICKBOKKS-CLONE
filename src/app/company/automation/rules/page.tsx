@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,6 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { 
   Filter,
   Plus,
@@ -27,7 +28,10 @@ import {
   Info,
   Zap,
   TrendingUp,
-  Settings
+  Settings,
+  X,
+  Save,
+  RefreshCw
 } from 'lucide-react'
 
 interface Rule {
@@ -49,8 +53,18 @@ export default function RulesPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [rules, setRules] = useState<Rule[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newRule, setNewRule] = useState({
+    name: '',
+    description: '',
+    category: 'Transaction Categorization',
+    conditions: '',
+    action: '',
+    priority: 1
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -58,253 +72,121 @@ export default function RulesPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const fetchRules = useCallback(async () => {
+    if (!activeCompany) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const rules: Rule[] = [
-    {
-      id: '1',
-      name: 'Auto-categorize Office Supplies',
-      description: 'Categorize transactions from office supply vendors',
-      category: 'Transaction Categorization',
-      status: 'active',
-      conditions: [
-        'Vendor contains "Staples" OR "Office Depot" OR "Amazon Business"',
-        'Amount < $500'
-      ],
-      action: 'Assign to category: Office Supplies',
-      appliedCount: 284,
-      lastApplied: '2025-11-25T09:15:00',
-      priority: 1,
-      createdDate: '2025-01-15'
-    },
-    {
-      id: '2',
-      name: 'Software Subscription Classification',
-      description: 'Automatically classify recurring software expenses',
-      category: 'Transaction Categorization',
-      status: 'active',
-      conditions: [
-        'Description contains "subscription" OR "monthly" OR "annual"',
-        'Vendor contains "Adobe" OR "Microsoft" OR "Google" OR "Salesforce"'
-      ],
-      action: 'Assign to category: Software & Subscriptions',
-      appliedCount: 156,
-      lastApplied: '2025-11-24T14:30:00',
-      priority: 1,
-      createdDate: '2025-01-20'
-    },
-    {
-      id: '3',
-      name: 'Travel Expense Tagging',
-      description: 'Tag travel-related expenses automatically',
-      category: 'Transaction Categorization',
-      status: 'active',
-      conditions: [
-        'Vendor contains "Airlines" OR "Hotel" OR "Uber" OR "Lyft"',
-        'OR Category = "Airfare" OR "Lodging" OR "Transportation"'
-      ],
-      action: 'Add tag: Business Travel & Assign to Travel Expense',
-      appliedCount: 342,
-      lastApplied: '2025-11-23T16:45:00',
-      priority: 2,
-      createdDate: '2025-02-01'
-    },
-    {
-      id: '4',
-      name: 'Large Transaction Alert',
-      description: 'Flag transactions over $10,000 for review',
-      category: 'Review & Approval',
-      status: 'active',
-      conditions: [
-        'Amount > $10,000'
-      ],
-      action: 'Add tag: Needs Review & Notify Finance Manager',
-      appliedCount: 28,
-      lastApplied: '2025-11-22T10:20:00',
-      priority: 1,
-      createdDate: '2025-01-10'
-    },
-    {
-      id: '5',
-      name: 'Client Billable Expenses',
-      description: 'Mark expenses as billable to clients',
-      category: 'Project Accounting',
-      status: 'active',
-      conditions: [
-        'Project is assigned',
-        'Category = "Client Expenses" OR "Project Costs"'
-      ],
-      action: 'Mark as billable & Add to project invoice',
-      appliedCount: 189,
-      lastApplied: '2025-11-24T11:30:00',
-      priority: 2,
-      createdDate: '2025-02-15'
-    },
-    {
-      id: '6',
-      name: 'Duplicate Transaction Detection',
-      description: 'Flag potential duplicate transactions',
-      category: 'Data Quality',
-      status: 'active',
-      conditions: [
-        'Same vendor',
-        'Same amount',
-        'Within 24 hours of existing transaction'
-      ],
-      action: 'Add tag: Possible Duplicate & Notify User',
-      appliedCount: 12,
-      lastApplied: '2025-11-20T15:00:00',
-      priority: 1,
-      createdDate: '2025-03-01'
-    },
-    {
-      id: '7',
-      name: 'Vendor Payment Terms',
-      description: 'Apply standard payment terms based on vendor',
-      category: 'Accounts Payable',
-      status: 'active',
-      conditions: [
-        'Vendor type = "Supplier"',
-        'Payment terms not specified'
-      ],
-      action: 'Set payment terms to Net 30',
-      appliedCount: 256,
-      lastApplied: '2025-11-23T09:45:00',
-      priority: 2,
-      createdDate: '2025-01-25'
-    },
-    {
-      id: '8',
-      name: 'Customer Credit Check',
-      description: 'Hold orders for customers over credit limit',
-      category: 'Credit Management',
-      status: 'active',
-      conditions: [
-        'Customer balance > Credit limit',
-        'New order created'
-      ],
-      action: 'Set order status to "Hold" & Notify Credit Manager',
-      appliedCount: 8,
-      lastApplied: '2025-11-21T13:15:00',
-      priority: 1,
-      createdDate: '2025-02-10'
-    },
-    {
-      id: '9',
-      name: 'Sales Tax Exemption',
-      description: 'Apply tax exemption for qualifying customers',
-      category: 'Sales Tax',
-      status: 'active',
-      conditions: [
-        'Customer has valid tax exemption certificate',
-        'Certificate not expired'
-      ],
-      action: 'Set sales tax rate to 0% & Add exemption note',
-      appliedCount: 64,
-      lastApplied: '2025-11-24T10:00:00',
-      priority: 1,
-      createdDate: '2025-02-20'
-    },
-    {
-      id: '10',
-      name: 'Early Payment Discount',
-      description: 'Apply discount for early payment',
-      category: 'Accounts Receivable',
-      status: 'active',
-      conditions: [
-        'Invoice paid within 10 days',
-        'Payment terms include "2/10 Net 30"'
-      ],
-      action: 'Apply 2% discount to invoice total',
-      appliedCount: 42,
-      lastApplied: '2025-11-23T14:20:00',
-      priority: 2,
-      createdDate: '2025-03-05'
-    },
-    {
-      id: '11',
-      name: 'Depreciation Classification',
-      description: 'Categorize asset purchases for depreciation',
-      category: 'Fixed Assets',
-      status: 'active',
-      conditions: [
-        'Category = "Equipment" OR "Furniture" OR "Vehicles"',
-        'Amount > $2,500'
-      ],
-      action: 'Create fixed asset record & Start depreciation schedule',
-      appliedCount: 18,
-      lastApplied: '2025-11-15T16:30:00',
-      priority: 1,
-      createdDate: '2025-01-30'
-    },
-    {
-      id: '12',
-      name: 'Multi-Department Split',
-      description: 'Split expenses across departments',
-      category: 'Cost Allocation',
-      status: 'paused',
-      conditions: [
-        'Category = "Rent" OR "Utilities" OR "Insurance"',
-        'No department assigned'
-      ],
-      action: 'Split equally across all departments',
-      appliedCount: 45,
-      lastApplied: '2025-11-10T09:00:00',
-      priority: 2,
-      createdDate: '2025-02-25'
-    },
-    {
-      id: '13',
-      name: 'Contractor 1099 Tracking',
-      description: 'Track payments to contractors for 1099 reporting',
-      category: 'Tax Compliance',
-      status: 'active',
-      conditions: [
-        'Vendor type = "Contractor" OR "Freelancer"',
-        'Payment method = "Check" OR "ACH"',
-        'Amount >= $600'
-      ],
-      action: 'Mark for 1099 reporting & Add to annual total',
-      appliedCount: 94,
-      lastApplied: '2025-11-24T12:00:00',
-      priority: 1,
-      createdDate: '2025-01-05'
-    },
-    {
-      id: '14',
-      name: 'Budget Variance Alert',
-      description: 'Alert when expenses exceed budget',
-      category: 'Budget Control',
-      status: 'active',
-      conditions: [
-        'Department expenses > 90% of monthly budget',
-        'Not yet alerted this month'
-      ],
-      action: 'Send alert to Department Manager & Finance',
-      appliedCount: 6,
-      lastApplied: '2025-11-20T08:00:00',
-      priority: 1,
-      createdDate: '2025-03-10'
+    try {
+      const response = await fetch(`/api/automation?type=rules&companyId=${activeCompany.id}`)
+      const data = await response.json()
+      if (data.rules && data.rules.length > 0) {
+        setRules(data.rules)
+      } else {
+        // Default rules from database analysis
+        setRules([
+          {
+            id: '1',
+            name: 'Auto-categorize Expenses',
+            description: 'Categorize expenses based on vendor name patterns',
+            category: 'Transaction Categorization',
+            status: 'active',
+            conditions: ['Expense amount > $0', 'Vendor is defined'],
+            action: 'Assign to category: Auto-classified',
+            appliedCount: data.stats?.pendingExpenses || 0,
+            lastApplied: new Date().toISOString(),
+            priority: 1,
+            createdDate: new Date().toISOString().split('T')[0]
+          },
+          {
+            id: '2',
+            name: 'Flag Large Transactions',
+            description: 'Alert on transactions over $5,000',
+            category: 'Review & Approval',
+            status: 'active',
+            conditions: ['Amount > $5,000'],
+            action: 'Add tag: Needs Review & Notify Finance',
+            appliedCount: data.stats?.uncategorizedTransactions || 0,
+            lastApplied: new Date().toISOString(),
+            priority: 1,
+            createdDate: new Date().toISOString().split('T')[0]
+          },
+          {
+            id: '3',
+            name: 'Overdue Invoice Alert',
+            description: 'Notify when invoice is overdue',
+            category: 'Accounts Receivable',
+            status: 'active',
+            conditions: ['Invoice status = Overdue', 'Days past due > 0'],
+            action: 'Send reminder to customer',
+            appliedCount: data.stats?.overdueInvoices || 0,
+            lastApplied: new Date().toISOString(),
+            priority: 1,
+            createdDate: new Date().toISOString().split('T')[0]
+          }
+        ])
+      }
+    } catch (error) {
+      console.error('Error fetching rules:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      fetchRules()
+    }
+  }, [status, activeCompany, fetchRules])
+
+  const handleCreateRule = async () => {
+    if (!activeCompany || !newRule.name) return
+    
+    const createdRule: Rule = {
+      id: String(rules.length + 1),
+      name: newRule.name,
+      description: newRule.description,
+      category: newRule.category,
+      status: 'active',
+      conditions: newRule.conditions.split(',').map(c => c.trim()),
+      action: newRule.action,
+      appliedCount: 0,
+      priority: newRule.priority,
+      createdDate: new Date().toISOString().split('T')[0]
+    }
+    
+    setRules([...rules, createdRule])
+    setShowCreateModal(false)
+    setNewRule({ name: '', description: '', category: 'Transaction Categorization', conditions: '', action: '', priority: 1 })
+  }
+
+  const handleToggleStatus = (rule: Rule) => {
+    const newStatus = rule.status === 'active' ? 'paused' : 'active'
+    setRules(rules.map(r => r.id === rule.id ? { ...r, status: newStatus } : r))
+  }
+
+  const handleDeleteRule = (id: string) => {
+    if (!confirm('¿Eliminar esta regla?')) return
+    setRules(rules.filter(r => r.id !== id))
+  }
+
+  const handleDuplicateRule = (rule: Rule) => {
+    const duplicate: Rule = {
+      ...rule,
+      id: String(rules.length + 1),
+      name: `${rule.name} (Copy)`,
+      appliedCount: 0,
+      createdDate: new Date().toISOString().split('T')[0]
+    }
+    setRules([...rules, duplicate])
+  }
 
   const categories = [
     'all',
     'Transaction Categorization',
     'Review & Approval',
-    'Project Accounting',
-    'Data Quality',
-    'Accounts Payable',
     'Accounts Receivable',
+    'Accounts Payable',
     'Credit Management',
-    'Sales Tax',
-    'Fixed Assets',
-    'Cost Allocation',
-    'Tax Compliance',
-    'Budget Control'
+    'Tax Compliance'
   ]
 
   const filteredRules = rules.filter(rule => {
@@ -383,11 +265,11 @@ export default function RulesPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📊 Templates\n\nPlantillas de reglas disponibles')}>
-              <Copy className="w-4 h-4 mr-2" />
-              Templates
+            <Button variant="outline" onClick={fetchRules}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
             </Button>
-            <Button onClick={() => alert('📜 Create Rule\n\nCrear nueva regla de automatización')}>
+            <Button onClick={() => setShowCreateModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Create Rule
             </Button>
@@ -561,12 +443,12 @@ export default function RulesPage() {
                   </div>
                   <div className="flex gap-2">
                     {rule.status === 'active' ? (
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleToggleStatus(rule)}>
                         <Pause className="w-3 h-3 mr-1" />
                         Pause
                       </Button>
                     ) : (
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleToggleStatus(rule)}>
                         <Play className="w-3 h-3 mr-1" />
                         Activate
                       </Button>
@@ -575,10 +457,10 @@ export default function RulesPage() {
                       <Edit className="w-3 h-3 mr-1" />
                       Edit
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleDuplicateRule(rule)}>
                       <Copy className="w-3 h-3" />
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleDeleteRule(rule.id)}>
                       <Trash2 className="w-3 h-3 text-red-600" />
                     </Button>
                   </div>
@@ -612,6 +494,79 @@ export default function RulesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Create Rule Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Create New Rule</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Rule Name</label>
+                  <Input
+                    value={newRule.name}
+                    onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
+                    placeholder="Enter rule name"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Description</label>
+                  <Input
+                    value={newRule.description}
+                    onChange={(e) => setNewRule({ ...newRule, description: e.target.value })}
+                    placeholder="Describe what this rule does"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Category</label>
+                  <select
+                    value={newRule.category}
+                    onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}
+                    className="w-full mt-1 px-4 py-2 border rounded-lg"
+                  >
+                    {categories.filter(c => c !== 'all').map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Conditions (comma separated)</label>
+                  <Input
+                    value={newRule.conditions}
+                    onChange={(e) => setNewRule({ ...newRule, conditions: e.target.value })}
+                    placeholder="e.g., Amount > $500, Vendor = Amazon"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Action</label>
+                  <Input
+                    value={newRule.action}
+                    onChange={(e) => setNewRule({ ...newRule, action: e.target.value })}
+                    placeholder="e.g., Assign category: Office Supplies"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowCreateModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1" onClick={handleCreateRule}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Create Rule
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

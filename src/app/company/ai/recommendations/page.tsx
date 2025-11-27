@@ -58,6 +58,14 @@ export default function AIRecommendationsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [selectedImpact, setSelectedImpact] = useState<string>('All')
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
+  const [stats, setStats] = useState({
+    totalRecommendations: 0,
+    potentialSavings: 0,
+    potentialRevenue: 0,
+    avgROI: 0
+  })
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -66,266 +74,43 @@ export default function AIRecommendationsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const recommendations: Recommendation[] = [
-    {
-      id: '1',
-      category: 'Cost Optimization',
-      title: 'Consolidate Software Subscriptions',
-      description: 'Identified 3 redundant software subscriptions across departments. Consolidating to enterprise plans could save money.',
-      impact: 'High',
-      effort: 'Easy',
-      priority: 1,
-      potentialSavings: 18600,
-      timeToImplement: '1-2 weeks',
-      status: 'New',
-      steps: [
-        'Audit all current software subscriptions ($4,200/mo)',
-        'Identify overlapping functionality (Slack + Teams, Zoom + Google Meet)',
-        'Negotiate enterprise discounts (estimated 30-40% savings)',
-        'Migrate users to consolidated platforms',
-        'Cancel redundant subscriptions'
-      ],
-      metrics: [
-        { label: 'Current Cost', value: '$4,200/mo' },
-        { label: 'Projected Cost', value: '$2,650/mo' },
-        { label: 'Annual Savings', value: '$18,600' }
-      ],
-      roi: 342
-    },
-    {
-      id: '2',
-      category: 'Tax Planning',
-      title: 'Accelerate Equipment Purchases for Section 179',
-      description: 'You have $85K remaining in Section 179 deduction capacity. Consider purchasing planned equipment before year-end.',
-      impact: 'High',
-      effort: 'Moderate',
-      priority: 2,
-      potentialSavings: 21250,
-      timeToImplement: '4-6 weeks',
-      status: 'New',
-      steps: [
-        'Review capital expenditure plans for 2026',
-        'Identify equipment purchases that could be moved forward',
-        'Calculate tax savings (25% effective tax rate)',
-        'Approve accelerated purchases (up to $85K)',
-        'Complete purchases and installations before Dec 31',
-        'Document for tax filing (Form 4562)'
-      ],
-      metrics: [
-        { label: 'Available Deduction', value: '$85,000' },
-        { label: 'Tax Savings (25%)', value: '$21,250' },
-        { label: 'Deadline', value: 'Dec 31, 2025' }
-      ],
-      roi: 25
-    },
-    {
-      id: '3',
-      category: 'Cash Flow',
-      title: 'Implement Early Payment Discounts',
-      description: 'Offering 2% discount for payment within 10 days could improve cash flow and reduce DSO by 15 days.',
-      impact: 'Medium',
-      effort: 'Easy',
-      priority: 3,
-      potentialRevenue: 42000,
-      timeToImplement: '1 week',
-      status: 'In Progress',
-      steps: [
-        'Calculate discount economics (2/10 Net 30)',
-        'Update invoice templates with discount terms',
-        'Communicate new terms to customers',
-        'Automate discount calculation in billing system',
-        'Track adoption rate and DSO improvement'
-      ],
-      metrics: [
-        { label: 'Current DSO', value: '38 days' },
-        { label: 'Projected DSO', value: '23 days' },
-        { label: 'Cash Flow Improvement', value: '$42K' }
-      ],
-      roi: 156
-    },
-    {
-      id: '4',
-      category: 'Revenue Growth',
-      title: 'Upsell Existing Customers to Premium Services',
-      description: 'Analysis shows 28 customers using basic tier have usage patterns matching premium tier. Potential for $8.4K MRR increase.',
-      impact: 'High',
-      effort: 'Moderate',
-      priority: 1,
-      potentialRevenue: 100800,
-      timeToImplement: '2-3 months',
-      status: 'New',
-      steps: [
-        'Identify 28 customers with premium-tier usage',
-        'Analyze feature usage and value realization',
-        'Create targeted upgrade offers (20% discount for commitment)',
-        'Assign account managers for outreach',
-        'Track conversion rate (target: 50%)',
-        'Implement successful upgrades'
-      ],
-      metrics: [
-        { label: 'Target Customers', value: '28 accounts' },
-        { label: 'Avg Upgrade Value', value: '$300/mo' },
-        { label: 'Annual Revenue Potential', value: '$100,800' }
-      ],
-      roi: 425
-    },
-    {
-      id: '5',
-      category: 'Process Improvement',
-      title: 'Automate Expense Report Approvals',
-      description: 'Manual expense approval process takes 4.2 hours/week. Automation rules can reduce this by 85% and improve employee satisfaction.',
-      impact: 'Medium',
-      effort: 'Easy',
-      priority: 4,
-      potentialSavings: 10920,
-      timeToImplement: '2 weeks',
-      status: 'New',
-      steps: [
-        'Configure auto-approval rules (expenses under $100)',
-        'Set up manager notifications for review-required items',
-        'Integrate with accounting system for posting',
-        'Train employees on new workflow',
-        'Monitor processing time and accuracy'
-      ],
-      metrics: [
-        { label: 'Current Time', value: '4.2 hrs/week' },
-        { label: 'Projected Time', value: '0.6 hrs/week' },
-        { label: 'Annual Time Savings', value: '187 hours' }
-      ],
-      roi: 278
-    },
-    {
-      id: '6',
-      category: 'Vendor Management',
-      title: 'Renegotiate Top 5 Vendor Contracts',
-      description: 'Your top 5 vendors account for $485K annual spend. Market analysis suggests 12-18% savings opportunity through renegotiation.',
-      impact: 'High',
-      effort: 'Moderate',
-      priority: 2,
-      potentialSavings: 72750,
-      timeToImplement: '6-8 weeks',
-      status: 'New',
-      steps: [
-        'Gather current contract terms and pricing',
-        'Research competitive alternatives and market rates',
-        'Prepare negotiation strategy (volume discounts, extended terms)',
-        'Schedule vendor meetings',
-        'Negotiate improved terms (target: 15% savings)',
-        'Document new agreements'
-      ],
-      metrics: [
-        { label: 'Current Annual Spend', value: '$485,000' },
-        { label: 'Savings Target (15%)', value: '$72,750' },
-        { label: 'Vendors to Renegotiate', value: '5' }
-      ],
-      roi: 186
-    },
-    {
-      id: '7',
-      category: 'Tax Planning',
-      title: 'Maximize Florida Sales Tax Exemptions',
-      description: 'You may qualify for manufacturing equipment exemption on $42K of recent purchases. Review with tax advisor.',
-      impact: 'Medium',
-      effort: 'Easy',
-      priority: 5,
-      potentialSavings: 2940,
-      timeToImplement: '1-2 weeks',
-      status: 'New',
-      steps: [
-        'Identify qualifying equipment purchases ($42K)',
-        'Review Florida sales tax exemption criteria (Chapter 212)',
-        'Prepare exemption documentation',
-        'File for refund with Florida Department of Revenue',
-        'Implement process for future purchases'
-      ],
-      metrics: [
-        { label: 'Qualifying Purchases', value: '$42,000' },
-        { label: 'Sales Tax Rate', value: '7%' },
-        { label: 'Potential Refund', value: '$2,940' }
-      ],
-      roi: 489
-    },
-    {
-      id: '8',
-      category: 'Collections',
-      title: 'Implement Automated Payment Reminders',
-      description: 'You have $142K in invoices 30+ days overdue. Automated reminders could improve collection rate by 35%.',
-      impact: 'High',
-      effort: 'Easy',
-      priority: 1,
-      potentialRevenue: 49700,
-      timeToImplement: '1 week',
-      status: 'Completed',
-      steps: [
-        'Configure reminder schedule (7, 14, 30 days overdue)',
-        'Create professional reminder email templates',
-        'Set up escalation workflow (customer service → manager)',
-        'Enable automated sending',
-        'Track collection rate improvement'
-      ],
-      metrics: [
-        { label: 'Overdue Amount', value: '$142,000' },
-        { label: 'Expected Collection', value: '35% increase' },
-        { label: 'Cash Flow Impact', value: '$49,700' }
-      ],
-      roi: 845
-    },
-    {
-      id: '9',
-      category: 'Pricing Strategy',
-      title: 'Adjust Pricing for High-Demand Services',
-      description: 'Market analysis shows your premium consulting rates are 18% below market average. Strategic increase could boost margins.',
-      impact: 'High',
-      effort: 'Moderate',
-      priority: 2,
-      potentialRevenue: 156000,
-      timeToImplement: '4-6 weeks',
-      status: 'New',
-      steps: [
-        'Analyze competitive pricing (currently $180/hr vs market $220/hr)',
-        'Calculate revenue impact of price increase',
-        'Segment customers by price sensitivity',
-        'Communicate value proposition for price increase',
-        'Implement graduated pricing ($195/hr existing, $220/hr new)',
-        'Monitor customer retention and win rates'
-      ],
-      metrics: [
-        { label: 'Current Rate', value: '$180/hr' },
-        { label: 'Market Rate', value: '$220/hr' },
-        { label: 'Annual Revenue Impact', value: '$156,000' }
-      ],
-      roi: 312
-    },
-    {
-      id: '10',
-      category: 'Risk Management',
-      title: 'Review Insurance Coverage Gaps',
-      description: 'Your business has grown 45% but insurance coverage has not been updated. Potential underinsurance risk identified.',
-      impact: 'Medium',
-      effort: 'Easy',
-      priority: 6,
-      potentialSavings: 0,
-      timeToImplement: '2-3 weeks',
-      status: 'New',
-      steps: [
-        'Review current insurance policies (General Liability, E&O, Property)',
-        'Calculate coverage needs based on current business size',
-        'Identify coverage gaps (equipment value up $340K)',
-        'Request updated quotes from insurers',
-        'Adjust coverage to match current risk profile',
-        'Document coverage changes'
-      ],
-      metrics: [
-        { label: 'Revenue Growth', value: '+45%' },
-        { label: 'Coverage Gap', value: '$340,000' },
-        { label: 'Risk Level', value: 'Medium' }
-      ]
+    const fetchRecommendations = async () => {
+      if (!activeCompany?.id) return
+      
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await fetch('/api/ai/recommendations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyId: activeCompany.id })
+        })
+        
+        if (!response.ok) {
+          throw new Error('Error al cargar recomendaciones')
+        }
+        
+        const data = await response.json()
+        setRecommendations(data.recommendations || [])
+        setStats(data.stats || {
+          totalRecommendations: 0,
+          potentialSavings: 0,
+          potentialRevenue: 0,
+          avgROI: 0
+        })
+      } catch (err) {
+        console.error('Error fetching recommendations:', err)
+        setError('Error al cargar las recomendaciones de IA')
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+    
+    if (status === 'authenticated' && activeCompany) {
+      fetchRecommendations()
+    }
+  }, [status, activeCompany])
 
   const categories = ['All', 'Cost Optimization', 'Tax Planning', 'Cash Flow', 'Revenue Growth', 'Process Improvement', 'Vendor Management', 'Collections', 'Pricing Strategy', 'Risk Management']
   const impactLevels = ['All', 'High', 'Medium', 'Low']
@@ -334,13 +119,6 @@ export default function AIRecommendationsPage() {
     .filter(rec => selectedCategory === 'All' || rec.category === selectedCategory)
     .filter(rec => selectedImpact === 'All' || rec.impact === selectedImpact)
     .sort((a, b) => a.priority - b.priority)
-
-  const stats = {
-    totalRecommendations: recommendations.filter(r => r.status !== 'Completed' && r.status !== 'Dismissed').length,
-    potentialSavings: recommendations.reduce((sum, r) => sum + (r.potentialSavings || 0), 0),
-    potentialRevenue: recommendations.reduce((sum, r) => sum + (r.potentialRevenue || 0), 0),
-    avgROI: recommendations.filter(r => r.roi).reduce((sum, r) => sum + (r.roi || 0), 0) / recommendations.filter(r => r.roi).length
-  }
 
   const getImpactBadge = (impact: string) => {
     switch (impact) {

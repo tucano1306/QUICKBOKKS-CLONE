@@ -53,6 +53,18 @@ export default function BankAccountsPage() {
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showBankModal, setShowBankModal] = useState(false)
+  const [showNewAccountModal, setShowNewAccountModal] = useState(false)
+  const [newAccount, setNewAccount] = useState({
+    accountName: '',
+    bank: '',
+    accountNumber: '',
+    type: 'checking',
+    currency: 'MXN',
+    balance: 0,
+    routing: '',
+    swift: ''
+  })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -287,7 +299,7 @@ export default function BankAccountsPage() {
               <LinkIcon className="w-4 h-4 mr-2" />
               Conectar Banco
             </Button>
-            <Button>
+            <Button onClick={() => setShowNewAccountModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Cuenta
             </Button>
@@ -570,6 +582,241 @@ export default function BankAccountsPage() {
                     </ul>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* New Account Modal */}
+        {showNewAccountModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <CardHeader className="border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5" />
+                    Nueva Cuenta Bancaria
+                  </CardTitle>
+                  <Button variant="outline" onClick={() => setShowNewAccountModal(false)}>
+                    Cerrar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  setSaving(true)
+                  try {
+                    const response = await fetch('/api/banking/accounts', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(newAccount)
+                    })
+                    if (response.ok) {
+                      setShowNewAccountModal(false)
+                      setNewAccount({
+                        accountName: '',
+                        bank: '',
+                        accountNumber: '',
+                        type: 'checking',
+                        currency: 'MXN',
+                        balance: 0,
+                        routing: '',
+                        swift: ''
+                      })
+                      window.location.reload()
+                    } else {
+                      alert('Error al crear la cuenta')
+                    }
+                  } catch (error) {
+                    console.error('Error:', error)
+                    alert('Error al crear la cuenta')
+                  } finally {
+                    setSaving(false)
+                  }
+                }} className="space-y-6">
+                  {/* Account Name */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Nombre de la Cuenta *
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="Ej: Cuenta Principal Operativa"
+                      value={newAccount.accountName}
+                      onChange={(e) => setNewAccount({ ...newAccount, accountName: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  {/* Bank Name */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Nombre del Banco *
+                    </label>
+                    <select
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={newAccount.bank}
+                      onChange={(e) => setNewAccount({ ...newAccount, bank: e.target.value })}
+                      required
+                    >
+                      <option value="">Seleccionar banco...</option>
+                      <option value="BBVA México">BBVA México</option>
+                      <option value="Banco Santander">Banco Santander</option>
+                      <option value="Banorte">Banorte</option>
+                      <option value="Citibanamex">Citibanamex</option>
+                      <option value="HSBC México">HSBC México</option>
+                      <option value="Scotiabank">Scotiabank</option>
+                      <option value="Banco Azteca">Banco Azteca</option>
+                      <option value="Inbursa">Inbursa</option>
+                      <option value="BanCoppel">BanCoppel</option>
+                      <option value="American Express">American Express</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                  </div>
+
+                  {/* Account Number */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Número de Cuenta / CLABE *
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="Ej: 012180001234567890"
+                      value={newAccount.accountNumber}
+                      onChange={(e) => setNewAccount({ ...newAccount, accountNumber: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  {/* Account Type and Currency Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Tipo de Cuenta *
+                      </label>
+                      <select
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        value={newAccount.type}
+                        onChange={(e) => setNewAccount({ ...newAccount, type: e.target.value })}
+                        required
+                      >
+                        <option value="checking">Cuenta Corriente</option>
+                        <option value="savings">Cuenta de Ahorros</option>
+                        <option value="credit">Tarjeta de Crédito</option>
+                        <option value="investment">Inversión</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Moneda *
+                      </label>
+                      <select
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        value={newAccount.currency}
+                        onChange={(e) => setNewAccount({ ...newAccount, currency: e.target.value })}
+                        required
+                      >
+                        <option value="MXN">MXN - Peso Mexicano</option>
+                        <option value="USD">USD - Dólar Americano</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - Libra Esterlina</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Initial Balance */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Saldo Inicial
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="pl-8"
+                        value={newAccount.balance || ''}
+                        onChange={(e) => setNewAccount({ ...newAccount, balance: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {newAccount.type === 'credit' ? 'Para tarjetas de crédito, ingresa el saldo adeudado como número positivo' : 'Ingresa el saldo actual de la cuenta'}
+                    </p>
+                  </div>
+
+                  {/* Optional Fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Número de Ruta (Opcional)
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="Ej: 012180015"
+                        value={newAccount.routing}
+                        onChange={(e) => setNewAccount({ ...newAccount, routing: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Código SWIFT (Opcional)
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="Ej: BCMRMXMMPYM"
+                        value={newAccount.swift}
+                        onChange={(e) => setNewAccount({ ...newAccount, swift: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Info Box */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Building2 className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-blue-900">Información de la Cuenta</h4>
+                        <p className="text-sm text-blue-700 mt-1">
+                          Al crear una cuenta bancaria, podrás registrar transacciones, realizar conciliaciones 
+                          y mantener un seguimiento de tus saldos. Asegúrate de ingresar el número de cuenta correcto.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setShowNewAccountModal(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={saving || !newAccount.accountName || !newAccount.bank || !newAccount.accountNumber}
+                    >
+                      {saving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Crear Cuenta
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
               </CardContent>
             </Card>
           </div>

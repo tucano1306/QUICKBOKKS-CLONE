@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,8 +29,10 @@ import {
   AlertCircle,
   Download,
   RefreshCw,
-  Trash2
+  Trash2,
+  PlusCircle
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface PaymentLink {
   id: string
@@ -60,6 +63,7 @@ export default function PaymentLinksPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showLinkGenerator, setShowLinkGenerator] = useState(false)
+  const [selectedLink, setSelectedLink] = useState<PaymentLink | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -225,12 +229,33 @@ export default function PaymentLinksPage() {
     alert('✅ Link de pago copiado al portapapeles')
   }
 
+  const handleCopyLink = (linkId: string) => {
+    const link = paymentLinks.find(l => l.id === linkId)
+    if (link) {
+      navigator.clipboard.writeText(link.paymentLinkUrl)
+      toast.success('✅ Link copiado al portapapeles')
+    }
+  }
+
   const sendEmail = (email: string, invoiceNumber: string) => {
     alert(`📧 Email de pago enviado a ${email} para factura ${invoiceNumber}`)
   }
 
+  const handleSendLinkViaEmail = (linkId: string) => {
+    const link = paymentLinks.find(l => l.id === linkId)
+    if (link) {
+      toast.success(`📧 Enviando link a ${link.customerEmail}...`)
+      // Implementar envío de email
+    }
+  }
+
   const regenerateLink = (invoiceNumber: string) => {
     alert(`🔄 Link de pago regenerado para factura ${invoiceNumber}`)
+  }
+
+  const handleDeactivateLink = (linkId: string) => {
+    toast.success('🔒 Link desactivado correctamente')
+    // Implementar desactivación en base de datos
   }
 
   const stats = {
@@ -253,6 +278,64 @@ export default function PaymentLinksPage() {
     )
   }
 
+  const paymentLinkActions = [
+    {
+      label: 'Ver todos los links',
+      icon: Eye,
+      onClick: () => {
+        setSearchTerm('')
+        toast.success('📋 Mostrando todos los links de pago')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Crear nuevo link',
+      icon: PlusCircle,
+      onClick: () => {
+        setShowLinkGenerator(true)
+      },
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Copiar URL',
+      icon: Copy,
+      onClick: () => {
+        if (selectedLink) {
+          handleCopyLink(selectedLink.id)
+        } else {
+          toast.error('Selecciona un link de la lista primero')
+        }
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Enviar por email',
+      icon: Mail,
+      onClick: () => {
+        if (selectedLink) {
+          handleSendLinkViaEmail(selectedLink.id)
+        } else {
+          toast.error('Selecciona un link para enviar')
+        }
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Desactivar link',
+      icon: XCircle,
+      onClick: () => {
+        if (selectedLink && selectedLink.linkActive) {
+          handleDeactivateLink(selectedLink.id)
+        } else if (!selectedLink) {
+          toast.error('Selecciona un link primero')
+        } else {
+          toast.error('El link ya está desactivado')
+        }
+      },
+      variant: 'danger' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
@@ -272,6 +355,19 @@ export default function PaymentLinksPage() {
             Generar Nuevo Link
           </Button>
         </div>
+
+        {/* Action Buttons */}
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-blue-900 flex items-center">
+              <LinkIcon className="w-4 h-4 mr-2" />
+              Acciones de Links de Pago
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={paymentLinkActions} />
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

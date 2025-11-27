@@ -1,311 +1,605 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { redirect, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, DollarSign, Calendar } from 'lucide-react'
-import Link from 'next/link'
-import toast from 'react-hot-toast'
+import { 
+  ArrowLeft,
+  Calculator,
+  Users,
+  DollarSign,
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  FileText,
+  Download,
+  Send
+} from 'lucide-react'
 
 interface Employee {
   id: string
-  employeeNumber: string
   firstName: string
   lastName: string
+  email: string
   position: string
+  department: string
   salary: number
-  salaryType: string
+  payrollType: string
+}
+
+interface PayrollCalculation {
+  employeeId: string
+  employee: Employee
+  grossSalary: number
+  deductions: {
+    isr: number
+    imss: number
+    other: number
+  }
+  netSalary: number
+}
+
+interface PayrollResult {
+  id: string
+  employeeId: string
+  periodStart: string
+  periodEnd: string
+  baseSalary: number
+  deductions: number
+  netPay: number
   status: string
 }
 
 export default function NewPayrollRunPage() {
-  const { data: session, status } = useSession()
   const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [calculating, setCalculating] = useState(false)
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
-    periodStart: '',
-    periodEnd: '',
-    paymentDate: '',
-  })
+  const [calculations, setCalculations] = useState<PayrollCalculation[]>([])
+  const [payrollResults, setPayrollResults] = useState<PayrollResult[]>([])
+  const [step, setStep] = useState<'config' | 'preview' | 'complete'>('config')
+  
+  // Form state
+  const [periodStart, setPeriodStart] = useState('')
+  const [periodEnd, setPeriodEnd] = useState('')
+  const [paymentDate, setPaymentDate] = useState('')
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/auth/login')
-    }
-    if (status === 'authenticated') {
-      fetchEmployees()
-      // Set default dates (current month)
-      const now = new Date()
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      setFormData({
-        periodStart: firstDay.toISOString().split('T')[0],
-        periodEnd: lastDay.toISOString().split('T')[0],
-        paymentDate: lastDay.toISOString().split('T')[0],
-      })
-    }
-  }, [status])
+    fetchEmployees()
+    // Set default dates
+    const today = new Date()
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    
+    setPeriodStart(firstDay.toISOString().split('T')[0])
+    setPeriodEnd(lastDay.toISOString().split('T')[0])
+    setPaymentDate(lastDay.toISOString().split('T')[0])
+  }, [])
 
   const fetchEmployees = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('/api/payroll/employees?status=ACTIVE')
+      const response = await fetch('/api/employees?status=ACTIVE')
       if (response.ok) {
         const data = await response.json()
-        setEmployees(Array.isArray(data) ? data : [])
+        setEmployees(data.employees || data)
+        // Select all employees by default
+        setSelectedEmployees((data.employees || data).map((e: Employee) => e.id))
       }
     } catch (error) {
       console.error('Error fetching employees:', error)
-      toast.error('Error al cargar empleados')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!formData.periodStart || !formData.periodEnd || !formData.paymentDate) {
-      toast.error('Todos los campos son requeridos')
+  const calculatePayroll = async () => {
+    if (!periodStart || !periodEnd || selectedEmployees.length === 0) {
+      alert('Por favor complete todos los campos y seleccione al menos un empleado')
       return
     }
 
-    if (employees.length === 0) {
-      toast.error('No hay empleados activos para procesar nómina')
-      return
-    }
-
-    setIsSubmitting(true)
-
+    setCalculating(true)
     try {
-      const response = await fetch('/api/payroll/runs', {
+      // Calculate for each selected employee
+      const calcs: PayrollCalculation[] = []
+      
+      for (const empId of selectedEmployees) {
+        const emp = employees.find(e => e.id === empId)
+        if (emp) {
+          // Calculate monthly salary for the period
+          const startDate = new Date(periodStart)
+          const endDate = new Date(periodEnd)
+          const daysInPeriod = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+          
+          // Assuming monthly salary
+          const dailySalary = emp.salary / 30
+          const grossSalary = dailySalary * daysInPeriod
+          
+          // Calculate deductions
+          const isrRate = 0.10 // 10% ISR
+          const imssRate = 0.03 // 3% IMSS
+          
+          const isr = grossSalary * isrRate
+          const imss = grossSalary * imssRate
+          const other = 0
+          
+          const netSalary = grossSalary - isr - imss - other
+          
+          calcs.push({
+            employeeId: emp.id,
+            employee: emp,
+            grossSalary,
+            deductions: { isr, imss, other },
+            netSalary
+          })
+        }
+      }
+      
+      setCalculations(calcs)
+      setStep('preview')
+    } catch (error) {
+      console.error('Error calculating payroll:', error)
+      alert('Error al calcular la nómina')
+    } finally {
+      setCalculating(false)
+    }
+  }
+
+  const processPayroll = async () => {
+    setCalculating(true)
+    try {
+      const response = await fetch('/api/payroll/calculate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          periodStart: formData.periodStart,
-          periodEnd: formData.periodEnd,
-          paymentDate: formData.paymentDate,
-        }),
+          periodStart,
+          periodEnd,
+          paymentDate,
+          employeeIds: selectedEmployees
+        })
       })
 
       if (response.ok) {
         const data = await response.json()
-        toast.success(`Nómina procesada: ${data.length} empleados`)
-        router.push('/payroll')
+        setPayrollResults(data.payrolls || [])
+        setStep('complete')
       } else {
         const error = await response.json()
-        toast.error(error.error || 'Error al procesar nómina')
+        alert(error.error || 'Error al procesar la nómina')
       }
     } catch (error) {
       console.error('Error processing payroll:', error)
-      toast.error('Error al procesar nómina')
+      alert('Error al procesar la nómina')
     } finally {
-      setIsSubmitting(false)
+      setCalculating(false)
     }
   }
 
-  if (status === 'loading' || isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </DashboardLayout>
+  const toggleEmployee = (empId: string) => {
+    setSelectedEmployees(prev => 
+      prev.includes(empId)
+        ? prev.filter(id => id !== empId)
+        : [...prev, empId]
     )
   }
 
-  const totalGross = employees.reduce((sum, emp) => sum + emp.salary, 0)
+  const selectAllEmployees = () => {
+    if (selectedEmployees.length === employees.length) {
+      setSelectedEmployees([])
+    } else {
+      setSelectedEmployees(employees.map(e => e.id))
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(amount)
+  }
+
+  const getTotalGross = () => calculations.reduce((sum, c) => sum + c.grossSalary, 0)
+  const getTotalDeductions = () => calculations.reduce((sum, c) => sum + c.deductions.isr + c.deductions.imss + c.deductions.other, 0)
+  const getTotalNet = () => calculations.reduce((sum, c) => sum + c.netSalary, 0)
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link href="/payroll">
-            <Button variant="outline" size="sm">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => router.push('/payroll')}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Nueva Nómina</h1>
-            <p className="text-gray-600 mt-1">
-              Procesar nómina para empleados activos
-            </p>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Nueva Nómina</h1>
+              <p className="text-sm text-gray-500">
+                {step === 'config' && 'Paso 1: Configurar período y empleados'}
+                {step === 'preview' && 'Paso 2: Revisar cálculos'}
+                {step === 'complete' && 'Paso 3: Nómina procesada'}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Empleados Activos
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{employees.length}</div>
-              <p className="text-xs text-gray-600 mt-1">
-                Para procesar en esta nómina
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Estimado (Bruto)
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${totalGross.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </div>
-              <p className="text-xs text-gray-600 mt-1">
-                Antes de deducciones
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Periodo de Pago
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm font-medium">
-                {formData.periodStart && formData.periodEnd ? (
-                  <>
-                    {new Date(formData.periodStart).toLocaleDateString('es-ES', { 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })} - {new Date(formData.periodEnd).toLocaleDateString('es-ES', { 
-                      month: 'short', 
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </>
-                ) : (
-                  'Seleccionar fechas'
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Progress Steps */}
+        <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+            step === 'config' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+          }`}>
+            <span className="font-semibold">1</span>
+            <span>Configurar</span>
+          </div>
+          <div className="h-px flex-1 bg-gray-200"></div>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+            step === 'preview' ? 'bg-blue-100 text-blue-700' : 
+            step === 'complete' ? 'bg-gray-100 text-gray-600' : 'bg-gray-50 text-gray-400'
+          }`}>
+            <span className="font-semibold">2</span>
+            <span>Revisar</span>
+          </div>
+          <div className="h-px flex-1 bg-gray-200"></div>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+            step === 'complete' ? 'bg-green-100 text-green-700' : 'bg-gray-50 text-gray-400'
+          }`}>
+            <span className="font-semibold">3</span>
+            <span>Completado</span>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Información del Periodo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Step 1: Configuration */}
+        {step === 'config' && (
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Period Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Período de Nómina
+                </CardTitle>
+                <CardDescription>
+                  Define el período a calcular
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Inicio del Periodo *
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha Inicio
                   </label>
                   <Input
                     type="date"
-                    value={formData.periodStart}
-                    onChange={(e) => setFormData({ ...formData, periodStart: e.target.value })}
-                    required
+                    value={periodStart}
+                    onChange={(e) => setPeriodStart(e.target.value)}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fin del Periodo *
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha Fin
                   </label>
                   <Input
                     type="date"
-                    value={formData.periodEnd}
-                    onChange={(e) => setFormData({ ...formData, periodEnd: e.target.value })}
-                    required
+                    value={periodEnd}
+                    onChange={(e) => setPeriodEnd(e.target.value)}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha de Pago *
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de Pago
                   </label>
                   <Input
                     type="date"
-                    value={formData.paymentDate}
-                    onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
-                    required
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
                   />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Empleados a Procesar ({employees.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {employees.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No hay empleados activos para procesar</p>
-                  <Link href="/employees/new" className="text-blue-600 hover:underline mt-2 inline-block">
-                    Agregar empleado
-                  </Link>
+            {/* Employee Selection */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Empleados
+                    </CardTitle>
+                    <CardDescription>
+                      Selecciona los empleados a incluir
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={selectAllEmployees}>
+                    {selectedEmployees.length === employees.length ? 'Deseleccionar' : 'Seleccionar'} Todos
+                  </Button>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {employees.map((employee) => (
-                    <div
-                      key={employee.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {employee.firstName} {employee.lastName}
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="max-h-[300px] overflow-y-auto space-y-2">
+                    {employees.map(emp => (
+                      <div
+                        key={emp.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedEmployees.includes(emp.id) 
+                            ? 'bg-blue-50 border-blue-200' 
+                            : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => toggleEmployee(emp.id)}
+                      >
+                        <div>
+                          <p className="font-medium">{emp.firstName} {emp.lastName}</p>
+                          <p className="text-sm text-gray-500">{emp.position}</p>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          {employee.employeeNumber} • {employee.position}
+                        <div className="text-right">
+                          <p className="font-medium text-gray-700">
+                            {formatCurrency(emp.salary)}
+                          </p>
+                          <p className="text-xs text-gray-500">{emp.payrollType}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-medium">
-                          ${employee.salary.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {employee.salaryType === 'HOURLY' ? 'Por hora' : 
-                           employee.salaryType === 'MONTHLY' ? 'Mensual' : 
-                           'Anual'}
-                        </div>
-                      </div>
+                    ))}
+                    {employees.length === 0 && (
+                      <p className="text-center text-gray-500 py-4">
+                        No hay empleados activos
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Step 2: Preview */}
+        {step === 'preview' && (
+          <div className="space-y-6">
+            {/* Summary Cards */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Users className="h-5 w-5 text-blue-600" />
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <div>
+                      <p className="text-sm text-gray-500">Empleados</p>
+                      <p className="text-2xl font-bold">{calculations.length}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <div className="flex justify-end gap-4">
-            <Link href="/payroll">
-              <Button type="button" variant="outline">
-                Cancelar
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <DollarSign className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Total Bruto</p>
+                      <p className="text-2xl font-bold">{formatCurrency(getTotalGross())}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <AlertCircle className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Deducciones</p>
+                      <p className="text-2xl font-bold">{formatCurrency(getTotalDeductions())}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <DollarSign className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Total Neto</p>
+                      <p className="text-2xl font-bold">{formatCurrency(getTotalNet())}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Detailed Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Detalle de Cálculos</CardTitle>
+                <CardDescription>
+                  Período: {periodStart} al {periodEnd}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4">Empleado</th>
+                        <th className="text-left py-3 px-4">Puesto</th>
+                        <th className="text-right py-3 px-4">Salario Bruto</th>
+                        <th className="text-right py-3 px-4">ISR (10%)</th>
+                        <th className="text-right py-3 px-4">IMSS (3%)</th>
+                        <th className="text-right py-3 px-4">Salario Neto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {calculations.map(calc => (
+                        <tr key={calc.employeeId} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <p className="font-medium">
+                              {calc.employee.firstName} {calc.employee.lastName}
+                            </p>
+                            <p className="text-sm text-gray-500">{calc.employee.email}</p>
+                          </td>
+                          <td className="py-3 px-4">{calc.employee.position}</td>
+                          <td className="py-3 px-4 text-right font-medium">
+                            {formatCurrency(calc.grossSalary)}
+                          </td>
+                          <td className="py-3 px-4 text-right text-red-600">
+                            -{formatCurrency(calc.deductions.isr)}
+                          </td>
+                          <td className="py-3 px-4 text-right text-red-600">
+                            -{formatCurrency(calc.deductions.imss)}
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold text-green-600">
+                            {formatCurrency(calc.netSalary)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-gray-50 font-bold">
+                        <td className="py-3 px-4" colSpan={2}>TOTALES</td>
+                        <td className="py-3 px-4 text-right">{formatCurrency(getTotalGross())}</td>
+                        <td className="py-3 px-4 text-right text-red-600">
+                          -{formatCurrency(calculations.reduce((s, c) => s + c.deductions.isr, 0))}
+                        </td>
+                        <td className="py-3 px-4 text-right text-red-600">
+                          -{formatCurrency(calculations.reduce((s, c) => s + c.deductions.imss, 0))}
+                        </td>
+                        <td className="py-3 px-4 text-right text-green-600">
+                          {formatCurrency(getTotalNet())}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Step 3: Complete */}
+        {step === 'complete' && (
+          <div className="space-y-6">
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-green-900">
+                      ¡Nómina Procesada Exitosamente!
+                    </h3>
+                    <p className="text-green-700">
+                      Se han creado {payrollResults.length} registros de nómina
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Results Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Nóminas Generadas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4">ID</th>
+                        <th className="text-left py-3 px-4">Período</th>
+                        <th className="text-right py-3 px-4">Salario Base</th>
+                        <th className="text-right py-3 px-4">Deducciones</th>
+                        <th className="text-right py-3 px-4">Pago Neto</th>
+                        <th className="text-left py-3 px-4">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payrollResults.map(result => (
+                        <tr key={result.id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4 font-mono text-sm">
+                            {result.id.slice(0, 8)}...
+                          </td>
+                          <td className="py-3 px-4">
+                            {new Date(result.periodStart).toLocaleDateString()} - {new Date(result.periodEnd).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {formatCurrency(result.baseSalary)}
+                          </td>
+                          <td className="py-3 px-4 text-right text-red-600">
+                            -{formatCurrency(result.deductions)}
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold text-green-600">
+                            {formatCurrency(result.netPay)}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
+                              {result.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <Button onClick={() => router.push('/payroll/checks')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Generar Cheques
               </Button>
-            </Link>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting || employees.length === 0}
+              <Button variant="outline" onClick={() => router.push('/payroll')}>
+                <Send className="h-4 w-4 mr-2" />
+                Procesar Pagos
+              </Button>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar a Excel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Buttons */}
+        {step !== 'complete' && (
+          <div className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={() => step === 'preview' ? setStep('config') : router.push('/payroll')}
             >
-              {isSubmitting ? 'Procesando...' : 'Procesar Nómina'}
+              {step === 'preview' ? 'Modificar Configuración' : 'Cancelar'}
+            </Button>
+            <Button
+              onClick={step === 'config' ? calculatePayroll : processPayroll}
+              disabled={calculating || (step === 'config' && selectedEmployees.length === 0)}
+            >
+              {calculating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {step === 'config' ? 'Calcular Nómina' : 'Procesar Nómina'}
             </Button>
           </div>
-        </form>
+        )}
       </div>
     </DashboardLayout>
   )

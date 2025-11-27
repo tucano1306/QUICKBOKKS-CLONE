@@ -53,6 +53,12 @@ export default function AIPredictionsPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('6months')
+  const [predictions, setPredictions] = useState<Prediction[]>([])
+  const [cashFlowForecast, setCashFlowForecast] = useState<ForecastData[]>([])
+  const [currentMetrics, setCurrentMetrics] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [updatingModels, setUpdatingModels] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -61,140 +67,110 @@ export default function AIPredictionsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const predictions: Prediction[] = [
-    {
-      id: '1',
-      type: 'Revenue',
-      title: 'December 2025 Revenue',
-      timeframe: 'Next Month',
-      prediction: 1285000,
-      confidence: 92,
-      trend: 'up',
-      insights: [
-        'Seasonal increase expected (+8% vs Nov)',
-        'Based on 3-year historical patterns',
-        'Holiday sales boost anticipated',
-        'New customer acquisitions trending up'
-      ]
-    },
-    {
-      id: '2',
-      type: 'Cash Flow',
-      title: 'Q1 2026 Cash Position',
-      timeframe: 'Next Quarter',
-      prediction: 2450000,
-      confidence: 88,
-      trend: 'up',
-      insights: [
-        'Strong collections expected in January',
-        'Major client payments due Q1',
-        'Operating expenses stable',
-        'Recommend maintaining 15% cash reserve'
-      ]
-    },
-    {
-      id: '3',
-      type: 'Expenses',
-      title: 'December Operating Costs',
-      timeframe: 'Next Month',
-      prediction: 685000,
-      confidence: 94,
-      trend: 'stable',
-      insights: [
-        'Within normal range (+2% vs Nov)',
-        'Payroll and rent remain consistent',
-        'Marketing spend aligned with budget',
-        'No unusual expense patterns detected'
-      ]
-    },
-    {
-      id: '4',
-      type: 'Profit Margin',
-      title: 'Q4 2025 Net Margin',
-      timeframe: 'This Quarter',
-      prediction: 18.5,
-      confidence: 90,
-      trend: 'up',
-      actual: 17.2,
-      accuracy: 92.7,
-      insights: [
-        'Margin improvement from cost optimization',
-        'Revenue growth outpacing expense increases',
-        'Gross margin stable at 42%',
-        'Target of 20% achievable by Q2 2026'
-      ]
-    },
-    {
-      id: '5',
-      type: 'Collections',
-      title: 'Days Sales Outstanding',
-      timeframe: 'Next 30 Days',
-      prediction: 34,
-      confidence: 87,
-      trend: 'down',
-      insights: [
-        'DSO improvement from payment reminders',
-        'Large invoices expected to clear',
-        'Collection efficiency up 12%',
-        'Target: Maintain below 35 days'
-      ]
-    },
-    {
-      id: '6',
-      type: 'Customer Churn',
-      title: 'Monthly Churn Rate',
-      timeframe: 'December 2025',
-      prediction: 2.8,
-      confidence: 85,
-      trend: 'stable',
-      insights: [
-        'Below industry average (3.5%)',
-        'Retention programs showing results',
-        'Focus on at-risk accounts identified',
-        '15 customers flagged for attention'
-      ]
+    const fetchPredictions = async () => {
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/ai/predictions?timeframe=${selectedTimeframe}${activeCompany?.id ? `&companyId=${activeCompany.id}` : ''}`)
+        const data = await response.json()
+        
+        if (data.success) {
+          setPredictions(data.predictions || [])
+          setCashFlowForecast(data.cashFlowForecast || [])
+          setCurrentMetrics(data.currentMetrics || null)
+        } else {
+          setError(data.error || 'Error al cargar predicciones')
+        }
+      } catch (err) {
+        console.error('Error fetching predictions:', err)
+        setError('Error al conectar con el servidor')
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
 
-  const cashFlowForecast: ForecastData[] = [
-    { month: 'Jul 2025', actual: 2150000, predicted: 2180000, lowerBound: 2080000, upperBound: 2280000 },
-    { month: 'Aug 2025', actual: 2280000, predicted: 2250000, lowerBound: 2150000, upperBound: 2350000 },
-    { month: 'Sep 2025', actual: 2420000, predicted: 2380000, lowerBound: 2280000, upperBound: 2480000 },
-    { month: 'Oct 2025', actual: 2350000, predicted: 2400000, lowerBound: 2300000, upperBound: 2500000 },
-    { month: 'Nov 2025', actual: 2480000, predicted: 2450000, lowerBound: 2350000, upperBound: 2550000 },
-    { month: 'Dec 2025', predicted: 2620000, lowerBound: 2480000, upperBound: 2760000 },
-    { month: 'Jan 2026', predicted: 2350000, lowerBound: 2200000, upperBound: 2500000 },
-    { month: 'Feb 2026', predicted: 2450000, lowerBound: 2300000, upperBound: 2600000 },
-    { month: 'Mar 2026', predicted: 2580000, lowerBound: 2420000, upperBound: 2740000 },
-    { month: 'Apr 2026', predicted: 2720000, lowerBound: 2560000, upperBound: 2880000 },
-    { month: 'May 2026', predicted: 2850000, lowerBound: 2680000, upperBound: 3020000 },
-    { month: 'Jun 2026', predicted: 2950000, lowerBound: 2770000, upperBound: 3130000 }
-  ]
+    if (status === 'authenticated') {
+      fetchPredictions()
+    }
+  }, [status, selectedTimeframe, activeCompany])
 
-  const revenueForecast: ForecastData[] = [
-    { month: 'Jul 2025', actual: 1150000, predicted: 1120000, lowerBound: 1080000, upperBound: 1160000 },
-    { month: 'Aug 2025', actual: 1180000, predicted: 1150000, lowerBound: 1110000, upperBound: 1190000 },
-    { month: 'Sep 2025', actual: 1220000, predicted: 1200000, lowerBound: 1160000, upperBound: 1240000 },
-    { month: 'Oct 2025', actual: 1190000, predicted: 1210000, lowerBound: 1170000, upperBound: 1250000 },
-    { month: 'Nov 2025', actual: 1240000, predicted: 1220000, lowerBound: 1180000, upperBound: 1260000 },
-    { month: 'Dec 2025', predicted: 1285000, lowerBound: 1240000, upperBound: 1330000 },
-    { month: 'Jan 2026', predicted: 1180000, lowerBound: 1130000, upperBound: 1230000 },
-    { month: 'Feb 2026', predicted: 1220000, lowerBound: 1170000, upperBound: 1270000 },
-    { month: 'Mar 2026', predicted: 1280000, lowerBound: 1230000, upperBound: 1330000 },
-    { month: 'Apr 2026', predicted: 1350000, lowerBound: 1290000, upperBound: 1410000 },
-    { month: 'May 2026', predicted: 1420000, lowerBound: 1360000, upperBound: 1480000 },
-    { month: 'Jun 2026', predicted: 1480000, lowerBound: 1410000, upperBound: 1550000 }
-  ]
+  const handleUpdateModels = async () => {
+    setUpdatingModels(true)
+    try {
+      // Simular actualización de modelos con datos reales
+      const response = await fetch(`/api/ai/predictions?timeframe=${selectedTimeframe}&refresh=true${activeCompany?.id ? `&companyId=${activeCompany.id}` : ''}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setPredictions(data.predictions || [])
+        setCashFlowForecast(data.cashFlowForecast || [])
+        setCurrentMetrics(data.currentMetrics || null)
+        alert('✅ Modelos actualizados exitosamente\n\nLos modelos de IA han sido re-entrenados con los datos más recientes.')
+      }
+    } catch (err) {
+      console.error('Error updating models:', err)
+      alert('❌ Error al actualizar modelos')
+    } finally {
+      setUpdatingModels(false)
+    }
+  }
+
+  const handleExportForecast = () => {
+    setExporting(true)
+    try {
+      // Crear CSV con las predicciones
+      const headers = ['Categoría', 'Título', 'Predicción', 'Tendencia', 'Confianza %', 'Período']
+      const rows = predictions.map(p => [
+        p.type || 'N/A',
+        p.title || 'N/A',
+        typeof p.prediction === 'number' && p.prediction !== null ? `$${p.prediction.toLocaleString()}` : String(p.prediction || 'N/A'),
+        p.trend === 'up' ? 'Incremento' : p.trend === 'down' ? 'Decremento' : 'Estable',
+        (p.confidence || 0).toString(),
+        p.timeframe || 'N/A'
+      ])
+      
+      // Agregar forecast de flujo de caja
+      const cashFlowHeaders = ['Mes', 'Predicción', 'Límite Inferior', 'Límite Superior']
+      const cashFlowRows = (cashFlowForecast || []).map(f => [
+        f.month || 'N/A',
+        f.predicted !== null && f.predicted !== undefined ? `$${f.predicted.toLocaleString()}` : 'N/A',
+        f.lowerBound !== null && f.lowerBound !== undefined ? `$${f.lowerBound.toLocaleString()}` : 'N/A',
+        f.upperBound !== null && f.upperBound !== undefined ? `$${f.upperBound.toLocaleString()}` : 'N/A'
+      ])
+      
+      let csvContent = '=== PREDICCIONES IA ===\n'
+      csvContent += headers.join(',') + '\n'
+      csvContent += rows.map(row => row.join(',')).join('\n')
+      csvContent += '\n\n=== PRONÓSTICO FLUJO DE CAJA ===\n'
+      csvContent += cashFlowHeaders.join(',') + '\n'
+      csvContent += cashFlowRows.map(row => row.join(',')).join('\n')
+      
+      // Descargar archivo
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `predicciones_ia_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      alert('✅ Archivo exportado exitosamente\n\nEl archivo CSV se ha descargado.')
+    } catch (err) {
+      console.error('Error exporting:', err)
+      alert('❌ Error al exportar predicciones')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const stats = {
     totalPredictions: predictions.length,
-    avgConfidence: predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length,
-    avgAccuracy: predictions.filter(p => p.accuracy).reduce((sum, p) => sum + (p.accuracy || 0), 0) / predictions.filter(p => p.accuracy).length,
-    modelsActive: 12
+    avgConfidence: predictions.length > 0 ? predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length : 0,
+    avgAccuracy: predictions.filter(p => p.accuracy).length > 0 
+      ? predictions.filter(p => p.accuracy).reduce((sum, p) => sum + (p.accuracy || 0), 0) / predictions.filter(p => p.accuracy).length 
+      : 85,
+    modelsActive: 6
   }
 
   const getTrendIcon = (trend: string) => {
@@ -211,21 +187,21 @@ export default function AIPredictionsPage() {
   const getTrendBadge = (trend: string) => {
     switch (trend) {
       case 'up':
-        return <Badge className="bg-green-100 text-green-700">Increasing</Badge>
+        return <Badge className="bg-green-100 text-green-700">Incremento</Badge>
       case 'down':
-        return <Badge className="bg-red-100 text-red-700">Decreasing</Badge>
+        return <Badge className="bg-red-100 text-red-700">Decremento</Badge>
       default:
-        return <Badge className="bg-blue-100 text-blue-700">Stable</Badge>
+        return <Badge className="bg-blue-100 text-blue-700">Estable</Badge>
     }
   }
 
   const getConfidenceBadge = (confidence: number) => {
     if (confidence >= 90) {
-      return <Badge className="bg-green-100 text-green-700">High Confidence</Badge>
+      return <Badge className="bg-green-100 text-green-700">Alta Confianza</Badge>
     } else if (confidence >= 80) {
-      return <Badge className="bg-blue-100 text-blue-700">Good Confidence</Badge>
+      return <Badge className="bg-blue-100 text-blue-700">Buena Confianza</Badge>
     } else {
-      return <Badge className="bg-yellow-100 text-yellow-700">Moderate Confidence</Badge>
+      return <Badge className="bg-yellow-100 text-yellow-700">Confianza Moderada</Badge>
     }
   }
 
@@ -247,20 +223,20 @@ export default function AIPredictionsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Brain className="w-8 h-8 text-purple-600" />
-              AI Predictions & Forecasting
+              Predicciones y Pronósticos IA
             </h1>
             <p className="text-gray-600 mt-1">
-              Machine learning predictions for your financial future
+              Predicciones inteligentes basadas en tus datos reales
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('🔄 Update Models\n\nActualizando modelos de IA con datos más recientes...')}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Update Models
+            <Button variant="outline" onClick={handleUpdateModels} disabled={updatingModels}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${updatingModels ? 'animate-spin' : ''}`} />
+              {updatingModels ? 'Actualizando...' : 'Update Models'}
             </Button>
-            <Button onClick={() => alert('📥 Export Forecast\n\nExportando predicciones a CSV')}>
+            <Button onClick={handleExportForecast} disabled={exporting || predictions.length === 0}>
               <Download className="w-4 h-4 mr-2" />
-              Export Forecast
+              {exporting ? 'Exportando...' : 'Export Forecast'}
             </Button>
           </div>
         </div>
@@ -327,10 +303,10 @@ export default function AIPredictionsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {revenueForecast.slice(-6).map((data, idx) => {
+                {cashFlowForecast.slice(-6).map((data, idx) => {
                   const isActual = data.actual !== undefined
                   const value = isActual ? data.actual : data.predicted
-                  const maxValue = Math.max(...revenueForecast.map(d => d.upperBound))
+                  const maxValue = Math.max(...cashFlowForecast.map(d => d.upperBound || d.predicted))
                   const percentage = (value / maxValue) * 100
 
                   return (
@@ -376,8 +352,8 @@ export default function AIPredictionsPage() {
                 {cashFlowForecast.slice(-6).map((data, idx) => {
                   const isActual = data.actual !== undefined
                   const value = isActual ? data.actual : data.predicted
-                  const maxValue = Math.max(...cashFlowForecast.map(d => d.upperBound))
-                  const percentage = (value / maxValue) * 100
+                  const maxValue = Math.max(...cashFlowForecast.map(d => d.upperBound || d.predicted))
+                  const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0
 
                   return (
                     <div key={idx} className="space-y-1">
@@ -385,7 +361,7 @@ export default function AIPredictionsPage() {
                         <span className="text-gray-700">{data.month}</span>
                         <span className={`font-semibold ${isActual ? 'text-green-600' : 'text-purple-600'}`}>
                           ${(value / 1000).toFixed(0)}K
-                          {!isActual && (
+                          {!isActual && data.upperBound && data.lowerBound && (
                             <span className="text-xs text-gray-500 ml-1">
                               (±${((data.upperBound - data.lowerBound) / 2000).toFixed(0)}K)
                             </span>

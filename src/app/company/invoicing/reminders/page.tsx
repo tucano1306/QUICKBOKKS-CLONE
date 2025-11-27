@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,8 +25,12 @@ import {
   Pause,
   CheckCircle2,
   AlertTriangle,
-  Settings
+  Settings,
+  PlusCircle,
+  Eye,
+  History
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Reminder {
   id: string
@@ -275,28 +280,90 @@ export default function RemindersPage() {
     )
   }
 
+  const reminderActions = [
+    {
+      label: 'Ver todos',
+      icon: Eye,
+      onClick: () => {
+        setSelectedTab('templates')
+        setSearchTerm('')
+        toast.success('📋 Mostrando todos los recordatorios')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Crear recordatorio',
+      icon: PlusCircle,
+      onClick: () => {
+        router.push('/company/invoicing/reminders/new')
+      },
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Enviar ahora',
+      icon: Send,
+      onClick: () => {
+        toast('📧 Selecciona un recordatorio para enviar')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Configurar',
+      icon: Settings,
+      onClick: () => {
+        toast('⚙️ Abriendo configuración de recordatorios...')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Historial',
+      icon: History,
+      onClick: () => {
+        setSelectedTab('scheduled')
+        toast.success('📜 Mostrando historial de envíos')
+      },
+      variant: 'outline' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Recordatorios de Pago</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Bell className="w-8 h-8 text-blue-600" />
+              Recordatorios de Pago
+            </h1>
             <p className="text-gray-600 mt-1">
               Automatiza el envío de recordatorios y notificaciones
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('⚙️ Configuración de Recordatorios\n\nConfigura plantillas, horarios y canales')}>
+            <Button variant="outline" onClick={() => toast('⚙️ Configuración de recordatorios...')}>
               <Settings className="w-4 h-4 mr-2" />
               Configuración
             </Button>
-            <Button onClick={() => alert('⏰ Nuevo Recordatorio\n\nCrea recordatorio automático')}>
+            <Button onClick={() => router.push('/company/invoicing/reminders/new')}>
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Recordatorio
             </Button>
           </div>
         </div>
+
+        {/* Action Buttons */}
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-blue-900 flex items-center">
+              <Bell className="w-4 h-4 mr-2" />
+              Acciones de Recordatorios
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={reminderActions} />
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

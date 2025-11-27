@@ -25,7 +25,10 @@ import {
   TrendingUp,
   Coffee,
   PlayCircle,
-  StopCircle
+  StopCircle,
+  X,
+  Loader2,
+  Save
 } from 'lucide-react'
 
 interface TimesheetEntry {
@@ -56,6 +59,18 @@ export default function TimesheetPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterDepartment, setFilterDepartment] = useState<string>('all')
   const [weekFilter, setWeekFilter] = useState<string>('current')
+  
+  // Modal states
+  const [showRegisterModal, setShowRegisterModal] = useState(false)
+  const [employees, setEmployees] = useState<any[]>([])
+  const [selectedEmployee, setSelectedEmployee] = useState('')
+  const [clockInTime, setClockInTime] = useState('')
+  const [clockOutTime, setClockOutTime] = useState('')
+  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0])
+  const [entryType, setEntryType] = useState('REGULAR')
+  const [notes, setNotes] = useState('')
+  const [processing, setProcessing] = useState(false)
+  const [timeEntries, setTimeEntries] = useState<any[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -67,6 +82,90 @@ export default function TimesheetPage() {
     setLoading(true)
     setTimeout(() => setLoading(false), 800)
   }, [])
+
+  const openRegisterModal = async () => {
+    setShowRegisterModal(true)
+    setProcessing(true)
+    try {
+      const response = await fetch('/api/employees?status=ACTIVE')
+      if (response.ok) {
+        const data = await response.json()
+        setEmployees(data.employees || data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error)
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const closeModal = () => {
+    setShowRegisterModal(false)
+    setSelectedEmployee('')
+    setClockInTime('')
+    setClockOutTime('')
+    setNotes('')
+  }
+
+  const saveTimeEntry = async () => {
+    if (!selectedEmployee || !clockInTime) {
+      alert('Por favor seleccione un empleado y hora de entrada')
+      return
+    }
+
+    setProcessing(true)
+    try {
+      const response = await fetch('/api/payroll/time-entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employeeId: selectedEmployee,
+          date: entryDate,
+          clockIn: `${entryDate}T${clockInTime}:00`,
+          clockOut: clockOutTime ? `${entryDate}T${clockOutTime}:00` : null,
+          type: entryType,
+          notes
+        })
+      })
+
+      if (response.ok) {
+        alert('Registro guardado exitosamente')
+        closeModal()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al guardar')
+      }
+    } catch (error) {
+      console.error('Error saving time entry:', error)
+      alert('Error al guardar el registro')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const exportToCSV = () => {
+    const headers = ['Empleado', 'Departamento', 'Semana', 'Horas Regulares', 'Horas Extra', 'Total', 'Estado']
+    const rows = timesheets.map(t => [
+      t.employee,
+      t.department,
+      `${t.weekStarting} - ${t.weekEnding}`,
+      t.regularHours,
+      t.overtimeHours,
+      t.totalHours,
+      t.status
+    ])
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `control-horas-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  }
 
   const timesheets: TimesheetEntry[] = [
     {
@@ -296,11 +395,11 @@ export default function TimesheetPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📥 Exportando hojas de tiempo a CSV')}>
+            <Button variant="outline" onClick={exportToCSV}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('⏱️ Registrar Horas\n\nRegistra horas trabajadas')}>
+            <Button onClick={openRegisterModal}>
               <Plus className="w-4 h-4 mr-2" />
               Registrar Horas
             </Button>
@@ -528,6 +627,115 @@ export default function TimesheetPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal Registrar Horas */}
+        {showRegisterModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl w-full max-w-lg">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b">
+                <div>
+                  <h2 className="text-xl font-bold">Registrar Horas</h2>
+                  <p className="text-sm text-gray-500">Registra entrada y salida de empleados</p>
+                </div>
+                <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-4">
+                {processing && employees.length === 0 ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Empleado</label>
+                      <select
+                        value={selectedEmployee}
+                        onChange={(e) => setSelectedEmployee(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      >
+                        <option value="">Seleccionar empleado...</option>
+                        {employees.map(emp => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.firstName} {emp.lastName} - {emp.department || emp.position}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Fecha</label>
+                      <Input
+                        type="date"
+                        value={entryDate}
+                        onChange={(e) => setEntryDate(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Hora de Entrada</label>
+                        <Input
+                          type="time"
+                          value={clockInTime}
+                          onChange={(e) => setClockInTime(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Hora de Salida</label>
+                        <Input
+                          type="time"
+                          value={clockOutTime}
+                          onChange={(e) => setClockOutTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Tipo</label>
+                      <select
+                        value={entryType}
+                        onChange={(e) => setEntryType(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      >
+                        <option value="REGULAR">Regular</option>
+                        <option value="OVERTIME">Tiempo Extra</option>
+                        <option value="HOLIDAY">Día Festivo</option>
+                        <option value="SICK">Enfermedad</option>
+                        <option value="VACATION">Vacaciones</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Notas (opcional)</label>
+                      <Input
+                        placeholder="Agregar notas..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                <Button variant="outline" onClick={closeModal}>
+                  Cancelar
+                </Button>
+                <Button onClick={saveTimeEntry} disabled={processing || !selectedEmployee}>
+                  {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

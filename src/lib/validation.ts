@@ -322,6 +322,200 @@ export function validateCustomer(data: any): ValidationResult {
 }
 
 /**
+ * Validate vendor data
+ */
+export function validateVendor(data: any): ValidationResult {
+  return validateObject(data, {
+    name: { required: true, minLength: 2, maxLength: 200 },
+    contactName: { minLength: 2, maxLength: 200 },
+    email: { email: true },
+    phone: {
+      custom: (value) => value && !isPhoneNumber(value) ? 'Teléfono inválido' : null,
+    },
+    taxId: {
+      custom: (value) => {
+        if (!value) return null;
+        if (data.country === 'MX' && !isRFC(value)) {
+          return 'RFC inválido';
+        }
+        if (data.country === 'US' && !isEIN(value)) {
+          return 'EIN inválido';
+        }
+        return null;
+      },
+    },
+    paymentTerms: { maxLength: 100 },
+    category: { maxLength: 100 },
+    status: {
+      custom: (value) =>
+        value && !['ACTIVE', 'INACTIVE', 'BLOCKED'].includes(String(value).toUpperCase())
+          ? 'Estado de proveedor inválido'
+          : null,
+    },
+  });
+}
+
+/**
+ * Validate vendor payable data
+ */
+export function validateVendorPayable(data: any): ValidationResult {
+  const validation = validateObject(data, {
+    vendorId: { required: true },
+    billNumber: { required: true, minLength: 3, maxLength: 50 },
+    issueDate: { required: true },
+    dueDate: { required: true },
+    subtotal: { min: 0 },
+    taxAmount: { min: 0 },
+    total: { required: true, min: 0.01 },
+    paidAmount: { min: 0 },
+  });
+
+  const errors = [...validation.errors];
+
+  if (data.issueDate && data.dueDate) {
+    const issue = new Date(data.issueDate);
+    const due = new Date(data.dueDate);
+    if (due < issue) {
+      errors.push('La fecha de vencimiento debe ser posterior a la fecha de emisión');
+    }
+  }
+
+  if (data.total !== undefined && data.paidAmount !== undefined) {
+    if (parseFloat(data.paidAmount) > parseFloat(data.total)) {
+      errors.push('El monto pagado no puede exceder el total');
+    }
+  }
+
+  if (data.subtotal !== undefined && data.taxAmount !== undefined && data.total !== undefined) {
+    const subtotal = parseFloat(data.subtotal);
+    const taxAmount = parseFloat(data.taxAmount);
+    const total = parseFloat(data.total);
+    if (subtotal + taxAmount - total > 0.01) {
+      errors.push('El total debe coincidir con subtotal + impuestos');
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+interface PurchaseOrderValidationOptions {
+  partial?: boolean
+}
+
+export function validatePurchaseOrder(
+  data: any,
+  options: PurchaseOrderValidationOptions = {}
+): ValidationResult {
+  const errors: string[] = []
+  const isPartial = options.partial ?? false
+
+  if (!isPartial && !data.vendorId && !data.vendorName) {
+    errors.push('Selecciona un proveedor o captura el nombre')
+  }
+
+  if (data.vendorName && data.vendorName.length < 2) {
+    errors.push('El nombre del proveedor es demasiado corto')
+  }
+
+  if (!isPartial && !data.expectedDate) {
+    errors.push('La fecha de entrega esperada es obligatoria')
+  }
+
+  if (data.orderDate && data.expectedDate) {
+    const orderDate = new Date(data.orderDate)
+    const expectedDate = new Date(data.expectedDate)
+    if (expectedDate < orderDate) {
+      errors.push('La fecha de entrega debe ser posterior a la fecha de pedido')
+    }
+  }
+
+  if (data.total !== undefined && Number(data.total) < 0) {
+    errors.push('El total de la orden debe ser mayor o igual a 0')
+  }
+
+  if (data.items) {
+    if (!Array.isArray(data.items)) {
+      errors.push('Los artículos deben ser una lista válida')
+    } else {
+      data.items.forEach((item: any, index: number) => {
+        if (!item.description) {
+          errors.push(`El artículo ${index + 1} requiere una descripción`)
+        }
+        if (Number(item.quantity) <= 0) {
+          errors.push(`El artículo ${index + 1} debe tener una cantidad mayor a 0`)
+        }
+        if (Number(item.unitCost) < 0) {
+          errors.push(`El artículo ${index + 1} debe tener un costo válido`)
+        }
+      })
+    }
+  } else if (!isPartial && (data.total === undefined || Number(data.total) <= 0)) {
+    errors.push('Captura al menos un artículo o un total de la orden')
+  }
+
+  if (
+    data.subtotal !== undefined &&
+    data.tax !== undefined &&
+    data.shipping !== undefined &&
+    data.total !== undefined
+  ) {
+    const expectedTotal =
+      Number(data.subtotal) + Number(data.tax) + Number(data.shipping)
+    if (Math.abs(expectedTotal - Number(data.total)) > 0.5) {
+      errors.push('El total debe coincidir con subtotal + impuestos + envío')
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  }
+}
+
+export function validatePurchaseHistoryRecord(data: any): ValidationResult {
+  const validation = validateObject(data, {
+    vendorId: { required: true },
+    purchaseDate: { required: true },
+    category: { maxLength: 100 },
+    reference: { maxLength: 100 },
+    description: { maxLength: 500 },
+    subtotal: { min: 0 },
+    taxAmount: { min: 0 },
+    total: { required: true, min: 0.01 },
+  })
+
+  const errors = [...validation.errors]
+
+  if (data.purchaseDate) {
+    const purchaseDate = new Date(data.purchaseDate)
+    if (Number.isNaN(purchaseDate.getTime())) {
+      errors.push('Fecha de compra inválida')
+    }
+  }
+
+  if (
+    data.subtotal !== undefined &&
+    data.taxAmount !== undefined &&
+    data.total !== undefined
+  ) {
+    const subtotal = Number(data.subtotal)
+    const taxAmount = Number(data.taxAmount)
+    const total = Number(data.total)
+    if (Math.abs(subtotal + taxAmount - total) > 0.5) {
+      errors.push('El total debe coincidir con subtotal + impuestos')
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  }
+}
+
+/**
  * Validate user registration
  */
 export function validateUserRegistration(data: any): ValidationResult {

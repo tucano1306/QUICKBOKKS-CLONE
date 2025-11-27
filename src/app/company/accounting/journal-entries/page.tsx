@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +23,9 @@ import {
   FileText,
   CheckCircle2,
   Clock,
-  XCircle
+  XCircle,
+  Receipt,
+  History
 } from 'lucide-react'
 
 interface JournalEntry {
@@ -293,6 +296,72 @@ export default function JournalEntriesPage() {
     )
   }
 
+  // Botones de acción de Asientos Contables
+  const journalEntryActions = [
+    {
+      label: 'Crear asiento',
+      icon: Plus,
+      onClick: () => setShowNewModal(true),
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Editar asiento',
+      icon: Edit,
+      onClick: () => {
+        if (selectedEntry) {
+          alert(`✏️ Editando póliza ${selectedEntry.entryNumber}\n\nAbriendo formulario de edición...`)
+        } else {
+          alert('⚠️ Selecciona una póliza de la tabla para editar')
+        }
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Eliminar asiento',
+      icon: Trash2,
+      onClick: () => {
+        if (selectedEntry) {
+          if (selectedEntry.status === 'posted') {
+            alert('❌ No se puede eliminar una póliza registrada\n\nPrimero debe ser revertida.')
+          } else {
+            alert(`🗑️ ¿Eliminar póliza ${selectedEntry.entryNumber}?\n\nEsta acción no se puede deshacer.`)
+          }
+        } else {
+          alert('⚠️ Selecciona una póliza de la tabla para eliminar')
+        }
+      },
+      variant: 'danger' as const,
+    },
+    {
+      label: 'Ver historial',
+      icon: History,
+      onClick: () => {
+        setFilterStatus('all')
+        const historySection = document.querySelector('[data-section="entries"]')
+        historySection?.scrollIntoView({ behavior: 'smooth' })
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Exportar',
+      icon: Download,
+      onClick: () => {
+        const csv = 'Número,Fecha,Descripción,Debe,Haber,Estado\n' +
+          filteredEntries.map(e => 
+            `${e.entryNumber},${e.date},"${e.description}",${e.totalDebit},${e.totalCredit},${e.status}`
+          ).join('\n')
+        const blob = new Blob([csv], { type: 'text/csv' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `polizas-${new Date().toISOString().split('T')[0]}.csv`
+        a.click()
+        alert('✅ Archivo exportado exitosamente')
+      },
+      variant: 'outline' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
@@ -304,6 +373,24 @@ export default function JournalEntriesPage() {
               Registro de asientos contables y pólizas
             </p>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <Card className="border-indigo-200 bg-indigo-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-indigo-900 flex items-center">
+              <Receipt className="w-4 h-4 mr-2" />
+              Acciones de Asientos Contables
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={journalEntryActions} />
+          </CardContent>
+        </Card>
+
+        {/* Original Header Section */}
+        <div className="flex items-center justify-between">
+          <div></div>
           <div className="flex gap-2">
             <Button variant="outline">
               <Download className="w-4 h-4 mr-2" />

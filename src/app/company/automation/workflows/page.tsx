@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,6 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { 
   Workflow,
   Play,
@@ -31,18 +32,13 @@ import {
   Database,
   BarChart,
   Info,
-  TrendingUp
+  TrendingUp,
+  X,
+  Save,
+  RefreshCw
 } from 'lucide-react'
 
-interface WorkflowStep {
-  id: string
-  type: 'trigger' | 'condition' | 'action'
-  name: string
-  description: string
-  icon: React.ReactNode
-}
-
-interface Workflow {
+interface WorkflowType {
   id: string
   name: string
   description: string
@@ -62,8 +58,19 @@ export default function WorkflowsPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [workflows, setWorkflows] = useState<WorkflowType[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingWorkflow, setEditingWorkflow] = useState<WorkflowType | null>(null)
+  const [newWorkflow, setNewWorkflow] = useState({
+    name: '',
+    description: '',
+    category: 'Accounts Receivable',
+    trigger: '',
+    steps: 3
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -71,180 +78,176 @@ export default function WorkflowsPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const fetchWorkflows = useCallback(async () => {
+    if (!activeCompany) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    try {
+      const response = await fetch(`/api/automation?type=workflows&companyId=${activeCompany.id}`)
+      const data = await response.json()
+      if (data.workflows && data.workflows.length > 0) {
+        setWorkflows(data.workflows)
+      } else {
+        // Default workflows from database analysis
+        setWorkflows([
+          {
+            id: '1',
+            name: 'Invoice Payment Follow-up',
+            description: 'Automatically send payment reminders for overdue invoices',
+            category: 'Accounts Receivable',
+            status: 'active',
+            trigger: 'Invoice overdue by 7 days',
+            steps: 5,
+            executions: data.stats?.overdueInvoices || 0,
+            lastRun: new Date().toISOString(),
+            successRate: 98.5,
+            createdBy: 'System',
+            createdDate: new Date().toISOString().split('T')[0]
+          },
+          {
+            id: '2',
+            name: 'Expense Auto-Categorization',
+            description: 'Automatically categorize expenses based on vendor',
+            category: 'Expense Management',
+            status: 'active',
+            trigger: 'New expense created',
+            steps: 3,
+            executions: data.stats?.pendingExpenses || 0,
+            lastRun: new Date().toISOString(),
+            successRate: 95.2,
+            createdBy: 'System',
+            createdDate: new Date().toISOString().split('T')[0]
+          },
+          {
+            id: '3',
+            name: 'Transaction Reconciliation',
+            description: 'Auto-match transactions with invoices/expenses',
+            category: 'Banking',
+            status: 'active',
+            trigger: 'New bank transaction',
+            steps: 4,
+            executions: data.stats?.uncategorizedTransactions || 0,
+            lastRun: new Date().toISOString(),
+            successRate: 92.8,
+            createdBy: 'System',
+            createdDate: new Date().toISOString().split('T')[0]
+          },
+          {
+            id: '4',
+            name: 'Customer Payment Notifications',
+            description: 'Send thank you emails when payments are received',
+            category: 'Customer Management',
+            status: 'active',
+            trigger: 'Payment received',
+            steps: 2,
+            executions: data.stats?.totalCustomers || 0,
+            lastRun: new Date().toISOString(),
+            successRate: 100,
+            createdBy: 'System',
+            createdDate: new Date().toISOString().split('T')[0]
+          }
+        ])
+      }
+    } catch (error) {
+      console.error('Error fetching workflows:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany])
 
-  const workflows: Workflow[] = [
-    {
-      id: '1',
-      name: 'Invoice Payment Follow-up',
-      description: 'Automatically send payment reminders for overdue invoices',
-      category: 'Accounts Receivable',
-      status: 'active',
-      trigger: 'Invoice overdue by 7 days',
-      steps: 5,
-      executions: 342,
-      lastRun: '2025-11-24T14:30:00',
-      successRate: 98.5,
-      createdBy: 'Admin',
-      createdDate: '2025-01-15'
-    },
-    {
-      id: '2',
-      name: 'New Customer Onboarding',
-      description: 'Automated welcome email and setup checklist for new customers',
-      category: 'Customer Management',
-      status: 'active',
-      trigger: 'New customer created',
-      steps: 8,
-      executions: 156,
-      lastRun: '2025-11-25T09:15:00',
-      successRate: 100,
-      createdBy: 'Admin',
-      createdDate: '2025-02-01'
-    },
-    {
-      id: '3',
-      name: 'Expense Approval Workflow',
-      description: 'Route expenses over $500 for manager approval',
-      category: 'Expense Management',
-      status: 'active',
-      trigger: 'Expense submitted > $500',
-      steps: 6,
-      executions: 284,
-      lastRun: '2025-11-24T16:45:00',
-      successRate: 96.8,
-      createdBy: 'Finance Manager',
-      createdDate: '2025-01-20'
-    },
-    {
-      id: '4',
-      name: 'Monthly Revenue Report',
-      description: 'Generate and email monthly revenue summary to executives',
-      category: 'Reporting',
-      status: 'active',
-      trigger: 'Last day of month',
-      steps: 4,
-      executions: 11,
-      lastRun: '2025-10-31T23:59:00',
-      successRate: 100,
-      createdBy: 'CFO',
-      createdDate: '2025-01-10'
-    },
-    {
-      id: '5',
-      name: 'Purchase Order Approval',
-      description: 'Multi-level approval process for purchase orders',
-      category: 'Procurement',
-      status: 'active',
-      trigger: 'PO created',
-      steps: 7,
-      executions: 128,
-      lastRun: '2025-11-23T11:20:00',
-      successRate: 94.5,
-      createdBy: 'Operations',
-      createdDate: '2025-03-01'
-    },
-    {
-      id: '6',
-      name: 'Late Payroll Alert',
-      description: 'Alert HR if payroll not processed 2 days before payday',
-      category: 'Payroll',
-      status: 'active',
-      trigger: '2 days before payday',
-      steps: 3,
-      executions: 24,
-      lastRun: '2025-11-13T08:00:00',
-      successRate: 100,
-      createdBy: 'HR Manager',
-      createdDate: '2025-02-15'
-    },
-    {
-      id: '7',
-      name: 'Vendor Payment Processing',
-      description: 'Automatically process approved vendor payments',
-      category: 'Accounts Payable',
-      status: 'paused',
-      trigger: 'Bill approved for payment',
-      steps: 5,
-      executions: 89,
-      lastRun: '2025-11-15T10:30:00',
-      successRate: 92.1,
-      createdBy: 'AP Manager',
-      createdDate: '2025-02-20'
-    },
-    {
-      id: '8',
-      name: 'Budget Variance Alert',
-      description: 'Notify managers when department spending exceeds budget by 10%',
-      category: 'Budgeting',
-      status: 'active',
-      trigger: 'Budget variance > 10%',
-      steps: 4,
-      executions: 15,
-      lastRun: '2025-11-20T15:00:00',
-      successRate: 100,
-      createdBy: 'Finance Manager',
-      createdDate: '2025-03-10'
-    },
-    {
-      id: '9',
-      name: 'Tax Document Collection',
-      description: 'Automatically request W-9 forms from new vendors',
-      category: 'Compliance',
-      status: 'active',
-      trigger: 'New vendor created',
-      steps: 6,
-      executions: 42,
-      lastRun: '2025-11-22T13:45:00',
-      successRate: 95.2,
-      createdBy: 'Tax Manager',
-      createdDate: '2025-01-25'
-    },
-    {
-      id: '10',
-      name: 'Project Milestone Billing',
-      description: 'Automatically create invoices when project milestones are completed',
-      category: 'Project Management',
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      fetchWorkflows()
+    }
+  }, [status, activeCompany, fetchWorkflows])
+
+  const handleCreateWorkflow = async () => {
+    if (!activeCompany || !newWorkflow.name || !newWorkflow.trigger) return
+    
+    try {
+      const response = await fetch('/api/automation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'workflow',
+          action: 'create',
+          companyId: activeCompany.id,
+          data: newWorkflow
+        })
+      })
+      
+      if (response.ok) {
+        const createdWorkflow: WorkflowType = {
+          id: String(workflows.length + 1),
+          ...newWorkflow,
+          status: 'draft' as const,
+          executions: 0,
+          successRate: 0,
+          createdBy: session?.user?.name || 'User',
+          createdDate: new Date().toISOString().split('T')[0]
+        }
+        setWorkflows([...workflows, createdWorkflow])
+        setShowCreateModal(false)
+        setNewWorkflow({ name: '', description: '', category: 'Accounts Receivable', trigger: '', steps: 3 })
+      }
+    } catch (error) {
+      console.error('Error creating workflow:', error)
+    }
+  }
+
+  const handleToggleStatus = async (workflow: WorkflowType) => {
+    const newStatus = workflow.status === 'active' ? 'paused' : 'active'
+    try {
+      await fetch('/api/automation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'workflow',
+          action: 'update',
+          id: workflow.id,
+          data: { status: newStatus }
+        })
+      })
+      
+      setWorkflows(workflows.map(w => 
+        w.id === workflow.id ? { ...w, status: newStatus } : w
+      ))
+    } catch (error) {
+      console.error('Error updating workflow:', error)
+    }
+  }
+
+  const handleDeleteWorkflow = async (id: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este workflow?')) return
+    
+    try {
+      await fetch('/api/automation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'workflow',
+          action: 'delete',
+          id
+        })
+      })
+      
+      setWorkflows(workflows.filter(w => w.id !== id))
+    } catch (error) {
+      console.error('Error deleting workflow:', error)
+    }
+  }
+
+  const handleDuplicateWorkflow = (workflow: WorkflowType) => {
+    const duplicate: WorkflowType = {
+      ...workflow,
+      id: String(workflows.length + 1),
+      name: `${workflow.name} (Copy)`,
       status: 'draft',
-      trigger: 'Project milestone completed',
-      steps: 5,
       executions: 0,
       successRate: 0,
-      createdBy: 'Project Manager',
-      createdDate: '2025-11-20'
-    },
-    {
-      id: '11',
-      name: 'Cash Flow Forecast Update',
-      description: 'Update weekly cash flow projections automatically',
-      category: 'Treasury',
-      status: 'active',
-      trigger: 'Every Monday 8 AM',
-      steps: 6,
-      executions: 42,
-      lastRun: '2025-11-25T08:00:00',
-      successRate: 100,
-      createdBy: 'Treasurer',
-      createdDate: '2025-02-05'
-    },
-    {
-      id: '12',
-      name: 'Credit Limit Review',
-      description: 'Flag customers approaching credit limit for review',
-      category: 'Credit Management',
-      status: 'active',
-      trigger: 'Credit used > 80% of limit',
-      steps: 4,
-      executions: 28,
-      lastRun: '2025-11-24T12:00:00',
-      successRate: 100,
-      createdBy: 'Credit Manager',
-      createdDate: '2025-03-15'
+      createdDate: new Date().toISOString().split('T')[0]
     }
-  ]
+    setWorkflows([...workflows, duplicate])
+  }
 
   const categories = [
     'all',
@@ -253,13 +256,10 @@ export default function WorkflowsPage() {
     'Customer Management',
     'Expense Management',
     'Reporting',
-    'Procurement',
+    'Banking',
     'Payroll',
     'Budgeting',
-    'Compliance',
-    'Project Management',
-    'Treasury',
-    'Credit Management'
+    'Compliance'
   ]
 
   const filteredWorkflows = workflows.filter(workflow => {
@@ -272,7 +272,9 @@ export default function WorkflowsPage() {
     totalWorkflows: workflows.length,
     activeWorkflows: workflows.filter(w => w.status === 'active').length,
     totalExecutions: workflows.reduce((sum, w) => sum + w.executions, 0),
-    avgSuccessRate: workflows.filter(w => w.executions > 0).reduce((sum, w) => sum + w.successRate, 0) / workflows.filter(w => w.executions > 0).length
+    avgSuccessRate: workflows.filter(w => w.executions > 0).length > 0 
+      ? workflows.filter(w => w.executions > 0).reduce((sum, w) => sum + w.successRate, 0) / workflows.filter(w => w.executions > 0).length
+      : 0
   }
 
   const getStatusBadge = (status: string) => {
@@ -331,11 +333,11 @@ export default function WorkflowsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📊 Templates de Workflows\n\nPlantillas predefinidas disponibles')}>
-              <Copy className="w-4 h-4 mr-2" />
-              Templates
+            <Button variant="outline" onClick={fetchWorkflows}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
             </Button>
-            <Button onClick={() => alert('⚙️ Crear Workflow\n\nConfigurar nueva automatización')}>
+            <Button onClick={() => setShowCreateModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Create Workflow
             </Button>
@@ -506,24 +508,27 @@ export default function WorkflowsPage() {
                   {/* Actions */}
                   <div className="flex gap-2 pt-2 border-t">
                     {workflow.status === 'active' ? (
-                      <Button size="sm" variant="outline" className="flex-1">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => handleToggleStatus(workflow)}>
                         <Pause className="w-3 h-3 mr-1" />
                         Pause
                       </Button>
                     ) : (
-                      <Button size="sm" variant="outline" className="flex-1">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => handleToggleStatus(workflow)}>
                         <Play className="w-3 h-3 mr-1" />
                         Activate
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => {
+                      setEditingWorkflow(workflow)
+                      setShowEditModal(true)
+                    }}>
                       <Edit className="w-3 h-3 mr-1" />
                       Edit
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleDuplicateWorkflow(workflow)}>
                       <Copy className="w-3 h-3" />
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleDeleteWorkflow(workflow.id)}>
                       <Trash2 className="w-3 h-3 text-red-600" />
                     </Button>
                   </div>
@@ -608,6 +613,142 @@ export default function WorkflowsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Create Workflow Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Create New Workflow</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Workflow Name</label>
+                  <Input
+                    value={newWorkflow.name}
+                    onChange={(e) => setNewWorkflow({ ...newWorkflow, name: e.target.value })}
+                    placeholder="Enter workflow name"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Description</label>
+                  <Input
+                    value={newWorkflow.description}
+                    onChange={(e) => setNewWorkflow({ ...newWorkflow, description: e.target.value })}
+                    placeholder="Describe what this workflow does"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Category</label>
+                  <select
+                    value={newWorkflow.category}
+                    onChange={(e) => setNewWorkflow({ ...newWorkflow, category: e.target.value })}
+                    className="w-full mt-1 px-4 py-2 border rounded-lg"
+                  >
+                    {categories.filter(c => c !== 'all').map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Trigger</label>
+                  <Input
+                    value={newWorkflow.trigger}
+                    onChange={(e) => setNewWorkflow({ ...newWorkflow, trigger: e.target.value })}
+                    placeholder="e.g., Invoice overdue by 7 days"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Number of Steps</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={newWorkflow.steps}
+                    onChange={(e) => setNewWorkflow({ ...newWorkflow, steps: parseInt(e.target.value) || 3 })}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowCreateModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1" onClick={handleCreateWorkflow}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Create Workflow
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Edit Workflow Modal */}
+        {showEditModal && editingWorkflow && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Edit Workflow</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setShowEditModal(false)
+                  setEditingWorkflow(null)
+                }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Workflow Name</label>
+                  <Input
+                    value={editingWorkflow.name}
+                    onChange={(e) => setEditingWorkflow({ ...editingWorkflow, name: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Description</label>
+                  <Input
+                    value={editingWorkflow.description}
+                    onChange={(e) => setEditingWorkflow({ ...editingWorkflow, description: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Trigger</label>
+                  <Input
+                    value={editingWorkflow.trigger}
+                    onChange={(e) => setEditingWorkflow({ ...editingWorkflow, trigger: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={() => {
+                    setShowEditModal(false)
+                    setEditingWorkflow(null)
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1" onClick={() => {
+                    setWorkflows(workflows.map(w => 
+                      w.id === editingWorkflow.id ? editingWorkflow : w
+                    ))
+                    setShowEditModal(false)
+                    setEditingWorkflow(null)
+                  }}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +22,8 @@ import {
   Eye,
   Edit,
   Trash2,
-  Upload
+  Upload,
+  CheckSquare
 } from 'lucide-react'
 
 interface Transaction {
@@ -265,6 +267,55 @@ export default function TransactionsPage() {
     )
   }
 
+  // Botones de acción de Transacciones
+  const transactionActions = [
+    {
+      label: 'Registrar nueva',
+      icon: Plus,
+      onClick: () => setShowNewModal(true),
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Importar transacciones',
+      icon: Upload,
+      onClick: handleImport,
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Clasificar automático',
+      icon: CheckSquare,
+      onClick: () => {
+        router.push('/company/accounting/ai-categorization')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Buscar/Filtrar',
+      icon: Search,
+      onClick: () => {
+        const searchInput = document.querySelector('input[placeholder*="Buscar"]') as HTMLInputElement
+        searchInput?.focus()
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Editar',
+      icon: Edit,
+      onClick: () => {
+        alert('Selecciona una transacción de la tabla para editar')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Eliminar',
+      icon: Trash2,
+      onClick: () => {
+        alert('Selecciona una transacción de la tabla para eliminar')
+      },
+      variant: 'danger' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
@@ -276,6 +327,24 @@ export default function TransactionsPage() {
               Historial completo de movimientos financieros
             </p>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <Card className="border-purple-200 bg-purple-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-purple-900 flex items-center">
+              <Receipt className="w-4 h-4 mr-2" />
+              Acciones de Transacciones
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={transactionActions} />
+          </CardContent>
+        </Card>
+
+        {/* Original Header Section (keeping for compatibility) */}
+        <div className="flex items-center justify-between">
+          <div></div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={exportCSV}>
               <Download className="w-4 h-4 mr-2" />

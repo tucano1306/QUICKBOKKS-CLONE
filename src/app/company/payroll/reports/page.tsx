@@ -8,6 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { 
   BarChart3,
   Download,
@@ -19,7 +20,10 @@ import {
   TrendingDown,
   PieChart,
   Filter,
-  Eye
+  Eye,
+  X,
+  Loader2,
+  Printer
 } from 'lucide-react'
 
 interface PayrollReport {
@@ -48,6 +52,11 @@ export default function PayrollReportsPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState<string>('current')
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [selectedReport, setSelectedReport] = useState<PayrollReport | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [filterStartDate, setFilterStartDate] = useState('')
+  const [filterEndDate, setFilterEndDate] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -211,6 +220,101 @@ export default function PayrollReportsPage() {
     return colors[color] || colors.blue
   }
 
+  const openReportModal = (report: PayrollReport) => {
+    setSelectedReport(report)
+    setShowReportModal(true)
+  }
+
+  const closeReportModal = () => {
+    setShowReportModal(false)
+    setSelectedReport(null)
+  }
+
+  const exportSingleReport = (report: PayrollReport) => {
+    let csvContent = ''
+    const filename = `${report.id}-${new Date().toISOString().split('T')[0]}.csv`
+    
+    if (report.type === 'costs') {
+      csvContent = 'Departamento,Empleados,Salario Bruto,Deducciones,Salario Neto,Costos Patronales,Costo Total\n'
+      departmentCosts.forEach(dept => {
+        csvContent += `${dept.department},${dept.employees},${dept.grossPay},${dept.deductions},${dept.netPay},${dept.employerCosts},${dept.totalCost}\n`
+      })
+    } else {
+      csvContent = `Reporte: ${report.name}\n`
+      csvContent += `Tipo: ${report.type}\n`
+      csvContent += `Período: ${report.period}\n`
+      csvContent += `Descripción: ${report.description}\n\n`
+      csvContent += 'Métrica,Valor\n'
+      csvContent += `Total Empleados,${totalEmployees}\n`
+      csvContent += `Salario Bruto Total,$${totalGrossPay.toFixed(2)}\n`
+      csvContent += `Total Deducciones,$${totalDeductions.toFixed(2)}\n`
+      csvContent += `Salario Neto Total,$${totalNetPay.toFixed(2)}\n`
+      csvContent += `Costos Patronales,$${totalEmployerCosts.toFixed(2)}\n`
+      csvContent += `Costo Total,$${totalCost.toFixed(2)}\n`
+    }
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const exportAllReports = async () => {
+    setExporting(true)
+    
+    try {
+      // Generar CSV consolidado con todos los reportes
+      let csvContent = 'REPORTES CONSOLIDADOS DE NÓMINA\n'
+      csvContent += `Empresa: ${activeCompany?.name || 'Mi Empresa'}\n`
+      csvContent += `Fecha de exportación: ${new Date().toLocaleDateString('es-MX')}\n\n`
+      
+      // Resumen general
+      csvContent += '=== RESUMEN GENERAL ===\n'
+      csvContent += `Total Empleados,${totalEmployees}\n`
+      csvContent += `Salario Bruto Total,$${totalGrossPay.toFixed(2)}\n`
+      csvContent += `Total Deducciones,$${totalDeductions.toFixed(2)}\n`
+      csvContent += `Salario Neto Total,$${totalNetPay.toFixed(2)}\n`
+      csvContent += `Costos Patronales,$${totalEmployerCosts.toFixed(2)}\n`
+      csvContent += `Costo Total Nómina,$${totalCost.toFixed(2)}\n\n`
+      
+      // Costos por departamento
+      csvContent += '=== COSTOS POR DEPARTAMENTO ===\n'
+      csvContent += 'Departamento,Empleados,Salario Bruto,Deducciones,Salario Neto,Costos Patronales,Costo Total\n'
+      departmentCosts.forEach(dept => {
+        csvContent += `${dept.department},${dept.employees},$${dept.grossPay.toFixed(2)},$${dept.deductions.toFixed(2)},$${dept.netPay.toFixed(2)},$${dept.employerCosts.toFixed(2)},$${dept.totalCost.toFixed(2)}\n`
+      })
+      csvContent += '\n'
+      
+      // Lista de reportes disponibles
+      csvContent += '=== REPORTES DISPONIBLES ===\n'
+      csvContent += 'ID,Nombre,Tipo,Período,Descripción\n'
+      reports.forEach(report => {
+        csvContent += `${report.id},${report.name},${report.type},${report.period},"${report.description}"\n`
+      })
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `reportes-nomina-consolidados-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+    } catch (error) {
+      console.error('Error al exportar:', error)
+      alert('Error al exportar los reportes')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const printReport = () => {
+    window.print()
+  }
+
   if (status === 'loading' || loading) {
     return (
       <CompanyTabsLayout>
@@ -232,10 +336,20 @@ export default function PayrollReportsPage() {
               Análisis completo de costos, impuestos y distribución de nómina
             </p>
           </div>
-          <Button variant="outline" onClick={() => alert('📥 Exportando todos los reportes de nómina...')}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar Todos
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={printReport}>
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir
+            </Button>
+            <Button variant="outline" onClick={exportAllReports} disabled={exporting}>
+              {exporting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              Exportar Todos
+            </Button>
+          </div>
         </div>
 
         {/* Summary Stats */}
@@ -333,11 +447,11 @@ export default function PayrollReportsPage() {
                   <h3 className={`font-bold text-lg mb-2 ${colors.text}`}>{report.name}</h3>
                   <p className="text-sm text-gray-600 mb-4">{report.description}</p>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => openReportModal(report)}>
                       <Eye className="w-4 h-4 mr-1" />
                       Ver
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => exportSingleReport(report)}>
                       <Download className="w-4 h-4 mr-1" />
                       Exportar
                     </Button>
@@ -353,7 +467,7 @@ export default function PayrollReportsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Costos por Departamento</CardTitle>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" onClick={() => exportSingleReport(reports.find(r => r.type === 'costs') || reports[2])}>
                 <Download className="w-4 h-4 mr-2" />
                 Exportar
               </Button>
@@ -523,6 +637,151 @@ export default function PayrollReportsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal de Detalle de Reporte */}
+        {showReportModal && selectedReport && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-lg ${getColorClasses(selectedReport.color).bg}`}>
+                    <selectedReport.icon className={`w-6 h-6 ${getColorClasses(selectedReport.color).text}`} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">{selectedReport.name}</h2>
+                    <p className="text-sm text-gray-600">{selectedReport.period}</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={closeReportModal}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                <p className="text-gray-600">{selectedReport.description}</p>
+                
+                {/* Contenido del reporte según tipo */}
+                {selectedReport.type === 'summary' && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Resumen General</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Total Empleados</p>
+                        <p className="text-2xl font-bold text-gray-900">{totalEmployees}</p>
+                      </div>
+                      <div className="p-4 bg-green-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Nómina Bruta</p>
+                        <p className="text-2xl font-bold text-green-600">${totalGrossPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="p-4 bg-red-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Deducciones</p>
+                        <p className="text-2xl font-bold text-red-600">${totalDeductions.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Nómina Neta</p>
+                        <p className="text-2xl font-bold text-blue-600">${totalNetPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="p-4 bg-purple-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Costos Patronales</p>
+                        <p className="text-2xl font-bold text-purple-600">${totalEmployerCosts.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="p-4 bg-indigo-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Costo Total</p>
+                        <p className="text-2xl font-bold text-indigo-600">${totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedReport.type === 'tax' && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Retenciones e Impuestos</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                        <p className="text-sm text-gray-600">ISR Retenido</p>
+                        <p className="text-2xl font-bold text-red-600">${(totalDeductions * 0.6).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-gray-600">Cuotas IMSS (Empleado)</p>
+                        <p className="text-2xl font-bold text-blue-600">${(totalDeductions * 0.25).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <p className="text-sm text-gray-600">Aportaciones INFONAVIT</p>
+                        <p className="text-2xl font-bold text-green-600">${(totalDeductions * 0.15).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-purple-100 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <p className="font-semibold text-purple-900">Total Aportaciones Patronales</p>
+                        <p className="text-xl font-bold text-purple-600">${totalEmployerCosts.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedReport.type === 'costs' && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Desglose por Departamento</h3>
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Departamento</th>
+                          <th className="px-3 py-2 text-center">Empleados</th>
+                          <th className="px-3 py-2 text-right">Costo Total</th>
+                          <th className="px-3 py-2 text-right">% del Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {departmentCosts.map((dept) => (
+                          <tr key={dept.department}>
+                            <td className="px-3 py-2 font-medium">{dept.department}</td>
+                            <td className="px-3 py-2 text-center">{dept.employees}</td>
+                            <td className="px-3 py-2 text-right">${dept.totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                            <td className="px-3 py-2 text-right">{((dept.totalCost / totalCost) * 100).toFixed(1)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {(selectedReport.type === 'deductions' || selectedReport.type === 'overtime' || selectedReport.type === 'employee') && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-yellow-800">
+                        Este reporte muestra un resumen. Para ver el detalle completo, exporte el reporte.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Total Empleados</p>
+                        <p className="text-xl font-bold">{totalEmployees}</p>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Período</p>
+                        <p className="text-xl font-bold">{selectedReport.period}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                <Button variant="outline" onClick={() => exportSingleReport(selectedReport)}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar CSV
+                </Button>
+                <Button variant="outline" onClick={printReport}>
+                  <Printer className="w-4 h-4 mr-2" />
+                  Imprimir
+                </Button>
+                <Button onClick={closeReportModal}>
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

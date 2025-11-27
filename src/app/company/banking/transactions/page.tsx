@@ -53,6 +53,18 @@ export default function BankTransactionsPage() {
   const [filterAccount, setFilterAccount] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [dateRange, setDateRange] = useState<string>('month')
+  const [showNewTransactionModal, setShowNewTransactionModal] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [newTransaction, setNewTransaction] = useState({
+    accountId: '',
+    type: 'deposit',
+    category: '',
+    description: '',
+    amount: 0,
+    date: new Date().toISOString().split('T')[0],
+    counterparty: '',
+    reference: ''
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -404,7 +416,7 @@ export default function BankTransactionsPage() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('💳 Nueva Transacción\n\nRegistra transacción bancaria')}>
+            <Button onClick={() => setShowNewTransactionModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Transacción
             </Button>
@@ -643,6 +655,287 @@ export default function BankTransactionsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* New Transaction Modal */}
+        {showNewTransactionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <CardHeader className="border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5" />
+                    Nueva Transacción Bancaria
+                  </CardTitle>
+                  <Button variant="outline" onClick={() => setShowNewTransactionModal(false)}>
+                    Cerrar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  setSaving(true)
+                  try {
+                    const response = await fetch('/api/banking/transactions', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        ...newTransaction,
+                        amount: newTransaction.type === 'withdrawal' ? -Math.abs(newTransaction.amount) : Math.abs(newTransaction.amount)
+                      })
+                    })
+                    if (response.ok) {
+                      setShowNewTransactionModal(false)
+                      setNewTransaction({
+                        accountId: '',
+                        type: 'deposit',
+                        category: '',
+                        description: '',
+                        amount: 0,
+                        date: new Date().toISOString().split('T')[0],
+                        counterparty: '',
+                        reference: ''
+                      })
+                      window.location.reload()
+                    } else {
+                      alert('Error al crear la transacción')
+                    }
+                  } catch (error) {
+                    console.error('Error:', error)
+                    alert('Error al crear la transacción')
+                  } finally {
+                    setSaving(false)
+                  }
+                }} className="space-y-6">
+                  
+                  {/* Account Selection */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Cuenta Bancaria *
+                    </label>
+                    <select
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={newTransaction.accountId}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, accountId: e.target.value })}
+                      required
+                    >
+                      <option value="">Seleccionar cuenta...</option>
+                      <option value="ACC-001">Cuenta Principal Operativa - BBVA</option>
+                      <option value="ACC-002">Cuenta de Ahorros Empresarial - Santander</option>
+                      <option value="ACC-003">Cuenta Nómina - Banorte</option>
+                      <option value="ACC-004">Tarjeta de Crédito Corporativa - Amex</option>
+                      <option value="ACC-005">Cuenta USD Internacional - Citibanamex</option>
+                    </select>
+                  </div>
+
+                  {/* Transaction Type */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Tipo de Transacción *
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {[
+                        { value: 'deposit', label: 'Depósito', icon: ArrowDownLeft, color: 'green' },
+                        { value: 'withdrawal', label: 'Retiro', icon: ArrowUpRight, color: 'red' },
+                        { value: 'transfer', label: 'Transferencia', icon: RefreshCw, color: 'blue' },
+                        { value: 'fee', label: 'Comisión', icon: DollarSign, color: 'orange' }
+                      ].map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => setNewTransaction({ ...newTransaction, type: type.value })}
+                          className={`p-3 border-2 rounded-lg flex flex-col items-center gap-1 transition ${
+                            newTransaction.type === type.value
+                              ? `border-${type.color}-500 bg-${type.color}-50`
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <type.icon className={`w-5 h-5 ${
+                            newTransaction.type === type.value ? `text-${type.color}-600` : 'text-gray-400'
+                          }`} />
+                          <span className={`text-xs font-medium ${
+                            newTransaction.type === type.value ? `text-${type.color}-700` : 'text-gray-600'
+                          }`}>{type.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Date and Amount Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Fecha *
+                      </label>
+                      <Input
+                        type="date"
+                        value={newTransaction.date}
+                        onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Monto *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="0.00"
+                          className="pl-8"
+                          value={newTransaction.amount || ''}
+                          onChange={(e) => setNewTransaction({ ...newTransaction, amount: parseFloat(e.target.value) || 0 })}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Categoría *
+                    </label>
+                    <select
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={newTransaction.category}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
+                      required
+                    >
+                      <option value="">Seleccionar categoría...</option>
+                      {newTransaction.type === 'deposit' && (
+                        <>
+                          <option value="Cobro Cliente">Cobro de Cliente</option>
+                          <option value="Transferencia Recibida">Transferencia Recibida</option>
+                          <option value="Intereses">Intereses Ganados</option>
+                          <option value="Préstamo">Préstamo Recibido</option>
+                          <option value="Reembolso">Reembolso</option>
+                          <option value="Otros Ingresos">Otros Ingresos</option>
+                        </>
+                      )}
+                      {newTransaction.type === 'withdrawal' && (
+                        <>
+                          <option value="Pago Proveedor">Pago a Proveedor</option>
+                          <option value="Nómina">Pago de Nómina</option>
+                          <option value="Impuestos">Pago de Impuestos</option>
+                          <option value="Servicios">Servicios (Luz, Agua, etc.)</option>
+                          <option value="Renta">Renta/Alquiler</option>
+                          <option value="Gastos Operativos">Gastos Operativos</option>
+                          <option value="Otros Gastos">Otros Gastos</option>
+                        </>
+                      )}
+                      {newTransaction.type === 'transfer' && (
+                        <>
+                          <option value="Transferencia Interna">Transferencia entre Cuentas</option>
+                          <option value="Transferencia Externa">Transferencia a Terceros</option>
+                        </>
+                      )}
+                      {newTransaction.type === 'fee' && (
+                        <>
+                          <option value="Comisión Bancaria">Comisión Bancaria</option>
+                          <option value="Mantenimiento">Mantenimiento de Cuenta</option>
+                          <option value="Chequera">Costo de Chequera</option>
+                          <option value="Otros Cargos">Otros Cargos</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Descripción *
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="Ej: Pago factura #123 - Cliente XYZ"
+                      value={newTransaction.description}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  {/* Counterparty and Reference Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Contraparte
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="Nombre del cliente/proveedor"
+                        value={newTransaction.counterparty}
+                        onChange={(e) => setNewTransaction({ ...newTransaction, counterparty: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Referencia
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="# Factura, # Cheque, etc."
+                        value={newTransaction.reference}
+                        onChange={(e) => setNewTransaction({ ...newTransaction, reference: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Transaction Summary */}
+                  {newTransaction.amount > 0 && (
+                    <div className={`p-4 rounded-lg border-2 ${
+                      newTransaction.type === 'deposit' ? 'bg-green-50 border-green-200' :
+                      newTransaction.type === 'withdrawal' ? 'bg-red-50 border-red-200' :
+                      newTransaction.type === 'transfer' ? 'bg-blue-50 border-blue-200' :
+                      'bg-orange-50 border-orange-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-700">Resumen de Transacción:</span>
+                        <span className={`text-xl font-bold ${
+                          newTransaction.type === 'deposit' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {newTransaction.type === 'deposit' ? '+' : '-'}${newTransaction.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setShowNewTransactionModal(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={saving || !newTransaction.accountId || !newTransaction.category || !newTransaction.description || !newTransaction.amount}
+                    >
+                      {saving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                          Registrar Transacción
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

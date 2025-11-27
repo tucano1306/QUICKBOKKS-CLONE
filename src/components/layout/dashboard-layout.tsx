@@ -18,7 +18,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </main>
       {/* AI Assistant flotante disponible en toda la app */}
-      <FloatingAssistant />
+      {/* Temporalmente desactivado para debug */}
+      {/* <FloatingAssistant /> */}
     </div>
   )
 }

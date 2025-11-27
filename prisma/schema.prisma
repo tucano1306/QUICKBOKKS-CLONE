@@ -97,6 +97,62 @@ model Customer {
   @@map("customers")
 }
 
+model Vendor {
+  id             String        @id @default(cuid())
+  companyId      String?
+  vendorNumber   String        @unique
+  name           String
+  contactName    String?
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  country        String?       @default("México")
+  taxId          String?
+  paymentTerms   String?       @default("Net 30")
+  category       String?
+  status         VendorStatus  @default(ACTIVE)
+  totalPurchases Float         @default(0)
+  currentBalance Float         @default(0)
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  payables       VendorPayable[]
+
+  @@map("vendors")
+}
+
+model VendorPayable {
+  id           String         @id @default(cuid())
+  companyId    String?
+  vendorId     String
+  billNumber   String
+  description  String?
+  category     String?
+  terms        String?
+  reference    String?
+  issueDate    DateTime
+  dueDate      DateTime
+  subtotal     Float          @default(0)
+  taxAmount    Float          @default(0)
+  total        Float
+  paidAmount   Float          @default(0)
+  balance      Float          @default(0)
+  status       PayableStatus  @default(UNPAID)
+  attachments  String[]       @default([])
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  vendor       Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([vendorId])
+  @@index([status])
+  @@unique([companyId, billNumber])
+  @@map("vendor_payables")
+}
+
 model Product {
   id           String                @id @default(cuid())
   name         String
@@ -271,30 +327,34 @@ model Transaction {
 }
 
 model Employee {
-  id              String         @id @default(cuid())
+  id              String           @id @default(cuid())
   userId          String
-  employeeNumber  String         @unique
+  employeeNumber  String           @unique
   firstName       String
   lastName        String
-  email           String         @unique
+  email           String           @unique
   phone           String?
   position        String
   department      String?
   hireDate        DateTime
   terminationDate DateTime?
   salary          Float
-  salaryType      SalaryType     @default(MONTHLY)
+  salaryType      SalaryType       @default(MONTHLY)
   taxId           String?
   bankAccount     String?
   address         String?
-  status          EmployeeStatus @default(ACTIVE)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  employeeType    String         @default("EMPLOYEE")
+  status          EmployeeStatus   @default(ACTIVE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  employeeType    String           @default("EMPLOYEE")
   companyId       String?
-  user            User           @relation(fields: [userId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
   expenses        Expense[]
   payrolls        Payroll[]
+  timeEntries     TimeEntry[]
+  checks          PayrollCheck[]
+  payments        PayrollPayment[]
+  runItems        PayrollRunItem[]
 
   @@map("employees")
 }
@@ -319,6 +379,8 @@ model Payroll {
   companyId      String?
   deductionItems PayrollDeduction[]
   employee       Employee           @relation(fields: [employeeId], references: [id])
+  checks         PayrollCheck[]
+  payments       PayrollPayment[]
 
   @@map("payrolls")
 }
@@ -2096,6 +2158,12 @@ enum CustomerStatus {
   INACTIVE
 }
 
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
 enum ProductType {
   PRODUCT
   SERVICE
@@ -2150,6 +2218,13 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   CANCELLED
+}
+
+enum PayableStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  OVERDUE
 }
 
 enum SalaryType {
@@ -2676,4 +2751,254 @@ enum KPIPeriod {
   MONTHLY
   QUARTERLY
   YEARLY
+}
+
+model CorporateCard {
+  id                String                  @id @default(cuid())
+  userId            String
+  companyId         String?
+  cardNumber        String                  @unique
+  lastFourDigits    String
+  cardHolderName    String
+  cardType          CorporateCardType       @default(CREDIT)
+  cardBrand         String
+  expiryMonth       Int
+  expiryYear        Int
+  creditLimit       Float?
+  currentBalance    Float                   @default(0)
+  availableCredit   Float?
+  billingCycle      Int                     @default(1)
+  status            CorporateCardStatus     @default(ACTIVE)
+  isVirtual         Boolean                 @default(false)
+  department        String?
+  notes             String?
+  lastSyncedAt      DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  transactions      CorporateCardTransaction[]
+  rules             CorporateCardRule[]
+
+  @@map("corporate_cards")
+}
+
+model CorporateCardTransaction {
+  id                String                      @id @default(cuid())
+  cardId            String
+  expenseId         String?
+  merchantName      String
+  merchantCategory  String?
+  amount            Float
+  currency          String                      @default("MXN")
+  transactionDate   DateTime
+  postingDate       DateTime?
+  description       String
+  transactionType   CardTransactionType         @default(PURCHASE)
+  status            CardTransactionStatus       @default(PENDING)
+  isReconciled      Boolean                     @default(false)
+  reconciledAt      DateTime?
+  categoryId        String?
+  notes             String?
+  receiptUrl        String?
+  metadata          Json?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  card              CorporateCard               @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@map("corporate_card_transactions")
+}
+
+model CorporateCardRule {
+  id                String                  @id @default(cuid())
+  cardId            String?
+  companyId         String?
+  name              String
+  description       String?
+  merchantPattern   String?
+  amountMin         Float?
+  amountMax         Float?
+  categoryId        String?
+  autoReconcile     Boolean                 @default(false)
+  requireReceipt    Boolean                 @default(false)
+  notifyOnMatch     Boolean                 @default(false)
+  isActive          Boolean                 @default(true)
+  priority          Int                     @default(0)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  card              CorporateCard?          @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@map("corporate_card_rules")
+}
+
+enum CorporateCardType {
+  CREDIT
+  DEBIT
+  PREPAID
+}
+
+enum CorporateCardStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  EXPIRED
+  CANCELLED
+}
+
+enum CardTransactionType {
+  PURCHASE
+  REFUND
+  PAYMENT
+  FEE
+  INTEREST
+  CASH_ADVANCE
+}
+
+enum CardTransactionStatus {
+  PENDING
+  POSTED
+  DECLINED
+  CANCELLED
+  REFUNDED
+}
+
+// ==================== PAYROLL EXTENDED MODELS ====================
+
+model TimeEntry {
+  id          String          @id @default(cuid())
+  employeeId  String
+  date        DateTime
+  clockIn     DateTime
+  clockOut    DateTime?
+  breakMinutes Int            @default(0)
+  hoursWorked Float?
+  overtime    Float           @default(0)
+  notes       String?
+  status      TimeEntryStatus @default(PENDING)
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  employee    Employee        @relation(fields: [employeeId], references: [id])
+
+  @@map("time_entries")
+}
+
+model PayrollCheck {
+  id            String      @id @default(cuid())
+  payrollId     String?
+  employeeId    String
+  checkNumber   String      @unique
+  amount        Float
+  checkDate     DateTime
+  memo          String?
+  bankAccount   String?
+  status        CheckStatus @default(PENDING)
+  printedAt     DateTime?
+  voidedAt      DateTime?
+  voidReason    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  employee      Employee    @relation(fields: [employeeId], references: [id])
+  payroll       Payroll?    @relation(fields: [payrollId], references: [id])
+
+  @@map("payroll_checks")
+}
+
+model PayrollPayment {
+  id            String        @id @default(cuid())
+  payrollId     String?
+  employeeId    String
+  amount        Float
+  paymentType   PaymentType
+  paymentDate   DateTime
+  reference     String?
+  bankAccount   String?
+  status        PaymentStatus @default(PENDING)
+  processedAt   DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  employee      Employee      @relation(fields: [employeeId], references: [id])
+  payroll       Payroll?      @relation(fields: [payrollId], references: [id])
+
+  @@map("payroll_payments")
+}
+
+model PayrollRun {
+  id            String          @id @default(cuid())
+  runNumber     String          @unique
+  periodType    String          @default("MONTHLY")
+  periodStart   DateTime
+  periodEnd     DateTime
+  payDate       DateTime
+  totalGross    Float           @default(0)
+  totalDeductions Float         @default(0)
+  totalNet      Float           @default(0)
+  employeeCount Int             @default(0)
+  status        PayrollRunStatus @default(DRAFT)
+  notes         String?
+  calculatedAt  DateTime?
+  approvedBy    String?
+  approvedAt    DateTime?
+  processedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  userId        String
+  items         PayrollRunItem[]
+
+  @@map("payroll_runs")
+}
+
+model PayrollRunItem {
+  id            String     @id @default(cuid())
+  runId         String
+  employeeId    String
+  grossSalary   Float
+  regularHours  Float      @default(0)
+  overtimeHours Float      @default(0)
+  deductions    Float      @default(0)
+  bonuses       Float      @default(0)
+  netSalary     Float
+  status        String     @default("PENDING")
+  run           PayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  employee      Employee   @relation(fields: [employeeId], references: [id])
+
+  @@map("payroll_run_items")
+}
+
+enum TimeEntryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CheckStatus {
+  PENDING
+  PRINTED
+  ISSUED
+  CASHED
+  VOIDED
+}
+
+enum PaymentType {
+  BANK_TRANSFER
+  CASH
+  CHECK
+  DIRECT_DEPOSIT
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PayrollRunStatus {
+  DRAFT
+  CALCULATED
+  APPROVED
+  PROCESSING
+  COMPLETED
+  CANCELLED
 }

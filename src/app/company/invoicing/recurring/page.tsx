@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,8 +23,11 @@ import {
   DollarSign,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  PlusCircle,
+  RefreshCw
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface RecurringInvoice {
   id: string
@@ -218,22 +222,83 @@ export default function RecurringInvoicesPage() {
     )
   }
 
+  const recurringActions = [
+    {
+      label: 'Ver todas',
+      icon: Eye,
+      onClick: () => {
+        setFilterStatus('all')
+        setSearchTerm('')
+        toast.success('📋 Mostrando todas las facturas recurrentes')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Crear nueva',
+      icon: PlusCircle,
+      onClick: () => {
+        router.push('/company/invoicing/recurring/new')
+      },
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Editar',
+      icon: Edit,
+      onClick: () => {
+        toast('Selecciona una factura recurrente para editar')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Pausar/Reanudar',
+      icon: Pause,
+      onClick: () => {
+        toast('⏸️ Selecciona una factura para pausar/reanudar')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Eliminar',
+      icon: Trash2,
+      onClick: () => {
+        toast('🗑️ Selecciona una factura recurrente para eliminar')
+      },
+      variant: 'danger' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Facturas Recurrentes</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <RefreshCw className="w-8 h-8 text-blue-600" />
+              Facturas Recurrentes
+            </h1>
             <p className="text-gray-600 mt-1">
               Automatiza la facturación periódica a tus clientes
             </p>
           </div>
-          <Button onClick={() => alert('🔄 Nueva Factura Recurrente\n\nConfigura:\n- Frecuencia (mensual, trimestral, anual)\n- Cliente\n- Monto\n- Fecha de inicio')}>
+          <Button onClick={() => router.push('/company/invoicing/recurring/new')}>
             <Plus className="w-4 h-4 mr-2" />
             Nueva Factura Recurrente
           </Button>
         </div>
+
+        {/* Action Buttons */}
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-blue-900 flex items-center">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Acciones de Facturas Recurrentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={recurringActions} />
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

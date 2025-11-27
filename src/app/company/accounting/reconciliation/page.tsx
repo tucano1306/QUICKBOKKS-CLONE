@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +23,11 @@ import {
   Search,
   ArrowUpRight,
   ArrowDownRight,
-  Clock
+  Clock,
+  Link as LinkIcon,
+  CheckSquare,
+  Activity,
+  RefreshCw
 } from 'lucide-react'
 
 interface BankAccount {
@@ -281,6 +286,62 @@ export default function ReconciliationPage() {
     )
   }
 
+  // Botones de acción de Conciliación Bancaria
+  const reconciliationActions = [
+    {
+      label: 'Conectar bancos',
+      icon: LinkIcon,
+      onClick: () => {
+        router.push('/company/accounting/bank-sync')
+      },
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Sincronizar cuentas',
+      icon: RefreshCw,
+      onClick: () => {
+        router.push('/company/accounting/bank-sync?action=sync')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Conciliar',
+      icon: CheckCircle2,
+      onClick: () => {
+        const account = bankAccounts.find(a => a.id === selectedAccount)
+        if (account) {
+          alert(`🔄 Iniciando conciliación para:\n${account.name} ${account.accountNumber}\n\nSaldo Banco: $${account.bankBalance.toLocaleString()}\nSaldo Libro: $${account.bookBalance.toLocaleString()}`)
+        }
+      },
+      variant: 'success' as const,
+    },
+    {
+      label: 'Cuadrar cuentas',
+      icon: CheckSquare,
+      onClick: () => {
+        const unreconciled = reconciliationItems.filter(i => i.status === 'unmatched').length
+        if (unreconciled > 0) {
+          alert(`⚠️ Hay ${unreconciled} transacciones sin conciliar\n\nRevisa las diferencias antes de cuadrar las cuentas.`)
+        } else {
+          alert('✅ Todas las transacciones están conciliadas\n\nPuedes proceder a cuadrar la cuenta.')
+        }
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Ver estado',
+      icon: Activity,
+      onClick: () => {
+        const account = bankAccounts.find(a => a.id === selectedAccount)
+        const difference = account ? Math.abs(account.bankBalance - account.bookBalance) : 0
+        const statusText = account?.status === 'reconciled' ? '✅ Conciliada' : 
+                          account?.status === 'pending' ? '⏳ Pendiente' : '❌ Sin conciliar'
+        alert(`Estado de Conciliación\n\n${statusText}\n\nÚltima conciliación: ${account?.lastReconciled}\nDiferencia: $${difference.toLocaleString()}`)
+      },
+      variant: 'outline' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
@@ -292,6 +353,24 @@ export default function ReconciliationPage() {
               Reconcilia tus cuentas bancarias con tus registros contables
             </p>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <Card className="border-green-200 bg-green-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-green-900 flex items-center">
+              <Building2 className="w-4 h-4 mr-2" />
+              Acciones de Conciliación Bancaria
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={reconciliationActions} />
+          </CardContent>
+        </Card>
+
+        {/* Original Header Section */}
+        <div className="flex items-center justify-between">
+          <div></div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={exportReport}>
               <Download className="w-4 h-4 mr-2" />

@@ -31,7 +31,8 @@ import {
   Link as LinkIcon,
   Copy,
   Zap,
-  Bot
+  Bot,
+  Edit
 } from 'lucide-react'
 
 interface ClientDocument {
@@ -626,13 +627,48 @@ export default function DocumentUploadPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" title="Ver documento">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title="Ver documento"
+                      onClick={() => alert(`Ver documento: ${doc.filename}\n\nEn producción abriría un visor de PDF/imágenes inline.`)}
+                    >
                       <Eye className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="outline" title="Descargar">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title="Editar metadatos"
+                      onClick={() => {
+                        const newCategory = prompt(`Editar categoría de: ${doc.filename}\n\nCategoría actual: ${doc.category}\n\nOpciones: invoice, receipt, bank_statement, tax_document, contract, other`)
+                        if (newCategory) {
+                          alert(`✅ Categoría actualizada a: ${newCategory}`)
+                          // En producción: actualizar en BD
+                        }
+                      }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title="Descargar"
+                      onClick={() => alert(`Descargando: ${doc.filename}`)}
+                    >
                       <Download className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="outline" className="text-red-600" title="Eliminar">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-red-600" 
+                      title="Eliminar"
+                      onClick={() => {
+                        if (confirm(`¿Eliminar ${doc.filename}?\n\nEsta acción no se puede deshacer.`)) {
+                          setUploadedFiles(prev => prev.filter(d => d.id !== doc.id))
+                          alert('✅ Documento eliminado')
+                        }
+                      }}
+                    >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>

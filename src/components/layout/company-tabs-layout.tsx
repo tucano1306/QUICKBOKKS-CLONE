@@ -126,7 +126,7 @@ const tabSections: TabSection[] = [
     icon: Users,
     color: 'cyan',
     submenus: [
-      { name: 'Lista de Clientes', href: '/company/customers/list', description: 'Directorio completo' },
+      { name: 'Lista de Clientes', href: '/company/customers', description: 'Directorio completo' },
       { name: 'Portal del Cliente', href: '/company/customers/portal', description: 'Acceso para clientes' },
       { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir docs con IA' },
       { name: '🤖 Revisión IA Docs', href: '/company/documents/review', description: 'Aprobar y reclasificar' },
@@ -414,10 +414,12 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
       </main>
 
       {/* AI Assistant flotante disponible en todas las páginas de company */}
-      <FloatingAssistant />
+      {/* Temporalmente desactivado para debug */}
+      {/* <FloatingAssistant /> */}
       
       {/* Actualizaciones en tiempo real */}
-      <RealTimeUpdates />
+      {/* Temporalmente desactivado para evitar rebuilds constantes */}
+      {/* <RealTimeUpdates /> */}
     </div>
   )
 }

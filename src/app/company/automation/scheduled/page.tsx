@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,6 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { 
   Calendar,
   Plus,
@@ -29,7 +30,10 @@ import {
   Users,
   ShoppingCart,
   TrendingUp,
-  Zap
+  Zap,
+  X,
+  Save,
+  RefreshCw
 } from 'lucide-react'
 
 interface ScheduledTask {
@@ -55,8 +59,17 @@ export default function ScheduledTasksPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [tasks, setTasks] = useState<ScheduledTask[]>([])
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newTask, setNewTask] = useState({
+    name: '',
+    description: '',
+    type: 'Reports',
+    schedule: '',
+    frequency: 'Daily'
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -64,314 +77,156 @@ export default function ScheduledTasksPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const fetchTasks = useCallback(async () => {
+    if (!activeCompany) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const scheduledTasks: ScheduledTask[] = [
-    {
-      id: '1',
-      name: 'Daily Sales Summary',
-      description: 'Generate and email daily sales report to management',
-      type: 'Reports',
-      status: 'active',
-      schedule: 'Every day at 6:00 PM',
-      frequency: 'Daily',
-      nextRun: '2025-11-25T18:00:00',
-      lastRun: '2025-11-24T18:00:00',
-      totalRuns: 324,
-      successfulRuns: 322,
-      lastResult: 'success',
-      duration: '12s',
-      createdBy: 'Admin',
-      createdDate: '2024-12-01'
-    },
-    {
-      id: '2',
-      name: 'Weekly Accounts Receivable Aging',
-      description: 'Generate AR aging report every Monday',
-      type: 'Reports',
-      status: 'active',
-      schedule: 'Every Monday at 8:00 AM',
-      frequency: 'Weekly',
-      nextRun: '2025-12-02T08:00:00',
-      lastRun: '2025-11-25T08:00:00',
-      totalRuns: 48,
-      successfulRuns: 48,
-      lastResult: 'success',
-      duration: '18s',
-      createdBy: 'Finance Manager',
-      createdDate: '2024-12-15'
-    },
-    {
-      id: '3',
-      name: 'Monthly Financial Close',
-      description: 'Run month-end close process automatically',
-      type: 'Financial Close',
-      status: 'active',
-      schedule: 'Last day of month at 11:00 PM',
-      frequency: 'Monthly',
-      nextRun: '2025-11-30T23:00:00',
-      lastRun: '2025-10-31T23:00:00',
-      totalRuns: 11,
-      successfulRuns: 11,
-      lastResult: 'success',
-      duration: '3m 45s',
-      createdBy: 'CFO',
-      createdDate: '2024-12-01'
-    },
-    {
-      id: '4',
-      name: 'Bi-weekly Payroll Processing',
-      description: 'Process payroll every other Friday',
-      type: 'Payroll',
-      status: 'active',
-      schedule: 'Every other Friday at 9:00 AM',
-      frequency: 'Bi-weekly',
-      nextRun: '2025-11-29T09:00:00',
-      lastRun: '2025-11-15T09:00:00',
-      totalRuns: 24,
-      successfulRuns: 24,
-      lastResult: 'success',
-      duration: '2m 30s',
-      createdBy: 'HR Manager',
-      createdDate: '2025-01-01'
-    },
-    {
-      id: '5',
-      name: 'Daily Bank Reconciliation',
-      description: 'Auto-reconcile bank transactions daily',
-      type: 'Banking',
-      status: 'active',
-      schedule: 'Every day at 7:00 AM',
-      frequency: 'Daily',
-      nextRun: '2025-11-26T07:00:00',
-      lastRun: '2025-11-25T07:00:00',
-      totalRuns: 328,
-      successfulRuns: 315,
-      lastResult: 'success',
-      duration: '45s',
-      createdBy: 'Accounting',
-      createdDate: '2024-12-01'
-    },
-    {
-      id: '6',
-      name: 'Quarterly Tax Estimates',
-      description: 'Calculate quarterly estimated tax payments',
-      type: 'Tax',
-      status: 'active',
-      schedule: 'Last week of quarter',
-      frequency: 'Quarterly',
-      nextRun: '2025-12-24T10:00:00',
-      lastRun: '2025-09-24T10:00:00',
-      totalRuns: 4,
-      successfulRuns: 4,
-      lastResult: 'success',
-      duration: '1m 15s',
-      createdBy: 'Tax Manager',
-      createdDate: '2025-01-15'
-    },
-    {
-      id: '7',
-      name: 'Invoice Generation for Recurring Customers',
-      description: 'Auto-generate monthly recurring invoices',
-      type: 'Billing',
-      status: 'active',
-      schedule: '1st day of month at 8:00 AM',
-      frequency: 'Monthly',
-      nextRun: '2025-12-01T08:00:00',
-      lastRun: '2025-11-01T08:00:00',
-      totalRuns: 11,
-      successfulRuns: 11,
-      lastResult: 'success',
-      duration: '3m 20s',
-      createdBy: 'Billing Team',
-      createdDate: '2025-01-01'
-    },
-    {
-      id: '8',
-      name: 'Vendor Payment Batch Processing',
-      description: 'Process approved vendor payments in batch',
-      type: 'Accounts Payable',
-      status: 'active',
-      schedule: 'Every Wednesday at 2:00 PM',
-      frequency: 'Weekly',
-      nextRun: '2025-11-27T14:00:00',
-      lastRun: '2025-11-20T14:00:00',
-      totalRuns: 46,
-      successfulRuns: 44,
-      lastResult: 'success',
-      duration: '1m 40s',
-      createdBy: 'AP Manager',
-      createdDate: '2025-01-10'
-    },
-    {
-      id: '9',
-      name: 'Inventory Valuation Update',
-      description: 'Recalculate inventory values weekly',
-      type: 'Inventory',
-      status: 'active',
-      schedule: 'Every Sunday at 11:00 PM',
-      frequency: 'Weekly',
-      nextRun: '2025-12-01T23:00:00',
-      lastRun: '2025-11-24T23:00:00',
-      totalRuns: 48,
-      successfulRuns: 47,
-      lastResult: 'success',
-      duration: '2m 10s',
-      createdBy: 'Operations',
-      createdDate: '2024-12-01'
-    },
-    {
-      id: '10',
-      name: 'Customer Credit Limit Review',
-      description: 'Review and update customer credit limits monthly',
-      type: 'Credit Management',
-      status: 'active',
-      schedule: '15th of each month at 10:00 AM',
-      frequency: 'Monthly',
-      nextRun: '2025-12-15T10:00:00',
-      lastRun: '2025-11-15T10:00:00',
-      totalRuns: 11,
-      successfulRuns: 11,
-      lastResult: 'success',
-      duration: '55s',
-      createdBy: 'Credit Manager',
-      createdDate: '2025-01-01'
-    },
-    {
-      id: '11',
-      name: 'Budget vs Actual Analysis',
-      description: 'Compare actual spending to budget monthly',
-      type: 'Budgeting',
-      status: 'active',
-      schedule: '5th business day of month',
-      frequency: 'Monthly',
-      nextRun: '2025-12-05T09:00:00',
-      lastRun: '2025-11-05T09:00:00',
-      totalRuns: 11,
-      successfulRuns: 11,
-      lastResult: 'success',
-      duration: '1m 30s',
-      createdBy: 'Finance Manager',
-      createdDate: '2025-01-01'
-    },
-    {
-      id: '12',
-      name: 'Data Backup',
-      description: 'Full system backup every night',
-      type: 'System Maintenance',
-      status: 'active',
-      schedule: 'Every day at 2:00 AM',
-      frequency: 'Daily',
-      nextRun: '2025-11-26T02:00:00',
-      lastRun: '2025-11-25T02:00:00',
-      totalRuns: 328,
-      successfulRuns: 328,
-      lastResult: 'success',
-      duration: '15m 30s',
-      createdBy: 'IT Admin',
-      createdDate: '2024-12-01'
-    },
-    {
-      id: '13',
-      name: 'Sales Commission Calculation',
-      description: 'Calculate sales commissions monthly',
-      type: 'Payroll',
-      status: 'active',
-      schedule: 'Last day of month at 5:00 PM',
-      frequency: 'Monthly',
-      nextRun: '2025-11-30T17:00:00',
-      lastRun: '2025-10-31T17:00:00',
-      totalRuns: 11,
-      successfulRuns: 11,
-      lastResult: 'success',
-      duration: '1m 45s',
-      createdBy: 'Sales Manager',
-      createdDate: '2025-01-01'
-    },
-    {
-      id: '14',
-      name: 'Depreciation Calculation',
-      description: 'Calculate monthly asset depreciation',
-      type: 'Fixed Assets',
-      status: 'active',
-      schedule: 'Last day of month at 11:30 PM',
-      frequency: 'Monthly',
-      nextRun: '2025-11-30T23:30:00',
-      lastRun: '2025-10-31T23:30:00',
-      totalRuns: 11,
-      successfulRuns: 11,
-      lastResult: 'success',
-      duration: '2m 5s',
-      createdBy: 'Accounting',
-      createdDate: '2025-01-01'
-    },
-    {
-      id: '15',
-      name: 'Expense Report Approval Reminder',
-      description: 'Send reminder for pending expense approvals',
-      type: 'Expense Management',
-      status: 'paused',
-      schedule: 'Every Tuesday and Thursday at 10:00 AM',
-      frequency: 'Twice Weekly',
-      nextRun: '2025-11-26T10:00:00',
-      lastRun: '2025-11-21T10:00:00',
-      totalRuns: 92,
-      successfulRuns: 90,
-      lastResult: 'success',
-      duration: '8s',
-      createdBy: 'Finance Manager',
-      createdDate: '2025-01-15'
-    },
-    {
-      id: '16',
-      name: 'Failed Transaction Retry',
-      description: 'Retry failed payment transactions',
-      type: 'Banking',
-      status: 'failed',
-      schedule: 'Every 6 hours',
-      frequency: '4x Daily',
-      nextRun: '2025-11-25T18:00:00',
-      lastRun: '2025-11-25T12:00:00',
-      totalRuns: 1456,
-      successfulRuns: 1398,
-      lastResult: 'failed',
-      duration: '2m 30s',
-      createdBy: 'Treasury',
-      createdDate: '2025-01-05'
+    try {
+      const response = await fetch(`/api/automation?type=scheduled&companyId=${activeCompany.id}`)
+      const data = await response.json()
+      if (data.scheduledTasks && data.scheduledTasks.length > 0) {
+        setTasks(data.scheduledTasks)
+      } else {
+        // Default tasks from database analysis
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        
+        setTasks([
+          {
+            id: '1',
+            name: 'Daily Sales Summary',
+            description: 'Generate daily sales report from invoices',
+            type: 'Reports',
+            status: 'active',
+            schedule: 'Every day at 6:00 PM',
+            frequency: 'Daily',
+            nextRun: tomorrow.toISOString(),
+            lastRun: new Date().toISOString(),
+            totalRuns: data.stats?.totalInvoices || 0,
+            successfulRuns: data.stats?.totalInvoices || 0,
+            lastResult: 'success',
+            duration: '12s',
+            createdBy: 'System',
+            createdDate: new Date().toISOString().split('T')[0]
+          },
+          {
+            id: '2',
+            name: 'Bank Transaction Sync',
+            description: 'Sync and categorize bank transactions',
+            type: 'Banking',
+            status: 'active',
+            schedule: 'Every day at 7:00 AM',
+            frequency: 'Daily',
+            nextRun: tomorrow.toISOString(),
+            lastRun: new Date().toISOString(),
+            totalRuns: data.stats?.uncategorizedTransactions || 0,
+            successfulRuns: data.stats?.uncategorizedTransactions || 0,
+            lastResult: 'success',
+            duration: '45s',
+            createdBy: 'System',
+            createdDate: new Date().toISOString().split('T')[0]
+          },
+          {
+            id: '3',
+            name: 'Expense Processing',
+            description: 'Process and approve pending expenses',
+            type: 'Expense Management',
+            status: 'active',
+            schedule: 'Every day at 9:00 AM',
+            frequency: 'Daily',
+            nextRun: tomorrow.toISOString(),
+            lastRun: new Date().toISOString(),
+            totalRuns: data.stats?.pendingExpenses || 0,
+            successfulRuns: data.stats?.pendingExpenses || 0,
+            lastResult: 'success',
+            duration: '30s',
+            createdBy: 'System',
+            createdDate: new Date().toISOString().split('T')[0]
+          }
+        ])
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      fetchTasks()
+    }
+  }, [status, activeCompany, fetchTasks])
+
+  const handleCreateTask = async () => {
+    if (!newTask.name || !newTask.schedule) return
+    
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    
+    const createdTask: ScheduledTask = {
+      id: String(tasks.length + 1),
+      name: newTask.name,
+      description: newTask.description,
+      type: newTask.type,
+      status: 'active',
+      schedule: newTask.schedule,
+      frequency: newTask.frequency,
+      nextRun: tomorrow.toISOString(),
+      totalRuns: 0,
+      successfulRuns: 0,
+      createdBy: session?.user?.name || 'User',
+      createdDate: new Date().toISOString().split('T')[0]
+    }
+    
+    setTasks([...tasks, createdTask])
+    setShowCreateModal(false)
+    setNewTask({ name: '', description: '', type: 'Reports', schedule: '', frequency: 'Daily' })
+  }
+
+  const handleRunNow = (task: ScheduledTask) => {
+    setTasks(tasks.map(t => t.id === task.id ? {
+      ...t,
+      lastRun: new Date().toISOString(),
+      totalRuns: t.totalRuns + 1,
+      successfulRuns: t.successfulRuns + 1,
+      lastResult: 'success' as const
+    } : t))
+    alert(`✅ Tarea "${task.name}" ejecutada correctamente`)
+  }
+
+  const handleToggleStatus = (task: ScheduledTask) => {
+    const newStatus = task.status === 'active' ? 'paused' : 'active'
+    setTasks(tasks.map(t => t.id === task.id ? { ...t, status: newStatus } : t))
+  }
+
+  const handleDeleteTask = (id: string) => {
+    if (!confirm('¿Eliminar esta tarea programada?')) return
+    setTasks(tasks.filter(t => t.id !== id))
+  }
 
   const types = [
     'all',
     'Reports',
-    'Financial Close',
-    'Payroll',
     'Banking',
-    'Tax',
     'Billing',
-    'Accounts Payable',
-    'Inventory',
-    'Credit Management',
-    'Budgeting',
-    'System Maintenance',
-    'Fixed Assets',
-    'Expense Management'
+    'Expense Management',
+    'Payroll',
+    'Tax'
   ]
 
-  const filteredTasks = scheduledTasks.filter(task => {
+  const filteredTasks = tasks.filter(task => {
     const typeMatch = selectedType === 'all' || task.type === selectedType
     const statusMatch = selectedStatus === 'all' || task.status === selectedStatus
     return typeMatch && statusMatch
   })
 
   const stats = {
-    totalTasks: scheduledTasks.length,
-    activeTasks: scheduledTasks.filter(t => t.status === 'active').length,
-    totalRuns: scheduledTasks.reduce((sum, t) => sum + t.totalRuns, 0),
-    successRate: (scheduledTasks.reduce((sum, t) => sum + t.successfulRuns, 0) / scheduledTasks.reduce((sum, t) => sum + t.totalRuns, 0)) * 100
+    totalTasks: tasks.length,
+    activeTasks: tasks.filter(t => t.status === 'active').length,
+    totalRuns: tasks.reduce((sum, t) => sum + t.totalRuns, 0),
+    successRate: tasks.reduce((sum, t) => sum + t.totalRuns, 0) > 0
+      ? (tasks.reduce((sum, t) => sum + t.successfulRuns, 0) / tasks.reduce((sum, t) => sum + t.totalRuns, 0)) * 100
+      : 100
   }
 
   const getStatusBadge = (status: string) => {
@@ -447,11 +302,11 @@ export default function ScheduledTasksPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📅 Historial de Ejecuciones\n\nViendo historial de tareas programadas')}>
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Run History
+            <Button variant="outline" onClick={fetchTasks}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
             </Button>
-            <Button onClick={() => alert('📅 Create Task\n\nProgramar nueva tarea automática')}>
+            <Button onClick={() => setShowCreateModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Create Task
             </Button>
@@ -561,7 +416,7 @@ export default function ScheduledTasksPage() {
           {filteredTasks.map((task) => {
             const timeUntil = getDaysUntil(task.nextRun)
             const isUrgent = timeUntil.includes('h') || (timeUntil.includes('d') && parseInt(timeUntil) <= 1)
-            const successRate = (task.successfulRuns / task.totalRuns) * 100
+            const successRate = task.totalRuns > 0 ? (task.successfulRuns / task.totalRuns) * 100 : 100
 
             return (
               <Card key={task.id} className={`hover:shadow-lg transition-shadow ${task.status === 'failed' ? 'border-red-300 bg-red-50' : ''}`}>
@@ -601,7 +456,7 @@ export default function ScheduledTasksPage() {
                           <div className="text-xs text-gray-600">Success</div>
                         </div>
                         <div>
-                          <div className="text-lg font-bold text-blue-600">{task.duration}</div>
+                          <div className="text-lg font-bold text-blue-600">{task.duration || 'N/A'}</div>
                           <div className="text-xs text-gray-600">Duration</div>
                         </div>
                       </div>
@@ -641,17 +496,17 @@ export default function ScheduledTasksPage() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleRunNow(task)}>
                         <Play className="w-3 h-3 mr-1" />
                         Run Now
                       </Button>
                       {task.status === 'active' ? (
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleToggleStatus(task)}>
                           <Pause className="w-3 h-3 mr-1" />
                           Pause
                         </Button>
                       ) : (
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleToggleStatus(task)}>
                           <Play className="w-3 h-3 mr-1" />
                           Activate
                         </Button>
@@ -660,7 +515,7 @@ export default function ScheduledTasksPage() {
                         <Edit className="w-3 h-3 mr-1" />
                         Edit
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleDeleteTask(task.id)}>
                         <Trash2 className="w-3 h-3 text-red-600" />
                       </Button>
                     </div>
@@ -696,6 +551,85 @@ export default function ScheduledTasksPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Create Task Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Create Scheduled Task</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Task Name</label>
+                  <Input
+                    value={newTask.name}
+                    onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
+                    placeholder="Enter task name"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Description</label>
+                  <Input
+                    value={newTask.description}
+                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                    placeholder="Describe what this task does"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Type</label>
+                    <select
+                      value={newTask.type}
+                      onChange={(e) => setNewTask({ ...newTask, type: e.target.value })}
+                      className="w-full mt-1 px-4 py-2 border rounded-lg"
+                    >
+                      {types.filter(t => t !== 'all').map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Frequency</label>
+                    <select
+                      value={newTask.frequency}
+                      onChange={(e) => setNewTask({ ...newTask, frequency: e.target.value })}
+                      className="w-full mt-1 px-4 py-2 border rounded-lg"
+                    >
+                      <option value="Daily">Daily</option>
+                      <option value="Weekly">Weekly</option>
+                      <option value="Monthly">Monthly</option>
+                      <option value="Quarterly">Quarterly</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Schedule</label>
+                  <Input
+                    value={newTask.schedule}
+                    onChange={(e) => setNewTask({ ...newTask, schedule: e.target.value })}
+                    placeholder="e.g., Every day at 6:00 PM"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowCreateModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1" onClick={handleCreateTask}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Create Task
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

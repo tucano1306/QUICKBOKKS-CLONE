@@ -22,7 +22,13 @@ import {
   XCircle,
   RefreshCw,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Send,
+  Globe,
+  X,
+  Loader2,
+  ArrowRight,
+  Building2
 } from 'lucide-react'
 
 interface Transfer {
@@ -47,6 +53,15 @@ interface Transfer {
   fee?: number
 }
 
+interface BankAccount {
+  id: string
+  accountName: string
+  bankName?: string
+  accountNumber?: string
+  balance: number
+  currency: string
+}
+
 export default function BankTransfersPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -55,234 +70,227 @@ export default function BankTransfersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  
+  // Real data from API
+  const [transfers, setTransfers] = useState<Transfer[]>([])
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  
+  // Modal states
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null)
+  const [processing, setProcessing] = useState(false)
+  const [transferType, setTransferType] = useState<'internal' | 'external'>('internal')
+  
+  // Form states
+  const [transferForm, setTransferForm] = useState({
+    fromAccountId: '',
+    toAccountId: '',
+    amount: 0,
+    description: '',
+    date: new Date().toISOString().split('T')[0],
+    externalBankName: '',
+    externalAccountNumber: '',
+    externalAccountHolder: '',
+    reference: ''
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
+    if (status === 'authenticated') {
+      loadData()
+    }
   }, [status, router])
 
-  useEffect(() => {
+  const loadData = async () => {
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const transfers: Transfer[] = [
-    {
-      id: 'TRF-001',
-      transferId: 'TRF-2025-001',
-      date: '2025-11-25',
-      fromAccount: 'Cuenta Principal Operativa',
-      fromAccountId: 'ACC-001',
-      toAccount: 'Cuenta Nómina',
-      toAccountId: 'ACC-003',
-      amount: 250000,
-      fromCurrency: 'MXN',
-      toCurrency: 'MXN',
-      type: 'internal',
-      description: 'Transferencia para pago de nómina quincena 2',
-      reference: 'PAY-2025-Q2',
-      status: 'completed',
-      completedDate: '2025-11-25'
-    },
-    {
-      id: 'TRF-002',
-      transferId: 'TRF-2025-002',
-      date: '2025-11-24',
-      fromAccount: 'Cuenta Principal Operativa',
-      fromAccountId: 'ACC-001',
-      toAccount: 'Cuenta de Ahorros Empresarial',
-      toAccountId: 'ACC-002',
-      amount: 500000,
-      fromCurrency: 'MXN',
-      toCurrency: 'MXN',
-      type: 'internal',
-      description: 'Transferencia a cuenta de ahorros - Ahorro mensual',
-      reference: 'SAV-NOV-2025',
-      status: 'completed',
-      completedDate: '2025-11-24'
-    },
-    {
-      id: 'TRF-003',
-      transferId: 'TRF-2025-003',
-      date: '2025-11-23',
-      fromAccount: 'Cuenta Principal Operativa',
-      fromAccountId: 'ACC-001',
-      toAccount: 'Cuenta Externa - Proveedor Internacional',
-      toAccountId: 'EXT-001',
-      amount: 85000,
-      fromCurrency: 'MXN',
-      toCurrency: 'MXN',
-      type: 'external',
-      description: 'Pago a proveedor externo - Servicios de hosting',
-      reference: 'BILL-EXT-2025-012',
-      status: 'completed',
-      completedDate: '2025-11-23',
-      fee: 150
-    },
-    {
-      id: 'TRF-004',
-      transferId: 'TRF-2025-004',
-      date: '2025-11-22',
-      fromAccount: 'Cuenta USD Internacional',
-      fromAccountId: 'ACC-005',
-      toAccount: 'Cuenta Principal Operativa',
-      toAccountId: 'ACC-001',
-      amount: 5000,
-      fromCurrency: 'USD',
-      toCurrency: 'MXN',
-      exchangeRate: 17.45,
-      convertedAmount: 87250,
-      type: 'internal',
-      description: 'Conversión USD a MXN - Cambio de divisas',
-      reference: 'FX-NOV-2025-001',
-      status: 'completed',
-      completedDate: '2025-11-22',
-      fee: 200
-    },
-    {
-      id: 'TRF-005',
-      transferId: 'TRF-2025-005',
-      date: '2025-11-21',
-      fromAccount: 'Cuenta Principal Operativa',
-      fromAccountId: 'ACC-001',
-      toAccount: 'Cuenta Fiscal - Impuestos',
-      toAccountId: 'ACC-007',
-      amount: 150000,
-      fromCurrency: 'MXN',
-      toCurrency: 'MXN',
-      type: 'internal',
-      description: 'Transferencia para provisión de impuestos',
-      reference: 'TRF-FISCAL-NOV',
-      status: 'completed',
-      completedDate: '2025-11-21'
-    },
-    {
-      id: 'TRF-006',
-      transferId: 'TRF-2025-006',
-      date: '2025-11-20',
-      fromAccount: 'Cuenta Principal Operativa',
-      fromAccountId: 'ACC-001',
-      toAccount: 'Banco Internacional - Wire Transfer',
-      toAccountId: 'INT-001',
-      amount: 100000,
-      fromCurrency: 'MXN',
-      toCurrency: 'USD',
-      exchangeRate: 17.50,
-      convertedAmount: 5714.29,
-      type: 'international',
-      description: 'Transferencia internacional a proveedor USA',
-      reference: 'WIRE-2025-003',
-      status: 'pending',
-      fee: 850
-    },
-    {
-      id: 'TRF-007',
-      transferId: 'TRF-2025-007',
-      date: '2025-11-27',
-      fromAccount: 'Cuenta Principal Operativa',
-      fromAccountId: 'ACC-001',
-      toAccount: 'Cuenta Nómina',
-      toAccountId: 'ACC-003',
-      amount: 254798,
-      fromCurrency: 'MXN',
-      toCurrency: 'MXN',
-      type: 'internal',
-      description: 'Transferencia programada - Nómina quincena 1 Diciembre',
-      reference: 'PAY-2025-DIC-Q1',
-      status: 'scheduled',
-      scheduledDate: '2025-11-27'
-    },
-    {
-      id: 'TRF-008',
-      transferId: 'TRF-2025-008',
-      date: '2025-11-18',
-      fromAccount: 'Cuenta Principal Operativa',
-      fromAccountId: 'ACC-001',
-      toAccount: 'Cuenta Externa - Banco Azteca',
-      toAccountId: 'EXT-002',
-      amount: 45000,
-      fromCurrency: 'MXN',
-      toCurrency: 'MXN',
-      type: 'external',
-      description: 'Pago proveedor servicios generales',
-      reference: 'BILL-2025-045',
-      status: 'completed',
-      completedDate: '2025-11-18',
-      fee: 100
-    },
-    {
-      id: 'TRF-009',
-      transferId: 'TRF-2025-009',
-      date: '2025-11-17',
-      fromAccount: 'Cuenta de Ahorros Empresarial',
-      fromAccountId: 'ACC-002',
-      toAccount: 'Fondo de Inversión',
-      toAccountId: 'ACC-006',
-      amount: 300000,
-      fromCurrency: 'MXN',
-      toCurrency: 'MXN',
-      type: 'internal',
-      description: 'Inversión mensual a fondo de inversión',
-      reference: 'INV-NOV-2025',
-      status: 'completed',
-      completedDate: '2025-11-17'
-    },
-    {
-      id: 'TRF-010',
-      transferId: 'TRF-2025-010',
-      date: '2025-11-15',
-      fromAccount: 'Cuenta Principal Operativa',
-      fromAccountId: 'ACC-001',
-      toAccount: 'Cuenta Externa - HSBC',
-      toAccountId: 'EXT-003',
-      amount: 120000,
-      fromCurrency: 'MXN',
-      toCurrency: 'MXN',
-      type: 'external',
-      description: 'Transferencia SPEI - Pago servicios profesionales',
-      reference: 'BILL-2025-040',
-      status: 'completed',
-      completedDate: '2025-11-15',
-      fee: 8
-    },
-    {
-      id: 'TRF-011',
-      transferId: 'TRF-2025-011',
-      date: '2025-11-14',
-      fromAccount: 'Cuenta USD Internacional',
-      fromAccountId: 'ACC-005',
-      toAccount: 'Proveedor Internacional USA',
-      toAccountId: 'INT-002',
-      amount: 3500,
-      fromCurrency: 'USD',
-      toCurrency: 'USD',
-      type: 'international',
-      description: 'Pago internacional - Software licenses',
-      reference: 'INV-INT-2025-018',
-      status: 'completed',
-      completedDate: '2025-11-14',
-      fee: 45
-    },
-    {
-      id: 'TRF-012',
-      transferId: 'TRF-2025-012',
-      date: '2025-11-13',
-      fromAccount: 'Cuenta Principal Operativa',
-      fromAccountId: 'ACC-001',
-      toAccount: 'Cuenta Externa - Error de ruta',
-      toAccountId: 'EXT-999',
-      amount: 25000,
-      fromCurrency: 'MXN',
-      toCurrency: 'MXN',
-      type: 'external',
-      description: 'Transferencia fallida - Cuenta destino incorrecta',
-      reference: 'BILL-2025-ERR',
-      status: 'failed'
+    try {
+      await Promise.all([loadAccounts(), loadTransfers()])
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
 
-  const getTypeBadge = (type: string) => {
+  const loadAccounts = async () => {
+    try {
+      const response = await fetch('/api/banking/accounts')
+      if (response.ok) {
+        const data = await response.json()
+        setAccounts(data.accounts || [])
+        if (data.accounts?.length > 0) {
+          setTransferForm(prev => ({ ...prev, fromAccountId: data.accounts[0].id }))
+        }
+      }
+    } catch (error) {
+      console.error('Error loading accounts:', error)
+    }
+  }
+
+  const loadTransfers = async () => {
+    try {
+      const response = await fetch('/api/banking/transfers?limit=100')
+      if (response.ok) {
+        const data = await response.json()
+        // Map API transfers to local format
+        const mappedTransfers = (data.transfers || []).map((t: any) => ({
+          id: t.id,
+          transferId: t.id.slice(0, 8).toUpperCase(),
+          date: t.date,
+          fromAccount: t.bankAccount?.accountName || 'N/A',
+          fromAccountId: t.bankAccount?.id || '',
+          toAccount: t.pairedWith?.bankAccount?.accountName || t.description || 'Externa',
+          toAccountId: t.pairedWith?.bankAccount?.id || '',
+          amount: Math.abs(t.amount),
+          fromCurrency: t.bankAccount?.currency || 'USD',
+          toCurrency: t.bankAccount?.currency || 'USD',
+          type: t.isExternal ? 'external' : 'internal',
+          description: t.name || t.description || '',
+          reference: t.id.slice(0, 12),
+          status: t.pending ? 'pending' : (t.reconciled ? 'completed' : 'completed'),
+          completedDate: !t.pending ? t.date : undefined
+        }))
+        setTransfers(mappedTransfers)
+      }
+    } catch (error) {
+      console.error('Error loading transfers:', error)
+    }
+  }
+
+  const openTransferModal = (type: 'internal' | 'external') => {
+    setTransferType(type)
+    setTransferForm({
+      fromAccountId: accounts[0]?.id || '',
+      toAccountId: type === 'internal' ? (accounts[1]?.id || '') : '',
+      amount: 0,
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      externalBankName: '',
+      externalAccountNumber: '',
+      externalAccountHolder: '',
+      reference: ''
+    })
+    setShowTransferModal(true)
+  }
+
+  const executeTransfer = async () => {
+    if (!transferForm.fromAccountId || !transferForm.amount) {
+      alert('Cuenta origen y monto son requeridos')
+      return
+    }
+
+    if (transferType === 'internal' && !transferForm.toAccountId) {
+      alert('Seleccione cuenta destino')
+      return
+    }
+
+    if (transferType === 'internal' && transferForm.fromAccountId === transferForm.toAccountId) {
+      alert('Las cuentas de origen y destino deben ser diferentes')
+      return
+    }
+
+    if (transferType === 'external' && (!transferForm.externalBankName || !transferForm.externalAccountNumber)) {
+      alert('Complete los datos del banco externo')
+      return
+    }
+
+    // Check balance
+    const fromAccount = accounts.find(a => a.id === transferForm.fromAccountId)
+    if (fromAccount && fromAccount.balance < transferForm.amount) {
+      alert('Saldo insuficiente en cuenta origen')
+      return
+    }
+
+    setProcessing(true)
+    try {
+      const response = await fetch('/api/banking/transfers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...transferForm,
+          type: transferType
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(`✅ Transferencia ${transferType === 'external' ? 'iniciada' : 'completada'} exitosamente.\nReferencia: ${data.reference}`)
+        setShowTransferModal(false)
+        loadData()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al realizar transferencia')
+      }
+    } catch (error) {
+      console.error('Error executing transfer:', error)
+      alert('Error al realizar transferencia')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const confirmTransfer = async (action: 'confirm' | 'cancel') => {
+    if (!selectedTransfer) return
+
+    setProcessing(true)
+    try {
+      const response = await fetch(`/api/banking/transfers/${selectedTransfer.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      })
+
+      if (response.ok) {
+        alert(action === 'confirm' ? '✅ Transferencia confirmada' : '❌ Transferencia cancelada')
+        setShowConfirmModal(false)
+        setSelectedTransfer(null)
+        loadData()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al procesar transferencia')
+      }
+    } catch (error) {
+      console.error('Error confirming transfer:', error)
+      alert('Error al procesar transferencia')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const exportTransfers = () => {
+    const headers = ['Fecha', 'ID', 'Origen', 'Destino', 'Monto', 'Tipo', 'Estado']
+    const rows = filteredTransfers.map(t => [
+      new Date(t.date).toLocaleDateString('es-MX'),
+      t.transferId,
+      t.fromAccount,
+      t.toAccount,
+      t.amount.toFixed(2),
+      t.type,
+      t.status
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `transferencias-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    alert('📥 Transferencias exportadas a CSV')
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount)
+  }
+
+const getTypeBadge = (type: string) => {
     switch (type) {
       case 'internal':
         return <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
@@ -371,13 +379,17 @@ export default function BankTransfersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('📥 Exportando transferencias a CSV')}>
+            <Button variant="outline" onClick={exportTransfers}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => alert('🔁 Nueva Transferencia\n\nTransferir entre cuentas')}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Transferencia
+            <Button variant="outline" onClick={() => openTransferModal('internal')}>
+              <ArrowRightLeft className="w-4 h-4 mr-2" />
+              Entre Cuentas
+            </Button>
+            <Button onClick={() => openTransferModal('external')}>
+              <Globe className="w-4 h-4 mr-2" />
+              Externa
             </Button>
           </div>
         </div>
@@ -561,9 +573,17 @@ export default function BankTransfersPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-1">
-                          {transfer.status === 'scheduled' && (
-                            <Button size="sm" variant="outline" className="text-red-600">
-                              <XCircle className="w-4 h-4" />
+                          {(transfer.status === 'scheduled' || transfer.status === 'pending') && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => {
+                                setSelectedTransfer(transfer)
+                                setShowConfirmModal(true)
+                              }}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1" />
+                              Confirmar
                             </Button>
                           )}
                           <button className="p-1 text-blue-600 hover:bg-blue-50 rounded">
@@ -603,6 +623,254 @@ export default function BankTransfersPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Account Balances */}
+        {accounts.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="w-5 h-5" />
+                Saldos de Cuentas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {accounts.map(account => (
+                  <div key={account.id} className="border rounded-lg p-4 bg-gray-50">
+                    <h4 className="font-semibold text-gray-900">{account.accountName}</h4>
+                    <p className="text-sm text-gray-500">{account.bankName}</p>
+                    <p className={`text-2xl font-bold mt-2 ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(account.balance)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Transfer Modal */}
+        {showTransferModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  {transferType === 'internal' ? (
+                    <>
+                      <ArrowRightLeft className="w-6 h-6 text-blue-600" />
+                      Transferencia Interna
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="w-6 h-6 text-green-600" />
+                      Transferencia Externa
+                    </>
+                  )}
+                </h2>
+                <button onClick={() => setShowTransferModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {/* From Account */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Cuenta Origen *</label>
+                  <select
+                    value={transferForm.fromAccountId}
+                    onChange={(e) => setTransferForm({ ...transferForm, fromAccountId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="">Seleccionar cuenta...</option>
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.accountName} - {acc.bankName} ({formatCurrency(acc.balance)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-center">
+                  <ArrowRight className="w-8 h-8 text-gray-400" />
+                </div>
+
+                {transferType === 'internal' ? (
+                  /* To Account - Internal */
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Cuenta Destino *</label>
+                    <select
+                      value={transferForm.toAccountId}
+                      onChange={(e) => setTransferForm({ ...transferForm, toAccountId: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="">Seleccionar cuenta...</option>
+                      {accounts.filter(a => a.id !== transferForm.fromAccountId).map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.accountName} - {acc.bankName} ({formatCurrency(acc.balance)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  /* External Bank Details */
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Banco Destino *</label>
+                      <Input
+                        value={transferForm.externalBankName}
+                        onChange={(e) => setTransferForm({ ...transferForm, externalBankName: e.target.value })}
+                        placeholder="Nombre del banco"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Número de Cuenta *</label>
+                      <Input
+                        value={transferForm.externalAccountNumber}
+                        onChange={(e) => setTransferForm({ ...transferForm, externalAccountNumber: e.target.value })}
+                        placeholder="Número de cuenta destino"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Beneficiario</label>
+                      <Input
+                        value={transferForm.externalAccountHolder}
+                        onChange={(e) => setTransferForm({ ...transferForm, externalAccountHolder: e.target.value })}
+                        placeholder="Nombre del beneficiario"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Fecha</label>
+                    <Input
+                      type="date"
+                      value={transferForm.date}
+                      onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Monto *</label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={transferForm.amount}
+                        onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value) || 0 })}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Concepto / Descripción</label>
+                  <Input
+                    value={transferForm.description}
+                    onChange={(e) => setTransferForm({ ...transferForm, description: e.target.value })}
+                    placeholder="Descripción de la transferencia"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Referencia</label>
+                  <Input
+                    value={transferForm.reference}
+                    onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })}
+                    placeholder="Referencia (opcional)"
+                  />
+                </div>
+
+                {transferType === 'external' && (
+                  <div className="bg-yellow-50 p-4 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-semibold">Transferencia Externa</p>
+                      <p>Las transferencias externas quedan pendientes de confirmación. Verifique los datos antes de confirmar.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50 sticky bottom-0">
+                <Button variant="outline" onClick={() => setShowTransferModal(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={executeTransfer} 
+                  disabled={processing}
+                  className={transferType === 'external' ? 'bg-green-600 hover:bg-green-700' : ''}
+                >
+                  {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <Send className="h-4 w-4 mr-2" />
+                  {transferType === 'internal' ? 'Transferir' : 'Enviar'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirm Transfer Modal */}
+        {showConfirmModal && selectedTransfer && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-md">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-xl font-bold">Confirmar Transferencia</h2>
+                <button onClick={() => {
+                  setShowConfirmModal(false)
+                  setSelectedTransfer(null)
+                }} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-6">
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">Monto:</span>
+                    <span className="font-bold">{formatCurrency(Math.abs(selectedTransfer.amount))}</span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">Fecha:</span>
+                    <span>{new Date(selectedTransfer.date).toLocaleDateString('es-MX')}</span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">Descripción:</span>
+                    <span>{selectedTransfer.description}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Cuenta:</span>
+                    <span>{selectedTransfer.fromAccount}</span>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  ¿Desea confirmar o cancelar esta transferencia pendiente?
+                </p>
+              </div>
+              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                <Button 
+                  variant="outline" 
+                  onClick={() => confirmTransfer('cancel')}
+                  disabled={processing}
+                  className="text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Cancelar Transferencia
+                </Button>
+                <Button 
+                  onClick={() => confirmTransfer('confirm')}
+                  disabled={processing}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Confirmar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

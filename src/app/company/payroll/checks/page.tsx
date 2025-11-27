@@ -26,7 +26,9 @@ import {
   FileText,
   Save,
   Eye,
-  Edit
+  Edit,
+  X,
+  Loader2
 } from 'lucide-react'
 
 interface PayrollCheck {
@@ -54,6 +56,19 @@ export default function PayrollChecksPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showNewCheckModal, setShowNewCheckModal] = useState(false)
   const [nextCheckNumber, setNextCheckNumber] = useState('10001')
+  const [processing, setProcessing] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState('')
+  const [checkAmount, setCheckAmount] = useState('')
+  const [checkMemo, setCheckMemo] = useState('')
+  const [employees, setEmployees] = useState<{id: string, name: string}[]>([
+    { id: 'EMP-001', name: 'Sarah Johnson' },
+    { id: 'EMP-002', name: 'Michael Chen' },
+    { id: 'EMP-003', name: 'Emily Rodriguez' },
+    { id: 'EMP-004', name: 'David Kim' },
+    { id: 'EMP-005', name: 'Jessica Martinez' },
+    { id: 'EMP-006', name: 'Robert Taylor' },
+    { id: 'EMP-007', name: 'Amanda White' }
+  ])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -204,6 +219,79 @@ export default function PayrollChecksPage() {
     totalAmount: checks.reduce((sum, c) => sum + c.netPay, 0)
   }
 
+  const openNewCheckModal = () => {
+    const maxCheckNum = Math.max(...checks.map(c => parseInt(c.checkNumber)))
+    setNextCheckNumber(String(maxCheckNum + 1))
+    setSelectedEmployee('')
+    setCheckAmount('')
+    setCheckMemo('')
+    setShowNewCheckModal(true)
+  }
+
+  const closeNewCheckModal = () => {
+    setShowNewCheckModal(false)
+    setSelectedEmployee('')
+    setCheckAmount('')
+    setCheckMemo('')
+  }
+
+  const createNewCheck = async () => {
+    if (!selectedEmployee || !checkAmount) {
+      alert('Por favor selecciona un empleado e ingresa el monto')
+      return
+    }
+
+    setProcessing(true)
+    try {
+      // Simular llamada a API
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      const employee = employees.find(e => e.id === selectedEmployee)
+      console.log('Nuevo cheque creado:', {
+        checkNumber: nextCheckNumber,
+        employee: employee?.name,
+        amount: checkAmount,
+        memo: checkMemo
+      })
+      
+      alert(`Cheque #${nextCheckNumber} creado exitosamente para ${employee?.name}`)
+      closeNewCheckModal()
+    } catch (error) {
+      console.error('Error al crear cheque:', error)
+      alert('Error al crear el cheque')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const printBatch = () => {
+    const pendingChecks = checks.filter(c => c.status === 'pending')
+    if (pendingChecks.length === 0) {
+      alert('No hay cheques pendientes para imprimir')
+      return
+    }
+    
+    // Simular impresión
+    console.log('Imprimiendo lote de cheques:', pendingChecks)
+    window.print()
+  }
+
+  const exportChecks = () => {
+    let csvContent = 'Número de Cheque,Empleado,ID Empleado,Fecha,Salario Bruto,Deducciones,Pago Neto,Método,Estado,Notas\n'
+    
+    filteredChecks.forEach(check => {
+      csvContent += `${check.checkNumber},${check.employeeName},${check.employeeId},${check.checkDate},${check.grossPay},${check.deductions},${check.netPay},${check.paymentMethod},${check.status},"${check.memo || ''}"\n`
+    })
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `cheques-nomina-${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   if (status === 'loading' || loading) {
     return (
       <CompanyTabsLayout>
@@ -229,11 +317,15 @@ export default function PayrollChecksPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('🖨️ Imprimir Lote\n\nImprimiendo cheques seleccionados...')}>
+            <Button variant="outline" onClick={exportChecks}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
+            <Button variant="outline" onClick={printBatch}>
               <Printer className="w-4 h-4 mr-2" />
               Imprimir Lote
             </Button>
-            <Button onClick={() => alert('💵 Nuevo Cheque\n\nCrear cheque de nómina')}>
+            <Button onClick={openNewCheckModal}>
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Cheque
             </Button>
@@ -468,6 +560,105 @@ export default function PayrollChecksPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal Nuevo Cheque */}
+        {showNewCheckModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="flex items-center justify-between p-6 border-b">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Receipt className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Nuevo Cheque</h2>
+                    <p className="text-sm text-gray-500">Cheque #{nextCheckNumber}</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={closeNewCheckModal}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Empleado
+                  </label>
+                  <select
+                    value={selectedEmployee}
+                    onChange={(e) => setSelectedEmployee(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar empleado...</option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Monto del Cheque
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="number"
+                      placeholder="0.00"
+                      value={checkAmount}
+                      onChange={(e) => setCheckAmount(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notas / Memo
+                  </label>
+                  <textarea
+                    value={checkMemo}
+                    onChange={(e) => setCheckMemo(e.target.value)}
+                    placeholder="Descripción opcional..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Número de cheque:</span>
+                    <span className="font-semibold">#{nextCheckNumber}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-2">
+                    <span className="text-gray-600">Fecha de emisión:</span>
+                    <span className="font-semibold">{new Date().toLocaleDateString('es-MX')}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                <Button variant="outline" onClick={closeNewCheckModal}>
+                  Cancelar
+                </Button>
+                <Button onClick={createNewCheck} disabled={processing}>
+                  {processing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Crear Cheque
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

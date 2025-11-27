@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, Edit, Trash2, DollarSign, Calendar, User } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, DollarSign, Calendar, User, FileText, PlusCircle, Send, Download, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Invoice {
@@ -138,22 +139,91 @@ export default function InvoicesPage() {
     )
   }
 
+  const invoiceActions = [
+    {
+      label: 'Ver todas',
+      icon: Eye,
+      onClick: () => {
+        setSearchTerm('')
+        setStatusFilter('all')
+        toast.success('📋 Mostrando todas las facturas')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Crear nueva',
+      icon: PlusCircle,
+      onClick: () => {
+        router.push('/company/invoicing/invoices/new')
+      },
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Editar',
+      icon: Edit,
+      onClick: () => {
+        toast('Selecciona una factura de la tabla para editar')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Enviar por email',
+      icon: Send,
+      onClick: () => {
+        toast('📧 Función de envío por email - Selecciona una factura')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Eliminar',
+      icon: Trash2,
+      onClick: () => {
+        toast('🗑️ Selecciona una factura para eliminar')
+      },
+      variant: 'danger' as const,
+    },
+    {
+      label: 'Exportar PDF',
+      icon: Download,
+      onClick: () => {
+        toast.success('📥 Exportando facturas a PDF...')
+      },
+      variant: 'outline' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Facturas</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <FileText className="w-8 h-8 text-blue-600" />
+              Facturas
+            </h1>
             <p className="text-gray-600 mt-1">
               Gestiona y crea facturas profesionales
             </p>
           </div>
-          <Button className="flex items-center gap-2" onClick={() => alert('📄 Nueva Factura\n\nCreando factura...\nPOST /api/invoices')}>
+          <Button className="flex items-center gap-2" onClick={() => router.push('/company/invoicing/invoices/new')}>
             <Plus className="w-4 h-4" />
             Nueva Factura
           </Button>
         </div>
+
+        {/* Action Buttons */}
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-blue-900 flex items-center">
+              <FileText className="w-4 h-4 mr-2" />
+              Acciones de Facturas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={invoiceActions} />
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

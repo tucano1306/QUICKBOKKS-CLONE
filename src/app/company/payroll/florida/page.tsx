@@ -219,6 +219,20 @@ export default function FloridaPayrollPage() {
     })
 
     setCalculatedPayroll(results)
+    
+    // Mostrar resumen
+    const totalGross = results.reduce((sum: number, emp: any) => sum + (emp.grossPay || 0), 0)
+    const totalNet = results.reduce((sum: number, emp: any) => sum + (emp.netPay || 0), 0)
+    const totalTaxes = results.reduce((sum: number, emp: any) => sum + (emp.totalDeductions || 0), 0)
+    
+    alert(`✅ Nómina Calculada Exitosamente\n\n` +
+          `📊 Resumen del Período: ${selectedPeriod || 'Actual'}\n\n` +
+          `👥 Empleados procesados: ${results.length}\n` +
+          `💰 Total Gross Pay: $${totalGross.toFixed(2)}\n` +
+          `📉 Total Deducciones: $${totalTaxes.toFixed(2)}\n` +
+          `💵 Total Net Pay: $${totalNet.toFixed(2)}\n\n` +
+          `Los resultados se muestran en la tabla de abajo.\n` +
+          `Ahora puede generar los formularios RT-6, 941, 940, W-2 o 1099.`)
   }
 
   const generateRT6 = () => {

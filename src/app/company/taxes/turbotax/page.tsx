@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -16,7 +16,6 @@ import {
   Clock,
   Link as LinkIcon,
   RefreshCw,
-  ArrowRight,
   Shield,
   FileText,
   Database,
@@ -58,8 +57,12 @@ export default function TurboTaxPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected'>('connected')
-  const [selectedYear, setSelectedYear] = useState('2025')
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [dataMappings, setDataMappings] = useState<DataMapping[]>([])
+  const [importHistory, setImportHistory] = useState<ImportHistory[]>([])
+  const [currentStep, setCurrentStep] = useState(0)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -67,222 +70,116 @@ export default function TurboTaxPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const fetchTurboTaxData = useCallback(async () => {
+    if (!activeCompany?.id) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    try {
+      const response = await fetch(`/api/taxes?companyId=${activeCompany.id}&year=${selectedYear}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setDataMappings(data.turboTaxMapping || [])
+      }
+    } catch (error) {
+      console.error('Error fetching TurboTax data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id, selectedYear])
+
+  useEffect(() => {
+    fetchTurboTaxData()
+  }, [fetchTurboTaxData])
+
+  const handleSync = async () => {
+    if (!activeCompany?.id) return
+    
+    setSyncing(true)
+    setCurrentStep(0)
+    
+    // Simulate step-by-step progress
+    for (let i = 1; i <= 8; i++) {
+      setCurrentStep(i)
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+    
+    try {
+      const response = await fetch('/api/taxes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync-turbotax',
+          companyId: activeCompany.id,
+          year: selectedYear
+        })
+      })
+      
+      const data = await response.json()
+      if (data.success) {
+        // Add to history
+        const newImport: ImportHistory = {
+          id: Date.now().toString(),
+          date: new Date().toISOString(),
+          turboTaxYear: selectedYear,
+          recordsImported: data.sync.recordsSynced,
+          status: 'success',
+          duration: '2m 30s',
+          errors: 0
+        }
+        setImportHistory(prev => [newImport, ...prev])
+        
+        alert(`✅ Sincronización completada!\n\nRegistros sincronizados: ${data.sync.recordsSynced}\nFormularios actualizados: ${data.sync.formsUpdated.join(', ')}\n\nSiguiente paso: ${data.sync.nextStep}`)
+      }
+    } catch (error) {
+      console.error('Error syncing with TurboTax:', error)
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const importSteps: ImportStep[] = [
-    {
-      id: '1',
-      title: 'Connect to TurboTax',
-      description: 'Establish secure connection with TurboTax Business',
-      status: 'completed',
-      details: 'Connected to TurboTax Business 2025'
-    },
-    {
-      id: '2',
-      title: 'Verify Company Information',
-      description: 'Confirm EIN and business details match',
-      status: 'completed',
-      details: 'QuickBooks Clone LLC - EIN 65-1234567'
-    },
-    {
-      id: '3',
-      title: 'Map Chart of Accounts',
-      description: 'Automatically map accounts to tax forms',
-      status: 'completed',
-      details: '48 accounts mapped to Form 1120'
-    },
-    {
-      id: '4',
-      title: 'Import Financial Data',
-      description: 'Transfer income statement and balance sheet',
-      status: 'current',
-      details: 'Importing 5,420 transactions...'
-    },
-    {
-      id: '5',
-      title: 'Import Tax Deductions',
-      description: 'Transfer business deductions and credits',
-      status: 'pending'
-    },
-    {
-      id: '6',
-      title: 'Import Asset Depreciation',
-      description: 'Transfer depreciation schedules (Form 4562)',
-      status: 'pending'
-    },
-    {
-      id: '7',
-      title: 'Reconcile Balances',
-      description: 'Verify all amounts match between systems',
-      status: 'pending'
-    },
-    {
-      id: '8',
-      title: 'Review & Finalize',
-      description: 'Final review before filing',
-      status: 'pending'
-    }
-  ]
-
-  const dataMappings: DataMapping[] = [
-    {
-      category: 'Income',
-      quickbooksAccount: 'Sales Revenue',
-      turboTaxForm: 'Form 1120',
-      turboTaxLine: 'Line 1a - Gross receipts',
-      amount: 8950000,
-      status: 'mapped'
-    },
-    {
-      category: 'Income',
-      quickbooksAccount: 'Service Revenue',
-      turboTaxForm: 'Form 1120',
-      turboTaxLine: 'Line 1a - Gross receipts',
-      amount: 2450000,
-      status: 'mapped'
-    },
-    {
-      category: 'Cost of Goods Sold',
-      quickbooksAccount: 'COGS - Materials',
-      turboTaxForm: 'Form 1120',
-      turboTaxLine: 'Line 2 - Cost of goods sold',
-      amount: 3200000,
-      status: 'mapped'
-    },
-    {
-      category: 'Operating Expenses',
-      quickbooksAccount: 'Salaries & Wages',
-      turboTaxForm: 'Form 1120',
-      turboTaxLine: 'Line 12 - Salaries and wages',
-      amount: 1850000,
-      status: 'mapped'
-    },
-    {
-      category: 'Operating Expenses',
-      quickbooksAccount: 'Rent Expense',
-      turboTaxForm: 'Form 1120',
-      turboTaxLine: 'Line 16 - Rent',
-      amount: 120000,
-      status: 'mapped'
-    },
-    {
-      category: 'Operating Expenses',
-      quickbooksAccount: 'Depreciation Expense',
-      turboTaxForm: 'Form 1120',
-      turboTaxLine: 'Line 20 - Depreciation',
-      amount: 130000,
-      status: 'review'
-    },
-    {
-      category: 'Deductions',
-      quickbooksAccount: 'Business Meals (50%)',
-      turboTaxForm: 'Form 1120',
-      turboTaxLine: 'Line 24b - Meals (50% limit)',
-      amount: 42000,
-      status: 'review'
-    },
-    {
-      category: 'Deductions',
-      quickbooksAccount: 'Charitable Contributions',
-      turboTaxForm: 'Form 1120',
-      turboTaxLine: 'Line 19 - Charitable contributions',
-      amount: 25000,
-      status: 'mapped'
-    },
-    {
-      category: 'Assets',
-      quickbooksAccount: 'Equipment',
-      turboTaxForm: 'Form 4562',
-      turboTaxLine: 'Part III - MACRS Depreciation',
-      amount: 450000,
-      status: 'mapped'
-    },
-    {
-      category: 'Assets',
-      quickbooksAccount: 'Software',
-      turboTaxForm: 'Form 4562',
-      turboTaxLine: 'Part I - Section 179',
-      amount: 85000,
-      status: 'review'
-    }
-  ]
-
-  const importHistory: ImportHistory[] = [
-    {
-      id: '1',
-      date: '2025-12-05T10:30:00',
-      turboTaxYear: '2025',
-      recordsImported: 5420,
-      status: 'partial',
-      duration: '3m 45s',
-      errors: 2
-    },
-    {
-      id: '2',
-      date: '2025-03-20T14:15:00',
-      turboTaxYear: '2024',
-      recordsImported: 4890,
-      status: 'success',
-      duration: '2m 58s',
-      errors: 0
-    },
-    {
-      id: '3',
-      date: '2024-03-15T09:45:00',
-      turboTaxYear: '2023',
-      recordsImported: 4320,
-      status: 'success',
-      duration: '3m 12s',
-      errors: 0
-    }
+    { id: '1', title: 'Connect to TurboTax', description: 'Establish secure connection', status: currentStep >= 1 ? 'completed' : currentStep === 0 ? 'pending' : 'pending', details: 'TurboTax Business ' + selectedYear },
+    { id: '2', title: 'Verify Company Information', description: 'Confirm EIN and business details', status: currentStep >= 2 ? 'completed' : currentStep === 1 ? 'current' : 'pending', details: activeCompany?.name },
+    { id: '3', title: 'Map Chart of Accounts', description: 'Automatically map accounts to tax forms', status: currentStep >= 3 ? 'completed' : currentStep === 2 ? 'current' : 'pending', details: `${dataMappings.length} accounts mapped` },
+    { id: '4', title: 'Import Financial Data', description: 'Transfer income statement and balance sheet', status: currentStep >= 4 ? 'completed' : currentStep === 3 ? 'current' : 'pending' },
+    { id: '5', title: 'Import Tax Deductions', description: 'Transfer business deductions and credits', status: currentStep >= 5 ? 'completed' : currentStep === 4 ? 'current' : 'pending' },
+    { id: '6', title: 'Import Asset Depreciation', description: 'Transfer depreciation schedules (Form 4562)', status: currentStep >= 6 ? 'completed' : currentStep === 5 ? 'current' : 'pending' },
+    { id: '7', title: 'Reconcile Balances', description: 'Verify all amounts match between systems', status: currentStep >= 7 ? 'completed' : currentStep === 6 ? 'current' : 'pending' },
+    { id: '8', title: 'Review & Finalize', description: 'Final review before filing', status: currentStep >= 8 ? 'completed' : currentStep === 7 ? 'current' : 'pending' }
   ]
 
   const stats = {
     accountsMapped: dataMappings.filter(m => m.status === 'mapped').length,
     needsReview: dataMappings.filter(m => m.status === 'review').length,
-    totalRecords: 5420,
-    completedSteps: importSteps.filter(s => s.status === 'completed').length
+    totalRecords: dataMappings.length,
+    completedSteps: currentStep
   }
 
   const getStepIcon = (status: string) => {
     switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-5 h-5 text-green-600" />
-      case 'current':
-        return <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
-      case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-600" />
-      default:
-        return <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+      case 'completed': return <CheckCircle className="w-5 h-5 text-green-600" />
+      case 'current': return <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
+      case 'error': return <AlertCircle className="w-5 h-5 text-red-600" />
+      default: return <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
     }
   }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'mapped':
-        return <Badge className="bg-green-100 text-green-700"><Check className="w-3 h-3 mr-1" /> Mapped</Badge>
-      case 'review':
-        return <Badge className="bg-yellow-100 text-yellow-700"><AlertTriangle className="w-3 h-3 mr-1" /> Review</Badge>
-      case 'error':
-        return <Badge className="bg-red-100 text-red-700"><X className="w-3 h-3 mr-1" /> Error</Badge>
-      default:
-        return <Badge>{status}</Badge>
+      case 'mapped': return <Badge className="bg-green-100 text-green-700"><Check className="w-3 h-3 mr-1" /> Mapped</Badge>
+      case 'review': return <Badge className="bg-yellow-100 text-yellow-700"><AlertTriangle className="w-3 h-3 mr-1" /> Review</Badge>
+      case 'error': return <Badge className="bg-red-100 text-red-700"><X className="w-3 h-3 mr-1" /> Error</Badge>
+      default: return <Badge>{status}</Badge>
     }
   }
 
   const getImportStatusBadge = (status: string) => {
     switch (status) {
-      case 'success':
-        return <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" /> Success</Badge>
-      case 'partial':
-        return <Badge className="bg-yellow-100 text-yellow-700"><AlertTriangle className="w-3 h-3 mr-1" /> Partial</Badge>
-      case 'failed':
-        return <Badge className="bg-red-100 text-red-700"><AlertCircle className="w-3 h-3 mr-1" /> Failed</Badge>
-      default:
-        return <Badge>{status}</Badge>
+      case 'success': return <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" /> Success</Badge>
+      case 'partial': return <Badge className="bg-yellow-100 text-yellow-700"><AlertTriangle className="w-3 h-3 mr-1" /> Partial</Badge>
+      case 'failed': return <Badge className="bg-red-100 text-red-700"><AlertCircle className="w-3 h-3 mr-1" /> Failed</Badge>
+      default: return <Badge>{status}</Badge>
     }
   }
 
@@ -299,115 +196,77 @@ export default function TurboTaxPage() {
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">TurboTax Integration</h1>
-            <p className="text-gray-600 mt-1">
-              Direct import to TurboTax Business for seamless tax filing
-            </p>
+            <p className="text-gray-600 mt-1">Direct import to TurboTax Business for seamless tax filing</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => alert('🔄 Sincronizando con TurboTax...\n\nActualizando datos fiscales')}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Sync Now
+            <Button variant="outline" onClick={fetchTurboTaxData}>
+              <RefreshCw className="w-4 h-4 mr-2" />Refresh
             </Button>
-            <Button onClick={() => alert('⚡ Start Import\n\nIniciando importación a TurboTax Business...')}>
-              <Zap className="w-4 h-4 mr-2" />
-              Start Import
+            <Button onClick={handleSync} disabled={syncing}>
+              {syncing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
+              {syncing ? 'Syncing...' : 'Start Import'}
             </Button>
           </div>
         </div>
 
-        {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <LinkIcon className="w-8 h-8 text-blue-600" />
-                <Badge className={connectionStatus === 'connected' ? 'bg-green-600' : 'bg-red-600'}>
-                  {connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}
-                </Badge>
+                <Badge className={connectionStatus === 'connected' ? 'bg-green-600' : 'bg-red-600'}>{connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}</Badge>
               </div>
-              <div className="text-xl font-bold text-blue-900">
-                TurboTax {selectedYear}
-              </div>
+              <div className="text-xl font-bold text-blue-900">TurboTax {selectedYear}</div>
               <div className="text-sm text-blue-700">Business Edition</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-              <div className="text-2xl font-bold text-green-900">
-                {stats.accountsMapped}
-              </div>
+              <CheckCircle className="w-8 h-8 text-green-600 mb-2" />
+              <div className="text-2xl font-bold text-green-900">{stats.accountsMapped}</div>
               <div className="text-sm text-green-700">Accounts Mapped</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <AlertTriangle className="w-8 h-8 text-yellow-600" />
-              </div>
-              <div className="text-2xl font-bold text-yellow-900">
-                {stats.needsReview}
-              </div>
+              <AlertTriangle className="w-8 h-8 text-yellow-600 mb-2" />
+              <div className="text-2xl font-bold text-yellow-900">{stats.needsReview}</div>
               <div className="text-sm text-yellow-700">Need Review</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Database className="w-8 h-8 text-purple-600" />
-              </div>
-              <div className="text-2xl font-bold text-purple-900">
-                {(stats.totalRecords / 1000).toFixed(1)}K
-              </div>
-              <div className="text-sm text-purple-700">Total Records</div>
+              <Database className="w-8 h-8 text-purple-600 mb-2" />
+              <div className="text-2xl font-bold text-purple-900">{stats.totalRecords}</div>
+              <div className="text-sm text-purple-700">Data Mappings</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Import Progress */}
         <Card>
-          <CardHeader>
-            <CardTitle>Import Progress - Tax Year {selectedYear}</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Import Progress - Tax Year {selectedYear}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
               {importSteps.map((step, index) => (
                 <div key={step.id} className="flex items-start gap-4">
                   <div className="flex flex-col items-center">
                     {getStepIcon(step.status)}
-                    {index < importSteps.length - 1 && (
-                      <div className={`w-0.5 h-12 mt-2 ${
-                        step.status === 'completed' ? 'bg-green-600' : 'bg-gray-300'
-                      }`} />
-                    )}
+                    {index < importSteps.length - 1 && (<div className={`w-0.5 h-12 mt-2 ${step.status === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />)}
                   </div>
                   <div className="flex-1 pb-4">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className={`font-semibold ${
-                        step.status === 'current' ? 'text-blue-900' : 'text-gray-900'
-                      }`}>
-                        {step.title}
-                      </h4>
-                      {step.status === 'completed' && (
-                        <Badge className="bg-green-100 text-green-700">Complete</Badge>
-                      )}
-                      {step.status === 'current' && (
-                        <Badge className="bg-blue-100 text-blue-700">In Progress</Badge>
-                      )}
+                      <h4 className={`font-semibold ${step.status === 'current' ? 'text-blue-900' : 'text-gray-900'}`}>{step.title}</h4>
+                      {step.status === 'completed' && <Badge className="bg-green-100 text-green-700">Complete</Badge>}
+                      {step.status === 'current' && <Badge className="bg-blue-100 text-blue-700">In Progress</Badge>}
                     </div>
                     <p className="text-sm text-gray-600">{step.description}</p>
-                    {step.details && (
-                      <p className="text-xs text-gray-500 mt-1">{step.details}</p>
-                    )}
+                    {step.details && <p className="text-xs text-gray-500 mt-1">{step.details}</p>}
                   </div>
                 </div>
               ))}
@@ -415,14 +274,11 @@ export default function TurboTaxPage() {
           </CardContent>
         </Card>
 
-        {/* Data Mapping */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Account Mapping to TurboTax Forms</CardTitle>
-              <Button variant="outline" size="sm">
-                Review All Mappings
-              </Button>
+              <Button variant="outline" size="sm">Review All Mappings</Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -439,113 +295,70 @@ export default function TurboTaxPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {dataMappings.map((mapping, index) => (
-                    <tr key={index} className={`hover:bg-gray-50 ${mapping.status === 'review' ? 'bg-yellow-50' : ''}`}>
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-gray-900">{mapping.category}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm text-gray-900">{mapping.quickbooksAccount}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-blue-600">{mapping.turboTaxForm}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm text-gray-700">{mapping.turboTaxLine}</div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-gray-900">
-                          ${mapping.amount.toLocaleString('en-US')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {getStatusBadge(mapping.status)}
-                      </td>
-                    </tr>
-                  ))}
+                  {dataMappings.length === 0 ? (
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No mappings found. Click "Start Import" to begin.</td></tr>
+                  ) : (
+                    dataMappings.map((mapping, index) => (
+                      <tr key={index} className={`hover:bg-gray-50 ${mapping.status === 'review' ? 'bg-yellow-50' : ''}`}>
+                        <td className="px-4 py-3"><div className="text-sm font-semibold text-gray-900">{mapping.category}</div></td>
+                        <td className="px-4 py-3"><div className="text-sm text-gray-900">{mapping.quickbooksAccount}</div></td>
+                        <td className="px-4 py-3"><div className="text-sm font-semibold text-blue-600">{mapping.turboTaxForm}</div></td>
+                        <td className="px-4 py-3"><div className="text-sm text-gray-700">{mapping.turboTaxLine}</div></td>
+                        <td className="px-4 py-3 text-right"><div className="text-sm font-semibold text-gray-900">${mapping.amount.toLocaleString()}</div></td>
+                        <td className="px-4 py-3 text-center">{getStatusBadge(mapping.status)}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </CardContent>
         </Card>
 
-        {/* Import History */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Import History</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Tax Year</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Records</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Duration</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Errors</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {importHistory.map((import_item) => (
-                    <tr key={import_item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="text-sm text-gray-900">
-                          {new Date(import_item.date).toLocaleDateString('en-US')}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(import_item.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-gray-900">{import_item.turboTaxYear}</div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="text-sm text-gray-900">
-                          {import_item.recordsImported.toLocaleString('en-US')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm text-gray-700">{import_item.duration}</div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className={`text-sm font-semibold ${
-                          import_item.errors === 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {import_item.errors}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {getImportStatusBadge(import_item.status)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Button size="sm" variant="outline">
-                          View Details
-                        </Button>
-                      </td>
+        {importHistory.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle>Import History</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Tax Year</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Records</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Duration</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Errors</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {importHistory.map((import_item) => (
+                      <tr key={import_item.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3"><div className="text-sm text-gray-900">{new Date(import_item.date).toLocaleDateString()}</div></td>
+                        <td className="px-4 py-3"><div className="text-sm font-semibold text-gray-900">{import_item.turboTaxYear}</div></td>
+                        <td className="px-4 py-3 text-right"><div className="text-sm text-gray-900">{import_item.recordsImported.toLocaleString()}</div></td>
+                        <td className="px-4 py-3"><div className="text-sm text-gray-700">{import_item.duration}</div></td>
+                        <td className="px-4 py-3 text-center"><div className={`text-sm font-semibold ${import_item.errors === 0 ? 'text-green-600' : 'text-red-600'}`}>{import_item.errors}</div></td>
+                        <td className="px-4 py-3 text-center">{getImportStatusBadge(import_item.status)}</td>
+                        <td className="px-4 py-3"><Button size="sm" variant="outline">View Details</Button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* System Requirements */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-green-50 border-green-200">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-green-600 rounded-lg">
-                  <Shield className="w-6 h-6 text-white" />
-                </div>
+                <div className="p-3 bg-green-600 rounded-lg"><Shield className="w-6 h-6 text-white" /></div>
                 <div>
                   <h3 className="font-semibold text-green-900 mb-2">Connection Secure</h3>
-                  <p className="text-green-700 text-sm mb-2">
-                    Your QuickBooks data is securely transferred to TurboTax using industry-standard encryption.
-                  </p>
+                  <p className="text-green-700 text-sm mb-2">Your data is securely transferred using industry-standard encryption.</p>
                   <ul className="text-green-700 text-sm space-y-1">
                     <li>• <strong>OAuth 2.0:</strong> Secure authentication</li>
                     <li>• <strong>TLS 1.3:</strong> Encrypted data transfer</li>
@@ -560,18 +373,15 @@ export default function TurboTaxPage() {
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-600 rounded-lg">
-                  <Info className="w-6 h-6 text-white" />
-                </div>
+                <div className="p-3 bg-blue-600 rounded-lg"><Info className="w-6 h-6 text-white" /></div>
                 <div>
                   <h3 className="font-semibold text-blue-900 mb-2">TurboTax Requirements</h3>
                   <ul className="text-blue-700 text-sm space-y-1">
-                    <li>• <strong>Version:</strong> TurboTax Business 2025 or newer</li>
+                    <li>• <strong>Version:</strong> TurboTax Business {selectedYear} or newer</li>
                     <li>• <strong>Account:</strong> Active TurboTax Online or Desktop</li>
                     <li>• <strong>Business Type:</strong> C-Corp, S-Corp, LLC, Partnership</li>
                     <li>• <strong>Forms Supported:</strong> 1120, 1120-S, 1065, Schedule C</li>
                     <li>• <strong>Data Transfer:</strong> Income, Expenses, Deductions, Depreciation</li>
-                    <li>• <strong>Reconciliation:</strong> Automatic balance verification</li>
                   </ul>
                 </div>
               </div>
@@ -579,34 +389,19 @@ export default function TurboTaxPage() {
           </Card>
         </div>
 
-        {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <FileText className="w-6 h-6 text-white" />
-              </div>
+              <div className="p-3 bg-blue-600 rounded-lg"><FileText className="w-6 h-6 text-white" /></div>
               <div>
                 <h3 className="font-semibold text-blue-900 mb-2">How TurboTax Integration Works</h3>
                 <div className="text-blue-700 text-sm space-y-2">
-                  <p>
-                    <strong>1. Automatic Mapping:</strong> QuickBooks accounts are automatically mapped to corresponding lines on IRS forms (Form 1120, 1065, Schedule C, etc.).
-                  </p>
-                  <p>
-                    <strong>2. Data Validation:</strong> All financial data is validated against IRS requirements before import. Any discrepancies are flagged for review.
-                  </p>
-                  <p>
-                    <strong>3. Review Process:</strong> Items requiring special tax treatment (meals 50% limit, charitable contributions, depreciation) are flagged for manual review in TurboTax.
-                  </p>
-                  <p>
-                    <strong>4. Reconciliation:</strong> Total revenue, expenses, and net income are reconciled between QuickBooks and TurboTax to ensure accuracy.
-                  </p>
-                  <p>
-                    <strong>5. Form Generation:</strong> TurboTax uses imported data to automatically populate tax forms. You can review and edit before filing.
-                  </p>
-                  <p className="mt-2 pt-2 border-t border-blue-300">
-                    <strong>Note:</strong> After importing, always review all data in TurboTax before filing. Some items may require manual adjustment based on specific tax situations.
-                  </p>
+                  <p><strong>1. Automatic Mapping:</strong> Accounts are automatically mapped to corresponding IRS form lines.</p>
+                  <p><strong>2. Data Validation:</strong> All financial data is validated against IRS requirements before import.</p>
+                  <p><strong>3. Review Process:</strong> Items requiring special tax treatment are flagged for manual review.</p>
+                  <p><strong>4. Reconciliation:</strong> Total amounts are reconciled between systems to ensure accuracy.</p>
+                  <p><strong>5. Form Generation:</strong> TurboTax uses imported data to automatically populate tax forms.</p>
+                  <p className="mt-2 pt-2 border-t border-blue-300"><strong>Note:</strong> Always review all data in TurboTax before filing.</p>
                 </div>
               </div>
             </div>

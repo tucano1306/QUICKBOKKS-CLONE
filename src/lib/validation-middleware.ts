@@ -10,6 +10,10 @@ import {
   validateInvoice,
   validateExpense,
   validateCustomer,
+  validateVendor,
+  validateVendorPayable,
+  validatePurchaseOrder,
+  validatePurchaseHistoryRecord,
   validateUserRegistration,
   validateBankAccount,
   validatePayroll,
@@ -136,8 +140,8 @@ export function validatePagination(request: NextRequest): {
     errors.push('page debe ser un número mayor a 0');
   }
 
-  if (isNaN(limit) || limit < 1 || limit > 100) {
-    errors.push('limit debe ser un número entre 1 y 100');
+  if (isNaN(limit) || limit < 1 || limit > 500) {
+    errors.push('limit debe ser un número entre 1 y 500');
   }
 
   if (errors.length > 0) {
@@ -267,6 +271,41 @@ export async function validateExpenseRequest(request: NextRequest) {
  */
 export async function validateCustomerRequest(request: NextRequest) {
   return validateRequest(request, validateCustomer, { sanitize: true });
+}
+
+/**
+ * Validate vendor creation request
+ */
+export async function validateVendorRequest(request: NextRequest) {
+  return validateRequest(request, validateVendor, { sanitize: true });
+}
+
+/**
+ * Validate vendor payable request
+ */
+export async function validateVendorPayableRequest(request: NextRequest) {
+  return validateRequest(request, validateVendorPayable, { sanitize: true });
+}
+
+/**
+ * Validate purchase order request
+ */
+export async function validatePurchaseOrderRequest(
+  request: NextRequest,
+  options: ValidationMiddlewareOptions = {}
+) {
+  return validateRequest(
+    request,
+    (data) => validatePurchaseOrder(data, { partial: options.allowPartial }),
+    { sanitize: true }
+  )
+}
+
+/**
+ * Validate purchase history record request
+ */
+export async function validatePurchaseHistoryRecordRequest(request: NextRequest) {
+  return validateRequest(request, validatePurchaseHistoryRecord, { sanitize: true })
 }
 
 /**

@@ -1,122 +1,257 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
+import { useSession } from 'next-auth/react'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Plus, Search, Edit, Trash2, Receipt, Calendar, Upload, Camera } from 'lucide-react'
-import toast from 'react-hot-toast'
+  Plus,
+  Download,
+  Upload,
+  Filter,
+  Search,
+  Edit,
+  Trash2,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Clock,
+  DollarSign,
+  Receipt
+} from 'lucide-react'
 
 interface Expense {
   id: string
   description: string
   amount: number
-  category: string
   date: string
-  vendor: string
+  vendor: string | null
+  paymentMethod: string
   status: string
+  taxDeductible: boolean
+  reference: string | null
+  category: {
+    id: string
+    name: string
+    type: string
+  }
+  employee: {
+    name: string
+  } | null
   createdAt: string
 }
 
-export default function ExpensesPage() {
+export default function ExpensesListPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
-  const { activeCompany } = useCompany()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
+  const [categories, setCategories] = useState<any[]>([])
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    totalAmount: 0,
+    deductibleAmount: 0
+  })
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
-    if (status === 'authenticated' && activeCompany) {
-      fetchExpenses()
-    }
-  }, [status, activeCompany])
+  }, [status, router])
 
+  // Load expenses and categories
   useEffect(() => {
-    let filtered = expenses
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (expense) =>
-          expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          expense.vendor.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    if (status === 'authenticated') {
+      loadData()
     }
+  }, [status])
 
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter((expense) => expense.category === categoryFilter)
-    }
-
-    setFilteredExpenses(filtered)
-  }, [searchTerm, categoryFilter, expenses])
-
-  const fetchExpenses = async () => {
-    if (!activeCompany) return
-    
+  const loadData = async () => {
+    setLoading(true)
     try {
-      const response = await fetch(`/api/expenses?companyId=${activeCompany.id}`)
-      if (response.ok) {
-        const result = await response.json()
-        const data = result.data || result
-        setExpenses(Array.isArray(data) ? data : [])
-        setFilteredExpenses(Array.isArray(data) ? data : [])
+      // Load expenses
+      const expensesRes = await fetch('/api/expenses')
+      if (expensesRes.ok) {
+        const expensesData = await expensesRes.json()
+        const expensesArray = Array.isArray(expensesData) ? expensesData : []
+        setExpenses(expensesArray)
+        setFilteredExpenses(expensesArray)
+        calculateStats(expensesArray)
+      } else {
+        // Si hay error, inicializar con arrays vacíos
+        setExpenses([])
+        setFilteredExpenses([])
+      }
+
+      // Load categories
+      const categoriesRes = await fetch('/api/expenses/categories')
+      if (categoriesRes.ok) {
+        const categoriesData = await categoriesRes.json()
+        setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+      } else {
+        setCategories([])
       }
     } catch (error) {
-      console.error('Error fetching expenses:', error)
-      toast.error('Error al cargar gastos')
+      console.error('Error loading data:', error)
+      // Asegurar que los estados siempre sean arrays
+      setExpenses([])
+      setFilteredExpenses([])
+      setCategories([])
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const stats = [
-    {
-      label: 'Total Gastado (Mes)',
-      value: `$${filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2)}`,
-      color: 'blue'
-    },
-    {
-      label: 'Gastos Aprobados',
-      value: filteredExpenses.filter(exp => exp.status === 'APPROVED').length,
-      color: 'green'
-    },
-    {
-      label: 'Gastos Pendientes',
-      value: filteredExpenses.filter(exp => exp.status === 'PENDING').length,
-      color: 'orange'
-    },
-    {
-      label: 'Gastos Rechazados',
-      value: filteredExpenses.filter(exp => exp.status === 'REJECTED').length,
-      color: 'red'
+  const calculateStats = (data: Expense[]) => {
+    const stats = {
+      total: data.length,
+      pending: data.filter(e => e.status === 'PENDING').length,
+      approved: data.filter(e => e.status === 'APPROVED').length,
+      rejected: data.filter(e => e.status === 'REJECTED').length,
+      totalAmount: data.reduce((sum, e) => sum + e.amount, 0),
+      deductibleAmount: data.filter(e => e.taxDeductible).reduce((sum, e) => sum + e.amount, 0)
     }
-  ]
+    setStats(stats)
+  }
 
-  const categories = ['all', 'Oficina', 'Transporte', 'Comida', 'Software', 'Marketing', 'Otros']
+  // Filter expenses
+  useEffect(() => {
+    let filtered = expenses
 
-  if (status === 'loading' || isLoading) {
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        e =>
+          e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          e.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          e.category.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Status filter
+    if (statusFilter !== 'ALL') {
+      filtered = filtered.filter(e => e.status === statusFilter)
+    }
+
+    // Category filter
+    if (categoryFilter !== 'ALL') {
+      filtered = filtered.filter(e => e.category.id === categoryFilter)
+    }
+
+    setFilteredExpenses(filtered)
+  }, [searchTerm, statusFilter, categoryFilter, expenses])
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este gasto?')) return
+
+    try {
+      const response = await fetch(`/api/expenses?id=${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setExpenses(expenses.filter(e => e.id !== id))
+      } else {
+        alert('Error al eliminar el gasto')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al eliminar el gasto')
+    }
+  }
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/expenses`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus })
+      })
+
+      if (response.ok) {
+        const updated = await response.json()
+        setExpenses(expenses.map(e => (e.id === id ? updated : e)))
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    }
+  }
+
+  const exportToCSV = () => {
+    if (!Array.isArray(filteredExpenses) || filteredExpenses.length === 0) {
+      alert('No hay gastos para exportar')
+      return
+    }
+
+    const headers = ['Fecha', 'Descripción', 'Categoría', 'Proveedor', 'Monto', 'Estado', 'Deducible']
+    const rows = filteredExpenses.map(e => [
+      new Date(e.date).toLocaleDateString('es-MX'),
+      e.description,
+      e.category.name,
+      e.vendor || '',
+      e.amount.toFixed(2),
+      e.status,
+      e.taxDeductible ? 'Sí' : 'No'
+    ])
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gastos_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'REJECTED':
+        return <XCircle className="h-4 w-4 text-red-600" />
+      case 'PAID':
+        return <DollarSign className="h-4 w-4 text-blue-600" />
+      default:
+        return <Clock className="h-4 w-4 text-yellow-600" />
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      PENDING: 'bg-yellow-100 text-yellow-800',
+      APPROVED: 'bg-green-100 text-green-800',
+      REJECTED: 'bg-red-100 text-red-800',
+      PAID: 'bg-blue-100 text-blue-800'
+    }
+    const labels = {
+      PENDING: 'Pendiente',
+      APPROVED: 'Aprobado',
+      REJECTED: 'Rechazado',
+      PAID: 'Pagado'
+    }
+    return (
+      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status as keyof typeof styles]}`}>
+        {getStatusIcon(status)}
+        {labels[status as keyof typeof labels]}
+      </span>
+    )
+  }
+
+  if (status === 'loading' || loading) {
     return (
       <CompanyTabsLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="text-gray-600">Cargando gastos...</div>
         </div>
       </CompanyTabsLayout>
     )
@@ -124,168 +259,257 @@ export default function ExpensesPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gastos</h1>
-            <p className="text-gray-600 mt-1">
-              Registro y seguimiento de gastos empresariales
+            <h1 className="text-2xl font-bold text-gray-900">Lista de Gastos</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Gestiona y controla todos los gastos de tu empresa
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex items-center gap-2" onClick={() => alert('📷 Escanear Recibo\n\nUsando cámara/scanner para capturar recibo')}>
-              <Camera className="w-4 h-4" />
-              Escanear Recibo
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={exportToCSV}>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
             </Button>
-            <Button className="flex items-center gap-2" onClick={() => alert('📄 Nuevo Gasto\n\nRegistrar nuevo gasto\nPOST /api/expenses')}>
-              <Plus className="w-4 h-4" />
+            <Button onClick={() => router.push('/expenses/new')}>
+              <Plus className="h-4 w-4 mr-2" />
               Nuevo Gasto
             </Button>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {stats.map((stat, index) => (
-            <Card key={index}>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600 mb-1">{stat.label}</div>
-                <div className={`text-2xl font-bold text-${stat.color}-600`}>
-                  {stat.value}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-blue-600">Total Gastado</p>
+                <p className="text-2xl font-bold text-blue-900 mt-1">
+                  ${stats.totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">{stats.total} gastos</p>
+              </div>
+              <Receipt className="h-8 w-8 text-blue-600 opacity-50" />
+            </div>
+          </Card>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 cursor-pointer hover:shadow-lg transition-shadow">
-            <CardContent className="p-6 text-center">
-              <Upload className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-              <h3 className="font-semibold text-gray-900 mb-1">Subir Recibo</h3>
-              <p className="text-sm text-gray-600">Arrastra o selecciona archivos</p>
-            </CardContent>
+          <Card className="p-5 bg-gradient-to-br from-yellow-50 to-yellow-100">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-yellow-600">Pendientes</p>
+                <p className="text-2xl font-bold text-yellow-900 mt-1">{stats.pending}</p>
+                <p className="text-xs text-yellow-600 mt-1">Por aprobar</p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-600 opacity-50" />
+            </div>
           </Card>
-          
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 cursor-pointer hover:shadow-lg transition-shadow">
-            <CardContent className="p-6 text-center">
-              <Camera className="w-12 h-12 text-green-600 mx-auto mb-3" />
-              <h3 className="font-semibold text-gray-900 mb-1">Capturar Foto</h3>
-              <p className="text-sm text-gray-600">Usa tu cámara para escanear</p>
-            </CardContent>
+
+          <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-green-600">Aprobados</p>
+                <p className="text-2xl font-bold text-green-900 mt-1">{stats.approved}</p>
+                <p className="text-xs text-green-600 mt-1">Este mes</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600 opacity-50" />
+            </div>
           </Card>
-          
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 cursor-pointer hover:shadow-lg transition-shadow">
-            <CardContent className="p-6 text-center">
-              <Receipt className="w-12 h-12 text-purple-600 mx-auto mb-3" />
-              <h3 className="font-semibold text-gray-900 mb-1">Registro Manual</h3>
-              <p className="text-sm text-gray-600">Crear gasto manualmente</p>
-            </CardContent>
+
+          <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-purple-600">Deducibles</p>
+                <p className="text-2xl font-bold text-purple-900 mt-1">
+                  ${stats.deductibleAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-purple-600 mt-1">Para impuestos</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-purple-600 opacity-50" />
+            </div>
           </Card>
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-4">
-              <CardTitle>Historial de Gastos</CardTitle>
-              <div className="flex items-center gap-2">
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>
-                      {cat === 'all' ? 'Todas las categorías' : cat}
-                    </option>
-                  ))}
-                </select>
-                <div className="flex items-center gap-2">
-                  <Search className="w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Buscar gastos..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64"
-                  />
-                </div>
-              </div>
+        <Card className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por descripción, proveedor..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead>Proveedor</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Monto</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredExpenses.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
-                      <div className="flex flex-col items-center gap-2">
-                        <Receipt className="w-12 h-12 text-gray-300" />
-                        <p className="text-gray-500">No hay gastos registrados</p>
-                        <Button variant="outline" size="sm">
-                          <Plus className="w-4 h-4 mr-2" />
-                          Registrar primer gasto
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Todos los estados</option>
+              <option value="PENDING">Pendientes</option>
+              <option value="APPROVED">Aprobados</option>
+              <option value="REJECTED">Rechazados</option>
+              <option value="PAID">Pagados</option>
+            </select>
+
+            {/* Category Filter */}
+            <select
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Todas las categorías</option>
+              {Array.isArray(categories) && categories.map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Clear Filters */}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchTerm('')
+                setStatusFilter('ALL')
+                setCategoryFilter('ALL')
+              }}
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Limpiar Filtros
+            </Button>
+          </div>
+        </Card>
+
+        {/* Expenses Table */}
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Descripción
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Categoría
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Proveedor
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Monto
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {!Array.isArray(filteredExpenses) || filteredExpenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <Receipt className="h-16 w-16 mx-auto mb-3 text-gray-400" />
+                      <p className="text-gray-600 mb-4">
+                        {searchTerm || statusFilter !== 'ALL' || categoryFilter !== 'ALL'
+                          ? 'No se encontraron gastos con los filtros aplicados'
+                          : 'No hay gastos registrados'}
+                      </p>
+                      <Button onClick={() => router.push('/expenses/new')}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Crear Primer Gasto
+                      </Button>
+                    </td>
+                  </tr>
                 ) : (
-                  filteredExpenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="w-3 h-3 text-gray-400" />
-                          {new Date(expense.date).toLocaleDateString('es-MX')}
+                  filteredExpenses.map(expense => (
+                    <tr key={expense.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(expense.date).toLocaleDateString('es-MX')}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="font-medium text-gray-900">{expense.description}</div>
+                        {expense.reference && (
+                          <div className="text-xs text-gray-500">Ref: {expense.reference}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                          {expense.category.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {expense.vendor || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <div className="font-semibold text-gray-900">
+                          ${expense.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                         </div>
-                      </TableCell>
-                      <TableCell className="font-medium">{expense.description}</TableCell>
-                      <TableCell>{expense.vendor}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{expense.category}</Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold text-red-600">
-                        -${expense.amount.toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          expense.status === 'APPROVED' ? 'default' : 
-                          expense.status === 'PENDING' ? 'secondary' : 
-                          'destructive'
-                        }>
-                          {expense.status === 'APPROVED' ? 'Aprobado' :
-                           expense.status === 'PENDING' ? 'Pendiente' :
-                           'Rechazado'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </Button>
+                        {expense.taxDeductible && (
+                          <div className="text-xs text-green-600">Deducible</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {getStatusBadge(expense.status)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => router.push(`/expenses/${expense.id}`)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Ver detalles"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => router.push(`/expenses/${expense.id}/edit`)}
+                            className="text-green-600 hover:text-green-800"
+                            title="Editar"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(expense.id)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))
                 )}
-              </TableBody>
-            </Table>
-          </CardContent>
+              </tbody>
+              {filteredExpenses.length > 0 && (
+                <tfoot className="bg-gray-50 border-t-2">
+                  <tr>
+                    <td colSpan={4} className="px-6 py-4 text-sm font-semibold text-gray-900">
+                      Total ({filteredExpenses.length} gastos)
+                    </td>
+                    <td className="px-6 py-4 text-sm font-bold text-right text-gray-900">
+                      ${filteredExpenses
+                        .reduce((sum, e) => sum + e.amount, 0)
+                        .toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
         </Card>
       </div>
     </CompanyTabsLayout>

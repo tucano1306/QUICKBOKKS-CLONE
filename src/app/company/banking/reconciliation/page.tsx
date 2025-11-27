@@ -22,7 +22,10 @@ import {
   FileText,
   RefreshCw,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Upload,
+  Loader2,
+  X
 } from 'lucide-react'
 
 interface ReconciliationItem {
@@ -39,6 +42,7 @@ interface ReconciliationItem {
 }
 
 interface ReconciliationPeriod {
+  id?: string
   accountId: string
   accountName: string
   periodStart: string
@@ -54,6 +58,13 @@ interface ReconciliationPeriod {
   status: 'in-progress' | 'completed' | 'needs-review'
 }
 
+interface BankAccount {
+  id: string
+  accountName: string
+  bankName?: string
+  balance: number
+}
+
 export default function BankReconciliationPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -61,206 +72,281 @@ export default function BankReconciliationPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [selectedAccount, setSelectedAccount] = useState<string>('ACC-001')
+  const [selectedAccount, setSelectedAccount] = useState<string>('')
   const [showNewModal, setShowNewModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [reconciledItems, setReconciledItems] = useState<Set<string>>(new Set())
   const [autoReconciling, setAutoReconciling] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  
+  // Real data from API
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [reconciliations, setReconciliations] = useState<any[]>([])
+  const [reconciliationItems, setReconciliationItems] = useState<ReconciliationItem[]>([])
+  const [reconciliationPeriod, setReconciliationPeriod] = useState<ReconciliationPeriod | null>(null)
+  
+  // Form states
+  const [newReconciliationForm, setNewReconciliationForm] = useState({
+    accountId: '',
+    startDate: new Date().toISOString().split('T')[0].slice(0, 8) + '01',
+    endDate: new Date().toISOString().split('T')[0],
+    statementBalance: 0
+  })
+  
+  // Import form
+  const [importForm, setImportForm] = useState({
+    accountId: '',
+    transactions: [] as any[]
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
+    if (status === 'authenticated') {
+      loadData()
+    }
   }, [status, router])
 
-  useEffect(() => {
+  const loadData = async () => {
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const reconciliationPeriod: ReconciliationPeriod = {
-    accountId: 'ACC-001',
-    accountName: 'Cuenta Principal Operativa - BBVA',
-    periodStart: '2025-11-01',
-    periodEnd: '2025-11-30',
-    openingBalance: 980450,
-    closingBalance: 1250000,
-    statementBalance: 1248500,
-    difference: 1500,
-    totalDeposits: 453187.50,
-    totalWithdrawals: 183637.50,
-    reconciledItems: 12,
-    pendingItems: 3,
-    status: 'needs-review'
+    try {
+      await Promise.all([loadAccounts(), loadReconciliations()])
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const reconciliationItems: ReconciliationItem[] = [
-    {
-      id: 'REC-001',
-      transactionId: 'DEP-2025-001',
-      date: '2025-11-25',
-      description: 'Pago factura INV-2025-042 - Acme Corp',
-      amount: 145000,
-      systemBalance: 145000,
-      statementBalance: 145000,
-      type: 'deposit',
-      status: 'matched'
-    },
-    {
-      id: 'REC-002',
-      transactionId: 'WTH-2025-012',
-      date: '2025-11-24',
-      description: 'Pago Distribuidora Tech Solutions - BILL-2025-001',
-      amount: -25000,
-      systemBalance: -25000,
-      statementBalance: -25000,
-      type: 'withdrawal',
-      status: 'matched'
-    },
-    {
-      id: 'REC-003',
-      transactionId: 'DEP-2025-002',
-      date: '2025-11-22',
-      description: 'Pago factura INV-2025-038 - GlobalTech Inc',
-      amount: 85000,
-      systemBalance: 85000,
-      statementBalance: 85000,
-      type: 'deposit',
-      status: 'matched'
-    },
-    {
-      id: 'REC-004',
-      transactionId: 'FEE-2025-004',
-      date: '2025-11-20',
-      description: 'Comisión por manejo de cuenta - Noviembre 2025',
-      amount: -450,
-      systemBalance: -450,
-      statementBalance: -450,
-      type: 'fee',
-      status: 'matched'
-    },
-    {
-      id: 'REC-005',
-      transactionId: 'WTH-2025-014',
-      date: '2025-11-17',
-      description: 'Pago renta oficina - Noviembre 2025',
-      amount: -60000,
-      systemBalance: -60000,
-      statementBalance: -60000,
-      type: 'withdrawal',
-      status: 'matched'
-    },
-    {
-      id: 'REC-006',
-      transactionId: 'DEP-2025-004',
-      date: '2025-11-15',
-      description: 'Pago factura INV-2025-035 - Innovatech',
-      amount: 120000,
-      systemBalance: 120000,
-      statementBalance: 120000,
-      type: 'deposit',
-      status: 'matched'
-    },
-    {
-      id: 'REC-007',
-      transactionId: 'TRF-2025-009',
-      date: '2025-11-14',
-      description: 'Transferencia a cuenta fiscal para impuestos',
-      amount: -150000,
-      systemBalance: -150000,
-      statementBalance: -150000,
-      type: 'withdrawal',
-      status: 'matched'
-    },
-    {
-      id: 'REC-008',
-      transactionId: 'WTH-2025-016',
-      date: '2025-11-13',
-      description: 'Pago servicios de limpieza - Octubre 2025',
-      amount: -5500,
-      systemBalance: -5500,
-      statementBalance: -5500,
-      type: 'withdrawal',
-      status: 'matched'
-    },
-    {
-      id: 'REC-009',
-      transactionId: 'DEP-2025-005',
-      date: '2025-11-12',
-      description: 'Pago factura INV-2025-033 - MegaCorp',
-      amount: 95000,
-      systemBalance: 95000,
-      statementBalance: 95000,
-      type: 'deposit',
-      status: 'matched'
-    },
-    {
-      id: 'REC-010',
-      transactionId: 'DEP-2025-006',
-      date: '2025-11-10',
-      description: 'Depósito no registrado en sistema',
-      amount: 8500,
-      statementBalance: 8500,
-      type: 'deposit',
-      status: 'missing-system',
-      notes: 'Revisar con departamento de cobranza'
-    },
-    {
-      id: 'REC-011',
-      transactionId: 'FEE-2025-005',
-      date: '2025-11-08',
-      description: 'Comisión por transferencia internacional',
-      amount: -850,
-      statementBalance: -850,
-      type: 'fee',
-      status: 'missing-system',
-      notes: 'Registrar comisión en sistema'
-    },
-    {
-      id: 'REC-012',
-      transactionId: 'WTH-2025-018',
-      date: '2025-11-05',
-      description: 'Pago proveedor servicios - Registrado sin reflejar en banco',
-      amount: -12000,
-      systemBalance: -12000,
-      type: 'withdrawal',
-      status: 'missing-statement',
-      notes: 'Verificar si transacción fue procesada'
-    },
-    {
-      id: 'REC-013',
-      transactionId: 'DEP-2025-007',
-      date: '2025-11-03',
-      description: 'Depósito cliente - Discrepancia en monto',
-      amount: 45000,
-      systemBalance: 45000,
-      statementBalance: 43500,
-      type: 'deposit',
-      status: 'discrepancy',
-      notes: 'Sistema: $45,000 | Estado: $43,500 | Diferencia: $1,500'
-    },
-    {
-      id: 'REC-014',
-      transactionId: 'INT-2025-001',
-      date: '2025-11-01',
-      description: 'Intereses generados - Octubre 2025',
-      amount: 2687.50,
-      systemBalance: 2687.50,
-      statementBalance: 2687.50,
-      type: 'interest',
-      status: 'matched'
-    },
-    {
-      id: 'REC-015',
-      transactionId: 'DEP-2025-008',
-      date: '2025-11-01',
-      description: 'Depósito inicial del mes',
-      amount: 75000,
-      systemBalance: 75000,
-      statementBalance: 75000,
-      type: 'deposit',
-      status: 'matched'
+  const loadAccounts = async () => {
+    try {
+      const response = await fetch('/api/banking/accounts')
+      if (response.ok) {
+        const data = await response.json()
+        setAccounts(data.accounts || [])
+        if (data.accounts?.length > 0) {
+          setSelectedAccount(data.accounts[0].id)
+          setNewReconciliationForm(prev => ({ ...prev, accountId: data.accounts[0].id }))
+          setImportForm(prev => ({ ...prev, accountId: data.accounts[0].id }))
+        }
+      }
+    } catch (error) {
+      console.error('Error loading accounts:', error)
     }
-  ]
+  }
+
+  const loadReconciliations = async () => {
+    try {
+      const response = await fetch('/api/banking/reconciliation')
+      if (response.ok) {
+        const data = await response.json()
+        setReconciliations(data.reconciliations || [])
+        
+        // Load pending transactions for reconciliation items display
+        if (data.pendingTransactions?.length > 0) {
+          const items: ReconciliationItem[] = data.pendingTransactions.map((t: any) => ({
+            id: t.id,
+            transactionId: t.id.slice(0, 12).toUpperCase(),
+            date: t.date,
+            description: t.name || t.description || '',
+            amount: t.amount,
+            systemBalance: t.amount,
+            type: t.amount >= 0 ? 'deposit' : 'withdrawal',
+            status: t.reconciled ? 'matched' : 'missing-statement'
+          }))
+          setReconciliationItems(items)
+        }
+        
+        // Set current period from latest reconciliation or summary
+        if (data.reconciliations?.length > 0) {
+          const latest = data.reconciliations[0]
+          setReconciliationPeriod({
+            id: latest.id,
+            accountId: latest.bankAccountId,
+            accountName: latest.bankAccount?.accountName || '',
+            periodStart: latest.startDate,
+            periodEnd: latest.endDate,
+            openingBalance: 0,
+            closingBalance: parseFloat(latest.endingBalance) || 0,
+            statementBalance: parseFloat(latest.statementBalance) || 0,
+            difference: parseFloat(latest.difference) || 0,
+            totalDeposits: 0,
+            totalWithdrawals: 0,
+            reconciledItems: latest._count?.matches || 0,
+            pendingItems: 0,
+            status: latest.status === 'completed' ? 'completed' : 
+                   latest.status === 'in_progress' ? 'in-progress' : 'needs-review'
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error loading reconciliations:', error)
+    }
+  }
+
+  const createReconciliation = async () => {
+    if (!newReconciliationForm.accountId) {
+      alert('Seleccione una cuenta bancaria')
+      return
+    }
+
+    setProcessing(true)
+    try {
+      const response = await fetch('/api/banking/reconciliation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bankAccountId: newReconciliationForm.accountId,
+          startDate: newReconciliationForm.startDate,
+          endDate: newReconciliationForm.endDate,
+          statementBalance: newReconciliationForm.statementBalance,
+          transactionIds: [] // Will auto-match
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(`✅ Conciliación creada exitosamente\n\nTransacciones incluidas: ${data.transactionCount || 0}\nEstado: ${data.reconciliation.status}`)
+        setShowNewModal(false)
+        loadData()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al crear conciliación')
+      }
+    } catch (error) {
+      console.error('Error creating reconciliation:', error)
+      alert('Error al crear conciliación')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const importStatement = async () => {
+    if (!importForm.accountId) {
+      alert('Seleccione una cuenta bancaria')
+      return
+    }
+
+    // Simulate importing transactions
+    const sampleTransactions = [
+      { date: new Date().toISOString().split('T')[0], description: 'Depósito cliente', amount: 5000, reference: 'DEP001' },
+      { date: new Date().toISOString().split('T')[0], description: 'Pago servicios', amount: -1500, reference: 'PAY001' },
+      { date: new Date().toISOString().split('T')[0], description: 'Comisión bancaria', amount: -50, reference: 'FEE001' }
+    ]
+
+    setProcessing(true)
+    try {
+      const response = await fetch('/api/banking/reconciliation/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bankAccountId: importForm.accountId,
+          transactions: sampleTransactions
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(`✅ Estado de cuenta importado\n\nTransacciones importadas: ${data.imported}\nCoincidencias encontradas: ${data.matched}\nNuevas transacciones: ${data.newTransactions}`)
+        setShowImportModal(false)
+        loadData()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al importar estado de cuenta')
+      }
+    } catch (error) {
+      console.error('Error importing statement:', error)
+      alert('Error al importar estado de cuenta')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const confirmReconciliation = async (reconciliationId: string) => {
+    setProcessing(true)
+    try {
+      const response = await fetch(`/api/banking/reconciliation/${reconciliationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'confirm' })
+      })
+
+      if (response.ok) {
+        alert('✅ Conciliación confirmada exitosamente')
+        loadData()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al confirmar conciliación')
+      }
+    } catch (error) {
+      console.error('Error confirming reconciliation:', error)
+      alert('Error al confirmar conciliación')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const generateReport = async () => {
+    try {
+      let url = '/api/banking/reports/reconciliation'
+      if (selectedAccount) url += `?accountId=${selectedAccount}`
+      
+      const response = await fetch(url)
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Generate CSV
+        const headers = ['Cuenta', 'Período', 'Saldo Sistema', 'Saldo Estado', 'Diferencia', 'Estado']
+        const rows = data.accounts?.map((acc: any) => [
+          acc.accountName,
+          `${acc.reconciliations?.[0]?.startDate || 'N/A'} - ${acc.reconciliations?.[0]?.endDate || 'N/A'}`,
+          acc.reconciliations?.[0]?.endingBalance || 0,
+          acc.reconciliations?.[0]?.statementBalance || 0,
+          acc.reconciliations?.[0]?.difference || 0,
+          acc.reconciliations?.[0]?.status || 'N/A'
+        ]) || []
+        
+        const csvContent = [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n')
+        const blob = new Blob([csvContent], { type: 'text/csv' })
+        const url2 = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url2
+        a.download = `reporte-conciliacion-${new Date().toISOString().split('T')[0]}.csv`
+        a.click()
+        URL.revokeObjectURL(url2)
+        
+        alert('📥 Reporte de conciliación exportado')
+      }
+    } catch (error) {
+      console.error('Error generating report:', error)
+      alert('Error al generar reporte')
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount)
+  }
+
+  // Defaults if no real data yet
+  const defaultPeriod: ReconciliationPeriod = {
+    accountId: 'ACC-001',
+    accountName: accounts[0]?.accountName || 'Cuenta Principal',
+    periodStart: new Date().toISOString().split('T')[0].slice(0, 8) + '01',
+    periodEnd: new Date().toISOString().split('T')[0],
+    openingBalance: 0,
+    closingBalance: accounts[0]?.balance || 0,
+    statementBalance: 0,
+    difference: 0,
+    totalDeposits: 0,
+    totalWithdrawals: 0,
+    reconciledItems: 0,
+    pendingItems: reconciliationItems.length,
+    status: 'in-progress'
+  }
+
+  const currentPeriod = reconciliationPeriod || defaultPeriod
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -313,19 +399,53 @@ export default function BankReconciliationPage() {
 
   const matchedItems = reconciliationItems.filter(i => i.status === 'matched').length
   const discrepancyItems = reconciliationItems.filter(i => i.status === 'discrepancy' || i.status === 'missing-system' || i.status === 'missing-statement').length
-  const reconciliationProgress = (matchedItems / reconciliationItems.length) * 100
+  const reconciliationProgress = reconciliationItems.length > 0 ? (matchedItems / reconciliationItems.length) * 100 : 0
 
   // Función para conciliación automática
-  const autoReconcile = () => {
+  const autoReconcile = async () => {
+    if (!currentPeriod.id) {
+      alert('No hay conciliación activa. Cree una nueva conciliación primero.')
+      return
+    }
+    
     setAutoReconciling(true)
-    setTimeout(() => {
-      const matchedIds = reconciliationItems
-        .filter(item => item.status === 'matched')
+    try {
+      // Get all pending transaction IDs
+      const pendingIds = reconciliationItems
+        .filter(item => item.status !== 'matched')
         .map(item => item.id)
-      setReconciledItems(new Set(matchedIds))
+      
+      if (pendingIds.length === 0) {
+        alert('Todas las transacciones ya están conciliadas')
+        setAutoReconciling(false)
+        return
+      }
+
+      const response = await fetch(`/api/banking/reconciliation/${currentPeriod.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reconcile_transactions',
+          transactionIds: pendingIds
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const matchedIds = pendingIds
+        setReconciledItems(new Set(matchedIds))
+        alert(`✅ Conciliación Automática Completada\n\n📊 Resultados:\n• Items conciliados: ${matchedIds.length}\n• Progreso: ${((matchedItems + matchedIds.length) / reconciliationItems.length * 100).toFixed(1)}%`)
+        loadData()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error en conciliación automática')
+      }
+    } catch (error) {
+      console.error('Error in auto reconcile:', error)
+      alert('Error en conciliación automática')
+    } finally {
       setAutoReconciling(false)
-      alert(`✅ Conciliación Automática Completada\n\n📊 Resultados:\n• Items conciliados: ${matchedIds.length}\n• Items con discrepancia: ${discrepancyItems}\n• Progreso: ${reconciliationProgress.toFixed(1)}%\n\n${discrepancyItems > 0 ? '⚠️ Revisa los items con discrepancia manualmente' : '🎉 Todas las transacciones están conciliadas'}`)
-    }, 1500)
+    }
   }
 
   // Función para marcar/desmarcar item como conciliado
@@ -340,48 +460,26 @@ export default function BankReconciliationPage() {
   }
 
   // Función para finalizar conciliación
-  const finishReconciliation = () => {
+  const finishReconciliation = async () => {
+    if (!currentPeriod.id) {
+      alert('No hay conciliación activa')
+      return
+    }
+
     const totalReconciled = reconciledItems.size
     const totalItems = reconciliationItems.length
-    const reconciledPercentage = (totalReconciled / totalItems) * 100
+    const reconciledPercentage = totalItems > 0 ? (totalReconciled / totalItems) * 100 : 0
     
-    if (reconciledPercentage < 100) {
+    if (reconciledPercentage < 100 && totalItems > 0) {
       const confirmed = confirm(`⚠️ Conciliación Incompleta\n\nHas conciliado ${totalReconciled} de ${totalItems} items (${reconciledPercentage.toFixed(1)}%)\n\n¿Deseas finalizar la conciliación de todos modos?\n\nItems pendientes podrán revisarse posteriormente.`)
       if (!confirmed) return
     }
 
-    alert(`✅ Conciliación Bancaria Finalizada\n\n📊 Resumen:\n• Cuenta: ${reconciliationPeriod.accountName}\n• Periodo: ${reconciliationPeriod.periodStart} al ${reconciliationPeriod.periodEnd}\n• Items conciliados: ${totalReconciled}/${totalItems}\n• Saldo Sistema: $${reconciliationPeriod.closingBalance.toLocaleString()}\n• Saldo Estado: $${reconciliationPeriod.statementBalance.toLocaleString()}\n• Diferencia: $${reconciliationPeriod.difference.toLocaleString()}\n\nLa conciliación se ha guardado exitosamente.`)
+    await confirmReconciliation(currentPeriod.id)
   }
 
   const exportReport = () => {
-    const headers = ['Fecha', 'ID Transacción', 'Descripción', 'Monto', 'Sistema', 'Estado Cuenta', 'Estado']
-    const rows = reconciliationItems.map(item => [
-      item.date,
-      item.transactionId,
-      item.description,
-      item.amount,
-      item.systemBalance || '-',
-      item.statementBalance || '-',
-      item.status
-    ])
-    const summary = [
-      ['REPORTE DE CONCILIACIÓN BANCARIA'],
-      ['Cuenta', reconciliationPeriod.accountName],
-      ['Período', `${reconciliationPeriod.periodStart} - ${reconciliationPeriod.periodEnd}`],
-      ['Saldo Sistema', reconciliationPeriod.closingBalance],
-      ['Saldo Estado', reconciliationPeriod.statementBalance],
-      ['Diferencia', reconciliationPeriod.difference],
-      ['Progreso', `${reconciliationProgress.toFixed(1)}%`],
-      ['']
-    ]
-    const csvContent = [...summary, headers, ...rows].map(row => row.join(',')).join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `reconciliation_report_${new Date().toISOString()}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    generateReport()
   }
 
   if (status === 'loading' || loading) {
@@ -417,7 +515,7 @@ export default function BankReconciliationPage() {
             <Button 
               variant="outline" 
               onClick={finishReconciliation}
-              disabled={reconciledItems.size === 0}
+              disabled={reconciledItems.size === 0 && !currentPeriod.id}
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Finalizar ({reconciledItems.size}/{reconciliationItems.length})
@@ -426,11 +524,9 @@ export default function BankReconciliationPage() {
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
             </Button>
-            <Button variant="outline" onClick={() => {
-              alert('📄 Cargar Estado de Cuenta\n\nFormatos soportados:\n• CSV\n• Excel (.xlsx)\n• PDF (con OCR)\n• QFX/OFX\n\nEn producción, esto abriría un selector de archivos.')
-            }}>
-              <FileText className="w-4 h-4 mr-2" />
-              Cargar Estado
+            <Button variant="outline" onClick={() => setShowImportModal(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Estado
             </Button>
             <Button onClick={() => setShowNewModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -444,47 +540,47 @@ export default function BankReconciliationPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-bold mb-1">{reconciliationPeriod.accountName}</h3>
+                <h3 className="text-xl font-bold mb-1">{currentPeriod.accountName || 'Seleccione una cuenta'}</h3>
                 <p className="text-blue-100">
-                  Período: {new Date(reconciliationPeriod.periodStart).toLocaleDateString('es-MX', { 
+                  Período: {new Date(currentPeriod.periodStart).toLocaleDateString('es-MX', { 
                     day: '2-digit', 
                     month: 'long',
                     year: 'numeric'
-                  })} - {new Date(reconciliationPeriod.periodEnd).toLocaleDateString('es-MX', { 
+                  })} - {new Date(currentPeriod.periodEnd).toLocaleDateString('es-MX', { 
                     day: '2-digit', 
                     month: 'long',
                     year: 'numeric'
                   })}
                 </p>
               </div>
-              {getReconciliationStatusBadge(reconciliationPeriod.status)}
+              {getReconciliationStatusBadge(currentPeriod.status)}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                 <div className="text-sm text-blue-100 mb-1">Saldo Inicial</div>
                 <div className="text-xl font-bold">
-                  ${reconciliationPeriod.openingBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  {formatCurrency(currentPeriod.openingBalance)}
                 </div>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                 <div className="text-sm text-blue-100 mb-1">Saldo Sistema</div>
                 <div className="text-xl font-bold">
-                  ${reconciliationPeriod.closingBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  {formatCurrency(currentPeriod.closingBalance)}
                 </div>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                 <div className="text-sm text-blue-100 mb-1">Saldo Estado</div>
                 <div className="text-xl font-bold">
-                  ${reconciliationPeriod.statementBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  {formatCurrency(currentPeriod.statementBalance)}
                 </div>
               </div>
               <div className={`backdrop-blur-sm rounded-lg p-4 ${
-                Math.abs(reconciliationPeriod.difference) < 100 ? 'bg-green-500/30' : 'bg-red-500/30'
+                Math.abs(currentPeriod.difference) < 100 ? 'bg-green-500/30' : 'bg-red-500/30'
               }`}>
                 <div className="text-sm text-blue-100 mb-1">Diferencia</div>
                 <div className="text-xl font-bold">
-                  ${Math.abs(reconciliationPeriod.difference).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  {formatCurrency(Math.abs(currentPeriod.difference))}
                 </div>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
@@ -525,7 +621,7 @@ export default function BankReconciliationPage() {
                 <TrendingUp className="w-8 h-8 text-blue-600" />
               </div>
               <div className="text-2xl font-bold text-blue-900">
-                ${reconciliationPeriod.totalDeposits.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                {formatCurrency(currentPeriod.totalDeposits || reconciliationItems.filter(i => i.amount > 0).reduce((sum, i) => sum + i.amount, 0))}
               </div>
               <div className="text-sm text-blue-700">Total Depósitos</div>
             </CardContent>
@@ -537,7 +633,7 @@ export default function BankReconciliationPage() {
                 <DollarSign className="w-8 h-8 text-red-600" />
               </div>
               <div className="text-2xl font-bold text-red-900">
-                ${reconciliationPeriod.totalWithdrawals.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                {formatCurrency(Math.abs(currentPeriod.totalWithdrawals || reconciliationItems.filter(i => i.amount < 0).reduce((sum, i) => sum + i.amount, 0)))}
               </div>
               <div className="text-sm text-red-700">Total Retiros</div>
             </CardContent>
@@ -700,32 +796,59 @@ export default function BankReconciliationPage() {
               <CardHeader className="border-b">
                 <div className="flex items-center justify-between">
                   <CardTitle>Nueva Conciliación Bancaria</CardTitle>
-                  <Button variant="outline" onClick={() => setShowNewModal(false)}>Cerrar</Button>
+                  <Button variant="outline" onClick={() => setShowNewModal(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
-                    <select className="w-full px-3 py-2 border rounded-lg">
-                      <option value="ACC-001">Cuenta Principal Operativa - BBVA</option>
-                      <option value="ACC-002">Cuenta de Ahorros Empresarial - Santander</option>
-                      <option value="ACC-003">Cuenta Nómina - Banorte</option>
+                    <select 
+                      className="w-full px-3 py-2 border rounded-lg"
+                      value={newReconciliationForm.accountId}
+                      onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, accountId: e.target.value })}
+                    >
+                      <option value="">Seleccionar cuenta...</option>
+                      {accounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.accountName} - {acc.bankName} ({formatCurrency(acc.balance)})
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Fecha Inicio del Período</label>
-                      <Input type="date" defaultValue="2025-11-01" />
+                      <Input 
+                        type="date" 
+                        value={newReconciliationForm.startDate}
+                        onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, startDate: e.target.value })}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Fecha Fin del Período</label>
-                      <Input type="date" defaultValue="2025-11-30" />
+                      <Input 
+                        type="date" 
+                        value={newReconciliationForm.endDate}
+                        onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, endDate: e.target.value })}
+                      />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Saldo Final según Estado de Cuenta</label>
-                    <Input type="number" placeholder="1,248,500.00" />
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input 
+                        type="number" 
+                        step="0.01"
+                        placeholder="0.00"
+                        className="pl-10"
+                        value={newReconciliationForm.statementBalance}
+                        onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, statementBalance: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
                   </div>
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <h3 className="font-semibold text-blue-900 mb-2">📋 Información</h3>
@@ -739,8 +862,87 @@ export default function BankReconciliationPage() {
                     </ul>
                   </div>
                   <div className="flex gap-2 pt-4">
-                    <Button className="flex-1" onClick={() => { alert('✅ Conciliación iniciada\n\n📊 Analizando transacciones...\n🔍 Buscando coincidencias automáticas...'); setShowNewModal(false); }}>Iniciar Conciliación</Button>
+                    <Button 
+                      className="flex-1" 
+                      onClick={createReconciliation}
+                      disabled={processing}
+                    >
+                      {processing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Iniciar Conciliación
+                    </Button>
                     <Button variant="outline" onClick={() => setShowNewModal(false)}>Cancelar</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Import Statement Modal */}
+        {showImportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-2xl w-full">
+              <CardHeader className="border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="w-5 h-5" />
+                    Importar Estado de Cuenta
+                  </CardTitle>
+                  <Button variant="outline" onClick={() => setShowImportModal(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
+                    <select 
+                      className="w-full px-3 py-2 border rounded-lg"
+                      value={importForm.accountId}
+                      onChange={(e) => setImportForm({ ...importForm, accountId: e.target.value })}
+                    >
+                      <option value="">Seleccionar cuenta...</option>
+                      {accounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.accountName} - {acc.bankName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-2">Arrastra tu archivo aquí o haz clic para seleccionar</p>
+                    <p className="text-xs text-gray-500">Formatos soportados: CSV, Excel (.xlsx), QFX/OFX</p>
+                    <Button variant="outline" className="mt-4">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Seleccionar Archivo
+                    </Button>
+                  </div>
+
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <h3 className="font-semibold text-yellow-900 mb-2 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      Nota sobre importación
+                    </h3>
+                    <p className="text-sm text-yellow-700">
+                      Al importar, el sistema intentará hacer coincidencias automáticas con las transacciones existentes.
+                      Las transacciones nuevas se crearán como pendientes de revisión.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button 
+                      className="flex-1" 
+                      onClick={importStatement}
+                      disabled={processing || !importForm.accountId}
+                    >
+                      {processing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      <Upload className="w-4 h-4 mr-2" />
+                      Importar (Demo)
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowImportModal(false)}>Cancelar</Button>
                   </div>
                 </div>
               </CardContent>

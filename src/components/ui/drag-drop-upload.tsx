@@ -14,13 +14,12 @@ interface UploadedFile {
 }
 
 interface DragDropUploadProps {
-  onFilesSelected?: (files: File[]) => void
+  onFilesSelected?: ((files: File[]) => void) | ((files: File[]) => Promise<void>)
   maxFiles?: number
   maxSizeMB?: number
   acceptedTypes?: string[]
 }
 
-// eslint-disable-next-line react/prop-types
 export default function DragDropUpload({
   onFilesSelected,
   maxFiles = 10,

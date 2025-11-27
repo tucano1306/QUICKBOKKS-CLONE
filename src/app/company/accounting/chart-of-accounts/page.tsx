@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import QuickAccessBar from '@/components/ui/quick-access-bar'
+import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -672,6 +673,67 @@ export default function ChartOfAccountsPage() {
     { label: 'Reportes', href: '/company/reports/balance-sheet', icon: PieChart, color: 'indigo' }
   ]
 
+  // Botones de acción del Plan de Cuentas
+  const chartOfAccountsActions = [
+    {
+      label: 'Ver catálogo',
+      icon: BookOpen,
+      onClick: () => {
+        setFilterType('all')
+        setSearchTerm('')
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Crear cuenta',
+      icon: Plus,
+      onClick: () => setShowNewAccountModal(true),
+      variant: 'primary' as const,
+    },
+    {
+      label: 'Editar cuenta',
+      icon: Edit,
+      onClick: () => {
+        alert('Selecciona una cuenta para editar desde la tabla')
+      },
+      variant: 'default' as const,
+    },
+    {
+      label: 'Exportar',
+      icon: Download,
+      onClick: () => {
+        const flattenAccounts = (accs: Account[]): Account[] => {
+          const result: Account[] = []
+          accs.forEach(acc => {
+            result.push(acc)
+            if (acc.children) result.push(...flattenAccounts(acc.children))
+          })
+          return result
+        }
+        const allAccounts = flattenAccounts(accounts)
+        const csv = 'Código,Nombre,Tipo,Saldo\n' + 
+          allAccounts.map(acc => 
+            `${acc.code},"${acc.name}",${acc.type},${acc.balance || 0}`
+          ).join('\n')
+        const blob = new Blob([csv], { type: 'text/csv' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `catalogo-cuentas-${new Date().toISOString().split('T')[0]}.csv`
+        a.click()
+      },
+      variant: 'outline' as const,
+    },
+    {
+      label: 'Eliminar cuenta',
+      icon: Trash2,
+      onClick: () => {
+        alert('Selecciona una cuenta para eliminar desde la tabla')
+      },
+      variant: 'danger' as const,
+    },
+  ]
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
@@ -686,6 +748,24 @@ export default function ChartOfAccountsPage() {
               Plan de cuentas contable completo
             </p>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-blue-900 flex items-center">
+              <Calculator className="w-4 h-4 mr-2" />
+              Acciones del Plan de Cuentas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActionButtonsGroup buttons={chartOfAccountsActions} />
+          </CardContent>
+        </Card>
+
+        {/* Original Header Buttons Section (keeping for compatibility) */}
+        <div className="flex items-center justify-between">
+          <div></div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => {
               const flattenAccounts = (accs: Account[]): Account[] => {
