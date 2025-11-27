@@ -1,36 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import QuickAccessBar from '@/components/ui/quick-access-bar'
-import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { 
-  BookOpen,
-  Plus,
-  Search,
-  Filter,
-  Download,
-  Upload,
-  Edit,
-  Trash2,
-  ChevronRight,
-  ChevronDown,
-  Eye,
-  DollarSign,
-  TrendingUp,
-  Building2,
-  FileText,
-  Receipt,
-  Calculator,
-  LayoutDashboard,
-  PieChart,
-  ArrowRightLeft
+  BookOpen, Plus, Search, Filter, Download, Upload, Edit, Trash2,
+  ChevronRight, ChevronDown, Eye, DollarSign, Building2, FileText,
+  Receipt, Calculator, LayoutDashboard, PieChart, ArrowRightLeft,
+  RefreshCw, AlertCircle, CheckCircle
 } from 'lucide-react'
 
 interface Account {
@@ -40,10 +22,12 @@ interface Account {
   type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'
   category: string
   level: number
-  parentId?: string
+  parentId?: string | null
   balance: number
   isActive: boolean
+  description?: string
   children?: Account[]
+  _count?: { journalEntries: number; budgets: number }
 }
 
 export default function ChartOfAccountsPage() {
@@ -51,10 +35,80 @@ export default function ChartOfAccountsPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
   const [showNewAccountModal, setShowNewAccountModal] = useState(false)
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  // Formulario de nueva cuenta
+  const [newAccount, setNewAccount] = useState({
+    code: '',
+    name: '',
+    type: 'ASSET' as Account['type'],
+    category: '',
+    description: '',
+    parentId: ''
+  })
+
+  // Fetch accounts from API
+  const fetchAccounts = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const params = new URLSearchParams()
+      if (filterType !== 'all') params.append('type', filterType)
+      params.append('isActive', 'true')
+
+      const response = await fetch(`/api/accounting/chart-of-accounts?${params}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar el catálogo de cuentas')
+      }
+
+      const data = await response.json()
+      
+      // Organizar cuentas en estructura jerárquica
+      const accountsMap = new Map<string, Account>()
+      const rootAccounts: Account[] = []
+
+      // Primero, crear mapa de todas las cuentas
+      data.forEach((acc: Account) => {
+        accountsMap.set(acc.id, { ...acc, children: [] })
+      })
+
+      // Luego, organizar jerarquía
+      data.forEach((acc: Account) => {
+        const account = accountsMap.get(acc.id)!
+        if (acc.parentId && accountsMap.has(acc.parentId)) {
+          const parent = accountsMap.get(acc.parentId)!
+          parent.children = parent.children || []
+          parent.children.push(account)
+        } else {
+          rootAccounts.push(account)
+        }
+      })
+
+      // Ordenar por código
+      const sortAccounts = (accs: Account[]): Account[] => {
+        return accs.sort((a, b) => a.code.localeCompare(b.code)).map(acc => ({
+          ...acc,
+          children: acc.children ? sortAccounts(acc.children) : []
+        }))
+      }
+
+      setAccounts(sortAccounts(rootAccounts))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido')
+    } finally {
+      setLoading(false)
+    }
+  }, [filterType])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -63,475 +117,129 @@ export default function ChartOfAccountsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  // Plan de cuentas con estructura jerárquica
-  const accounts: Account[] = [
-    // ACTIVOS
-    {
-      id: '1',
-      code: '1000',
-      name: 'ACTIVOS',
-      type: 'ASSET',
-      category: 'MASTER',
-      level: 1,
-      balance: 299150,
-      isActive: true,
-      children: [
-        {
-          id: '1.1',
-          code: '1100',
-          name: 'Activo Circulante',
-          type: 'ASSET',
-          category: 'CURRENT_ASSET',
-          level: 2,
-          parentId: '1',
-          balance: 175150,
-          isActive: true,
-          children: [
-            {
-              id: '1.1.1',
-              code: '1110',
-              name: 'Efectivo y Equivalentes',
-              type: 'ASSET',
-              category: 'CASH',
-              level: 3,
-              parentId: '1.1',
-              balance: 45000,
-              isActive: true
-            },
-            {
-              id: '1.1.2',
-              code: '1120',
-              name: 'Bancos',
-              type: 'ASSET',
-              category: 'BANK',
-              level: 3,
-              parentId: '1.1',
-              balance: 44450,
-              isActive: true
-            },
-            {
-              id: '1.1.3',
-              code: '1130',
-              name: 'Cuentas por Cobrar',
-              type: 'ASSET',
-              category: 'RECEIVABLES',
-              level: 3,
-              parentId: '1.1',
-              balance: 45200,
-              isActive: true
-            },
-            {
-              id: '1.1.4',
-              code: '1140',
-              name: 'Inventarios',
-              type: 'ASSET',
-              category: 'INVENTORY',
-              level: 3,
-              parentId: '1.1',
-              balance: 32000,
-              isActive: true
-            },
-            {
-              id: '1.1.5',
-              code: '1150',
-              name: 'IVA Acreditable',
-              type: 'ASSET',
-              category: 'TAX',
-              level: 3,
-              parentId: '1.1',
-              balance: 8500,
-              isActive: true
-            }
-          ]
-        },
-        {
-          id: '1.2',
-          code: '1200',
-          name: 'Activo Fijo',
-          type: 'ASSET',
-          category: 'FIXED_ASSET',
-          level: 2,
-          parentId: '1',
-          balance: 124000,
-          isActive: true,
-          children: [
-            {
-              id: '1.2.1',
-              code: '1210',
-              name: 'Terrenos',
-              type: 'ASSET',
-              category: 'LAND',
-              level: 3,
-              parentId: '1.2',
-              balance: 0,
-              isActive: true
-            },
-            {
-              id: '1.2.2',
-              code: '1220',
-              name: 'Edificios',
-              type: 'ASSET',
-              category: 'BUILDING',
-              level: 3,
-              parentId: '1.2',
-              balance: 0,
-              isActive: true
-            },
-            {
-              id: '1.2.3',
-              code: '1230',
-              name: 'Mobiliario y Equipo',
-              type: 'ASSET',
-              category: 'EQUIPMENT',
-              level: 3,
-              parentId: '1.2',
-              balance: 45000,
-              isActive: true
-            },
-            {
-              id: '1.2.4',
-              code: '1240',
-              name: 'Equipo de Cómputo',
-              type: 'ASSET',
-              category: 'COMPUTER',
-              level: 3,
-              parentId: '1.2',
-              balance: 25000,
-              isActive: true
-            },
-            {
-              id: '1.2.5',
-              code: '1250',
-              name: 'Vehículos',
-              type: 'ASSET',
-              category: 'VEHICLE',
-              level: 3,
-              parentId: '1.2',
-              balance: 80000,
-              isActive: true
-            },
-            {
-              id: '1.2.6',
-              code: '1260',
-              name: 'Depreciación Acumulada',
-              type: 'ASSET',
-              category: 'DEPRECIATION',
-              level: 3,
-              parentId: '1.2',
-              balance: -25000,
-              isActive: true
-            }
-          ]
-        }
-      ]
-    },
-    // PASIVOS
-    {
-      id: '2',
-      code: '2000',
-      name: 'PASIVOS',
-      type: 'LIABILITY',
-      category: 'MASTER',
-      level: 1,
-      balance: 206300,
-      isActive: true,
-      children: [
-        {
-          id: '2.1',
-          code: '2100',
-          name: 'Pasivo Circulante',
-          type: 'LIABILITY',
-          category: 'CURRENT_LIABILITY',
-          level: 2,
-          parentId: '2',
-          balance: 36300,
-          isActive: true,
-          children: [
-            {
-              id: '2.1.1',
-              code: '2110',
-              name: 'Cuentas por Pagar',
-              type: 'LIABILITY',
-              category: 'PAYABLES',
-              level: 3,
-              parentId: '2.1',
-              balance: 12800,
-              isActive: true
-            },
-            {
-              id: '2.1.2',
-              code: '2120',
-              name: 'IVA por Pagar',
-              type: 'LIABILITY',
-              category: 'TAX',
-              level: 3,
-              parentId: '2.1',
-              balance: 8500,
-              isActive: true
-            },
-            {
-              id: '2.1.3',
-              code: '2130',
-              name: 'ISR por Pagar',
-              type: 'LIABILITY',
-              category: 'TAX',
-              level: 3,
-              parentId: '2.1',
-              balance: 0,
-              isActive: true
-            },
-            {
-              id: '2.1.4',
-              code: '2140',
-              name: 'Préstamos a Corto Plazo',
-              type: 'LIABILITY',
-              category: 'LOAN',
-              level: 3,
-              parentId: '2.1',
-              balance: 15000,
-              isActive: true
-            }
-          ]
-        },
-        {
-          id: '2.2',
-          code: '2200',
-          name: 'Pasivo a Largo Plazo',
-          type: 'LIABILITY',
-          category: 'LONG_TERM_LIABILITY',
-          level: 2,
-          parentId: '2',
-          balance: 170000,
-          isActive: true,
-          children: [
-            {
-              id: '2.2.1',
-              code: '2210',
-              name: 'Préstamos Bancarios LP',
-              type: 'LIABILITY',
-              category: 'LOAN',
-              level: 3,
-              parentId: '2.2',
-              balance: 50000,
-              isActive: true
-            },
-            {
-              id: '2.2.2',
-              code: '2220',
-              name: 'Hipotecas por Pagar',
-              type: 'LIABILITY',
-              category: 'MORTGAGE',
-              level: 3,
-              parentId: '2.2',
-              balance: 120000,
-              isActive: true
-            }
-          ]
-        }
-      ]
-    },
-    // CAPITAL
-    {
-      id: '3',
-      code: '3000',
-      name: 'CAPITAL',
-      type: 'EQUITY',
-      category: 'MASTER',
-      level: 1,
-      balance: 224850,
-      isActive: true,
-      children: [
-        {
-          id: '3.1',
-          code: '3100',
-          name: 'Capital Social',
-          type: 'EQUITY',
-          category: 'EQUITY',
-          level: 2,
-          parentId: '3',
-          balance: 100000,
-          isActive: true
-        },
-        {
-          id: '3.2',
-          code: '3200',
-          name: 'Utilidades Retenidas',
-          type: 'EQUITY',
-          category: 'RETAINED_EARNINGS',
-          level: 2,
-          parentId: '3',
-          balance: 45850,
-          isActive: true
-        },
-        {
-          id: '3.3',
-          code: '3300',
-          name: 'Utilidad del Ejercicio',
-          type: 'EQUITY',
-          category: 'CURRENT_EARNINGS',
-          level: 2,
-          parentId: '3',
-          balance: 79000,
-          isActive: true
-        }
-      ]
-    },
-    // INGRESOS
-    {
-      id: '4',
-      code: '4000',
-      name: 'INGRESOS',
-      type: 'REVENUE',
-      category: 'MASTER',
-      level: 1,
-      balance: 432000,
-      isActive: true,
-      children: [
-        {
-          id: '4.1',
-          code: '4100',
-          name: 'Ingresos por Ventas',
-          type: 'REVENUE',
-          category: 'OPERATING_REVENUE',
-          level: 2,
-          parentId: '4',
-          balance: 432000,
-          isActive: true,
-          children: [
-            {
-              id: '4.1.1',
-              code: '4110',
-              name: 'Ventas de Productos',
-              type: 'REVENUE',
-              category: 'PRODUCT_SALES',
-              level: 3,
-              parentId: '4.1',
-              balance: 285000,
-              isActive: true
-            },
-            {
-              id: '4.1.2',
-              code: '4120',
-              name: 'Ventas de Servicios',
-              type: 'REVENUE',
-              category: 'SERVICE_SALES',
-              level: 3,
-              parentId: '4.1',
-              balance: 147000,
-              isActive: true
-            }
-          ]
-        },
-        {
-          id: '4.2',
-          code: '4200',
-          name: 'Otros Ingresos',
-          type: 'REVENUE',
-          category: 'NON_OPERATING_REVENUE',
-          level: 2,
-          parentId: '4',
-          balance: 0,
-          isActive: true
-        }
-      ]
-    },
-    // GASTOS
-    {
-      id: '5',
-      code: '5000',
-      name: 'COSTOS Y GASTOS',
-      type: 'EXPENSE',
-      category: 'MASTER',
-      level: 1,
-      balance: 353000,
-      isActive: true,
-      children: [
-        {
-          id: '5.1',
-          code: '5100',
-          name: 'Costo de Ventas',
-          type: 'EXPENSE',
-          category: 'COST_OF_GOODS_SOLD',
-          level: 2,
-          parentId: '5',
-          balance: 205000,
-          isActive: true
-        },
-        {
-          id: '5.2',
-          code: '5200',
-          name: 'Gastos de Operación',
-          type: 'EXPENSE',
-          category: 'OPERATING_EXPENSE',
-          level: 2,
-          parentId: '5',
-          balance: 148000,
-          isActive: true,
-          children: [
-            {
-              id: '5.2.1',
-              code: '5210',
-              name: 'Sueldos y Salarios',
-              type: 'EXPENSE',
-              category: 'PAYROLL',
-              level: 3,
-              parentId: '5.2',
-              balance: 84000,
-              isActive: true
-            },
-            {
-              id: '5.2.2',
-              code: '5220',
-              name: 'Renta',
-              type: 'EXPENSE',
-              category: 'RENT',
-              level: 3,
-              parentId: '5.2',
-              balance: 24000,
-              isActive: true
-            },
-            {
-              id: '5.2.3',
-              code: '5230',
-              name: 'Servicios Públicos',
-              type: 'EXPENSE',
-              category: 'UTILITIES',
-              level: 3,
-              parentId: '5.2',
-              balance: 8000,
-              isActive: true
-            },
-            {
-              id: '5.2.4',
-              code: '5240',
-              name: 'Publicidad y Marketing',
-              type: 'EXPENSE',
-              category: 'MARKETING',
-              level: 3,
-              parentId: '5.2',
-              balance: 18000,
-              isActive: true
-            },
-            {
-              id: '5.2.5',
-              code: '5250',
-              name: 'Depreciación',
-              type: 'EXPENSE',
-              category: 'DEPRECIATION',
-              level: 3,
-              parentId: '5.2',
-              balance: 14000,
-              isActive: true
-            }
-          ]
-        }
-      ]
+    if (status === 'authenticated') {
+      fetchAccounts()
     }
-  ]
+  }, [status, fetchAccounts])
+
+  // Crear nueva cuenta
+  const handleCreateAccount = async () => {
+    try {
+      setSaving(true)
+      setError(null)
+
+      const response = await fetch('/api/accounting/chart-of-accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newAccount,
+          parentId: newAccount.parentId || null
+        })
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Error al crear cuenta')
+      }
+
+      setSuccess('Cuenta creada exitosamente')
+      setShowNewAccountModal(false)
+      setNewAccount({ code: '', name: '', type: 'ASSET', category: '', description: '', parentId: '' })
+      fetchAccounts()
+
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear cuenta')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Actualizar cuenta
+  const handleUpdateAccount = async () => {
+    if (!editingAccount) return
+
+    try {
+      setSaving(true)
+      setError(null)
+
+      const response = await fetch(`/api/accounting/chart-of-accounts/${editingAccount.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editingAccount.name,
+          category: editingAccount.category,
+          description: editingAccount.description,
+          isActive: editingAccount.isActive
+        })
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Error al actualizar cuenta')
+      }
+
+      setSuccess('Cuenta actualizada exitosamente')
+      setEditingAccount(null)
+      fetchAccounts()
+
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al actualizar cuenta')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Eliminar cuenta
+  const handleDeleteAccount = async (accountId: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta cuenta? Esta acción no se puede deshacer.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/accounting/chart-of-accounts/${accountId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Error al eliminar cuenta')
+      }
+
+      setSuccess('Cuenta eliminada exitosamente')
+      fetchAccounts()
+
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar cuenta')
+    }
+  }
+
+  // Exportar a CSV
+  const handleExport = () => {
+    const flattenAccounts = (accs: Account[]): Account[] => {
+      const result: Account[] = []
+      accs.forEach(acc => {
+        result.push(acc)
+        if (acc.children) result.push(...flattenAccounts(acc.children))
+      })
+      return result
+    }
+    
+    const allAccounts = flattenAccounts(accounts)
+    const csv = 'Código,Nombre,Tipo,Categoría,Saldo,Activa\n' + 
+      allAccounts.map(acc => 
+        `${acc.code},"${acc.name}",${acc.type},"${acc.category || ''}",${acc.balance || 0},${acc.isActive}`
+      ).join('\n')
+    
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `catalogo-cuentas-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+  }
 
   const toggleExpand = (accountId: string) => {
     const newExpanded = new Set(expandedAccounts)
@@ -544,37 +252,63 @@ export default function ChartOfAccountsPage() {
   }
 
   const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'ASSET': return 'text-blue-700'
-      case 'LIABILITY': return 'text-red-700'
-      case 'EQUITY': return 'text-purple-700'
-      case 'REVENUE': return 'text-green-700'
-      case 'EXPENSE': return 'text-orange-700'
-      default: return 'text-gray-700'
+    const colors: Record<string, string> = {
+      'ASSET': 'text-blue-700',
+      'LIABILITY': 'text-red-700',
+      'EQUITY': 'text-purple-700',
+      'REVENUE': 'text-green-700',
+      'EXPENSE': 'text-orange-700'
     }
+    return colors[type] || 'text-gray-700'
   }
 
   const getTypeBadge = (type: string) => {
-    switch (type) {
-      case 'ASSET': return 'bg-blue-100 text-blue-700'
-      case 'LIABILITY': return 'bg-red-100 text-red-700'
-      case 'EQUITY': return 'bg-purple-100 text-purple-700'
-      case 'REVENUE': return 'bg-green-100 text-green-700'
-      case 'EXPENSE': return 'bg-orange-100 text-orange-700'
-      default: return 'bg-gray-100 text-gray-700'
+    const badges: Record<string, string> = {
+      'ASSET': 'bg-blue-100 text-blue-700',
+      'LIABILITY': 'bg-red-100 text-red-700',
+      'EQUITY': 'bg-purple-100 text-purple-700',
+      'REVENUE': 'bg-green-100 text-green-700',
+      'EXPENSE': 'bg-orange-100 text-orange-700'
     }
+    return badges[type] || 'bg-gray-100 text-gray-700'
   }
 
-  const renderAccount = (account: Account) => {
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'ASSET': 'Activo',
+      'LIABILITY': 'Pasivo',
+      'EQUITY': 'Capital',
+      'REVENUE': 'Ingreso',
+      'EXPENSE': 'Gasto'
+    }
+    return labels[type] || type
+  }
+
+  // Filtrar cuentas por búsqueda
+  const filterAccounts = (accs: Account[]): Account[] => {
+    if (!searchTerm) return accs
+    
+    return accs.filter(acc => {
+      const matchesSelf = acc.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          acc.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesChildren = acc.children && filterAccounts(acc.children).length > 0
+      return matchesSelf || matchesChildren
+    }).map(acc => ({
+      ...acc,
+      children: acc.children ? filterAccounts(acc.children) : []
+    }))
+  }
+
+  const renderAccount = (account: Account, depth: number = 0) => {
     const isExpanded = expandedAccounts.has(account.id)
     const hasChildren = account.children && account.children.length > 0
-    const indent = (account.level - 1) * 24
+    const indent = depth * 24
 
     return (
       <div key={account.id}>
         <div 
           className={`flex items-center py-3 px-4 hover:bg-gray-50 border-b border-gray-100 ${
-            account.level === 1 ? 'bg-gray-50 font-bold' : ''
+            depth === 0 ? 'bg-gray-50 font-bold' : ''
           }`}
           style={{ paddingLeft: `${indent + 16}px` }}
         >
@@ -584,11 +318,7 @@ export default function ChartOfAccountsPage() {
                 onClick={() => toggleExpand(account.id)}
                 className="text-gray-500 hover:text-gray-700"
               >
-                {isExpanded ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronRight className="w-4 h-4" />
-                )}
+                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
             )}
           </div>
@@ -599,61 +329,87 @@ export default function ChartOfAccountsPage() {
               </span>
             </div>
             <div className="col-span-4">
-              <span className={account.level === 1 ? 'font-bold text-gray-900' : 'text-gray-700'}>
+              <span className={depth === 0 ? 'font-bold text-gray-900' : 'text-gray-700'}>
                 {account.name}
               </span>
             </div>
             <div className="col-span-2">
-              {account.level > 1 && (
-                <span className={`text-xs px-2 py-1 rounded ${getTypeBadge(account.type)}`}>
-                  {account.type === 'ASSET' ? 'Activo' :
-                   account.type === 'LIABILITY' ? 'Pasivo' :
-                   account.type === 'EQUITY' ? 'Capital' :
-                   account.type === 'REVENUE' ? 'Ingreso' : 'Gasto'}
-                </span>
-              )}
+              <span className={`text-xs px-2 py-1 rounded ${getTypeBadge(account.type)}`}>
+                {getTypeLabel(account.type)}
+              </span>
             </div>
             <div className="col-span-2 text-right">
-              <span className={`font-semibold ${
-                account.balance >= 0 ? 'text-gray-900' : 'text-red-600'
-              }`}>
-                ${Math.abs(account.balance).toLocaleString()}
+              <span className={`font-semibold ${account.balance >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                ${Math.abs(account.balance || 0).toLocaleString()}
               </span>
             </div>
             <div className="col-span-2 flex justify-end gap-2">
-              {account.level > 1 && (
-                <>
-                  <button className="p-1 text-blue-600 hover:bg-blue-50 rounded">
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button className="p-1 text-gray-600 hover:bg-gray-100 rounded">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  {account.level === 3 && (
-                    <button className="p-1 text-red-600 hover:bg-red-50 rounded">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </>
+              <button 
+                onClick={() => setEditingAccount(account)}
+                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setEditingAccount(account)}
+                className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              {!hasChildren && (
+                <button 
+                  onClick={() => handleDeleteAccount(account.id)}
+                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               )}
             </div>
           </div>
         </div>
         {hasChildren && isExpanded && (
           <div>
-            {account.children!.map(child => renderAccount(child))}
+            {account.children!.map(child => renderAccount(child, depth + 1))}
           </div>
         )}
       </div>
     )
   }
 
-  const stats = [
-    { label: 'Total Activos', value: 299150, icon: Building2, color: 'from-blue-500 to-blue-600' },
-    { label: 'Total Pasivos', value: 206300, icon: FileText, color: 'from-red-500 to-red-600' },
-    { label: 'Capital Contable', value: 224850, icon: DollarSign, color: 'from-purple-500 to-purple-600' },
-    { label: 'Total Cuentas', value: accounts.length, icon: BookOpen, color: 'from-green-500 to-green-600' }
-  ]
+  // Calcular estadísticas
+  const calculateStats = () => {
+    const flattenAccounts = (accs: Account[]): Account[] => {
+      const result: Account[] = []
+      accs.forEach(acc => {
+        result.push(acc)
+        if (acc.children) result.push(...flattenAccounts(acc.children))
+      })
+      return result
+    }
+    
+    const allAccounts = flattenAccounts(accounts)
+    
+    const totalAssets = allAccounts
+      .filter(a => a.type === 'ASSET' && a.level === 1)
+      .reduce((sum, a) => sum + (a.balance || 0), 0)
+    
+    const totalLiabilities = allAccounts
+      .filter(a => a.type === 'LIABILITY' && a.level === 1)
+      .reduce((sum, a) => sum + (a.balance || 0), 0)
+    
+    const totalEquity = allAccounts
+      .filter(a => a.type === 'EQUITY' && a.level === 1)
+      .reduce((sum, a) => sum + (a.balance || 0), 0)
+
+    return {
+      totalAssets,
+      totalLiabilities,
+      totalEquity,
+      totalAccounts: allAccounts.length
+    }
+  }
+
+  const stats = calculateStats()
 
   if (status === 'loading' || loading) {
     return (
@@ -665,146 +421,41 @@ export default function ChartOfAccountsPage() {
     )
   }
 
-  const accountingLinks = [
-    { label: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard, color: 'blue' },
-    { label: 'Transacciones', href: '/company/accounting/transactions', icon: Receipt, color: 'green' },
-    { label: 'Asientos', href: '/company/accounting/journal-entries', icon: FileText, color: 'purple' },
-    { label: 'Reclasificación', href: '/company/accounting/mass-reclassification', icon: ArrowRightLeft, color: 'orange' },
-    { label: 'Reportes', href: '/company/reports/balance-sheet', icon: PieChart, color: 'indigo' }
-  ]
-
-  // Botones de acción del Plan de Cuentas
-  const chartOfAccountsActions = [
-    {
-      label: 'Ver catálogo',
-      icon: BookOpen,
-      onClick: () => {
-        setFilterType('all')
-        setSearchTerm('')
-      },
-      variant: 'outline' as const,
-    },
-    {
-      label: 'Crear cuenta',
-      icon: Plus,
-      onClick: () => setShowNewAccountModal(true),
-      variant: 'primary' as const,
-    },
-    {
-      label: 'Editar cuenta',
-      icon: Edit,
-      onClick: () => {
-        alert('Selecciona una cuenta para editar desde la tabla')
-      },
-      variant: 'default' as const,
-    },
-    {
-      label: 'Exportar',
-      icon: Download,
-      onClick: () => {
-        const flattenAccounts = (accs: Account[]): Account[] => {
-          const result: Account[] = []
-          accs.forEach(acc => {
-            result.push(acc)
-            if (acc.children) result.push(...flattenAccounts(acc.children))
-          })
-          return result
-        }
-        const allAccounts = flattenAccounts(accounts)
-        const csv = 'Código,Nombre,Tipo,Saldo\n' + 
-          allAccounts.map(acc => 
-            `${acc.code},"${acc.name}",${acc.type},${acc.balance || 0}`
-          ).join('\n')
-        const blob = new Blob([csv], { type: 'text/csv' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `catalogo-cuentas-${new Date().toISOString().split('T')[0]}.csv`
-        a.click()
-      },
-      variant: 'outline' as const,
-    },
-    {
-      label: 'Eliminar cuenta',
-      icon: Trash2,
-      onClick: () => {
-        alert('Selecciona una cuenta para eliminar desde la tabla')
-      },
-      variant: 'danger' as const,
-    },
-  ]
+  const filteredAccounts = filterAccounts(accounts)
 
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
-        {/* Quick Access Navigation */}
-        <QuickAccessBar title="Navegación Contable" links={accountingLinks} />
+        {/* Alerts */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <span className="text-red-700">{error}</span>
+            <button onClick={() => setError(null)} className="ml-auto text-red-600">×</button>
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <span className="text-green-700">{success}</span>
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Catálogo de Cuentas</h1>
-            <p className="text-gray-600 mt-1">
-              Plan de cuentas contable completo
-            </p>
+            <p className="text-gray-600 mt-1">Plan de cuentas contable conectado a la base de datos</p>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <Card className="border-blue-200 bg-blue-50/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-blue-900 flex items-center">
-              <Calculator className="w-4 h-4 mr-2" />
-              Acciones del Plan de Cuentas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ActionButtonsGroup buttons={chartOfAccountsActions} />
-          </CardContent>
-        </Card>
-
-        {/* Original Header Buttons Section (keeping for compatibility) */}
-        <div className="flex items-center justify-between">
-          <div></div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => {
-              const flattenAccounts = (accs: Account[]): Account[] => {
-                const result: Account[] = []
-                accs.forEach(acc => {
-                  result.push(acc)
-                  if (acc.children) result.push(...flattenAccounts(acc.children))
-                })
-                return result
-              }
-              const allAccounts = flattenAccounts(accounts)
-              const csv = 'Código,Nombre,Tipo,Saldo\n' + 
-                allAccounts.map(acc => 
-                  `${acc.code},"${acc.name}",${acc.type},${acc.balance || 0}`
-                ).join('\n')
-              const blob = new Blob([csv], { type: 'text/csv' })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = `catalogo-cuentas-${new Date().toISOString().split('T')[0]}.csv`
-              a.click()
-            }}>
+            <Button variant="outline" onClick={fetchAccounts}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Actualizar
+            </Button>
+            <Button variant="outline" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
-            </Button>
-            <Button variant="outline" onClick={() => {
-              const input = document.createElement('input')
-              input.type = 'file'
-              input.accept = '.csv'
-              input.onchange = (e: any) => {
-                const file = e.target.files[0]
-                if (file) {
-                  alert(`Importando ${file.name}...\n\nFormato esperado: Código,Nombre,Tipo,Saldo\n\nEsta funcionalidad procesa el CSV y crea las cuentas automáticamente.`)
-                }
-              }
-              input.click()
-            }}>
-              <Upload className="w-4 h-4 mr-2" />
-              Importar
             </Button>
             <Button onClick={() => setShowNewAccountModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -815,23 +466,58 @@ export default function ChartOfAccountsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {stats.map((stat, index) => (
-            <Card key={index}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`p-3 rounded-lg bg-gradient-to-br ${stat.color}`}>
-                    <stat.icon className="w-6 h-6 text-white" />
-                  </div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+                  <Building2 className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {typeof stat.value === 'number' && stat.label !== 'Total Cuentas' 
-                    ? `$${stat.value.toLocaleString()}`
-                    : stat.value}
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">${stats.totalAssets.toLocaleString()}</div>
+                  <div className="text-sm text-gray-600">Total Activos</div>
                 </div>
-                <div className="text-sm text-gray-600">{stat.label}</div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-red-500 to-red-600">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">${stats.totalLiabilities.toLocaleString()}</div>
+                  <div className="text-sm text-gray-600">Total Pasivos</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <DollarSign className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">${stats.totalEquity.toLocaleString()}</div>
+                  <div className="text-sm text-gray-600">Capital Contable</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-green-500 to-green-600">
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.totalAccounts}</div>
+                  <div className="text-sm text-gray-600">Total Cuentas</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
@@ -860,10 +546,6 @@ export default function ChartOfAccountsPage() {
                 <option value="REVENUE">Ingresos</option>
                 <option value="EXPENSE">Gastos</option>
               </select>
-              <Button variant="outline">
-                <Filter className="w-4 h-4 mr-2" />
-                Más Filtros
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -876,7 +558,6 @@ export default function ChartOfAccountsPage() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <div className="min-w-full">
-                {/* Header */}
                 <div className="flex items-center py-3 px-4 bg-gray-100 border-b font-semibold text-sm text-gray-700">
                   <div className="w-8"></div>
                   <div className="flex-1 grid grid-cols-12 gap-4">
@@ -887,29 +568,15 @@ export default function ChartOfAccountsPage() {
                     <div className="col-span-2 text-right">Acciones</div>
                   </div>
                 </div>
-                {/* Accounts */}
                 <div>
-                  {accounts.map(account => renderAccount(account))}
+                  {filteredAccounts.length > 0 ? (
+                    filteredAccounts.map(account => renderAccount(account))
+                  ) : (
+                    <div className="p-8 text-center text-gray-500">
+                      {searchTerm ? 'No se encontraron cuentas con ese criterio' : 'No hay cuentas registradas'}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Info Card */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-blue-900 mb-2">Sobre el Catálogo de Cuentas</h3>
-                <p className="text-blue-700 text-sm">
-                  El catálogo de cuentas es la estructura fundamental de tu contabilidad. Organiza todas las cuentas 
-                  financieras de forma jerárquica siguiendo las Normas de Información Financiera (NIF). Cada transacción 
-                  debe registrarse en las cuentas correspondientes para mantener el balance contable.
-                </p>
               </div>
             </div>
           </CardContent>
@@ -925,34 +592,127 @@ export default function ChartOfAccountsPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Código</label>
-                    <Input placeholder="1001" />
+                    <label className="text-sm font-medium">Código *</label>
+                    <Input 
+                      placeholder="1001" 
+                      value={newAccount.code}
+                      onChange={(e) => setNewAccount({...newAccount, code: e.target.value})}
+                    />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Tipo</label>
-                    <select className="w-full border rounded-md p-2">
-                      <option>Activo</option>
-                      <option>Pasivo</option>
-                      <option>Capital</option>
-                      <option>Ingreso</option>
-                      <option>Gasto</option>
+                    <label className="text-sm font-medium">Tipo *</label>
+                    <select 
+                      className="w-full border rounded-md p-2"
+                      value={newAccount.type}
+                      onChange={(e) => setNewAccount({...newAccount, type: e.target.value as Account['type']})}
+                    >
+                      <option value="ASSET">Activo</option>
+                      <option value="LIABILITY">Pasivo</option>
+                      <option value="EQUITY">Capital</option>
+                      <option value="REVENUE">Ingreso</option>
+                      <option value="EXPENSE">Gasto</option>
                     </select>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Nombre de la Cuenta</label>
-                  <Input placeholder="Caja General" />
+                  <label className="text-sm font-medium">Nombre de la Cuenta *</label>
+                  <Input 
+                    placeholder="Caja General"
+                    value={newAccount.name}
+                    onChange={(e) => setNewAccount({...newAccount, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Categoría</label>
+                  <Input 
+                    placeholder="CASH, BANK, RECEIVABLES, etc."
+                    value={newAccount.category}
+                    onChange={(e) => setNewAccount({...newAccount, category: e.target.value})}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium">Descripción</label>
-                  <Input placeholder="Efectivo disponible en caja" />
+                  <Input 
+                    placeholder="Efectivo disponible en caja"
+                    value={newAccount.description}
+                    onChange={(e) => setNewAccount({...newAccount, description: e.target.value})}
+                  />
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setShowNewAccountModal(false)}>Cancelar</Button>
-                  <Button onClick={() => {
-                    alert('✅ Cuenta creada exitosamente\n\nEn producción, esto enviaría los datos a:\nPOST /api/accounting/chart-of-accounts')
-                    setShowNewAccountModal(false)
-                  }}>Crear Cuenta</Button>
+                  <Button onClick={handleCreateAccount} disabled={saving || !newAccount.code || !newAccount.name}>
+                    {saving ? 'Guardando...' : 'Crear Cuenta'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Modal Editar Cuenta */}
+        {editingAccount && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditingAccount(null)}>
+            <Card className="w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+              <CardHeader>
+                <CardTitle>Editar Cuenta: {editingAccount.code}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Código</label>
+                    <Input value={editingAccount.code} disabled className="bg-gray-100" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Tipo</label>
+                    <Input value={getTypeLabel(editingAccount.type)} disabled className="bg-gray-100" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Nombre de la Cuenta</label>
+                  <Input 
+                    value={editingAccount.name}
+                    onChange={(e) => setEditingAccount({...editingAccount, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Categoría</label>
+                  <Input 
+                    value={editingAccount.category || ''}
+                    onChange={(e) => setEditingAccount({...editingAccount, category: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Descripción</label>
+                  <Input 
+                    value={editingAccount.description || ''}
+                    onChange={(e) => setEditingAccount({...editingAccount, description: e.target.value})}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    checked={editingAccount.isActive}
+                    onChange={(e) => setEditingAccount({...editingAccount, isActive: e.target.checked})}
+                  />
+                  <label className="text-sm">Cuenta activa</label>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600">
+                    <p>Saldo actual: <strong>${(editingAccount.balance || 0).toLocaleString()}</strong></p>
+                    <p>Nivel: {editingAccount.level}</p>
+                    {editingAccount._count && (
+                      <>
+                        <p>Asientos asociados: {editingAccount._count.journalEntries}</p>
+                        <p>Presupuestos asociados: {editingAccount._count.budgets}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setEditingAccount(null)}>Cancelar</Button>
+                  <Button onClick={handleUpdateAccount} disabled={saving}>
+                    {saving ? 'Guardando...' : 'Guardar Cambios'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

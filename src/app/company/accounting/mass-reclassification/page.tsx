@@ -1,95 +1,86 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { 
-  ArrowRightLeft,
-  Search,
-  CheckCircle,
-  XCircle,
-  Eye,
-  History,
-  Undo2,
-  FileText,
-  Calculator,
-  AlertCircle,
-  TrendingUp,
-  Filter
-} from 'lucide-react'
 
 interface Transaction {
   id: string
   date: string
   description: string
   amount: number
-  currentAccount: string
-  currentAccountCode: string
-  selected: boolean
+  type: 'income' | 'expense'
+  currentCategory: string
+  currentCategoryId: string
+}
+
+interface Category {
+  id: string
+  name: string
+  type: 'INCOME' | 'EXPENSE'
+}
+
+interface PreviewResult {
+  totalTransactions: number
+  totalAmount: number
+  affected: { id: string; description: string; oldCategory: string; newCategory: string }[]
 }
 
 export default function MassReclassificationPage() {
-  const router = useRouter()
   const { data: session, status } = useSession()
+  const router = useRouter()
   const { activeCompany } = useCompany()
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sourceAccount, setSourceAccount] = useState('')
-  const [destinationAccount, setDestinationAccount] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedTransactions, setSelectedTransactions] = useState<string[]>([])
+  const [targetCategory, setTargetCategory] = useState('')
   const [showPreview, setShowPreview] = useState(false)
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: 'TXN-001',
-      date: '2025-11-25',
-      description: 'OFFICE DEPOT - SUPPLIES',
-      amount: 189.50,
-      currentAccount: 'Office Expenses',
-      currentAccountCode: '5240',
-      selected: false
-    },
-    {
-      id: 'TXN-002',
-      date: '2025-11-24',
-      description: 'STAPLES - OFFICE SUPPLIES',
-      amount: 245.80,
-      currentAccount: 'Office Expenses',
-      currentAccountCode: '5240',
-      selected: false
-    },
-    {
-      id: 'TXN-003',
-      date: '2025-11-23',
-      description: 'AMAZON - OFFICE MATERIALS',
-      amount: 327.90,
-      currentAccount: 'Office Expenses',
-      currentAccountCode: '5240',
-      selected: false
-    },
-    {
-      id: 'TXN-004',
-      date: '2025-11-20',
-      description: 'BEST BUY - OFFICE EQUIPMENT',
-      amount: 450.00,
-      currentAccount: 'Office Expenses',
-      currentAccountCode: '5240',
-      selected: false
-    },
-    {
-      id: 'TXN-005',
-      date: '2025-11-18',
-      description: 'HP STORE - PRINTER',
-      amount: 680.00,
-      currentAccount: 'Office Expenses',
-      currentAccountCode: '5240',
-      selected: false
+  const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [filters, setFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    currentCategory: '',
+    type: '',
+    search: ''
+  })
+
+  const fetchData = useCallback(async () => {
+    if (!activeCompany) return
+
+    try {
+      setIsLoading(true)
+      
+      const params = new URLSearchParams({ companyId: activeCompany.id })
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom)
+      if (filters.dateTo) params.append('dateTo', filters.dateTo)
+      if (filters.currentCategory) params.append('currentCategory', filters.currentCategory)
+      if (filters.type) params.append('type', filters.type)
+      if (filters.search) params.append('search', filters.search)
+
+      const [transRes, catRes] = await Promise.all([
+        fetch(`/api/accounting/mass-reclassification?${params}`),
+        fetch(`/api/expenses/categories?companyId=${activeCompany.id}`)
+      ])
+
+      if (transRes.ok) {
+        const data = await transRes.json()
+        setTransactions(data.transactions || [])
+      }
+
+      if (catRes.ok) {
+        const data = await catRes.json()
+        setCategories(data.categories || data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setIsLoading(false)
     }
-  ])
+  }, [activeCompany, filters])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -98,73 +89,115 @@ export default function MassReclassificationPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const accounts = [
-    { code: '5240', name: 'Office Expenses' },
-    { code: '5241', name: 'Office Supplies' },
-    { code: '1520', name: 'Office Equipment (Asset)' },
-    { code: '5280', name: 'Technology & Software' },
-    { code: '5250', name: 'Other Operating Expenses' }
-  ]
-
-  const toggleTransaction = (id: string) => {
-    setTransactions(prev =>
-      prev.map(txn => txn.id === id ? { ...txn, selected: !txn.selected } : txn)
-    )
-  }
-
-  const toggleAll = () => {
-    const allSelected = transactions.every(t => t.selected)
-    setTransactions(prev => prev.map(txn => ({ ...txn, selected: !allSelected })))
-  }
-
-  const selectedCount = transactions.filter(t => t.selected).length
-  const selectedAmount = transactions.filter(t => t.selected).reduce((sum, t) => sum + t.amount, 0)
-
-  const showHistorial = () => {
-    alert(`📋 HISTORIAL DE RECLASIFICACIONES\n\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `📅 2025-11-25 10:30 AM\n` +
-      `👤 Usuario: Ana García\n` +
-      `🔄 Cambio: 15 transacciones\n` +
-      `📊 Desde: 5240 - Office Expenses\n` +
-      `📊 Hacia: 5241 - Office Supplies\n` +
-      `💰 Monto total: $3,245.80\n\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `📅 2025-11-20 03:15 PM\n` +
-      `👤 Usuario: Laura Sánchez\n` +
-      `🔄 Cambio: 8 transacciones\n` +
-      `📊 Desde: 5280 - Technology\n` +
-      `📊 Hacia: 1520 - Equipment (Asset)\n` +
-      `💰 Monto total: $12,450.00\n\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `✅ Todas las reclasificaciones incluyen audit trail completo`
-    )
-  }
-
-  const applyReclassification = () => {
-    if (!destinationAccount || selectedCount === 0) {
-      alert('⚠️ Selecciona transacciones y cuenta destino')
-      return
+    if (activeCompany) {
+      fetchData()
     }
-    alert(`✅ ${selectedCount} transacciones reclasificadas a cuenta ${destinationAccount}!\n\nSe ha creado un audit trail con timestamp y usuario.`)
-    setTransactions(prev => prev.map(txn => ({ ...txn, selected: false })))
-    setShowPreview(false)
+  }, [activeCompany, fetchData])
+
+  const handleSelectAll = () => {
+    if (selectedTransactions.length === transactions.length) {
+      setSelectedTransactions([])
+    } else {
+      setSelectedTransactions(transactions.map(t => t.id))
+    }
   }
 
-  const filteredTransactions = transactions.filter(txn =>
-    txn.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    txn.currentAccount.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleSelectTransaction = (id: string) => {
+    setSelectedTransactions(prev => 
+      prev.includes(id) 
+        ? prev.filter(t => t !== id)
+        : [...prev, id]
+    )
+  }
 
-  if (status === 'loading' || loading) {
+  const handlePreview = async () => {
+    if (!activeCompany || selectedTransactions.length === 0 || !targetCategory) return
+
+    try {
+      setIsProcessing(true)
+      const response = await fetch('/api/accounting/mass-reclassification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'preview',
+          companyId: activeCompany.id,
+          transactionIds: selectedTransactions,
+          newCategoryId: targetCategory
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setPreviewResult(data)
+        setShowPreview(true)
+      }
+    } catch (error) {
+      console.error('Error previewing:', error)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleExecuteReclassification = async () => {
+    if (!activeCompany || selectedTransactions.length === 0 || !targetCategory) return
+
+    try {
+      setIsProcessing(true)
+      const response = await fetch('/api/accounting/mass-reclassification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute',
+          companyId: activeCompany.id,
+          transactionIds: selectedTransactions,
+          newCategoryId: targetCategory
+        })
+      })
+
+      if (response.ok) {
+        setShowPreview(false)
+        setPreviewResult(null)
+        setSelectedTransactions([])
+        setTargetCategory('')
+        await fetchData()
+        alert(`${selectedTransactions.length} transacciones reclasificadas exitosamente`)
+      }
+    } catch (error) {
+      console.error('Error executing reclassification:', error)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(amount)
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const stats = {
+    total: transactions.length,
+    selected: selectedTransactions.length,
+    totalAmount: transactions.reduce((sum, t) => sum + t.amount, 0),
+    selectedAmount: transactions
+      .filter(t => selectedTransactions.includes(t.id))
+      .reduce((sum, t) => sum + t.amount, 0)
+  }
+
+  if (status === 'loading' || isLoading) {
     return (
       <CompanyTabsLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       </CompanyTabsLayout>
     )
@@ -176,273 +209,311 @@ export default function MassReclassificationPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <ArrowRightLeft className="w-8 h-8 text-blue-600" />
-              Reclasificación Masiva de Cuentas
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Reclasificación Masiva
             </h1>
-            <p className="text-gray-600 mt-1">
-              Cambie la cuenta contable de múltiples transacciones simultáneamente
+            <p className="text-gray-500 dark:text-gray-400">
+              Cambia la categoría contable de múltiples transacciones a la vez
             </p>
           </div>
-          <Button variant="outline" onClick={showHistorial}>
-            <History className="w-4 h-4 mr-2" />
-            Ver Historial de Cambios
-          </Button>
         </div>
 
-        {/* Selection Summary */}
-        {selectedCount > 0 && (
-          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-blue-900 mb-2">
-                    {selectedCount} transacción(es) seleccionada(s)
-                  </h3>
-                  <div className="text-sm text-blue-700">
-                    Monto total: <span className="font-bold">${selectedAmount.toLocaleString()}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => setShowPreview(true)}>
-                    <Eye className="w-4 h-4 mr-2" />
-                    Vista Previa
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setTransactions(prev => prev.map(t => ({ ...t, selected: false })))}
-                  >
-                    Limpiar Selección
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Transacciones</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Seleccionadas</p>
+            <p className="text-2xl font-bold text-blue-600">{stats.selected}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Monto Total</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.totalAmount)}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Monto Seleccionado</p>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.selectedAmount)}</p>
+          </div>
+        </div>
 
-        {/* Reclassification Controls */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowRightLeft className="w-6 h-6 text-blue-600" />
-              Configurar Reclasificación
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cuenta Origen (Filtro):
-                </label>
-                <select 
-                  className="w-full px-4 py-2 border rounded-lg"
-                  value={sourceAccount}
-                  onChange={(e) => setSourceAccount(e.target.value)}
-                >
-                  <option value="">Todas las cuentas</option>
-                  {accounts.map(acc => (
-                    <option key={acc.code} value={acc.code}>
-                      {acc.code} - {acc.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cuenta Destino: *
-                </label>
-                <select 
-                  className="w-full px-4 py-2 border rounded-lg"
-                  value={destinationAccount}
-                  onChange={(e) => setDestinationAccount(e.target.value)}
-                >
-                  <option value="">Seleccionar cuenta destino...</option>
-                  {accounts.map(acc => (
-                    <option key={acc.code} value={acc.code}>
-                      {acc.code} - {acc.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Buscar Transacciones:
-                </label>
-                <div className="relative">
-                  <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Descripción..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
+        {/* Filters */}
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Filtros</h3>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Desde</label>
+              <input
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              />
             </div>
-
-            {destinationAccount && selectedCount > 0 && (
-              <div className="flex gap-2 pt-4 border-t">
-                <Button className="flex-1" onClick={applyReclassification}>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Aplicar Reclasificación ({selectedCount} txn)
-                </Button>
-                <Button variant="outline">
-                  <Calculator className="w-4 h-4 mr-2" />
-                  Ver Impacto en Reportes
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Preview Modal */}
-        {showPreview && (
-          <Card className="bg-yellow-50 border-yellow-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="w-6 h-6 text-yellow-600" />
-                Vista Previa de Cambios
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 mb-4">
-                {transactions.filter(t => t.selected).map(txn => (
-                  <div key={txn.id} className="p-3 bg-white rounded-lg border flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{txn.description}</div>
-                      <div className="text-sm text-gray-600">${txn.amount.toLocaleString()} - {txn.date}</div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline">{txn.currentAccountCode} - {txn.currentAccount}</Badge>
-                      <ArrowRightLeft className="w-4 h-4 text-gray-400" />
-                      <Badge className="bg-green-100 text-green-700">
-                        {destinationAccount} - {accounts.find(a => a.code === destinationAccount)?.name}
-                      </Badge>
-                    </div>
-                  </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+              <input
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Categoría Actual</label>
+              <select
+                value={filters.currentCategory}
+                onChange={(e) => setFilters(prev => ({ ...prev, currentCategory: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              >
+                <option value="">Todas</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Tipo</label>
+              <select
+                value={filters.type}
+                onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              >
+                <option value="">Todos</option>
+                <option value="income">Ingresos</option>
+                <option value="expense">Gastos</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Buscar</label>
+              <input
+                type="text"
+                placeholder="Descripción..."
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Action Bar */}
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={selectedTransactions.length === transactions.length && transactions.length > 0}
+                onChange={handleSelectAll}
+                className="w-4 h-4 text-blue-600 rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-300">
+                {selectedTransactions.length > 0 
+                  ? `${selectedTransactions.length} seleccionada(s)`
+                  : 'Seleccionar todas'}
+              </span>
+            </div>
+            
+            <div className="flex-1 flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-300">Reclasificar a:</span>
+                <select
+                  value={targetCategory}
+                  onChange={(e) => setTargetCategory(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm min-w-48"
+                >
+                  <option value="">Seleccionar categoría...</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
               </div>
-              <div className="flex gap-2">
-                <Button className="flex-1" onClick={applyReclassification}>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Confirmar y Aplicar
-                </Button>
-                <Button variant="outline" onClick={() => setShowPreview(false)}>
-                  Cancelar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
+              <button
+                onClick={handlePreview}
+                disabled={selectedTransactions.length === 0 || !targetCategory || isProcessing}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Vista Previa
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Transactions Table */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Transacciones</CardTitle>
-              <Button size="sm" variant="outline" onClick={toggleAll}>
-                {transactions.every(t => t.selected) ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left">
-                      <input 
-                        type="checkbox" 
-                        checked={transactions.every(t => t.selected)}
-                        onChange={toggleAll}
-                        className="w-5 h-5"
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900">
+              <tr>
+                <th className="px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedTransactions.length === transactions.length && transactions.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                  />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría Actual</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <svg className="w-12 h-12 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="text-lg font-medium">No hay transacciones</p>
+                      <p className="text-sm">Ajusta los filtros para ver transacciones</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                transactions.map((transaction) => (
+                  <tr key={transaction.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedTransactions.includes(transaction.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedTransactions.includes(transaction.id)}
+                        onChange={() => handleSelectTransaction(transaction.id)}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300"
                       />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuenta Actual</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                      {formatDate(transaction.date)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                      {transaction.description}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                        {transaction.currentCategory}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        transaction.type === 'income' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {transaction.type === 'income' ? 'Ingreso' : 'Gasto'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-medium">
+                      <span className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredTransactions.map((txn) => (
-                    <tr key={txn.id} className={`hover:bg-gray-50 ${txn.selected ? 'bg-blue-50' : ''}`}>
-                      <td className="px-4 py-4">
-                        <input 
-                          type="checkbox" 
-                          checked={txn.selected}
-                          onChange={() => toggleTransaction(txn.id)}
-                          className="w-5 h-5"
-                        />
-                      </td>
-                      <td className="px-4 py-4 text-sm text-gray-900">{txn.date}</td>
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-gray-900">{txn.description}</div>
-                        <div className="text-xs text-gray-500">{txn.id}</div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="font-semibold text-gray-900">${txn.amount.toLocaleString()}</div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <Badge variant="outline">
-                          {txn.currentAccountCode} - {txn.currentAccount}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-4">
-                        <Button size="sm" variant="outline">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-600 rounded-lg">
-                  <AlertCircle className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-blue-900 mb-2">⚠️ Precauciones</h3>
-                  <ul className="text-blue-700 text-sm space-y-1">
-                    <li>• <strong>Audit Trail:</strong> Cada cambio se registra con usuario y timestamp</li>
-                    <li>• <strong>Reversible:</strong> Puedes deshacer reclasificaciones desde el historial</li>
-                    <li>• <strong>Impact Analysis:</strong> Verifica impacto en reportes antes de aplicar</li>
-                    <li>• <strong>Backup:</strong> Recomendamos backup antes de cambios masivos</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-green-600 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-green-900 mb-2">✨ Casos de Uso</h3>
-                  <ul className="text-green-700 text-sm space-y-1">
-                    <li>• <strong>Corrección masiva:</strong> Cuando muchas transacciones están mal clasificadas</li>
-                    <li>• <strong>Reorganización:</strong> Cambio de estructura del plan de cuentas</li>
-                    <li>• <strong>Cierre fiscal:</strong> Ajustes de fin de año</li>
-                    <li>• <strong>Migración:</strong> Importación de datos de otro sistema</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+
+        {/* Preview Modal */}
+        {showPreview && previewResult && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Vista Previa de Reclasificación
+                  </h2>
+                  <button
+                    onClick={() => setShowPreview(false)}
+                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-medium text-blue-900 dark:text-blue-300">
+                      {previewResult.totalTransactions} transacciones serán reclasificadas
+                    </p>
+                    <p className="text-sm text-blue-700 dark:text-blue-400">
+                      Monto total afectado: {formatCurrency(previewResult.totalAmount)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Transacción</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Categoría Anterior</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nueva Categoría</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {previewResult.affected.map((item) => (
+                        <tr key={item.id}>
+                          <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                            {item.description}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-500">
+                            {item.oldCategory}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-green-600 dark:text-green-400">
+                            {item.newCategory}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleExecuteReclassification}
+                  disabled={isProcessing}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Confirmar Reclasificación
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

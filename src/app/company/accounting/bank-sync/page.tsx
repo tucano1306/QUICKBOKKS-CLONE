@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { 
   RefreshCw,
@@ -24,19 +25,24 @@ import {
   Link,
   Unlink,
   Eye,
-  TrendingUp
+  TrendingUp,
+  Loader2,
+  XCircle,
+  Trash2
 } from 'lucide-react'
 
 interface BankConnection {
   id: string
   bankName: string
   accountNumber: string
+  accountName: string
   accountType: string
-  status: 'connected' | 'disconnected' | 'error'
+  status: 'connected' | 'disconnected' | 'error' | 'active'
   lastSync: string
   balance: number
   currency: string
   logo: string
+  isPrimary?: boolean
 }
 
 interface Transaction {
@@ -58,6 +64,134 @@ export default function BankSyncPage() {
   const [syncing, setSyncing] = useState(false)
   const [selectedBank, setSelectedBank] = useState<string | null>(null)
   const [showBankModal, setShowBankModal] = useState(false)
+  const [bankConnections, setBankConnections] = useState<BankConnection[]>([])
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [processing, setProcessing] = useState(false)
+  
+  // Form state for new bank
+  const [formData, setFormData] = useState({
+    bankName: '',
+    accountName: '',
+    accountNumber: '',
+    accountType: 'CHECKING',
+    currency: 'MXN',
+    initialBalance: '',
+    isPrimary: false,
+    notes: '',
+  })
+
+  // Fetch bank accounts from API
+  const fetchBankAccounts = useCallback(async () => {
+    if (!activeCompany) return
+    
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/banking/accounts?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        const accounts = (data.accounts || []).map((acc: any) => ({
+          id: acc.id,
+          bankName: acc.bankName || acc.institutionName || 'Banco',
+          accountName: acc.accountName,
+          accountNumber: acc.mask ? `**** ${acc.mask}` : acc.accountNumber || '',
+          accountType: acc.accountType || 'Cuenta',
+          status: (acc.status || 'ACTIVE').toLowerCase() === 'active' ? 'connected' : acc.status?.toLowerCase() || 'connected',
+          lastSync: acc.lastSyncedAt || acc.updatedAt || new Date().toISOString(),
+          balance: acc.balance || 0,
+          currency: acc.currency || 'MXN',
+          logo: '🏦',
+          isPrimary: acc.isPrimary || false,
+        }))
+        setBankConnections(accounts)
+      }
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error)
+      setMessage({ type: 'error', text: 'Error al cargar cuentas bancarias' })
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany])
+
+  // Create new bank account
+  const handleCreateBank = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!activeCompany) return
+    
+    setProcessing(true)
+    setMessage(null)
+    
+    try {
+      const response = await fetch('/api/banking/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bankName: formData.bankName,
+          accountName: formData.accountName,
+          accountNumber: formData.accountNumber,
+          accountType: formData.accountType,
+          currency: formData.currency,
+          balance: parseFloat(formData.initialBalance) || 0,
+          isPrimary: formData.isPrimary,
+          notes: formData.notes,
+          companyId: activeCompany.id,
+        }),
+      })
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: '✅ Cuenta bancaria agregada exitosamente' })
+        setShowBankModal(false)
+        setFormData({
+          bankName: '',
+          accountName: '',
+          accountNumber: '',
+          accountType: 'CHECKING',
+          currency: 'MXN',
+          initialBalance: '',
+          isPrimary: false,
+          notes: '',
+        })
+        await fetchBankAccounts()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al crear cuenta bancaria' })
+      }
+    } catch (error) {
+      console.error('Error creating bank:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Delete bank account
+  const handleDeleteBank = async (accountId: string) => {
+    if (!confirm('¿Estás seguro de desconectar esta cuenta bancaria?')) return
+    
+    setProcessing(true)
+    try {
+      const response = await fetch(`/api/banking/accounts?id=${accountId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Cuenta bancaria desconectada' })
+        await fetchBankAccounts()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al desconectar cuenta' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error de conexión' })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Select bank from quick options
+  const handleQuickBankSelect = (bankName: string) => {
+    setFormData(prev => ({ ...prev, bankName }))
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -66,47 +200,13 @@ export default function BankSyncPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const bankConnections: BankConnection[] = [
-    {
-      id: '1',
-      bankName: 'BBVA',
-      accountNumber: '**** 4567',
-      accountType: 'Cuenta de Cheques Empresarial',
-      status: 'connected',
-      lastSync: '2025-11-25T08:30:00',
-      balance: 44450,
-      currency: 'MXN',
-      logo: '🏦'
-    },
-    {
-      id: '2',
-      bankName: 'Santander',
-      accountNumber: '**** 8901',
-      accountType: 'Cuenta Negocios',
-      status: 'connected',
-      lastSync: '2025-11-25T07:15:00',
-      balance: 28500,
-      currency: 'MXN',
-      logo: '🏦'
-    },
-    {
-      id: '3',
-      bankName: 'Banorte',
-      accountNumber: '**** 2345',
-      accountType: 'Cuenta Empresas Plus',
-      status: 'error',
-      lastSync: '2025-11-20T14:20:00',
-      balance: 15200,
-      currency: 'MXN',
-      logo: '🏦'
+    if (activeCompany) {
+      fetchBankAccounts()
     }
-  ]
+  }, [activeCompany, fetchBankAccounts])
 
-  const recentTransactions: Transaction[] = [
+  // Sample transactions - these would come from API in real implementation
+  const sampleTransactions: Transaction[] = [
     {
       id: 'TXN-001',
       date: '2025-11-25',
@@ -127,52 +227,20 @@ export default function BankSyncPage() {
       status: 'categorized',
       confidence: 98
     },
-    {
-      id: 'TXN-003',
-      date: '2025-11-24',
-      description: 'COMISION BANCARIA',
-      amount: 150,
-      type: 'debit',
-      status: 'new',
-      confidence: 85
-    },
-    {
-      id: 'TXN-004',
-      date: '2025-11-23',
-      description: 'DEPOSITO - VENTA PRODUCTOS',
-      amount: 45000,
-      type: 'credit',
-      category: 'Ventas de Productos',
-      status: 'imported',
-      confidence: 92
-    },
-    {
-      id: 'TXN-005',
-      date: '2025-11-23',
-      description: 'NOMINA QUINCENAL',
-      amount: 14000,
-      type: 'debit',
-      category: 'Sueldos y Salarios',
-      status: 'imported',
-      confidence: 99
-    },
-    {
-      id: 'TXN-006',
-      date: '2025-11-22',
-      description: 'PAGO PROVEEDOR XYZ SA',
-      amount: 12500,
-      type: 'debit',
-      status: 'new',
-      confidence: 75
-    }
   ]
 
-  const handleSync = (bankId: string) => {
+  const handleSync = async (bankId: string) => {
     setSyncing(true)
-    setTimeout(() => {
+    try {
+      // Simulate sync - in real app would call API
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      setMessage({ type: 'success', text: '✅ Sincronización completada' })
+      await fetchBankAccounts()
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error al sincronizar' })
+    } finally {
       setSyncing(false)
-      alert('Sincronización completada')
-    }, 2000)
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -225,8 +293,10 @@ export default function BankSyncPage() {
 
   const totalConnected = bankConnections.filter(b => b.status === 'connected').length
   const totalBalance = bankConnections.reduce((sum, b) => sum + b.balance, 0)
-  const newTransactions = recentTransactions.filter(t => t.status === 'new').length
-  const categorizationRate = ((recentTransactions.filter(t => t.status !== 'new').length / recentTransactions.length) * 100).toFixed(0)
+  const newTransactions = sampleTransactions.filter(t => t.status === 'new').length
+  const categorizationRate = sampleTransactions.length > 0 
+    ? ((sampleTransactions.filter(t => t.status !== 'new').length / sampleTransactions.length) * 100).toFixed(0)
+    : '0'
 
   if (status === 'loading' || loading) {
     return (
@@ -252,14 +322,13 @@ export default function BankSyncPage() {
           <div className="flex gap-2">
             <Button 
               variant="outline"
-              onClick={() => {
+              onClick={async () => {
                 setSyncing(true)
-                setTimeout(() => {
-                  setSyncing(false)
-                  alert('✅ Sincronización completada\n\n📊 3 bancos sincronizados\n📥 12 transacciones nuevas importadas')
-                }, 2000)
+                await fetchBankAccounts()
+                setSyncing(false)
+                setMessage({ type: 'success', text: '✅ Sincronización completada' })
               }}
-              disabled={syncing}
+              disabled={syncing || processing}
             >
               {syncing ? (
                 <>
@@ -279,6 +348,30 @@ export default function BankSyncPage() {
             </Button>
           </div>
         </div>
+
+        {/* Message Alert */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center justify-between ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            <div className="flex items-center gap-2">
+              {message.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : (
+                <AlertCircle className="w-5 h-5" />
+              )}
+              <span>{message.text}</span>
+            </div>
+            <button 
+              onClick={() => setMessage(null)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -333,7 +426,7 @@ export default function BankSyncPage() {
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {bankConnections.map((bank) => (
-                <Card key={bank.id} className="hover:shadow-lg transition">
+                <Card key={bank.id} className={`hover:shadow-lg transition ${bank.isPrimary ? 'ring-2 ring-blue-500' : ''}`}>
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
@@ -341,12 +434,19 @@ export default function BankSyncPage() {
                         <div>
                           <h3 className="font-semibold text-gray-900">{bank.bankName}</h3>
                           <p className="text-sm text-gray-600">{bank.accountNumber}</p>
+                          {bank.isPrimary && (
+                            <Badge className="bg-blue-100 text-blue-700 text-xs mt-1">Principal</Badge>
+                          )}
                         </div>
                       </div>
                       {getStatusBadge(bank.status)}
                     </div>
 
                     <div className="space-y-2 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Cuenta:</span>
+                        <span className="font-medium">{bank.accountName}</span>
+                      </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Tipo:</span>
                         <span className="font-medium">{bank.accountType}</span>
@@ -364,43 +464,35 @@ export default function BankSyncPage() {
                     </div>
 
                     <div className="flex gap-2">
-                      {bank.status === 'connected' ? (
-                        <>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="flex-1"
-                            onClick={() => handleSync(bank.id)}
-                            disabled={syncing}
-                          >
-                            <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
-                            Sincronizar
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            <Settings className="w-4 h-4" />
-                          </Button>
-                        </>
-                      ) : bank.status === 'error' ? (
-                        <Button size="sm" variant="outline" className="flex-1 text-red-600">
-                          <Link className="w-4 h-4 mr-1" />
-                          Reconectar
-                        </Button>
-                      ) : (
-                        <Button size="sm" variant="outline" className="flex-1">
-                          <Link className="w-4 h-4 mr-1" />
-                          Conectar
-                        </Button>
-                      )}
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => handleSync(bank.id)}
+                        disabled={syncing}
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+                        Sincronizar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteBank(bank.id)}
+                        disabled={processing}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
 
               {/* Add Bank Card */}
-              <Card className="border-2 border-dashed border-gray-300 hover:border-blue-400 transition cursor-pointer">
+              <Card 
+                className="border-2 border-dashed border-gray-300 hover:border-blue-400 transition cursor-pointer"
+                onClick={() => setShowBankModal(true)}
+              >
                 <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[240px]">
                   <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                     <Plus className="w-8 h-8 text-blue-600" />
@@ -409,7 +501,7 @@ export default function BankSyncPage() {
                   <p className="text-sm text-gray-600 text-center mb-4">
                     Agrega una nueva cuenta bancaria para sincronizar automáticamente
                   </p>
-                  <Button>
+                  <Button onClick={() => setShowBankModal(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Agregar Banco
                   </Button>
@@ -577,7 +669,7 @@ export default function BankSyncPage() {
         {/* Connect Bank Modal */}
         {showBankModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-2xl w-full">
+            <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <CardHeader className="border-b">
                 <div className="flex items-center justify-between">
                   <CardTitle>Conectar Nuevo Banco</CardTitle>
@@ -585,31 +677,162 @@ export default function BankSyncPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <button className="p-4 border-2 rounded-lg hover:border-blue-500 transition">
-                      <div className="text-2xl mb-2">🏦</div>
-                      <div className="font-semibold">BBVA</div>
-                    </button>
-                    <button className="p-4 border-2 rounded-lg hover:border-red-500 transition">
-                      <div className="text-2xl mb-2">🏦</div>
-                      <div className="font-semibold">Santander</div>
-                    </button>
-                    <button className="p-4 border-2 rounded-lg hover:border-orange-500 transition">
-                      <div className="text-2xl mb-2">🏦</div>
-                      <div className="font-semibold">Banorte</div>
-                    </button>
-                    <button className="p-4 border-2 rounded-lg hover:border-blue-400 transition">
-                      <div className="text-2xl mb-2">🏦</div>
-                      <div className="font-semibold">Citibanamex</div>
-                    </button>
+                <form onSubmit={handleCreateBank} className="space-y-6">
+                  {/* Quick Bank Selection */}
+                  <div>
+                    <label className="block text-sm font-medium mb-3">Selecciona tu banco (opcional)</label>
+                    <div className="grid grid-cols-4 gap-3">
+                      {['BBVA', 'Santander', 'Banorte', 'Citibanamex', 'HSBC', 'Scotiabank', 'Inbursa', 'Otro'].map((bank) => (
+                        <button 
+                          key={bank}
+                          type="button"
+                          className={`p-3 border-2 rounded-lg transition text-center ${
+                            formData.bankName === bank 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'hover:border-gray-400'
+                          }`}
+                          onClick={() => handleQuickBankSelect(bank === 'Otro' ? '' : bank)}
+                        >
+                          <div className="text-xl mb-1">🏦</div>
+                          <div className="text-xs font-medium">{bank}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  <div className="border-t pt-4 space-y-4">
+                    <h3 className="font-medium text-gray-900">Detalles de la cuenta</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Nombre del Banco *</label>
+                        <Input 
+                          type="text" 
+                          placeholder="Ej: BBVA, Santander..."
+                          value={formData.bankName}
+                          onChange={(e) => setFormData(prev => ({ ...prev, bankName: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Nombre de la Cuenta *</label>
+                        <Input 
+                          type="text" 
+                          placeholder="Ej: Cuenta Principal Empresa"
+                          value={formData.accountName}
+                          onChange={(e) => setFormData(prev => ({ ...prev, accountName: e.target.value }))}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Número de Cuenta (últimos 4 dígitos)</label>
+                        <Input 
+                          type="text" 
+                          placeholder="Ej: 4567"
+                          maxLength={4}
+                          value={formData.accountNumber}
+                          onChange={(e) => setFormData(prev => ({ ...prev, accountNumber: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Tipo de Cuenta</label>
+                        <select 
+                          className="w-full px-3 py-2 border rounded-lg"
+                          value={formData.accountType}
+                          onChange={(e) => setFormData(prev => ({ ...prev, accountType: e.target.value }))}
+                        >
+                          <option value="CHECKING">Cuenta de Cheques</option>
+                          <option value="SAVINGS">Cuenta de Ahorro</option>
+                          <option value="CREDIT_CARD">Tarjeta de Crédito</option>
+                          <option value="INVESTMENT">Inversión</option>
+                          <option value="LOAN">Préstamo</option>
+                          <option value="OTHER">Otro</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Moneda</label>
+                        <select 
+                          className="w-full px-3 py-2 border rounded-lg"
+                          value={formData.currency}
+                          onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
+                        >
+                          <option value="MXN">MXN - Peso Mexicano</option>
+                          <option value="USD">USD - Dólar Americano</option>
+                          <option value="EUR">EUR - Euro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Saldo Inicial</label>
+                        <Input 
+                          type="number" 
+                          placeholder="0.00"
+                          step="0.01"
+                          value={formData.initialBalance}
+                          onChange={(e) => setFormData(prev => ({ ...prev, initialBalance: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Notas (opcional)</label>
+                      <Input 
+                        type="text" 
+                        placeholder="Notas adicionales sobre esta cuenta..."
+                        value={formData.notes}
+                        onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="isPrimary"
+                        checked={formData.isPrimary}
+                        onChange={(e) => setFormData(prev => ({ ...prev, isPrimary: e.target.checked }))}
+                        className="w-4 h-4 text-blue-600 rounded"
+                      />
+                      <label htmlFor="isPrimary" className="text-sm text-gray-700">
+                        Establecer como cuenta principal
+                      </label>
+                    </div>
+                  </div>
+
+                  {message?.type === 'error' && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                      {message.text}
+                    </div>
+                  )}
+
                   <div className="pt-4 border-t">
-                    <p className="text-sm text-gray-600 mb-2">ℹ️ Selecciona tu banco para iniciar el proceso de conexión segura</p>
-                    <p className="text-xs text-gray-500">🔒 Conexión encriptada SSL 256-bit | No almacenamos credenciales</p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      🔒 Conexión segura • Los datos de la cuenta se guardarán de forma encriptada
+                    </p>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="flex-1" disabled={processing}>
+                        {processing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Agregando...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Agregar Cuenta Bancaria
+                          </>
+                        )}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => setShowBankModal(false)}>
+                        Cancelar
+                      </Button>
+                    </div>
                   </div>
-                  <Button variant="outline" className="w-full" onClick={() => setShowBankModal(false)}>Cancelar</Button>
-                </div>
+                </form>
               </CardContent>
             </Card>
           </div>

@@ -44,10 +44,10 @@ export default function AIAssistantPage() {
     setTimeout(() => setLoading(false), 800)
   }, [])
 
-  // Función para abrir el chat flotante
-  const openFloatingChat = () => {
-    // Disparar evento para abrir el FloatingAssistant
-    const event = new CustomEvent('openAIChat')
+  // Función para abrir el chat flotante con una pregunta específica
+  const openFloatingChat = (question?: string) => {
+    // Disparar evento para abrir el FloatingAssistant con la pregunta
+    const event = new CustomEvent('openAIChat', { detail: { question } })
     window.dispatchEvent(event)
   }
 
@@ -215,7 +215,7 @@ export default function AIAssistantPage() {
                 </p>
                 <div className="flex gap-3">
                   <Button 
-                    onClick={openFloatingChat}
+                    onClick={() => openFloatingChat()}
                     className="bg-white text-blue-600 hover:bg-blue-50"
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
@@ -309,7 +309,8 @@ export default function AIAssistantPage() {
                     {capability.examples.map((example, exIdx) => (
                       <button
                         key={exIdx}
-                        className="block w-full text-left text-xs p-2 rounded bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors"
+                        onClick={() => openFloatingChat(example)}
+                        className="block w-full text-left text-xs p-2 rounded bg-gray-50 hover:bg-blue-100 hover:text-blue-700 text-gray-700 transition-colors cursor-pointer"
                       >
                         • {example}
                       </button>

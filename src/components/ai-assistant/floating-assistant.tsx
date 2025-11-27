@@ -56,19 +56,40 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
     scrollToBottom()
   }, [messages])
 
+  // Estado para pregunta pendiente
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
+
   useEffect(() => {
     // Escuchar evento para abrir el chat
-    const handleOpenChat = () => {
+    const handleOpenChat = (event: CustomEvent) => {
       setIsOpen(true)
       setIsMinimized(false)
+      
+      // Si viene con una pregunta, guardarla para enviarla
+      if (event.detail?.question) {
+        setPendingQuestion(event.detail.question)
+      }
     }
     
-    window.addEventListener('openAIChat', handleOpenChat)
+    window.addEventListener('openAIChat', handleOpenChat as EventListener)
     
     return () => {
-      window.removeEventListener('openAIChat', handleOpenChat)
+      window.removeEventListener('openAIChat', handleOpenChat as EventListener)
     }
   }, [])
+
+  // Enviar pregunta pendiente cuando el chat esté listo
+  useEffect(() => {
+    if (pendingQuestion && isOpen && activeCompany && messages.length > 0) {
+      setInputValue(pendingQuestion)
+      setPendingQuestion(null)
+      // Pequeño delay para que el usuario vea la pregunta antes de enviarla
+      setTimeout(() => {
+        const submitButton = document.querySelector('[data-ai-submit]') as HTMLButtonElement
+        if (submitButton) submitButton.click()
+      }, 300)
+    }
+  }, [pendingQuestion, isOpen, activeCompany, messages.length])
 
   useEffect(() => {
     // Mensaje de bienvenida cuando se abre por primera vez o cambia de empresa
@@ -421,6 +442,7 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
                   />
                 </div>
                 <Button
+                  data-ai-submit
                   onClick={sendMessage}
                   disabled={!inputValue.trim() || isLoading}
                   size="sm"

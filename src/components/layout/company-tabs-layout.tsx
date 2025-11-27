@@ -414,8 +414,7 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
       </main>
 
       {/* AI Assistant flotante disponible en todas las páginas de company */}
-      {/* Temporalmente desactivado para debug */}
-      {/* <FloatingAssistant /> */}
+      <FloatingAssistant />
       
       {/* Actualizaciones en tiempo real */}
       {/* Temporalmente desactivado para evitar rebuilds constantes */}

@@ -1,29 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { 
-  Receipt,
-  Plus,
-  Search,
-  Filter,
-  Download,
-  Calendar,
-  ArrowUpRight,
-  ArrowDownRight,
-  Eye,
-  Edit,
-  Trash2,
-  Upload,
-  CheckSquare
+  Receipt, Plus, Search, Download, Calendar, ArrowUpRight, ArrowDownRight,
+  Eye, Edit, Trash2, Upload, CheckSquare, RefreshCw, AlertCircle, CheckCircle,
+  Filter, FileText
 } from 'lucide-react'
 
 interface Transaction {
@@ -36,7 +25,16 @@ interface Transaction {
   amount: number
   reference?: string
   status: 'pending' | 'completed' | 'cancelled'
+  source: string
   attachments: number
+}
+
+interface Stats {
+  totalIncome: number
+  totalExpenses: number
+  pendingCount: number
+  completedCount: number
+  totalCount: number
 }
 
 export default function TransactionsPage() {
@@ -44,10 +42,64 @@ export default function TransactionsPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [stats, setStats] = useState<Stats>({ totalIncome: 0, totalExpenses: 0, pendingCount: 0, completedCount: 0, totalCount: 0 })
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
   const [dateRange, setDateRange] = useState('month')
-  const [showNewModal, setShowNewModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  const fetchTransactions = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const params = new URLSearchParams()
+      if (activeCompany?.id) params.append('companyId', activeCompany.id)
+      if (filterType !== 'all') params.append('type', filterType)
+      if (searchTerm) params.append('search', searchTerm)
+
+      // Calcular fechas según rango
+      const now = new Date()
+      let startDate: Date
+      switch (dateRange) {
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          break
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+          break
+        case 'quarter':
+          startDate = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
+          break
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1)
+          break
+        default:
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      }
+
+      params.append('startDate', startDate.toISOString())
+      params.append('endDate', now.toISOString())
+
+      const response = await fetch(`/api/accounting/transactions?${params}`)
+
+      if (!response.ok) {
+        throw new Error('Error al cargar transacciones')
+      }
+
+      const data = await response.json()
+      setTransactions(data.transactions || [])
+      setStats(data.stats || { totalIncome: 0, totalExpenses: 0, pendingCount: 0, completedCount: 0, totalCount: 0 })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido')
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id, filterType, searchTerm, dateRange])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -56,157 +108,62 @@ export default function TransactionsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const transactions: Transaction[] = [
-    {
-      id: 'TXN-001',
-      date: '2025-11-24',
-      type: 'income',
-      category: 'Ventas de Servicios',
-      description: 'Pago de cliente - Factura #12345',
-      account: 'Banco BBVA - 4567',
-      amount: 15000,
-      reference: 'FAC-12345',
-      status: 'completed',
-      attachments: 2
-    },
-    {
-      id: 'TXN-002',
-      date: '2025-11-23',
-      type: 'expense',
-      category: 'Renta',
-      description: 'Pago de renta mensual - Oficina Centro',
-      account: 'Banco BBVA - 4567',
-      amount: 8000,
-      reference: 'RENT-NOV',
-      status: 'completed',
-      attachments: 1
-    },
-    {
-      id: 'TXN-003',
-      date: '2025-11-23',
-      type: 'expense',
-      category: 'Sueldos y Salarios',
-      description: 'Nómina quincenal - 2da Nov',
-      account: 'Banco BBVA - 4567',
-      amount: 14000,
-      reference: 'NOM-NOV-02',
-      status: 'completed',
-      attachments: 0
-    },
-    {
-      id: 'TXN-004',
-      date: '2025-11-22',
-      type: 'income',
-      category: 'Ventas de Productos',
-      description: 'Venta de productos - Cliente ABC Corp',
-      account: 'Banco BBVA - 4567',
-      amount: 45000,
-      reference: 'FAC-12344',
-      status: 'completed',
-      attachments: 3
-    },
-    {
-      id: 'TXN-005',
-      date: '2025-11-21',
-      type: 'expense',
-      category: 'Servicios Públicos',
-      description: 'Pago de electricidad - Oficina',
-      account: 'Banco BBVA - 4567',
-      amount: 1200,
-      reference: 'CFE-NOV',
-      status: 'completed',
-      attachments: 1
-    },
-    {
-      id: 'TXN-006',
-      date: '2025-11-20',
-      type: 'expense',
-      category: 'Marketing',
-      description: 'Campaña Facebook Ads - Noviembre',
-      account: 'Tarjeta Crédito - 8901',
-      amount: 5000,
-      reference: 'MKT-NOV',
-      status: 'pending',
-      attachments: 0
-    },
-    {
-      id: 'TXN-007',
-      date: '2025-11-19',
-      type: 'transfer',
-      category: 'Transferencia Interna',
-      description: 'Transferencia entre cuentas',
-      account: 'Banco BBVA → Santander',
-      amount: 20000,
-      reference: 'TRANS-001',
-      status: 'completed',
-      attachments: 0
-    },
-    {
-      id: 'TXN-008',
-      date: '2025-11-18',
-      type: 'income',
-      category: 'Ventas de Servicios',
-      description: 'Contrato anual - Empresa XYZ',
-      account: 'Banco BBVA - 4567',
-      amount: 120000,
-      reference: 'CONT-2025-001',
-      status: 'completed',
-      attachments: 5
-    },
-    {
-      id: 'TXN-009',
-      date: '2025-11-17',
-      type: 'expense',
-      category: 'Suministros de Oficina',
-      description: 'Papelería y materiales',
-      account: 'Tarjeta Crédito - 8901',
-      amount: 850,
-      reference: 'SUP-NOV',
-      status: 'completed',
-      attachments: 1
-    },
-    {
-      id: 'TXN-010',
-      date: '2025-11-16',
-      type: 'expense',
-      category: 'Internet y Telefonía',
-      description: 'Pago mensual Telmex - Internet 500MB',
-      account: 'Banco BBVA - 4567',
-      amount: 899,
-      reference: 'TEL-NOV',
-      status: 'completed',
-      attachments: 1
+    if (status === 'authenticated') {
+      fetchTransactions()
     }
-  ]
+  }, [status, fetchTransactions])
 
-  const totalIncome = transactions
-    .filter(t => t.type === 'income' && t.status === 'completed')
-    .reduce((sum, t) => sum + t.amount, 0)
+  const handleImport = async (file: File) => {
+    try {
+      const text = await file.text()
+      const lines = text.split('\n').slice(1) // Skip header
+      const transactions = lines
+        .filter(line => line.trim())
+        .map(line => {
+          const [date, description, amount, category] = line.split(',')
+          return {
+            date: date?.trim(),
+            description: description?.trim()?.replace(/"/g, ''),
+            amount: parseFloat(amount?.trim() || '0'),
+            category: category?.trim()?.replace(/"/g, '')
+          }
+        })
 
-  const totalExpense = transactions
-    .filter(t => t.type === 'expense' && t.status === 'completed')
-    .reduce((sum, t) => sum + t.amount, 0)
+      const response = await fetch('/api/accounting/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'import',
+          transactions,
+          companyId: activeCompany?.id
+        })
+      })
 
-  const netCashFlow = totalIncome - totalExpense
+      if (!response.ok) throw new Error('Error al importar')
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'income': return <ArrowUpRight className="w-4 h-4 text-green-600" />
-      case 'expense': return <ArrowDownRight className="w-4 h-4 text-red-600" />
-      default: return <ArrowUpRight className="w-4 h-4 text-blue-600" />
+      const data = await response.json()
+      setSuccess(`${data.count} transacciones importadas exitosamente`)
+      setShowImportModal(false)
+      fetchTransactions()
+
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al importar')
     }
   }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'income': return 'text-green-600'
-      case 'expense': return 'text-red-600'
-      default: return 'text-blue-600'
-    }
+  const handleExport = () => {
+    const csv = 'Fecha,Tipo,Categoría,Descripción,Cuenta,Monto,Referencia,Estado\n' + 
+      transactions.map(t => 
+        `${new Date(t.date).toLocaleDateString()},${t.type},"${t.category}","${t.description}","${t.account}",${t.amount},"${t.reference || ''}",${t.status}`
+      ).join('\n')
+    
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `transacciones-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
   }
 
   const getStatusBadge = (status: string) => {
@@ -218,44 +175,10 @@ export default function TransactionsPage() {
     }
   }
 
-  const exportCSV = () => {
-    const headers = ['Date', 'Type', 'Description', 'Debit', 'Credit', 'Balance']
-    let balance = 0
-    const rows = transactions.map(txn => {
-      const debit = txn.type === 'expense' || txn.type === 'transfer' ? txn.amount : 0
-      const credit = txn.type === 'income' ? txn.amount : 0
-      balance += credit - debit
-      return [
-        txn.date,
-        txn.type,
-        txn.description,
-        debit,
-        credit,
-        balance
-      ]
-    })
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `transactions_${new Date().toISOString()}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const handleImport = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.csv'
-    input.onchange = (e: any) => {
-      const file = e.target.files[0]
-      if (file) {
-        alert(`✅ Archivo "${file.name}" cargado exitosamente`)
-      }
-    }
-    input.click()
-  }
+  const filteredTransactions = transactions.filter(t => {
+    if (filterStatus !== 'all' && t.status !== filterStatus) return false
+    return true
+  })
 
   if (status === 'loading' || loading) {
     return (
@@ -267,145 +190,98 @@ export default function TransactionsPage() {
     )
   }
 
-  // Botones de acción de Transacciones
-  const transactionActions = [
-    {
-      label: 'Registrar nueva',
-      icon: Plus,
-      onClick: () => setShowNewModal(true),
-      variant: 'primary' as const,
-    },
-    {
-      label: 'Importar transacciones',
-      icon: Upload,
-      onClick: handleImport,
-      variant: 'outline' as const,
-    },
-    {
-      label: 'Clasificar automático',
-      icon: CheckSquare,
-      onClick: () => {
-        router.push('/company/accounting/ai-categorization')
-      },
-      variant: 'default' as const,
-    },
-    {
-      label: 'Buscar/Filtrar',
-      icon: Search,
-      onClick: () => {
-        const searchInput = document.querySelector('input[placeholder*="Buscar"]') as HTMLInputElement
-        searchInput?.focus()
-      },
-      variant: 'outline' as const,
-    },
-    {
-      label: 'Editar',
-      icon: Edit,
-      onClick: () => {
-        alert('Selecciona una transacción de la tabla para editar')
-      },
-      variant: 'default' as const,
-    },
-    {
-      label: 'Eliminar',
-      icon: Trash2,
-      onClick: () => {
-        alert('Selecciona una transacción de la tabla para eliminar')
-      },
-      variant: 'danger' as const,
-    },
-  ]
-
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
+        {/* Alerts */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <span className="text-red-700">{error}</span>
+            <button onClick={() => setError(null)} className="ml-auto text-red-600">×</button>
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <span className="text-green-700">{success}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
-            <p className="text-gray-600 mt-1">
-              Historial completo de movimientos financieros
-            </p>
+            <p className="text-gray-600 mt-1">Importar y clasificar transacciones</p>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <Card className="border-purple-200 bg-purple-50/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-purple-900 flex items-center">
-              <Receipt className="w-4 h-4 mr-2" />
-              Acciones de Transacciones
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ActionButtonsGroup buttons={transactionActions} />
-          </CardContent>
-        </Card>
-
-        {/* Original Header Section (keeping for compatibility) */}
-        <div className="flex items-center justify-between">
-          <div></div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" onClick={fetchTransactions}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Actualizar
             </Button>
-            <Button variant="outline" onClick={handleImport}>
+            <Button variant="outline" onClick={() => setShowImportModal(true)}>
               <Upload className="w-4 h-4 mr-2" />
               Importar
             </Button>
-            <Button onClick={() => setShowNewModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Transacción
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <ArrowUpRight className="w-8 h-8 text-green-600" />
-                <span className="text-xs bg-green-200 text-green-700 px-2 py-1 rounded-full font-medium">
-                  Ingresos
-                </span>
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-green-100">
+                  <ArrowUpRight className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">${stats.totalIncome.toLocaleString()}</div>
+                  <div className="text-sm text-gray-600">Ingresos</div>
+                </div>
               </div>
-              <div className="text-3xl font-bold text-green-900">
-                ${totalIncome.toLocaleString()}
-              </div>
-              <div className="text-sm text-green-700">Total del Período</div>
             </CardContent>
           </Card>
-
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <ArrowDownRight className="w-8 h-8 text-red-600" />
-                <span className="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full font-medium">
-                  Gastos
-                </span>
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-red-100">
+                  <ArrowDownRight className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">${stats.totalExpenses.toLocaleString()}</div>
+                  <div className="text-sm text-gray-600">Gastos</div>
+                </div>
               </div>
-              <div className="text-3xl font-bold text-red-900">
-                ${totalExpense.toLocaleString()}
-              </div>
-              <div className="text-sm text-red-700">Total del Período</div>
             </CardContent>
           </Card>
-
-          <Card className={`bg-gradient-to-br ${netCashFlow >= 0 ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-orange-50 to-orange-100 border-orange-200'}`}>
+          <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Receipt className="w-8 h-8 text-blue-600" />
-                <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full font-medium">
-                  Neto
-                </span>
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-yellow-100">
+                  <Calendar className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.pendingCount}</div>
+                  <div className="text-sm text-gray-600">Pendientes</div>
+                </div>
               </div>
-              <div className={`text-3xl font-bold ${netCashFlow >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
-                ${Math.abs(netCashFlow).toLocaleString()}
-              </div>
-              <div className={`text-sm ${netCashFlow >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
-                Flujo Neto {netCashFlow >= 0 ? 'Positivo' : 'Negativo'}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-blue-100">
+                  <Receipt className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.totalCount}</div>
+                  <div className="text-sm text-gray-600">Total</div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -414,12 +290,12 @@ export default function TransactionsPage() {
         {/* Filters */}
         <Card>
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row items-center gap-4">
-              <div className="flex-1 relative w-full">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex-1 min-w-64 relative">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar por descripción, referencia o cuenta..."
+                  placeholder="Buscar transacciones..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -437,19 +313,24 @@ export default function TransactionsPage() {
               </select>
               <select 
                 className="px-4 py-2 border rounded-lg"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="all">Todos los Estados</option>
+                <option value="completed">Completadas</option>
+                <option value="pending">Pendientes</option>
+                <option value="cancelled">Canceladas</option>
+              </select>
+              <select 
+                className="px-4 py-2 border rounded-lg"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
-                <option value="week">Esta Semana</option>
-                <option value="month">Este Mes</option>
-                <option value="quarter">Este Trimestre</option>
-                <option value="year">Este Año</option>
-                <option value="custom">Personalizado</option>
+                <option value="week">Última semana</option>
+                <option value="month">Este mes</option>
+                <option value="quarter">Este trimestre</option>
+                <option value="year">Este año</option>
               </select>
-              <Button variant="outline">
-                <Filter className="w-4 h-4 mr-2" />
-                Más Filtros
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -457,136 +338,113 @@ export default function TransactionsPage() {
         {/* Transactions Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Historial de Transacciones</CardTitle>
+            <CardTitle>Lista de Transacciones ({filteredTransactions.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Fecha</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Tipo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Descripción</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Categoría</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Cuenta</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Monto</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Estado</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Adjuntos</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Acciones</th>
+                    <th className="text-left p-4 font-medium text-gray-600">Fecha</th>
+                    <th className="text-left p-4 font-medium text-gray-600">Tipo</th>
+                    <th className="text-left p-4 font-medium text-gray-600">Descripción</th>
+                    <th className="text-left p-4 font-medium text-gray-600">Categoría</th>
+                    <th className="text-left p-4 font-medium text-gray-600">Cuenta</th>
+                    <th className="text-right p-4 font-medium text-gray-600">Monto</th>
+                    <th className="text-center p-4 font-medium text-gray-600">Estado</th>
+                    <th className="text-center p-4 font-medium text-gray-600">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {transactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          {new Date(transaction.date).toLocaleDateString('es-MX', { 
-                            day: '2-digit', 
-                            month: 'short' 
-                          })}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {getTypeIcon(transaction.type)}
-                          <span className={`text-sm font-medium ${getTypeColor(transaction.type)}`}>
-                            {transaction.type === 'income' ? 'Ingreso' : 
-                             transaction.type === 'expense' ? 'Gasto' : 'Transferencia'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm text-gray-900">{transaction.description}</div>
-                        {transaction.reference && (
-                          <div className="text-xs text-gray-500">Ref: {transaction.reference}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {transaction.category}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {transaction.account}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`text-sm font-semibold ${getTypeColor(transaction.type)}`}>
-                          ${transaction.amount.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge className={getStatusBadge(transaction.status)}>
-                          {transaction.status === 'completed' ? 'Completada' :
-                           transaction.status === 'pending' ? 'Pendiente' : 'Cancelada'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {transaction.attachments > 0 && (
-                          <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                            📎 {transaction.attachments}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button className="p-1 text-blue-600 hover:bg-blue-50 rounded">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="p-1 text-gray-600 hover:bg-gray-100 rounded">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button className="p-1 text-red-600 hover:bg-red-50 rounded">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                <tbody>
+                  {filteredTransactions.length > 0 ? (
+                    filteredTransactions.map((t) => (
+                      <tr key={t.id} className="border-b hover:bg-gray-50">
+                        <td className="p-4 text-gray-900">
+                          {new Date(t.date).toLocaleDateString()}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            {t.type === 'income' ? (
+                              <ArrowUpRight className="w-4 h-4 text-green-600" />
+                            ) : t.type === 'expense' ? (
+                              <ArrowDownRight className="w-4 h-4 text-red-600" />
+                            ) : (
+                              <FileText className="w-4 h-4 text-blue-600" />
+                            )}
+                            <span className={t.type === 'income' ? 'text-green-700' : t.type === 'expense' ? 'text-red-700' : 'text-blue-700'}>
+                              {t.type === 'income' ? 'Ingreso' : t.type === 'expense' ? 'Gasto' : 'Transferencia'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="text-gray-900">{t.description}</div>
+                          {t.reference && <div className="text-sm text-gray-500">Ref: {t.reference}</div>}
+                        </td>
+                        <td className="p-4 text-gray-600">{t.category}</td>
+                        <td className="p-4 text-gray-600">{t.account}</td>
+                        <td className={`p-4 text-right font-semibold ${t.type === 'income' ? 'text-green-600' : t.type === 'expense' ? 'text-red-600' : 'text-gray-900'}`}>
+                          {t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''}${t.amount.toLocaleString()}
+                        </td>
+                        <td className="p-4 text-center">
+                          <Badge className={getStatusBadge(t.status)}>
+                            {t.status === 'completed' ? 'Completada' : t.status === 'pending' ? 'Pendiente' : 'Cancelada'}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex justify-center gap-2">
+                            <button className="p-1 text-blue-600 hover:bg-blue-50 rounded">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button className="p-1 text-gray-600 hover:bg-gray-100 rounded">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={8} className="p-8 text-center text-gray-500">
+                        No se encontraron transacciones
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
           </CardContent>
         </Card>
 
-        {/* New Transaction Modal */}
-        {showNewModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-2xl w-full">
-              <CardHeader className="border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle>Nueva Transacción</CardTitle>
-                  <Button variant="outline" onClick={() => setShowNewModal(false)}>Cerrar</Button>
-                </div>
+        {/* Import Modal */}
+        {showImportModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowImportModal(false)}>
+            <Card className="w-full max-w-lg mx-4" onClick={(e) => e.stopPropagation()}>
+              <CardHeader>
+                <CardTitle>Importar Transacciones</CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Fecha</label>
-                    <Input type="date" defaultValue={new Date().toISOString().split('T')[0]} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Tipo</label>
-                    <select className="w-full px-3 py-2 border rounded-lg">
-                      <option value="income">Ingreso</option>
-                      <option value="expense">Gasto</option>
-                      <option value="transfer">Transferencia</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Descripción</label>
-                    <Input placeholder="Descripción de la transacción" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Monto</label>
-                    <Input type="number" placeholder="0.00" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Categoría</label>
-                    <Input placeholder="Categoría" />
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button className="flex-1" onClick={() => { alert('✅ Transacción creada'); setShowNewModal(false); }}>Crear Transacción</Button>
-                    <Button variant="outline" onClick={() => setShowNewModal(false)}>Cancelar</Button>
-                  </div>
+              <CardContent className="space-y-4">
+                <p className="text-gray-600">
+                  Sube un archivo CSV con el formato: Fecha, Descripción, Monto, Categoría
+                </p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">Arrastra un archivo CSV o haz clic para seleccionar</p>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    id="file-upload"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImport(file)
+                    }}
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-block">
+                    Seleccionar Archivo
+                  </label>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setShowImportModal(false)}>Cancelar</Button>
                 </div>
               </CardContent>
             </Card>

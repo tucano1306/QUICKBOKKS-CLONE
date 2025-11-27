@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import DashboardLayout from '@/components/layout/dashboard-layout'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { 
   Search, 
   Download, 
@@ -215,16 +215,16 @@ export default function PaymentsPage() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <DashboardLayout>
+      <CompanyTabsLayout>
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </DashboardLayout>
+      </CompanyTabsLayout>
     )
   }
 
   return (
-    <DashboardLayout>
+    <CompanyTabsLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -408,6 +408,6 @@ export default function PaymentsPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </CompanyTabsLayout>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -27,7 +27,8 @@ import {
   Link as LinkIcon,
   CheckSquare,
   Activity,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react'
 
 interface BankAccount {
@@ -57,10 +58,172 @@ export default function ReconciliationPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
-  const [selectedAccount, setSelectedAccount] = useState<string>('1')
+  const [selectedAccount, setSelectedAccount] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
   const [showOnlyUnmatched, setShowOnlyUnmatched] = useState(false)
   const [showNewModal, setShowNewModal] = useState(false)
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
+  const [reconciliationItems, setReconciliationItems] = useState<ReconciliationItem[]>([])
+  const [processing, setProcessing] = useState(false)
+  const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Fetch data from API
+  const fetchReconciliationData = useCallback(async () => {
+    if (!activeCompany) return
+    
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({ companyId: activeCompany.id })
+      if (selectedAccount) {
+        params.append('bankAccountId', selectedAccount)
+      }
+      
+      const response = await fetch(`/api/accounting/reconciliation?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setBankAccounts(data.bankAccounts || [])
+        setReconciliationItems(data.reconciliationItems || [])
+        
+        // Select first account if none selected
+        if (!selectedAccount && data.bankAccounts?.length > 0) {
+          setSelectedAccount(data.bankAccounts[0].id)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching reconciliation data:', error)
+      setMessage({ type: 'error', text: 'Error al cargar datos de conciliación' })
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany, selectedAccount])
+
+  // Reconcile selected transactions
+  const handleReconcile = async () => {
+    if (!activeCompany || !selectedAccount) return
+    
+    setProcessing(true)
+    setMessage(null)
+    
+    try {
+      const response = await fetch('/api/accounting/reconciliation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'match',
+          bankAccountId: selectedAccount,
+          transactionIds: selectedItems.length > 0 ? selectedItems : 
+            reconciliationItems.filter(i => i.status === 'unmatched').map(i => i.id)
+        })
+      })
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Transacciones conciliadas exitosamente' })
+        setSelectedItems([])
+        await fetchReconciliationData()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al conciliar' })
+      }
+    } catch (error) {
+      console.error('Error reconciling:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Auto-match transactions
+  const handleAutoMatch = async () => {
+    if (!activeCompany || !selectedAccount) return
+    
+    setProcessing(true)
+    setMessage(null)
+    
+    try {
+      const response = await fetch('/api/accounting/reconciliation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'auto-match',
+          bankAccountId: selectedAccount
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setMessage({ type: 'success', text: data.message || 'Auto-conciliación completada' })
+        await fetchReconciliationData()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error en auto-conciliación' })
+      }
+    } catch (error) {
+      console.error('Error auto-matching:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Complete reconciliation
+  const handleComplete = async () => {
+    if (!activeCompany || !selectedAccount) return
+    
+    const currentAccount = bankAccounts.find(a => a.id === selectedAccount)
+    if (!currentAccount) return
+    
+    const unmatchedCount = reconciliationItems.filter(i => i.status === 'unmatched').length
+    if (unmatchedCount > 0) {
+      setMessage({ type: 'error', text: `Hay ${unmatchedCount} transacciones sin conciliar. Concilia todas las transacciones primero.` })
+      return
+    }
+    
+    setProcessing(true)
+    setMessage(null)
+    
+    try {
+      const response = await fetch('/api/accounting/reconciliation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'complete',
+          bankAccountId: selectedAccount,
+          closingBalance: currentAccount.bankBalance
+        })
+      })
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: '✅ Conciliación completada exitosamente' })
+        await fetchReconciliationData()
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al completar' })
+      }
+    } catch (error) {
+      console.error('Error completing reconciliation:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Toggle item selection
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    )
+  }
+
+  // Select all unmatched items
+  const selectAllUnmatched = () => {
+    const unmatchedIds = reconciliationItems
+      .filter(i => i.status === 'unmatched')
+      .map(i => i.id)
+    setSelectedItems(unmatchedIds)
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -69,152 +232,20 @@ export default function ReconciliationPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [selectedAccount])
-
-  const bankAccounts: BankAccount[] = [
-    {
-      id: '1',
-      name: 'BBVA Empresarial',
-      accountNumber: '**** 4567',
-      bankBalance: 44450,
-      bookBalance: 45200,
-      lastReconciled: '2025-10-31',
-      status: 'pending'
-    },
-    {
-      id: '2',
-      name: 'Santander Negocios',
-      accountNumber: '**** 8901',
-      bankBalance: 28500,
-      bookBalance: 28500,
-      lastReconciled: '2025-11-20',
-      status: 'reconciled'
-    },
-    {
-      id: '3',
-      name: 'Banorte Empresas',
-      accountNumber: '**** 2345',
-      bankBalance: 15200,
-      bookBalance: 14800,
-      lastReconciled: '2025-09-30',
-      status: 'unreconciled'
+    if (activeCompany) {
+      fetchReconciliationData()
     }
-  ]
+  }, [activeCompany, fetchReconciliationData])
 
-  const reconciliationItems: ReconciliationItem[] = [
-    {
-      id: 'REC-001',
-      date: '2025-11-24',
-      description: 'Depósito - Pago Cliente ABC Corp',
-      type: 'credit',
-      amount: 15000,
-      status: 'matched',
-      bankStatement: true,
-      bookRecord: true,
-      reference: 'DEP-12345'
-    },
-    {
-      id: 'REC-002',
-      date: '2025-11-23',
-      description: 'Transferencia - Pago Renta Oficina',
-      type: 'debit',
-      amount: 8000,
-      status: 'matched',
-      bankStatement: true,
-      bookRecord: true,
-      reference: 'TRF-8901'
-    },
-    {
-      id: 'REC-003',
-      date: '2025-11-22',
-      description: 'Cargo - Comisión Bancaria',
-      type: 'debit',
-      amount: 150,
-      status: 'unmatched',
-      bankStatement: true,
-      bookRecord: false,
-      reference: 'COM-NOV'
-    },
-    {
-      id: 'REC-004',
-      date: '2025-11-21',
-      description: 'Depósito - Venta Productos',
-      type: 'credit',
-      amount: 45000,
-      status: 'matched',
-      bankStatement: true,
-      bookRecord: true,
-      reference: 'DEP-12346'
-    },
-    {
-      id: 'REC-005',
-      date: '2025-11-20',
-      description: 'Cheque #12345 - Proveedor XYZ',
-      type: 'debit',
-      amount: 12500,
-      status: 'pending',
-      bankStatement: false,
-      bookRecord: true,
-      reference: 'CHQ-12345'
-    },
-    {
-      id: 'REC-006',
-      date: '2025-11-19',
-      description: 'Transferencia - Nómina Quincenal',
-      type: 'debit',
-      amount: 14000,
-      status: 'matched',
-      bankStatement: true,
-      bookRecord: true,
-      reference: 'NOM-NOV-02'
-    },
-    {
-      id: 'REC-007',
-      date: '2025-11-18',
-      description: 'Depósito - Anticipo Cliente',
-      type: 'credit',
-      amount: 8000,
-      status: 'unmatched',
-      bankStatement: true,
-      bookRecord: false
-    },
-    {
-      id: 'REC-008',
-      date: '2025-11-17',
-      description: 'Cargo Automático - Servicios Cloud',
-      type: 'debit',
-      amount: 1200,
-      status: 'matched',
-      bankStatement: true,
-      bookRecord: true,
-      reference: 'AWS-NOV'
-    },
-    {
-      id: 'REC-009',
-      date: '2025-11-16',
-      description: 'Ajuste por Redondeo',
-      type: 'credit',
-      amount: 0.50,
-      status: 'unmatched',
-      bankStatement: true,
-      bookRecord: false
-    },
-    {
-      id: 'REC-010',
-      date: '2025-11-15',
-      description: 'Pago Factura #9876',
-      type: 'debit',
-      amount: 3500,
-      status: 'matched',
-      bankStatement: true,
-      bookRecord: true,
-      reference: 'FAC-9876'
-    }
-  ]
-
-  const currentAccount = bankAccounts.find(acc => acc.id === selectedAccount)!
+  const currentAccount = bankAccounts.find(acc => acc.id === selectedAccount) || {
+    id: '',
+    name: 'Sin cuenta seleccionada',
+    accountNumber: '',
+    bankBalance: 0,
+    bookBalance: 0,
+    lastReconciled: new Date().toISOString(),
+    status: 'unreconciled' as const
+  }
   const difference = currentAccount.bookBalance - currentAccount.bankBalance
 
   const matchedCount = reconciliationItems.filter(i => i.status === 'matched').length
@@ -228,7 +259,7 @@ export default function ReconciliationPage() {
   })
 
   const exportReport = () => {
-    const currentAccount = bankAccounts.find(acc => acc.id === selectedAccount)!
+    if (!currentAccount) return
     const headers = ['Fecha', 'Descripción', 'Tipo', 'Monto', 'Estado Banco', 'Estado Libros', 'Estado']
     const rows = reconciliationItems.map(item => [
       item.date,
@@ -299,46 +330,39 @@ export default function ReconciliationPage() {
     {
       label: 'Sincronizar cuentas',
       icon: RefreshCw,
-      onClick: () => {
-        router.push('/company/accounting/bank-sync?action=sync')
+      onClick: async () => {
+        await fetchReconciliationData()
       },
       variant: 'outline' as const,
+      disabled: processing,
     },
     {
-      label: 'Conciliar',
-      icon: CheckCircle2,
-      onClick: () => {
-        const account = bankAccounts.find(a => a.id === selectedAccount)
-        if (account) {
-          alert(`🔄 Iniciando conciliación para:\n${account.name} ${account.accountNumber}\n\nSaldo Banco: $${account.bankBalance.toLocaleString()}\nSaldo Libro: $${account.bookBalance.toLocaleString()}`)
-        }
-      },
+      label: processing ? 'Procesando...' : 'Auto-Match',
+      icon: RefreshCw,
+      onClick: handleAutoMatch,
       variant: 'success' as const,
+      disabled: processing || unmatchedCount === 0,
     },
     {
-      label: 'Cuadrar cuentas',
+      label: 'Conciliar Selección',
+      icon: CheckCircle2,
+      onClick: handleReconcile,
+      variant: 'success' as const,
+      disabled: processing || selectedItems.length === 0,
+    },
+    {
+      label: 'Completar Conciliación',
       icon: CheckSquare,
-      onClick: () => {
-        const unreconciled = reconciliationItems.filter(i => i.status === 'unmatched').length
-        if (unreconciled > 0) {
-          alert(`⚠️ Hay ${unreconciled} transacciones sin conciliar\n\nRevisa las diferencias antes de cuadrar las cuentas.`)
-        } else {
-          alert('✅ Todas las transacciones están conciliadas\n\nPuedes proceder a cuadrar la cuenta.')
-        }
-      },
+      onClick: handleComplete,
       variant: 'default' as const,
+      disabled: processing || unmatchedCount > 0,
     },
     {
-      label: 'Ver estado',
-      icon: Activity,
-      onClick: () => {
-        const account = bankAccounts.find(a => a.id === selectedAccount)
-        const difference = account ? Math.abs(account.bankBalance - account.bookBalance) : 0
-        const statusText = account?.status === 'reconciled' ? '✅ Conciliada' : 
-                          account?.status === 'pending' ? '⏳ Pendiente' : '❌ Sin conciliar'
-        alert(`Estado de Conciliación\n\n${statusText}\n\nÚltima conciliación: ${account?.lastReconciled}\nDiferencia: $${difference.toLocaleString()}`)
-      },
+      label: 'Seleccionar Todos',
+      icon: CheckSquare,
+      onClick: selectAllUnmatched,
       variant: 'outline' as const,
+      disabled: unmatchedCount === 0,
     },
   ]
 
@@ -354,6 +378,38 @@ export default function ReconciliationPage() {
             </p>
           </div>
         </div>
+
+        {/* Message Alert */}
+        {message && (
+          <div className={`p-4 rounded-lg flex items-center justify-between ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            <div className="flex items-center gap-2">
+              {message.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : (
+                <AlertCircle className="w-5 h-5" />
+              )}
+              <span>{message.text}</span>
+            </div>
+            <button 
+              onClick={() => setMessage(null)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {/* Processing Indicator */}
+        {processing && (
+          <div className="flex items-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Procesando transacciones...</span>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <Card className="border-green-200 bg-green-50/30">
@@ -626,10 +682,36 @@ export default function ReconciliationPage() {
                         {getStatusBadge(item.status)}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {item.status !== 'matched' && (
-                          <Button size="sm" variant="outline">
-                            Conciliar
-                          </Button>
+                        {item.status !== 'matched' ? (
+                          <div className="flex items-center gap-2 justify-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedItems.includes(item.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedItems([...selectedItems, item.id])
+                                } else {
+                                  setSelectedItems(selectedItems.filter(id => id !== item.id))
+                                }
+                              }}
+                              className="w-4 h-4 text-blue-600 rounded"
+                            />
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              disabled={processing}
+                              onClick={async () => {
+                                setSelectedItems([item.id])
+                                await handleReconcile()
+                              }}
+                            >
+                              Conciliar
+                            </Button>
+                          </div>
+                        ) : (
+                          <Badge className="bg-green-100 text-green-700">
+                            ✓ Conciliado
+                          </Badge>
                         )}
                       </td>
                     </tr>
@@ -672,10 +754,41 @@ export default function ReconciliationPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="space-y-4">
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  const formData = new FormData(e.currentTarget)
+                  setProcessing(true)
+                  setMessage(null)
+                  try {
+                    const response = await fetch('/api/accounting/reconciliation', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        action: 'start',
+                        companyId: activeCompany?.id,
+                        bankAccountId: formData.get('bankAccountId'),
+                        startDate: formData.get('startDate'),
+                        endDate: formData.get('endDate'),
+                        statementBalance: parseFloat(formData.get('statementBalance') as string) || 0,
+                      }),
+                    })
+                    if (response.ok) {
+                      setShowNewModal(false)
+                      setMessage({ type: 'success', text: 'Conciliación iniciada exitosamente' })
+                      await fetchReconciliationData()
+                    } else {
+                      const data = await response.json()
+                      setMessage({ type: 'error', text: data.error || 'Error al iniciar conciliación' })
+                    }
+                  } catch (err) {
+                    setMessage({ type: 'error', text: 'Error de conexión' })
+                  } finally {
+                    setProcessing(false)
+                  }
+                }} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
-                    <select className="w-full px-3 py-2 border rounded-lg">
+                    <select name="bankAccountId" className="w-full px-3 py-2 border rounded-lg" required>
                       {bankAccounts.map(acc => (
                         <option key={acc.id} value={acc.id}>{acc.name} - {acc.accountNumber}</option>
                       ))}
@@ -683,21 +796,28 @@ export default function ReconciliationPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Fecha Inicio</label>
-                    <Input type="date" />
+                    <Input type="date" name="startDate" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Fecha Fin</label>
-                    <Input type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+                    <Input type="date" name="endDate" defaultValue={new Date().toISOString().split('T')[0]} required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Saldo Final del Estado de Cuenta</label>
-                    <Input type="number" placeholder="0.00" />
+                    <Input type="number" name="statementBalance" placeholder="0.00" step="0.01" required />
                   </div>
+                  {message?.type === 'error' && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                      {message.text}
+                    </div>
+                  )}
                   <div className="flex gap-2 pt-4">
-                    <Button className="flex-1" onClick={() => { alert('✅ Conciliación iniciada'); setShowNewModal(false); }}>Iniciar Conciliación</Button>
-                    <Button variant="outline" onClick={() => setShowNewModal(false)}>Cancelar</Button>
+                    <Button type="submit" className="flex-1" disabled={processing}>
+                      {processing ? 'Iniciando...' : 'Iniciar Conciliación'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowNewModal(false)}>Cancelar</Button>
                   </div>
-                </div>
+                </form>
               </CardContent>
             </Card>
           </div>

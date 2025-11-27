@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import DashboardLayout from '@/components/layout/dashboard-layout'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -449,16 +449,16 @@ export default function BankingManagementPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <DashboardLayout>
+      <CompanyTabsLayout>
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </DashboardLayout>
+      </CompanyTabsLayout>
     )
   }
 
   return (
-    <DashboardLayout>
+    <CompanyTabsLayout>
       <div className="space-y-6">
         <QuickAccessBar title="Navegación Banca" links={bankingLinks} />
 
@@ -1317,6 +1317,6 @@ export default function BankingManagementPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </CompanyTabsLayout>
   )
 }
