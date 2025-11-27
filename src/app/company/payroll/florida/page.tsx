@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,7 +18,8 @@ import {
   CheckCircle2,
   AlertCircle,
   CheckCircle,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react'
 
 // PORCENTAJES FLORIDA 2025
@@ -71,64 +73,53 @@ interface Employee {
 }
 
 export default function FloridaPayrollPage() {
+  const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
+  const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: 'EMP001',
-      name: 'John Smith',
-      checkNumber: '1001',
-      ssn: '123-45-6789',
-      filingStatus: 'single',
-      allowances: 1,
-      hourlyRate: 25.00,
-      regularHours: 80,
-      overtimeHours: 5,
-      ytdGross: 45000,
-      ytdFederalTax: 5400,
-      ytdSocialSecurity: 2790,
-      ytdMedicare: 652.50,
-      ytdSuta: 192.50,
-      type: 'W2'
-    },
-    {
-      id: 'EMP002',
-      name: 'Maria Garcia',
-      checkNumber: '1002',
-      ssn: '987-65-4321',
-      filingStatus: 'married',
-      allowances: 3,
-      hourlyRate: 30.00,
-      regularHours: 80,
-      overtimeHours: 0,
-      ytdGross: 52000,
-      ytdFederalTax: 6240,
-      ytdSocialSecurity: 3224,
-      ytdMedicare: 754,
-      ytdSuta: 192.50,
-      type: 'W2'
-    },
-    {
-      id: 'CNT001',
-      name: 'David Contractor LLC',
-      checkNumber: '',
-      ssn: '45-6789123',
-      filingStatus: 'single',
-      allowances: 0,
-      hourlyRate: 0,
-      regularHours: 0,
-      overtimeHours: 0,
-      ytdGross: 15000,
-      ytdFederalTax: 0,
-      ytdSocialSecurity: 0,
-      ytdMedicare: 0,
-      ytdSuta: 0,
-      type: '1099-NEC'
-    }
-  ])
-
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [calculatedPayroll, setCalculatedPayroll] = useState<any>(null)
+
+  const loadEmployees = useCallback(async () => {
+    if (!activeCompany) return
+    
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/employees?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        const empList = (data.employees || data || []).map((emp: any) => ({
+          id: emp.id,
+          name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Sin nombre',
+          checkNumber: '',
+          ssn: emp.ssn || '',
+          filingStatus: emp.taxFilingStatus?.toLowerCase() || 'single',
+          allowances: emp.federalAllowances || 0,
+          hourlyRate: emp.hourlyRate || emp.salary / 2080 || 0,
+          regularHours: 80,
+          overtimeHours: 0,
+          ytdGross: emp.ytdGross || 0,
+          ytdFederalTax: emp.ytdFederalTax || 0,
+          ytdSocialSecurity: emp.ytdSocialSecurity || 0,
+          ytdMedicare: emp.ytdMedicare || 0,
+          ytdSuta: emp.ytdSuta || 0,
+          type: emp.employeeType === 'CONTRACTOR' ? '1099-NEC' : 'W2'
+        }))
+        setEmployees(empList)
+      }
+    } catch (error) {
+      console.error('Error loading employees:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadEmployees()
+    }
+  }, [status, activeCompany, loadEmployees])
 
   const calculateFederalWithholding = (grossPay: number, filingStatus: string, allowances: number) => {
     // Simplified calculation - uses Single table
