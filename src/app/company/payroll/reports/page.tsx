@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -26,7 +26,8 @@ import {
   Printer,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react'
 
 interface PayrollReport {
@@ -34,9 +35,9 @@ interface PayrollReport {
   type: string
   name: string
   description: string
-  icon: any
+  icon?: React.ComponentType<{ className?: string }>
   color: string
-  period: string
+  period?: string
 }
 
 interface DepartmentCost {
@@ -61,6 +62,17 @@ export default function PayrollReportsPage() {
   const [filterStartDate, setFilterStartDate] = useState('')
   const [filterEndDate, setFilterEndDate] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
+  const [reports, setReports] = useState<PayrollReport[]>([])
+  const [departmentCosts, setDepartmentCosts] = useState<DepartmentCost[]>([])
+
+  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+    summary: BarChart3,
+    tax: FileText,
+    costs: PieChart,
+    deductions: TrendingDown,
+    overtime: Calendar,
+    employee: Users
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -68,142 +80,40 @@ export default function PayrollReportsPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadReports = useCallback(async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const reports: PayrollReport[] = [
-    {
-      id: 'payroll-summary',
-      type: 'summary',
-      name: 'Resumen de Nómina',
-      description: 'Reporte consolidado de percepciones, deducciones y pagos netos',
-      icon: BarChart3,
-      color: 'blue',
-      period: 'Nov 16-30, 2025'
-    },
-    {
-      id: 'tax-report',
-      type: 'tax',
-      name: 'Reporte de Impuestos',
-      description: 'ISR, IMSS e INFONAVIT - Retenciones y aportaciones',
-      icon: FileText,
-      color: 'red',
-      period: 'Nov 16-30, 2025'
-    },
-    {
-      id: 'department-costs',
-      type: 'costs',
-      name: 'Costos por Departamento',
-      description: 'Análisis de costo total de nómina por área',
-      icon: PieChart,
-      color: 'purple',
-      period: 'Nov 16-30, 2025'
-    },
-    {
-      id: 'deductions-report',
-      type: 'deductions',
-      name: 'Reporte de Deducciones',
-      description: 'Detalle de todas las deducciones aplicadas',
-      icon: TrendingDown,
-      color: 'orange',
-      period: 'Nov 16-30, 2025'
-    },
-    {
-      id: 'overtime-report',
-      type: 'overtime',
-      name: 'Reporte de Horas Extra',
-      description: 'Análisis de tiempo extra y tiempo doble',
-      icon: Calendar,
-      color: 'green',
-      period: 'Nov 16-30, 2025'
-    },
-    {
-      id: 'employee-cost',
-      type: 'employee',
-      name: 'Costo por Empleado',
-      description: 'Detalle individual del costo total por empleado',
-      icon: Users,
-      color: 'indigo',
-      period: 'Nov 16-30, 2025'
+    try {
+      const params = new URLSearchParams({ companyId: activeCompany.id })
+      if (filterStartDate) params.append('startDate', filterStartDate)
+      if (filterEndDate) params.append('endDate', filterEndDate)
+      
+      const response = await fetch(`/api/payroll/reports?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        // Add icons and period to reports
+        const now = new Date()
+        const periodStr = `${now.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}, ${now.getFullYear()}`
+        setReports((data.reports || []).map((r: PayrollReport) => ({
+          ...r,
+          icon: iconMap[r.type] || FileText,
+          period: periodStr
+        })))
+        setDepartmentCosts(data.departmentCosts || [])
+      }
+    } catch (error) {
+      console.error('Error loading reports:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [activeCompany, filterStartDate, filterEndDate])
 
-  const departmentCosts: DepartmentCost[] = [
-    {
-      department: 'Desarrollo',
-      employees: 3,
-      grossPay: 89015.63,
-      deductions: 16664.17,
-      netPay: 72351.46,
-      employerCosts: 12258.77,
-      totalCost: 101274.40
-    },
-    {
-      department: 'Administración',
-      employees: 1,
-      grossPay: 40000,
-      deductions: 9307,
-      netPay: 30693,
-      employerCosts: 5480,
-      totalCost: 45480
-    },
-    {
-      department: 'Ventas',
-      employees: 2,
-      grossPay: 46923.44,
-      deductions: 8027.12,
-      netPay: 38896.32,
-      employerCosts: 6100.05,
-      totalCost: 53023.49
-    },
-    {
-      department: 'Contabilidad',
-      employees: 1,
-      grossPay: 23500,
-      deductions: 4334.75,
-      netPay: 19165.25,
-      employerCosts: 3217.50,
-      totalCost: 26717.50
-    },
-    {
-      department: 'IT',
-      employees: 1,
-      grossPay: 33781.25,
-      deductions: 6846.37,
-      netPay: 26934.88,
-      employerCosts: 4631.50,
-      totalCost: 38412.75
-    },
-    {
-      department: 'Soporte',
-      employees: 1,
-      grossPay: 25687.50,
-      deductions: 4611.91,
-      netPay: 21075.59,
-      employerCosts: 3338.58,
-      totalCost: 29026.08
-    },
-    {
-      department: 'Recursos Humanos',
-      employees: 1,
-      grossPay: 25800,
-      deductions: 4934.40,
-      netPay: 20865.60,
-      employerCosts: 3534,
-      totalCost: 29334
-    },
-    {
-      department: 'Marketing',
-      employees: 1,
-      grossPay: 24200,
-      deductions: 4383.40,
-      netPay: 19816.60,
-      employerCosts: 3267,
-      totalCost: 27467
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadReports()
     }
-  ]
+  }, [status, activeCompany, loadReports])
 
   const totalEmployees = departmentCosts.reduce((sum, d) => sum + d.employees, 0)
   const totalGrossPay = departmentCosts.reduce((sum, d) => sum + d.grossPay, 0)

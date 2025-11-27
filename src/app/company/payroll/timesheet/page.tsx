@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -28,7 +28,8 @@ import {
   StopCircle,
   X,
   Loader2,
-  Save
+  Save,
+  RefreshCw
 } from 'lucide-react'
 
 interface TimesheetEntry {
@@ -58,6 +59,7 @@ export default function TimesheetPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterDepartment, setFilterDepartment] = useState<string>('all')
+  const [timesheets, setTimesheets] = useState<TimesheetEntry[]>([])
   const [weekFilter, setWeekFilter] = useState<string>('current')
   
   // Message state
@@ -81,10 +83,28 @@ export default function TimesheetPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadTimesheets = useCallback(async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    try {
+      const response = await fetch(`/api/payroll/timesheets?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setTimesheets(data.timesheets || [])
+      }
+    } catch (error) {
+      console.error('Error loading timesheets:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany])
+
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany) {
+      loadTimesheets()
+    }
+  }, [status, activeCompany, loadTimesheets])
 
   const openRegisterModal = async () => {
     setShowRegisterModal(true)
@@ -173,174 +193,6 @@ export default function TimesheetPage() {
     link.download = `control-horas-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
   }
-
-  const timesheets: TimesheetEntry[] = [
-    {
-      id: 'TS-001',
-      employee: 'Juan Carlos Pérez',
-      employeeId: 'EMP-001',
-      department: 'Desarrollo',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 40,
-      overtimeHours: 5,
-      doubleTimeHours: 0,
-      breakHours: 5,
-      totalHours: 45,
-      status: 'approved',
-      submittedDate: '2025-11-23',
-      approvedBy: 'Ana Martínez',
-      approvedDate: '2025-11-24',
-      notes: 'Proyecto especial completado'
-    },
-    {
-      id: 'TS-002',
-      employee: 'María González',
-      employeeId: 'EMP-002',
-      department: 'Contabilidad',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 40,
-      overtimeHours: 0,
-      doubleTimeHours: 0,
-      breakHours: 5,
-      totalHours: 40,
-      status: 'approved',
-      submittedDate: '2025-11-23',
-      approvedBy: 'Ana Martínez',
-      approvedDate: '2025-11-24'
-    },
-    {
-      id: 'TS-003',
-      employee: 'Carlos Torres',
-      employeeId: 'EMP-003',
-      department: 'Ventas',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 42,
-      overtimeHours: 3,
-      doubleTimeHours: 0,
-      breakHours: 5,
-      totalHours: 45,
-      status: 'submitted',
-      submittedDate: '2025-11-23',
-      notes: 'Cierre de ventas Q4'
-    },
-    {
-      id: 'TS-004',
-      employee: 'Ana Martínez',
-      employeeId: 'EMP-004',
-      department: 'Administración',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 40,
-      overtimeHours: 0,
-      doubleTimeHours: 0,
-      breakHours: 5,
-      totalHours: 40,
-      status: 'approved',
-      submittedDate: '2025-11-23',
-      approvedBy: 'Carlos Torres',
-      approvedDate: '2025-11-24'
-    },
-    {
-      id: 'TS-005',
-      employee: 'Luis Fernández',
-      employeeId: 'EMP-005',
-      department: 'Soporte',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 40,
-      overtimeHours: 8,
-      doubleTimeHours: 2,
-      breakHours: 5,
-      totalHours: 50,
-      status: 'submitted',
-      submittedDate: '2025-11-23',
-      notes: 'Soporte urgente fin de semana'
-    },
-    {
-      id: 'TS-006',
-      employee: 'Pedro Sánchez',
-      employeeId: 'EMP-006',
-      department: 'IT',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 40,
-      overtimeHours: 6,
-      doubleTimeHours: 0,
-      breakHours: 5,
-      totalHours: 46,
-      status: 'approved',
-      submittedDate: '2025-11-23',
-      approvedBy: 'Ana Martínez',
-      approvedDate: '2025-11-24',
-      notes: 'Migración de servidores'
-    },
-    {
-      id: 'TS-007',
-      employee: 'Laura Jiménez',
-      employeeId: 'EMP-007',
-      department: 'Recursos Humanos',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 38,
-      overtimeHours: 0,
-      doubleTimeHours: 0,
-      breakHours: 4.5,
-      totalHours: 38,
-      status: 'draft',
-      notes: 'Pendiente ajustar viernes'
-    },
-    {
-      id: 'TS-008',
-      employee: 'Roberto Díaz',
-      employeeId: 'EMP-008',
-      department: 'Desarrollo',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 40,
-      overtimeHours: 4,
-      doubleTimeHours: 0,
-      breakHours: 5,
-      totalHours: 44,
-      status: 'submitted',
-      submittedDate: '2025-11-23'
-    },
-    {
-      id: 'TS-009',
-      employee: 'Sofia Ramírez',
-      employeeId: 'EMP-009',
-      department: 'Marketing',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 40,
-      overtimeHours: 0,
-      doubleTimeHours: 0,
-      breakHours: 5,
-      totalHours: 40,
-      status: 'rejected',
-      submittedDate: '2025-11-23',
-      notes: 'Revisar entrada de jueves'
-    },
-    {
-      id: 'TS-010',
-      employee: 'Miguel Ángel Ruiz',
-      employeeId: 'EMP-010',
-      department: 'Ventas',
-      weekStarting: '2025-11-17',
-      weekEnding: '2025-11-23',
-      regularHours: 40,
-      overtimeHours: 2,
-      doubleTimeHours: 0,
-      breakHours: 5,
-      totalHours: 42,
-      status: 'approved',
-      submittedDate: '2025-11-23',
-      approvedBy: 'Carlos Torres',
-      approvedDate: '2025-11-24'
-    }
-  ]
 
   const getStatusBadge = (status: string) => {
     switch (status) {
