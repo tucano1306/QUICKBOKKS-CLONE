@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { prisma } from '@/lib/prisma'
 
 // Este endpoint maneja las conversaciones con el AI Assistant
 // En producción, aquí integrarías OpenAI GPT-4, Anthropic Claude, o tu propio modelo
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { companyId, message, conversationHistory } = body
+    const { companyId, message } = body
 
     if (!companyId || !message) {
       return NextResponse.json(
@@ -20,10 +21,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Aquí es donde integrarías con OpenAI o tu servicio de IA
-    // Por ahora, retornamos respuestas mock inteligentes basadas en el input
-
-    const aiResponse = generateMockAIResponse(message, companyId)
+    // Obtener datos reales de la base de datos para generar respuestas
+    const aiResponse = await generateAIResponse(message, companyId)
 
     return NextResponse.json({
       response: aiResponse.content,
@@ -40,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Mock AI response generator
+// AI response generator using real database data
 // En producción, esto se reemplazaría con llamadas a OpenAI API:
 // const response = await openai.chat.completions.create({
 //   model: "gpt-4",
@@ -50,247 +49,577 @@ export async function POST(request: NextRequest) {
 //     { role: "user", content: message }
 //   ]
 // })
-function generateMockAIResponse(message: string, companyId: string) {
+async function generateAIResponse(message: string, companyId: string) {
   const lowerMessage = message.toLowerCase()
 
   // Balance / Finanzas
   if (lowerMessage.includes('balance') || lowerMessage.includes('saldo')) {
+    return await getBalanceResponse(companyId)
+  }
+
+  // Facturas
+  if (lowerMessage.includes('factura') || lowerMessage.includes('invoice')) {
+    return await getInvoicesResponse(companyId)
+  }
+
+  // Gastos
+  if (lowerMessage.includes('gasto') || lowerMessage.includes('expense')) {
+    return await getExpensesResponse(companyId)
+  }
+
+  // Flujo de caja
+  if (lowerMessage.includes('flujo') || lowerMessage.includes('cash flow') || lowerMessage.includes('predic')) {
+    return await getCashFlowResponse(companyId)
+  }
+
+  // Impuestos
+  if (lowerMessage.includes('impuesto') || lowerMessage.includes('tax') || lowerMessage.includes('sat')) {
+    return await getTaxResponse(companyId)
+  }
+
+  // Nómina
+  if (lowerMessage.includes('nómi') || lowerMessage.includes('nomi') || lowerMessage.includes('payroll') || lowerMessage.includes('empleado')) {
+    return await getPayrollResponse(companyId)
+  }
+
+  // Clientes
+  if (lowerMessage.includes('cliente') || lowerMessage.includes('customer') || lowerMessage.includes('debe')) {
+    return await getCustomersResponse(companyId)
+  }
+
+  // Categorización
+  if (lowerMessage.includes('categoriz') || lowerMessage.includes('clasific') || lowerMessage.includes('transaction')) {
+    return await getCategoriesResponse(companyId)
+  }
+
+  // Reportes
+  if (lowerMessage.includes('reporte') || lowerMessage.includes('report') || lowerMessage.includes('estado')) {
+    return getReportsResponse()
+  }
+
+  // Presupuesto
+  if (lowerMessage.includes('presupuesto') || lowerMessage.includes('budget')) {
+    return await getBudgetResponse(companyId)
+  }
+
+  // Ayuda general / no entendido
+  return getHelpResponse()
+}
+
+async function getBalanceResponse(companyId: string) {
+  try {
+    // Get account balances from database
+    const accounts = await prisma.chartOfAccounts.findMany({
+      where: { companyId }
+    })
+
+    let assets = 0
+    let liabilities = 0
+    let equity = 0
+
+    accounts.forEach(account => {
+      const balance = account.balance
+      if (account.type === 'ASSET') {
+        assets += balance
+      } else if (account.type === 'LIABILITY') {
+        liabilities += balance
+      } else if (account.type === 'EQUITY') {
+        equity += balance
+      }
+    })
+
+    const cash = accounts
+      .filter(a => a.type === 'ASSET' && a.name.toLowerCase().includes('efectivo'))
+      .reduce((sum, a) => sum + a.balance, 0)
+
+    const receivables = accounts
+      .filter(a => a.type === 'ASSET' && (a.name.toLowerCase().includes('cobrar') || a.name.toLowerCase().includes('clientes')))
+      .reduce((sum, a) => sum + a.balance, 0)
+
+    const liquidityRatio = liabilities > 0 ? (assets / liabilities).toFixed(2) : 'N/A'
+
     return {
       content: `📊 **Balance General Actual:**
 
-**Activos:** $485,250
-- Efectivo: $125,000
-- Cuentas por Cobrar: $180,500
-- Inventario: $95,750
-- Equipo: $84,000
+**Activos:** ${formatCurrency(assets)}
+- Efectivo: ${formatCurrency(cash)}
+- Cuentas por Cobrar: ${formatCurrency(receivables)}
+- Otros Activos: ${formatCurrency(assets - cash - receivables)}
 
-**Pasivos:** $215,300
-- Cuentas por Pagar: $98,200
-- Préstamos: $117,100
+**Pasivos:** ${formatCurrency(liabilities)}
 
-**Capital:** $269,950
+**Capital:** ${formatCurrency(equity)}
 
-💡 Tu empresa está en buena posición financiera con un ratio de liquidez de 2.25. Recomiendo mantener al menos 3 meses de gastos operativos en efectivo.`,
+💡 Tu ratio de liquidez es ${liquidityRatio}. ${
+        parseFloat(liquidityRatio) > 2 
+          ? 'Excelente posición financiera.' 
+          : parseFloat(liquidityRatio) > 1 
+            ? 'Posición estable.' 
+            : 'Considera mejorar tu liquidez.'
+      }`,
       suggestions: [
         '¿Cómo puedo mejorar mi flujo de caja?',
         'Analiza mis cuentas por cobrar',
         'Muéstrame gastos del mes'
       ]
     }
+  } catch (error) {
+    console.error('Error getting balance:', error)
+    return {
+      content: '❌ Error obteniendo información del balance. Por favor intenta de nuevo.',
+      suggestions: ['Ver resumen financiero', 'Analizar gastos']
+    }
   }
+}
 
-  // Facturas
-  if (lowerMessage.includes('factura') || lowerMessage.includes('invoice')) {
+async function getInvoicesResponse(companyId: string) {
+  try {
+    const now = new Date()
+    
+    const invoices = await prisma.invoice.findMany({
+      where: { companyId }
+    })
+
+    const pending = invoices.filter(i => i.status === 'DRAFT' || i.status === 'SENT' || i.status === 'OVERDUE')
+    const overdue = invoices.filter(i => i.status === 'OVERDUE')
+    const paid = invoices.filter(i => i.status === 'PAID' || i.status === 'PARTIAL')
+    
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const paidThisMonth = paid.filter(i => i.paidDate && new Date(i.paidDate) >= thisMonth)
+
+    const pendingTotal = pending.reduce((sum, i) => sum + i.total, 0)
+    const overdueTotal = overdue.reduce((sum, i) => sum + i.total, 0)
+    const paidThisMonthTotal = paidThisMonth.reduce((sum, i) => sum + i.total, 0)
+
     return {
       content: `📄 **Resumen de Facturas:**
 
-**Facturas Pendientes:** 12 facturas por $45,680
-- Vencidas: 3 facturas ($12,500)
-- Por vencer (próximos 7 días): 5 facturas ($18,900)
+**Facturas Pendientes:** ${pending.length} facturas por ${formatCurrency(pendingTotal)}
+- Vencidas: ${overdue.length} facturas (${formatCurrency(overdueTotal)})
+- Por cobrar: ${pending.length - overdue.length} facturas
 
-**Facturas Pagadas Este Mes:** 23 facturas por $87,320
+**Facturas Pagadas Este Mes:** ${paidThisMonth.length} facturas por ${formatCurrency(paidThisMonthTotal)}
 
-⚠️ **Alerta:** Tienes 3 facturas vencidas. Te recomiendo enviar recordatorios de pago automáticos.
+${overdue.length > 0 
+  ? `⚠️ **Alerta:** Tienes ${overdue.length} facturas vencidas. Te recomiendo enviar recordatorios de pago.`
+  : '✅ **Excelente:** No tienes facturas vencidas.'
+}
 
 🎯 **Acción Recomendada:** 
-- Contactar clientes con facturas vencidas
-- Activar recordatorios automáticos en Configuración > Facturación`,
+${overdue.length > 0 
+  ? '- Contactar clientes con facturas vencidas\n- Activar recordatorios automáticos'
+  : '- Continúa con tu estrategia actual de facturación'
+}`,
       suggestions: [
         'Crea una nueva factura',
         'Envía recordatorio a clientes',
         '¿Qué cliente me debe más?'
       ]
     }
+  } catch (error) {
+    console.error('Error getting invoices:', error)
+    return {
+      content: '❌ Error obteniendo información de facturas.',
+      suggestions: ['Ver facturas pendientes', 'Crear factura']
+    }
   }
+}
 
-  // Gastos
-  if (lowerMessage.includes('gasto') || lowerMessage.includes('expense')) {
+async function getExpensesResponse(companyId: string) {
+  try {
+    const now = new Date()
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+
+    const expenses = await prisma.expense.findMany({
+      where: { 
+        companyId,
+        date: { gte: thisMonth }
+      },
+      include: { category: true }
+    })
+
+    const lastMonthExpenses = await prisma.expense.findMany({
+      where: {
+        companyId,
+        date: { gte: lastMonth, lte: endLastMonth }
+      }
+    })
+
+    const total = expenses.reduce((sum, e) => sum + e.amount, 0)
+    const lastMonthTotal = lastMonthExpenses.reduce((sum, e) => sum + e.amount, 0)
+    const changePercent = lastMonthTotal > 0 
+      ? (((total - lastMonthTotal) / lastMonthTotal) * 100).toFixed(1)
+      : 'N/A'
+
+    // Group by category
+    const byCategory: Record<string, number> = {}
+    expenses.forEach(e => {
+      const cat = e.category?.name || 'Sin categoría'
+      byCategory[cat] = (byCategory[cat] || 0) + e.amount
+    })
+
+    const sortedCategories = Object.entries(byCategory)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+
+    const categoriesList = sortedCategories
+      .map(([name, amount], i) => {
+        const pct = total > 0 ? ((amount / total) * 100).toFixed(0) : 0
+        return `${i + 1}. ${name}: ${formatCurrency(amount)} (${pct}%)`
+      })
+      .join('\n')
+
+    const changeIcon = parseFloat(changePercent as string) > 0 ? '⬆️' : '⬇️'
+
     return {
       content: `💰 **Análisis de Gastos del Mes:**
 
-**Total Gastos Noviembre:** $34,580
+**Total Gastos:** ${formatCurrency(total)}
 
-**Top 5 Categorías:**
-1. Nómina: $18,500 (53%)
-2. Renta/Oficina: $6,200 (18%)
-3. Suministros: $3,450 (10%)
-4. Tecnología/Software: $2,890 (8%)
-5. Marketing: $2,340 (7%)
+**Top Categorías:**
+${categoriesList || 'Sin gastos registrados'}
 
-📈 **Comparación:** 
-- vs Mes Anterior: +12% ⬆️
-- vs Presupuesto: +5% (dentro del rango)
+📈 **Comparación vs Mes Anterior:** ${changePercent}% ${changeIcon}
 
-💡 **Insight:** El aumento en gastos se debe principalmente a contrataciones. Los gastos operativos están bajo control.`,
+💡 **Insight:** ${
+        parseFloat(changePercent as string) > 10 
+          ? 'Los gastos aumentaron significativamente. Revisa las categorías principales.'
+          : parseFloat(changePercent as string) < -10 
+            ? 'Excelente control de gastos este mes.'
+            : 'Los gastos están estables.'
+      }`,
       suggestions: [
         'Registra un nuevo gasto',
-        'Ver gastos deducibles de impuestos',
+        'Ver gastos deducibles',
         'Comparar con trimestre pasado'
       ]
     }
-  }
-
-  // Flujo de caja
-  if (lowerMessage.includes('flujo') || lowerMessage.includes('cash flow') || lowerMessage.includes('predic')) {
+  } catch (error) {
+    console.error('Error getting expenses:', error)
     return {
-      content: `📊 **Predicción de Flujo de Caja (ML Model):**
-
-**Próximos 30 días:**
-- Entradas esperadas: $92,500
-- Salidas proyectadas: $78,300
-- Balance final estimado: +$14,200 ✅
-
-**Próximos 90 días:**
-- Entradas: $287,600
-- Salidas: $234,800
-- Balance: +$52,800
-
-🤖 **Análisis IA:**
-- Probabilidad de déficit: 8% (Bajo riesgo)
-- Meses para cubrir gastos operativos: 4.2 meses
-- Recomendación: MANTENER estrategia actual
-
-⚠️ **Atención:** Diciembre suele tener más gastos. Considera mantener un colchón extra.`,
-      suggestions: [
-        '¿Cuándo recibiré mis próximos pagos?',
-        'Simula escenario con 20% menos ventas',
-        'Ver tendencia histórica'
-      ]
+      content: '❌ Error obteniendo información de gastos.',
+      suggestions: ['Ver gastos', 'Registrar gasto']
     }
   }
+}
 
-  // Impuestos
-  if (lowerMessage.includes('impuesto') || lowerMessage.includes('tax') || lowerMessage.includes('sat')) {
+async function getCashFlowResponse(companyId: string) {
+  try {
+    const now = new Date()
+    const next30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    
+    // Get pending invoices (expected income)
+    const pendingInvoices = await prisma.invoice.findMany({
+      where: {
+        companyId,
+        status: { in: ['DRAFT', 'SENT', 'OVERDUE'] },
+        dueDate: { lte: next30Days }
+      }
+    })
+
+    // Get recurring expenses (expected expenses)
+    const recentExpenses = await prisma.expense.findMany({
+      where: {
+        companyId,
+        date: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) }
+      }
+    })
+
+    const expectedIncome = pendingInvoices.reduce((sum, i) => sum + i.total, 0)
+    const expectedExpenses = recentExpenses.reduce((sum, e) => sum + e.amount, 0)
+    const projectedBalance = expectedIncome - expectedExpenses
+
+    const overdueInvoices = pendingInvoices.filter(i => i.dueDate && new Date(i.dueDate) < now)
+    const riskPercent = pendingInvoices.length > 0 
+      ? ((overdueInvoices.length / pendingInvoices.length) * 100).toFixed(0)
+      : 0
+
+    return {
+      content: `📊 **Proyección de Flujo de Caja:**
+
+**Próximos 30 días:**
+- Entradas esperadas: ${formatCurrency(expectedIncome)}
+- Salidas proyectadas: ${formatCurrency(expectedExpenses)}
+- Balance proyectado: ${formatCurrency(projectedBalance)} ${projectedBalance >= 0 ? '✅' : '⚠️'}
+
+🤖 **Análisis:**
+- Facturas pendientes de cobro: ${pendingInvoices.length}
+- Facturas vencidas (riesgo): ${overdueInvoices.length}
+- Probabilidad de déficit: ${riskPercent}%
+
+💡 **Recomendación:** ${
+        projectedBalance < 0 
+          ? 'Acelera cobros o reduce gastos para evitar déficit.'
+          : projectedBalance < expectedExpenses * 0.3
+            ? 'Considera mantener un colchón de reserva mayor.'
+            : 'Flujo de caja saludable. Mantén tu estrategia.'
+      }`,
+      suggestions: [
+        '¿Cuándo recibiré mis próximos pagos?',
+        'Ver tendencia histórica',
+        'Analizar gastos fijos'
+      ]
+    }
+  } catch (error) {
+    console.error('Error getting cash flow:', error)
+    return {
+      content: '❌ Error obteniendo proyección de flujo de caja.',
+      suggestions: ['Ver ingresos', 'Ver gastos']
+    }
+  }
+}
+
+async function getTaxResponse(companyId: string) {
+  try {
+    const expenses = await prisma.expense.findMany({
+      where: { companyId },
+      include: { category: true }
+    })
+
+    const invoices = await prisma.invoice.findMany({
+      where: { companyId, status: 'PAID' }
+    })
+
+    const totalRevenue = invoices.reduce((sum, i) => sum + i.total, 0)
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
+    
+    // Estimate deductible expenses (assume 70% are deductible)
+    const deductibleExpenses = expenses
+      .filter(e => e.category?.name?.toLowerCase().includes('deducible') || !e.category)
+    const deductibleTotal = deductibleExpenses.reduce((sum, e) => sum + e.amount, 0)
+
+    // Estimate tax (simplified - in production use actual tax rates)
+    const taxableIncome = totalRevenue - deductibleTotal
+    const estimatedISR = taxableIncome * 0.30 // Simplified 30% rate
+    const estimatedIVA = totalRevenue * 0.16 // 16% IVA
+
     return {
       content: `🏛️ **Resumen Fiscal:**
 
-**Obligaciones Próximas:**
-- IVA Noviembre: Vence 17-Dic (23 días) - Estimado: $12,450
-- ISR Provisional: Vence 17-Dic - Estimado: $8,920
-- Retenciones: Vence 17-Dic - $3,240
+**Ingresos YTD:** ${formatCurrency(totalRevenue)}
+**Gastos YTD:** ${formatCurrency(totalExpenses)}
 
-**Gastos Deducibles YTD:**
-- Total: $289,340
-- Deducción estimada: $86,802 (30%)
+**Gastos Deducibles:** ${formatCurrency(deductibleTotal)}
+**Base Gravable Estimada:** ${formatCurrency(taxableIncome)}
 
-**CFDI Emitidos:** 145 facturas este mes
-**CFDI Recibidos:** 89 gastos documentados
+**Estimaciones de Impuestos:**
+- ISR Estimado: ${formatCurrency(estimatedISR)}
+- IVA Causado: ${formatCurrency(estimatedIVA)}
 
-✅ **Compliance:** Todos tus CFDI están timbrados correctamente.
+**Facturas Registradas:** ${invoices.length}
+**Gastos Documentados:** ${expenses.length}
 
-💡 **Oportunidad:** Tienes $4,560 en gastos sin CFDI. Solicita facturas para maximizar deducciones.`,
+💡 **Tip:** ${
+        deductibleTotal < totalExpenses * 0.5 
+          ? 'Podrías tener más gastos deducibles. Revisa tu documentación.'
+          : 'Buen nivel de deducciones registradas.'
+      }`,
       suggestions: [
-        'Ver calendario fiscal completo',
-        'Gastos sin factura electrónica',
+        'Ver calendario fiscal',
+        'Gastos sin documentar',
         'Estima mi ISR anual'
       ]
     }
+  } catch (error) {
+    console.error('Error getting tax info:', error)
+    return {
+      content: '❌ Error obteniendo información fiscal.',
+      suggestions: ['Ver gastos', 'Ver facturas']
+    }
   }
+}
 
-  // Nómina
-  if (lowerMessage.includes('nómi') || lowerMessage.includes('nomi') || lowerMessage.includes('payroll') || lowerMessage.includes('empleado')) {
+async function getPayrollResponse(companyId: string) {
+  try {
+    // Get employees for this company
+    const employees = await prisma.employee.findMany({
+      where: { companyId, status: 'ACTIVE' }
+    })
+
+    // Get latest payroll run (global, not company-specific in current schema)
+    const payrollRuns = await prisma.payrollRun.findMany({
+      orderBy: { periodEnd: 'desc' },
+      take: 1
+    })
+
+    const activeCount = employees.length
+    const totalSalaries = employees.reduce((sum, e) => sum + (e.salary || 0), 0)
+    
+    const lastRun = payrollRuns[0]
+    const nextPayDate = new Date()
+    nextPayDate.setDate(nextPayDate.getDate() + 15) // Approximate next pay date
+
     return {
       content: `👥 **Resumen de Nómina:**
 
-**Empleados Activos:** 12 personas
+**Empleados Activos:** ${activeCount} personas
 
-**Nómina Quincenal Actual:**
-- Sueldos Brutos: $89,450
-- ISR Retenido: $12,340
-- IMSS: $8,920
-- Neto a Pagar: $68,190
+**Sueldos Mensuales:**
+- Total Bruto: ${formatCurrency(totalSalaries)}
+- Estimado Quincenal: ${formatCurrency(totalSalaries / 2)}
 
-**Próximo Pago:** 30-Nov-2025 (5 días)
-
-**Pendientes:**
-- 3 empleados sin firma de recibo
-- 1 alta pendiente en IMSS
-
-⚠️ **Alerta:** Recuerda hacer dispersión antes del 30-Nov para evitar multas.
+**Última Nómina:** ${lastRun ? new Date(lastRun.periodEnd).toLocaleDateString('es-MX') : 'Sin procesar'}
+**Próximo Pago Estimado:** ${nextPayDate.toLocaleDateString('es-MX')}
 
 📋 **Checklist:**
-✅ Cálculos revisados
-✅ Recibos generados
-⏳ Firmas pendientes
-⏳ Dispersión bancaria`,
+${lastRun ? '✅ Última nómina procesada' : '⏳ Nómina pendiente de procesar'}
+${activeCount > 0 ? '✅ Empleados registrados' : '⏳ Sin empleados activos'}
+
+💡 ${activeCount === 0 
+  ? 'No tienes empleados registrados. Agrega empleados en Nómina > Empleados.'
+  : 'Revisa tu próxima nómina antes de la fecha de pago.'
+}`,
       suggestions: [
-        'Genera recibos de nómina',
-        'Envía recibos por email',
-        'Ver deducciones fiscales de nómina'
+        'Ver lista de empleados',
+        'Procesar nómina',
+        'Ver deducciones'
       ]
     }
+  } catch (error) {
+    console.error('Error getting payroll:', error)
+    return {
+      content: '❌ Error obteniendo información de nómina.',
+      suggestions: ['Ver empleados', 'Procesar nómina']
+    }
   }
+}
 
-  // Clientes
-  if (lowerMessage.includes('cliente') || lowerMessage.includes('customer') || lowerMessage.includes('debe')) {
+async function getCustomersResponse(companyId: string) {
+  try {
+    const customers = await prisma.customer.findMany({
+      where: { companyId },
+      include: {
+        invoices: true
+      }
+    })
+
+    const now = new Date()
+    
+    // Calculate totals per customer
+    const customerTotals = customers.map(c => {
+      const paidTotal = c.invoices
+        .filter(i => i.status === 'PAID' || i.status === 'PARTIAL')
+        .reduce((sum, i) => sum + i.total, 0)
+      const pendingTotal = c.invoices
+        .filter(i => i.status === 'DRAFT' || i.status === 'SENT' || i.status === 'OVERDUE')
+        .reduce((sum, i) => sum + i.total, 0)
+      const overdueTotal = c.invoices
+        .filter(i => i.status === 'OVERDUE')
+        .reduce((sum, i) => sum + i.total, 0)
+      
+      return {
+        name: c.name,
+        paid: paidTotal,
+        pending: pendingTotal,
+        overdue: overdueTotal
+      }
+    }).sort((a, b) => b.paid - a.paid)
+
+    const top5 = customerTotals.slice(0, 5)
+    const withPending = customerTotals.filter(c => c.pending > 0)
+    const withOverdue = customerTotals.filter(c => c.overdue > 0)
+
+    const topList = top5.length > 0
+      ? top5.map((c, i) => `${i + 1}. ${c.name} - ${formatCurrency(c.paid)} pagado`).join('\n')
+      : 'Sin clientes con pagos'
+
+    const pendingList = withPending.slice(0, 3)
+      .map(c => `- ${c.name}: ${formatCurrency(c.pending)}${c.overdue > 0 ? ' (vencido)' : ''}`)
+      .join('\n')
+
     return {
       content: `👥 **Análisis de Clientes:**
 
-**Top 5 Clientes por Revenue:**
-1. Tech Solutions Inc. - $145,680 YTD
-2. Global Marketing LLC - $98,450
-3. E-Commerce Ventures - $87,200
-4. Cloud Services Corp - $76,340
-5. Startup Ventures - $54,890
+**Total Clientes:** ${customers.length}
 
-**Clientes con Balance Pendiente:**
-- Tech Solutions: $12,500 (vencido)
-- Marketing Agency: $8,900 (7 días)
-- Consulting Partners: $6,780 (corriente)
+**Top 5 Clientes por Ingresos:**
+${topList}
+
+**Clientes con Balance Pendiente:** ${withPending.length}
+${pendingList || '- Ninguno con balance pendiente'}
 
 📊 **Métricas:**
-- Días promedio de pago: 32 días
-- Tasa de morosidad: 8%
-- Cliente más puntual: Global Marketing LLC
+- Clientes con facturas vencidas: ${withOverdue.length}
+- Total por cobrar: ${formatCurrency(withPending.reduce((sum, c) => sum + c.pending, 0))}
 
-💡 **Recomendación:** Ofrece descuento del 5% por pago anticipado para mejorar flujo de caja.`,
+💡 ${withOverdue.length > 0 
+  ? `Tienes ${withOverdue.length} clientes con pagos vencidos. Considera enviar recordatorios.`
+  : 'Excelente - todos tus clientes están al día con sus pagos.'
+}`,
       suggestions: [
         'Envía recordatorio a clientes morosos',
         'Crear reporte de aging',
-        'Ver historial de pagos por cliente'
+        'Ver historial por cliente'
       ]
     }
-  }
-
-  // Categorización
-  if (lowerMessage.includes('categoriz') || lowerMessage.includes('clasific') || lowerMessage.includes('transaction')) {
+  } catch (error) {
+    console.error('Error getting customers:', error)
     return {
-      content: `🤖 **Motor de Auto-Categorización:**
+      content: '❌ Error obteniendo información de clientes.',
+      suggestions: ['Ver clientes', 'Ver facturas']
+    }
+  }
+}
 
-**Última Ejecución:** Hace 2 horas
+async function getCategoriesResponse(companyId: string) {
+  try {
+    const transactions = await prisma.bankTransaction.findMany({
+      where: { companyId }
+    })
 
-**Resultados:**
-- Transacciones procesadas: 47
-- Auto-categorizadas (>90% confianza): 42 (89%)
-- Requieren revisión (<90%): 5 (11%)
+    const categorized = transactions.filter(t => t.categoryId)
+    const uncategorized = transactions.filter(t => !t.categoryId)
 
-**Transacciones Pendientes de Revisión:**
-1. UBER $45.80 - Viaje o Comidas? (82% confianza)
-2. STARBUCKS $28.50 - Comidas o Oficina? (75%)
-3. AMAZON $127.90 - Múltiples categorías
-4. BEST BUY $340.00 - Equipo o Suministros?
-5. HP STORE $89.00 - Software o Hardware?
+    const total = transactions.length
+    const categorizedCount = categorized.length
+    const accuracy = total > 0 ? ((categorizedCount / total) * 100).toFixed(0) : 0
 
-🎯 **Precisión del Modelo:** 94% (mejorando continuamente)
+    return {
+      content: `🤖 **Estado de Categorización:**
 
-💡 **Sugerencia:** Revisa las 5 transacciones pendientes para que el modelo aprenda tus preferencias.`,
+**Transacciones Totales:** ${total}
+- Categorizadas: ${categorizedCount} (${accuracy}%)
+- Pendientes de revisión: ${uncategorized.length}
+
+🎯 **Precisión de Categorización:** ${accuracy}%
+
+${uncategorized.length > 0 
+  ? `⚠️ **Pendiente:** ${uncategorized.length} transacciones necesitan categorización.`
+  : '✅ **Excelente:** Todas las transacciones están categorizadas.'
+}
+
+💡 **Sugerencia:** ${
+        uncategorized.length > 10 
+          ? 'Revisa las transacciones pendientes para mejorar el modelo de categorización.'
+          : uncategorized.length > 0
+            ? 'Tienes algunas transacciones pendientes de categorizar.'
+            : 'Continúa registrando transacciones para mantener tu precisión.'
+      }`,
       suggestions: [
         'Revisar transacciones pendientes',
         'Ver reglas de categorización',
-        'Entrenar modelo con más datos'
+        'Ver categorías de gastos'
       ]
     }
-  }
-
-  // Reportes
-  if (lowerMessage.includes('reporte') || lowerMessage.includes('report') || lowerMessage.includes('estado')) {
+  } catch (error) {
+    console.error('Error getting categories:', error)
     return {
-      content: `📊 **Reportes Disponibles:**
+      content: '❌ Error obteniendo información de categorización.',
+      suggestions: ['Ver transacciones', 'Ver gastos']
+    }
+  }
+}
+
+function getReportsResponse() {
+  return {
+    content: `📊 **Reportes Disponibles:**
 
 **Financieros:**
-✅ Balance General (actualizado hoy)
-✅ Estado de Resultados (Noviembre)
-✅ Flujo de Efectivo (YTD)
+✅ Balance General
+✅ Estado de Resultados
+✅ Flujo de Efectivo
 ✅ Trial Balance
 
 **Operacionales:**
@@ -302,59 +631,125 @@ function generateMockAIResponse(message: string, companyId: string) {
 **Fiscales:**
 ✅ Libro Mayor
 ✅ Libro Diario
-✅ DIOT (declaración informativa)
 ✅ Cálculo de ISR/IVA
 
 📥 **Formatos disponibles:** PDF, Excel, CSV
 
-💡 **Tip:** Puedes programar envío automático de reportes semanales en Configuración.`,
-      suggestions: [
-        'Descarga Balance General en PDF',
-        'Ver Estado de Resultados',
-        'Programa reportes automáticos'
-      ]
-    }
+💡 **Tip:** Ve a Reportes para generar y descargar cualquier reporte.`,
+    suggestions: [
+      'Ver Balance General',
+      'Ver Estado de Resultados',
+      'Ver reportes de gastos'
+    ]
   }
+}
 
-  // Presupuesto
-  if (lowerMessage.includes('presupuesto') || lowerMessage.includes('budget')) {
+async function getBudgetResponse(companyId: string) {
+  try {
+    const now = new Date()
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+
+    // Get current month data
+    const currentInvoices = await prisma.invoice.findMany({
+      where: {
+        companyId,
+        status: 'PAID',
+        paidDate: { gte: thisMonth }
+      }
+    })
+
+    const currentExpenses = await prisma.expense.findMany({
+      where: {
+        companyId,
+        date: { gte: thisMonth }
+      }
+    })
+
+    // Get last month data for comparison
+    const lastMonthInvoices = await prisma.invoice.findMany({
+      where: {
+        companyId,
+        status: 'PAID',
+        paidDate: { gte: lastMonth, lte: endLastMonth }
+      }
+    })
+
+    const lastMonthExpenses = await prisma.expense.findMany({
+      where: {
+        companyId,
+        date: { gte: lastMonth, lte: endLastMonth }
+      }
+    })
+
+    const currentRevenue = currentInvoices.reduce((sum, i) => sum + i.total, 0)
+    const currentExpenseTotal = currentExpenses.reduce((sum, e) => sum + e.amount, 0)
+    const currentMargin = currentRevenue - currentExpenseTotal
+
+    const lastRevenue = lastMonthInvoices.reduce((sum, i) => sum + i.total, 0)
+    const lastExpenseTotal = lastMonthExpenses.reduce((sum, e) => sum + e.amount, 0)
+
+    const revenueChange = lastRevenue > 0 
+      ? (((currentRevenue - lastRevenue) / lastRevenue) * 100).toFixed(1) 
+      : 'N/A'
+    const expenseChange = lastExpenseTotal > 0 
+      ? (((currentExpenseTotal - lastExpenseTotal) / lastExpenseTotal) * 100).toFixed(1) 
+      : 'N/A'
+
+    const marginPct = currentRevenue > 0 ? ((currentMargin / currentRevenue) * 100).toFixed(1) : 0
+
     return {
-      content: `🎯 **Análisis de Presupuesto:**
+      content: `🎯 **Análisis de Desempeño:**
 
-**Noviembre 2025:**
+**Este Mes:**
 
 **Ingresos:**
-- Presupuestado: $95,000
-- Real: $102,340 (+7.7%) ✅
+- Real: ${formatCurrency(currentRevenue)}
+- vs Mes Anterior: ${revenueChange}% ${parseFloat(revenueChange as string) >= 0 ? '✅' : '⚠️'}
 
 **Gastos:**
-- Presupuestado: $75,000
-- Real: $78,680 (+4.9%) ⚠️
+- Real: ${formatCurrency(currentExpenseTotal)}
+- vs Mes Anterior: ${expenseChange}%
 
 **Margen Neto:**
-- Presupuestado: $20,000 (21%)
-- Real: $23,660 (23.1%) ✅
+- Real: ${formatCurrency(currentMargin)} (${marginPct}%)
 
-📈 **Performance YTD:**
-- Ingresos: 103% vs presupuesto
-- Gastos: 105% vs presupuesto
-- Margen: 101% vs objetivo
+📈 **Performance:**
+${parseFloat(revenueChange as string) > 0 
+  ? '- Ingresos en crecimiento ✅' 
+  : parseFloat(revenueChange as string) < 0 
+    ? '- Ingresos en descenso ⚠️' 
+    : '- Ingresos estables'
+}
+${parseFloat(expenseChange as string) > 10 
+  ? '- Gastos aumentando ⚠️' 
+  : parseFloat(expenseChange as string) < 0 
+    ? '- Gastos controlados ✅' 
+    : '- Gastos estables'
+}
 
-💡 **Insights:**
-- Excelente desempeño en ventas
-- Gastos ligeramente por encima (normal por crecimiento)
-- Márgenes saludables y mejorando
-
-🎯 **Q4 Projection:** Si continúa la tendencia, superarás el objetivo anual en 8%.`,
+💡 **Insight:** ${
+        currentMargin > 0 
+          ? 'Mes rentable. Mantén tu estrategia.' 
+          : 'Revisa tus gastos para mejorar el margen.'
+      }`,
       suggestions: [
-        'Ajusta presupuesto Q1 2026',
+        'Crear presupuesto anual',
         'Ver variaciones por categoría',
-        'Simula escenarios para 2026'
+        'Proyectar próximo trimestre'
       ]
     }
+  } catch (error) {
+    console.error('Error getting budget:', error)
+    return {
+      content: '❌ Error obteniendo análisis de presupuesto.',
+      suggestions: ['Ver ingresos', 'Ver gastos']
+    }
   }
+}
 
-  // Ayuda general / no entendido
+function getHelpResponse() {
   return {
     content: `💡 **Puedo ayudarte con:**
 
@@ -367,33 +762,37 @@ function generateMockAIResponse(message: string, companyId: string) {
 **Operaciones:**
 • Facturas pendientes y cobros
 • Gastos y optimización
-• Categorización automática de transacciones
+• Categorización de transacciones
 • Nómina y empleados
 
 **Impuestos y Compliance:**
-• Obligaciones fiscales próximas
+• Obligaciones fiscales
 • Gastos deducibles
-• CFDI y cumplimiento SAT
 • Reportes fiscales
 
-**Insights con IA:**
-• Predicciones con Machine Learning
-• Recomendaciones personalizadas
-• Detección de anomalías
-• Tendencias y patrones
+**Reportes:**
+• Reportes financieros
+• Reportes operacionales
+• Exportación a PDF/Excel
 
-🤔 **No entendí bien tu pregunta.** ¿Podrías reformularla o elegir una de las opciones sugeridas?`,
+🤔 **¿En qué puedo ayudarte?**`,
     suggestions: [
       '¿Cuál es mi balance actual?',
       'Analiza mis facturas pendientes',
-      'Predice mi flujo de caja',
-      'Ver obligaciones fiscales',
+      'Proyecta mi flujo de caja',
       'Resumen de gastos del mes'
     ]
   }
 }
 
-// Integración real con OpenAI (comentado, para cuando lo necesites):
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN'
+  }).format(amount)
+}
+
+// Integración real con OpenAI (para cuando tengas API key):
 /*
 import OpenAI from 'openai'
 
@@ -401,21 +800,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
 
-async function getAIResponse(message: string, companyId: string, history: any[]) {
+async function getAIResponse(message: string, companyId: string, history: any[], companyData: any) {
   const systemPrompt = `Eres un asistente contable experto especializado en ayudar a pequeñas y medianas empresas.
 Tu nombre es "Asistente IA de QuickBooks".
-Estás ayudando a la empresa con ID: ${companyId}.
 
-Tus capacidades incluyen:
-- Análisis financiero y contable
-- Interpretación de reportes
-- Predicciones de flujo de caja
-- Recomendaciones fiscales (México)
-- Categorización de transacciones
-- Insights sobre clientes y proveedores
+Datos actuales de la empresa:
+${JSON.stringify(companyData, null, 2)}
 
-Responde de forma clara, concisa y profesional. Usa emojis ocasionalmente para hacer tus respuestas más amigables.
-Si necesitas datos específicos de la empresa, menciónalo y ofrece hacer una consulta a la base de datos.`
+Responde de forma clara, concisa y profesional. Usa emojis ocasionalmente.`
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4-turbo-preview",

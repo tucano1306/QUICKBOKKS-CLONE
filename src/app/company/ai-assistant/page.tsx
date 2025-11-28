@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -23,8 +23,24 @@ import {
   Brain,
   CheckCircle,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  LucideIcon
 } from 'lucide-react'
+
+interface AIInsight {
+  icon: LucideIcon
+  title: string
+  message: string
+  type: 'success' | 'warning' | 'info'
+  date: string
+}
+
+interface AIStat {
+  icon: LucideIcon
+  label: string
+  value: string
+  color: string
+}
 
 export default function AIAssistantPage() {
   const router = useRouter()
@@ -33,6 +49,44 @@ export default function AIAssistantPage() {
   const [loading, setLoading] = useState(true)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
+  const [recentInsights, setRecentInsights] = useState<AIInsight[]>([])
+  const [stats, setStats] = useState<AIStat[]>([])
+
+  const loadAIData = useCallback(async () => {
+    if (!activeCompany?.id) return
+    
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/company/${activeCompany.id}/ai-assistant/stats`)
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Map icons for insights from API data
+        const iconMap: Record<string, LucideIcon> = {
+          TrendingUp, AlertCircle, CheckCircle, DollarSign, FileText, Users
+        }
+        
+        setRecentInsights(data.insights?.map((insight: { icon: string; title: string; message: string; type: 'success' | 'warning' | 'info'; date: string }) => ({
+          ...insight,
+          icon: iconMap[insight.icon] || TrendingUp
+        })) || [])
+        
+        // Map icons for stats
+        const statIconMap: Record<string, LucideIcon> = {
+          MessageSquare, Zap, Target, Brain
+        }
+        
+        setStats(data.stats?.map((stat: { icon: string; label: string; value: string; color: string }) => ({
+          ...stat,
+          icon: statIconMap[stat.icon] || Brain
+        })) || [])
+      }
+    } catch (error) {
+      console.error('Error loading AI data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -41,9 +95,8 @@ export default function AIAssistantPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    loadAIData()
+  }, [loadAIData])
 
   // Función para abrir el chat flotante con una pregunta específica
   const openFloatingChat = (question?: string) => {
@@ -125,44 +178,6 @@ export default function AIAssistantPage() {
         'Analiza patrones de compra'
       ]
     }
-  ]
-
-  const recentInsights = [
-    {
-      icon: TrendingUp,
-      title: 'Flujo de Caja Saludable',
-      message: 'Tu flujo de caja proyectado para los próximos 30 días es positivo (+$14,200). Bajo riesgo de déficit.',
-      type: 'success',
-      date: 'Hace 2 horas'
-    },
-    {
-      icon: AlertCircle,
-      title: 'Facturas Vencidas',
-      message: 'Tienes 3 facturas vencidas por $12,500. Considera enviar recordatorios de pago.',
-      type: 'warning',
-      date: 'Hace 4 horas'
-    },
-    {
-      icon: CheckCircle,
-      title: 'Auto-Categorización Completa',
-      message: '42 de 47 transacciones categorizadas automáticamente (89% de precisión).',
-      type: 'success',
-      date: 'Hace 6 horas'
-    },
-    {
-      icon: DollarSign,
-      title: 'Oportunidad de Deducción',
-      message: 'Tienes $4,560 en gastos sin CFDI. Solicita facturas para maximizar deducciones.',
-      type: 'info',
-      date: 'Hace 1 día'
-    }
-  ]
-
-  const stats = [
-    { icon: MessageSquare, label: 'Consultas Hoy', value: '12', color: 'blue' },
-    { icon: Zap, label: 'Tiempo de Respuesta', value: '1.2s', color: 'green' },
-    { icon: Target, label: 'Precisión IA', value: '94%', color: 'purple' },
-    { icon: Brain, label: 'Insights Generados', value: '47', color: 'orange' }
   ]
 
   if (status === 'loading' || loading) {

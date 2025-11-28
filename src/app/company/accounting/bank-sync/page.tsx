@@ -205,7 +205,8 @@ export default function BankSyncPage() {
     }
   }, [activeCompany, fetchBankAccounts])
 
-  const sampleTransactions = recentTransactions
+  // Transacciones cargadas desde API
+  const transactions = recentTransactions
 
   const handleSync = async (bankId: string) => {
     setSyncing(true)
@@ -279,9 +280,9 @@ export default function BankSyncPage() {
 
   const totalConnected = bankConnections.filter(b => b.status === 'connected').length
   const totalBalance = bankConnections.reduce((sum, b) => sum + b.balance, 0)
-  const newTransactions = sampleTransactions.filter(t => t.status === 'new').length
-  const categorizationRate = sampleTransactions.length > 0 
-    ? ((sampleTransactions.filter(t => t.status !== 'new').length / sampleTransactions.length) * 100).toFixed(0)
+  const newTransactions = transactions.filter(t => t.status === 'new').length
+  const categorizationRate = transactions.length > 0 
+    ? ((transactions.filter(t => t.status !== 'new').length / transactions.length) * 100).toFixed(0)
     : '0'
 
   if (status === 'loading' || loading) {
