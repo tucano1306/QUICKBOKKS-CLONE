@@ -137,10 +137,10 @@ export default function LaborCostsPage() {
           grandTotal,
           totalHeadcount,
           avgCostPerEmployee: totalHeadcount > 0 ? grandTotal / totalHeadcount : 0,
-          yoyChange: 5.2
+          yoyChange: 0
         })
 
-        // Generate trend data (mock monthly data)
+        // Generate monthly trend data from aggregated payroll totals
         const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
         const currentMonth = new Date().getMonth()
         const monthlyAvg = grandTotal / (currentMonth + 1)

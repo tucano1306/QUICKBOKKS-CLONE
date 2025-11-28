@@ -96,7 +96,7 @@ export default function PayrollTaxesPage() {
           imssTotal += p.baseSalary * 0.03
         })
         
-        // Generate mock filings based on actual data
+        // Generate filings based on actual payroll data
         const generatedFilings: TaxFiling[] = []
         const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
