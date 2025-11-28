@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -53,6 +53,22 @@ export default function CustomerTransactionsPage() {
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [dateRange, setDateRange] = useState<string>('all')
+  const [transactions, setTransactions] = useState<CustomerTransaction[]>([])
+
+  const loadTransactions = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/customers/transactions?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTransactions(data.transactions || [])
+      }
+    } catch (error) {
+      console.error('Error loading customer transactions:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -61,187 +77,8 @@ export default function CustomerTransactionsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const transactions: CustomerTransaction[] = [
-    {
-      id: 'TRX-001',
-      customerId: 'CUST-001',
-      customerName: 'Juan Pérez García',
-      type: 'invoice',
-      documentNumber: 'FAC-2025-001',
-      date: '2025-11-01',
-      dueDate: '2025-11-30',
-      amount: 17400,
-      balance: 0,
-      status: 'paid',
-      description: 'Servicios de consultoría - Noviembre'
-    },
-    {
-      id: 'TRX-002',
-      customerId: 'CUST-001',
-      customerName: 'Juan Pérez García',
-      type: 'payment',
-      documentNumber: 'PAG-2025-001',
-      date: '2025-11-25',
-      amount: -17400,
-      balance: 0,
-      status: 'paid',
-      description: 'Pago transferencia bancaria - FAC-2025-001'
-    },
-    {
-      id: 'TRX-003',
-      customerId: 'CUST-002',
-      customerName: 'María López Hernández',
-      type: 'invoice',
-      documentNumber: 'FAC-2025-003',
-      date: '2025-11-05',
-      dueDate: '2025-12-05',
-      amount: 52200,
-      balance: 0,
-      status: 'paid',
-      description: 'Desarrollo web personalizado'
-    },
-    {
-      id: 'TRX-004',
-      customerId: 'CUST-002',
-      customerName: 'María López Hernández',
-      type: 'payment',
-      documentNumber: 'PAG-2025-002',
-      date: '2025-11-24',
-      amount: -52200,
-      balance: 0,
-      status: 'paid',
-      description: 'Pago con tarjeta - FAC-2025-003'
-    },
-    {
-      id: 'TRX-005',
-      customerId: 'CUST-003',
-      customerName: 'Carlos Ramírez Sánchez',
-      type: 'invoice',
-      documentNumber: 'FAC-2025-005',
-      date: '2025-11-10',
-      dueDate: '2025-12-10',
-      amount: 9280,
-      balance: 4640,
-      status: 'partial',
-      description: 'Mantenimiento mensual'
-    },
-    {
-      id: 'TRX-006',
-      customerId: 'CUST-003',
-      customerName: 'Carlos Ramírez Sánchez',
-      type: 'payment',
-      documentNumber: 'PAG-2025-003',
-      date: '2025-11-23',
-      amount: -4640,
-      balance: 4640,
-      status: 'partial',
-      description: 'Pago parcial en efectivo - FAC-2025-005'
-    },
-    {
-      id: 'TRX-007',
-      customerId: 'CUST-004',
-      customerName: 'Empresa ABC Corp',
-      type: 'invoice',
-      documentNumber: 'FAC-2025-007',
-      date: '2025-11-15',
-      dueDate: '2025-12-15',
-      amount: 139200,
-      balance: 139200,
-      status: 'pending',
-      description: 'Servicios profesionales Q4 2025'
-    },
-    {
-      id: 'TRX-008',
-      customerId: 'CUST-005',
-      customerName: 'TechStart S.A.',
-      type: 'invoice',
-      documentNumber: 'FAC-2025-012',
-      date: '2025-10-20',
-      dueDate: '2025-11-20',
-      amount: 29000,
-      balance: 29000,
-      status: 'overdue',
-      description: 'Licencias de software'
-    },
-    {
-      id: 'TRX-009',
-      customerId: 'CUST-006',
-      customerName: 'Contadores Asociados',
-      type: 'estimate',
-      documentNumber: 'COT-2025-006',
-      date: '2025-11-22',
-      amount: 40600,
-      balance: 40600,
-      status: 'draft',
-      description: 'Cotización - Auditoría anual'
-    },
-    {
-      id: 'TRX-010',
-      customerId: 'CUST-006',
-      customerName: 'Contadores Asociados',
-      type: 'invoice',
-      documentNumber: 'FAC-2025-014',
-      date: '2025-11-08',
-      dueDate: '2025-12-08',
-      amount: 40600,
-      balance: 0,
-      status: 'paid',
-      description: 'Auditoría trimestral Q3'
-    },
-    {
-      id: 'TRX-011',
-      customerId: 'CUST-006',
-      customerName: 'Contadores Asociados',
-      type: 'payment',
-      documentNumber: 'PAG-2025-006',
-      date: '2025-11-24',
-      amount: -40600,
-      balance: 0,
-      status: 'paid',
-      description: 'Pago cheque - FAC-2025-014'
-    },
-    {
-      id: 'TRX-012',
-      customerId: 'CUST-007',
-      customerName: 'Servicios Pro',
-      type: 'invoice',
-      documentNumber: 'FAC-2025-016',
-      date: '2025-11-12',
-      dueDate: '2025-12-12',
-      amount: 20880,
-      balance: 0,
-      status: 'paid',
-      description: 'Capacitación corporativa'
-    },
-    {
-      id: 'TRX-013',
-      customerId: 'CUST-007',
-      customerName: 'Servicios Pro',
-      type: 'payment',
-      documentNumber: 'PAG-2025-007',
-      date: '2025-11-23',
-      amount: -20880,
-      balance: 0,
-      status: 'paid',
-      description: 'Pago PayPal - FAC-2025-016'
-    },
-    {
-      id: 'TRX-014',
-      customerId: 'CUST-001',
-      customerName: 'Juan Pérez García',
-      type: 'credit-note',
-      documentNumber: 'NC-2025-001',
-      date: '2025-10-15',
-      amount: -2000,
-      balance: 0,
-      status: 'paid',
-      description: 'Nota de crédito - Descuento por volumen'
-    }
-  ]
+    loadTransactions()
+  }, [loadTransactions])
 
   const getTypeBadge = (type: string) => {
     switch (type) {

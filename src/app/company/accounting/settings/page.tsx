@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -50,6 +50,24 @@ export default function AccountingSettingsPage() {
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
+  const [bankConnections, setBankConnections] = useState<BankConnection[]>([])
+  const [classificationRules, setClassificationRules] = useState<ClassificationRule[]>([])
+
+  const loadSettings = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/settings/accounting?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setBankConnections(data.bankConnections || [])
+        setClassificationRules(data.classificationRules || [])
+      }
+    } catch (error) {
+      console.error('Error loading accounting settings:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -58,72 +76,8 @@ export default function AccountingSettingsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  // Datos de ejemplo
-  const bankConnections: BankConnection[] = [
-    {
-      id: '1',
-      bankName: 'BBVA Empresarial',
-      accountNumber: '**** 4567',
-      status: 'connected',
-      lastSync: '2025-11-26 10:30',
-      transactionsCount: 1245
-    },
-    {
-      id: '2',
-      bankName: 'Santander Negocios',
-      accountNumber: '**** 8901',
-      status: 'connected',
-      lastSync: '2025-11-26 09:15',
-      transactionsCount: 892
-    },
-    {
-      id: '3',
-      bankName: 'Banorte Empresas',
-      accountNumber: '**** 2345',
-      status: 'error',
-      lastSync: '2025-11-20 14:20',
-      transactionsCount: 567
-    }
-  ]
-
-  const classificationRules: ClassificationRule[] = [
-    {
-      id: '1',
-      name: 'Servicios Públicos',
-      condition: 'Descripción contiene "CFE", "ELECTRIC", "GAS"',
-      category: '5230 - Servicios Públicos',
-      confidence: 98,
-      isActive: true
-    },
-    {
-      id: '2',
-      name: 'Pagos PayPal',
-      condition: 'Proveedor = "PAYPAL"',
-      category: '4010 - Ingresos por Servicios',
-      confidence: 99,
-      isActive: true
-    },
-    {
-      id: '3',
-      name: 'Combustible',
-      condition: 'Descripción contiene "GASOLINERA", "PEMEX"',
-      category: '5210 - Combustibles',
-      confidence: 95,
-      isActive: true
-    },
-    {
-      id: '4',
-      name: 'Renta de Oficina',
-      condition: 'Descripción contiene "RENTA", "RENT"',
-      category: '5110 - Renta',
-      confidence: 92,
-      isActive: false
-    }
-  ]
+    loadSettings()
+  }, [loadSettings])
 
   const handleBackup = () => {
     const backupData = {

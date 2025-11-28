@@ -205,29 +205,7 @@ export default function BankSyncPage() {
     }
   }, [activeCompany, fetchBankAccounts])
 
-  // Sample transactions - these would come from API in real implementation
-  const sampleTransactions: Transaction[] = [
-    {
-      id: 'TXN-001',
-      date: '2025-11-25',
-      description: 'SPEI Recibido - CLIENTE ABC CORP',
-      amount: 15000,
-      type: 'credit',
-      category: 'Ventas de Servicios',
-      status: 'categorized',
-      confidence: 95
-    },
-    {
-      id: 'TXN-002',
-      date: '2025-11-24',
-      description: 'Transferencia - RENTA OFICINA',
-      amount: 8000,
-      type: 'debit',
-      category: 'Renta',
-      status: 'categorized',
-      confidence: 98
-    },
-  ]
+  const sampleTransactions = recentTransactions
 
   const handleSync = async (bankId: string) => {
     setSyncing(true)
