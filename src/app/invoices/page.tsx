@@ -146,8 +146,17 @@ export default function InvoicesPage() {
       const confirmed = confirm(`¿Enviar factura ${invoice.invoiceNumber} a ${invoice.customer.email}?`)
       if (!confirmed) return
 
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success(`Factura enviada a ${invoice.customer.email}`)
+      const response = await fetch(`/api/invoices/${invoice.id}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: invoice.customer.email })
+      })
+      
+      if (response.ok) {
+        toast.success(`Factura enviada a ${invoice.customer.email}`)
+      } else {
+        throw new Error('Error al enviar')
+      }
     } catch (error) {
       toast.error('Error al enviar factura')
     }
@@ -163,9 +172,16 @@ export default function InvoicesPage() {
       const confirmed = confirm(`¿Eliminar factura ${invoiceNumber}?`)
       if (!confirmed) return
 
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setInvoices(prev => prev.filter(inv => inv.id !== invoiceId))
-      toast.success('Factura eliminada')
+      const response = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        setInvoices(prev => prev.filter(inv => inv.id !== invoiceId))
+        toast.success('Factura eliminada')
+      } else {
+        throw new Error('Error al eliminar')
+      }
     } catch (error) {
       toast.error('Error al eliminar factura')
     }

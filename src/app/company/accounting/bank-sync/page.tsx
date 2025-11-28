@@ -210,10 +210,18 @@ export default function BankSyncPage() {
   const handleSync = async (bankId: string) => {
     setSyncing(true)
     try {
-      // Simulate sync - in real app would call API
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      setMessage({ type: 'success', text: '✅ Sincronización completada' })
-      await fetchBankAccounts()
+      const response = await fetch(`/api/banking/sync/${bankId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId: activeCompany?.id })
+      })
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: '✅ Sincronización completada' })
+        await fetchBankAccounts()
+      } else {
+        throw new Error('Error al sincronizar')
+      }
     } catch (error) {
       setMessage({ type: 'error', text: 'Error al sincronizar' })
     } finally {

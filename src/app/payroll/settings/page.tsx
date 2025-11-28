@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -61,7 +61,7 @@ interface DeductionType {
 
 export default function PayrollSettingsPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'general' | 'taxes' | 'deductions' | 'company'>('general')
   
@@ -77,18 +77,31 @@ export default function PayrollSettingsPage() {
     payDayOfWeek: 15,
     vacationDaysPerYear: 12,
     christmasBonusDays: 15,
-    companyName: 'Mi Empresa S.A. de C.V.',
-    rfc: 'XAXX010101000',
-    imssRegistro: 'Y12-34567-8'
+    companyName: '',
+    rfc: '',
+    imssRegistro: ''
   })
 
-  const [deductions, setDeductions] = useState<DeductionType[]>([
-    { id: '1', name: 'ISR', type: 'PERCENTAGE', value: 10, isActive: true },
-    { id: '2', name: 'IMSS Trabajador', type: 'PERCENTAGE', value: 3, isActive: true },
-    { id: '3', name: 'Préstamo Personal', type: 'FIXED', value: 500, isActive: true },
-    { id: '4', name: 'Caja de Ahorro', type: 'PERCENTAGE', value: 5, isActive: true },
-    { id: '5', name: 'Seguro de Vida', type: 'FIXED', value: 200, isActive: false },
-  ])
+  const [deductions, setDeductions] = useState<DeductionType[]>([])
+
+  const loadSettings = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/payroll/settings')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.config) setConfig(data.config)
+        if (data.deductions) setDeductions(data.deductions)
+      }
+    } catch (error) {
+      console.error('Error loading payroll settings:', error)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
 
   const [showNewDeduction, setShowNewDeduction] = useState(false)
   const [newDeduction, setNewDeduction] = useState({
@@ -100,14 +113,20 @@ export default function PayrollSettingsPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch('/api/payroll/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config,
+          deductions
+        })
+      })
       
-      // In a real app, you would save to the database
-      localStorage.setItem('payrollConfig', JSON.stringify(config))
-      localStorage.setItem('payrollDeductions', JSON.stringify(deductions))
-      
-      alert('Configuración guardada exitosamente')
+      if (response.ok) {
+        alert('Configuración guardada exitosamente')
+      } else {
+        throw new Error('Error al guardar')
+      }
     } catch (error) {
       alert('Error al guardar la configuración')
     } finally {

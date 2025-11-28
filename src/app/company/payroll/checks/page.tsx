@@ -190,20 +190,28 @@ export default function PayrollChecksPage() {
 
     setProcessing(true)
     try {
-      // Simular llamada a API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
       const employee = employees.find(e => e.id === selectedEmployee)
-      console.log('Nuevo cheque creado:', {
-        checkNumber: nextCheckNumber,
-        employee: employee?.name,
-        amount: checkAmount,
-        memo: checkMemo
+      
+      const response = await fetch('/api/payroll/checks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: activeCompany?.id,
+          employeeId: selectedEmployee,
+          checkNumber: nextCheckNumber,
+          amount: parseFloat(checkAmount),
+          memo: checkMemo
+        })
       })
       
-      setMessage({ type: 'success', text: `Cheque #${nextCheckNumber} creado exitosamente para ${employee?.name}` })
-      setTimeout(() => setMessage(null), 3000)
-      closeNewCheckModal()
+      if (response.ok) {
+        setMessage({ type: 'success', text: `Cheque #${nextCheckNumber} creado exitosamente para ${employee?.name}` })
+        setTimeout(() => setMessage(null), 3000)
+        closeNewCheckModal()
+        loadData()
+      } else {
+        throw new Error('Error al crear cheque')
+      }
     } catch (error) {
       console.error('Error al crear cheque:', error)
       setMessage({ type: 'error', text: 'Error al crear el cheque' })
