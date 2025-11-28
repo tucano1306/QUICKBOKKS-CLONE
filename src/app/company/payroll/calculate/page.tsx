@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -83,6 +83,22 @@ export default function PayrollCalculatePage() {
   const [paymentDate, setPaymentDate] = useState('')
   const [calculations, setCalculations] = useState<any[]>([])
   const [payrollResults, setPayrollResults] = useState<any[]>([])
+  const [payrollCalculations, setPayrollCalculations] = useState<PayrollCalculation[]>([])
+
+  const loadPayrollHistory = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/payroll/history?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setPayrollCalculations(data.payrolls || [])
+      }
+    } catch (error) {
+      console.error('Error loading payroll history:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -91,9 +107,8 @@ export default function PayrollCalculatePage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    loadPayrollHistory()
+  }, [loadPayrollHistory])
 
   // Fetch employees when modal opens
   const openNewPayrollModal = async () => {
@@ -266,272 +281,6 @@ export default function PayrollCalculatePage() {
     link.download = `nomina-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
   }
-
-  const payrollCalculations: PayrollCalculation[] = [
-    {
-      id: 'PAY-001',
-      employee: 'Juan Carlos Pérez',
-      employeeId: 'EMP-001',
-      department: 'Desarrollo',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 25000,
-      regularHours: 80,
-      overtimeHours: 5,
-      doubleTimeHours: 0,
-      overtimePay: 1953.13,
-      doubleTimePay: 0,
-      bonuses: 2000,
-      commissions: 0,
-      grossPay: 28953.13,
-      isrTax: 3215.34,
-      imss: 869.59,
-      infonavit: 1250,
-      otherDeductions: 0,
-      totalDeductions: 5334.93,
-      netPay: 23618.20,
-      status: 'calculated',
-      calculatedDate: '2025-11-25'
-    },
-    {
-      id: 'PAY-002',
-      employee: 'María González',
-      employeeId: 'EMP-002',
-      department: 'Contabilidad',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 22000,
-      regularHours: 80,
-      overtimeHours: 0,
-      doubleTimeHours: 0,
-      overtimePay: 0,
-      doubleTimePay: 0,
-      bonuses: 1500,
-      commissions: 0,
-      grossPay: 23500,
-      isrTax: 2468.50,
-      imss: 766.25,
-      infonavit: 1100,
-      otherDeductions: 0,
-      totalDeductions: 4334.75,
-      netPay: 19165.25,
-      status: 'approved',
-      calculatedDate: '2025-11-25',
-      approvedBy: 'Ana Martínez'
-    },
-    {
-      id: 'PAY-003',
-      employee: 'Carlos Torres',
-      employeeId: 'EMP-003',
-      department: 'Ventas',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 18000,
-      regularHours: 84,
-      overtimeHours: 3,
-      doubleTimeHours: 0,
-      overtimePay: 1181.25,
-      doubleTimePay: 0,
-      bonuses: 1000,
-      commissions: 3500,
-      grossPay: 23681.25,
-      isrTax: 2478.52,
-      imss: 627,
-      infonavit: 900,
-      otherDeductions: 0,
-      totalDeductions: 4005.52,
-      netPay: 19675.73,
-      status: 'calculated',
-      calculatedDate: '2025-11-25'
-    },
-    {
-      id: 'PAY-004',
-      employee: 'Ana Martínez',
-      employeeId: 'EMP-004',
-      department: 'Administración',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 35000,
-      regularHours: 80,
-      overtimeHours: 0,
-      doubleTimeHours: 0,
-      overtimePay: 0,
-      doubleTimePay: 0,
-      bonuses: 5000,
-      commissions: 0,
-      grossPay: 40000,
-      isrTax: 5832,
-      imss: 1225,
-      infonavit: 1750,
-      otherDeductions: 500,
-      totalDeductions: 9307,
-      netPay: 30693,
-      status: 'approved',
-      calculatedDate: '2025-11-25',
-      approvedBy: 'Carlos Torres'
-    },
-    {
-      id: 'PAY-005',
-      employee: 'Luis Fernández',
-      employeeId: 'EMP-005',
-      department: 'Soporte',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 20000,
-      regularHours: 80,
-      overtimeHours: 8,
-      doubleTimeHours: 2,
-      overtimePay: 3125,
-      doubleTimePay: 1562.50,
-      bonuses: 1000,
-      commissions: 0,
-      grossPay: 25687.50,
-      isrTax: 2911.91,
-      imss: 700,
-      infonavit: 1000,
-      otherDeductions: 0,
-      totalDeductions: 4611.91,
-      netPay: 21075.59,
-      status: 'calculated',
-      calculatedDate: '2025-11-25'
-    },
-    {
-      id: 'PAY-006',
-      employee: 'Pedro Sánchez',
-      employeeId: 'EMP-006',
-      department: 'IT',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 28000,
-      regularHours: 80,
-      overtimeHours: 6,
-      doubleTimeHours: 0,
-      overtimePay: 3281.25,
-      doubleTimePay: 0,
-      bonuses: 2500,
-      commissions: 0,
-      grossPay: 33781.25,
-      isrTax: 4466.37,
-      imss: 980,
-      infonavit: 1400,
-      otherDeductions: 0,
-      totalDeductions: 6846.37,
-      netPay: 26934.88,
-      status: 'approved',
-      calculatedDate: '2025-11-25',
-      approvedBy: 'Ana Martínez'
-    },
-    {
-      id: 'PAY-007',
-      employee: 'Laura Jiménez',
-      employeeId: 'EMP-007',
-      department: 'Recursos Humanos',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 24000,
-      regularHours: 76,
-      overtimeHours: 0,
-      doubleTimeHours: 0,
-      overtimePay: 0,
-      doubleTimePay: 0,
-      bonuses: 1800,
-      commissions: 0,
-      grossPay: 25800,
-      isrTax: 2894.40,
-      imss: 840,
-      infonavit: 1200,
-      otherDeductions: 0,
-      totalDeductions: 4934.40,
-      netPay: 20865.60,
-      status: 'draft'
-    },
-    {
-      id: 'PAY-008',
-      employee: 'Roberto Díaz',
-      employeeId: 'EMP-008',
-      department: 'Desarrollo',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 26000,
-      regularHours: 80,
-      overtimeHours: 4,
-      doubleTimeHours: 0,
-      overtimePay: 2031.25,
-      doubleTimePay: 0,
-      bonuses: 2000,
-      commissions: 0,
-      grossPay: 30031.25,
-      isrTax: 3453.62,
-      imss: 910,
-      infonavit: 1300,
-      otherDeductions: 0,
-      totalDeductions: 5663.62,
-      netPay: 24367.63,
-      status: 'calculated',
-      calculatedDate: '2025-11-25'
-    },
-    {
-      id: 'PAY-009',
-      employee: 'Sofia Ramírez',
-      employeeId: 'EMP-009',
-      department: 'Marketing',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 21000,
-      regularHours: 80,
-      overtimeHours: 0,
-      doubleTimeHours: 0,
-      overtimePay: 0,
-      doubleTimePay: 0,
-      bonuses: 1200,
-      commissions: 2000,
-      grossPay: 24200,
-      isrTax: 2598.40,
-      imss: 735,
-      infonavit: 1050,
-      otherDeductions: 0,
-      totalDeductions: 4383.40,
-      netPay: 19816.60,
-      status: 'calculated',
-      calculatedDate: '2025-11-25'
-    },
-    {
-      id: 'PAY-010',
-      employee: 'Miguel Ángel Ruiz',
-      employeeId: 'EMP-010',
-      department: 'Ventas',
-      period: 'Noviembre 2025 - Quincena 2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      baseSalary: 19000,
-      regularHours: 80,
-      overtimeHours: 2,
-      doubleTimeHours: 0,
-      overtimePay: 742.19,
-      doubleTimePay: 0,
-      bonuses: 1000,
-      commissions: 2500,
-      grossPay: 23242.19,
-      isrTax: 2406.60,
-      imss: 665,
-      infonavit: 950,
-      otherDeductions: 0,
-      totalDeductions: 4021.60,
-      netPay: 19220.59,
-      status: 'approved',
-      calculatedDate: '2025-11-25',
-      approvedBy: 'Ana Martínez'
-    }
-  ]
 
   const getStatusBadge = (status: string) => {
     switch (status) {
