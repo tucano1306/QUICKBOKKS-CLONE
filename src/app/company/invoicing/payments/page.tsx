@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -56,129 +56,32 @@ export default function PaymentsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterMethod, setFilterMethod] = useState<string>('all')
 
+  const [payments, setPayments] = useState<Payment[]>([])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadPayments = useCallback(async () => {
+    if (!activeCompany?.id) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const payments: Payment[] = [
-    {
-      id: 'PAY-001',
-      paymentNumber: 'PAG-2025-001',
-      invoice: 'FAC-2025-001',
-      customer: 'Juan Pérez García',
-      date: '2025-11-25',
-      amount: 17400,
-      method: 'transfer',
-      reference: 'SPEI-123456789',
-      status: 'completed',
-      notes: 'Pago recibido via transferencia bancaria'
-    },
-    {
-      id: 'PAY-002',
-      paymentNumber: 'PAG-2025-002',
-      invoice: 'FAC-2025-003',
-      customer: 'María López Hernández',
-      date: '2025-11-24',
-      amount: 52200,
-      method: 'card',
-      reference: 'CARD-4242',
-      status: 'completed',
-      fee: 1566,
-      notes: 'Pago con tarjeta de crédito'
-    },
-    {
-      id: 'PAY-003',
-      paymentNumber: 'PAG-2025-003',
-      invoice: 'FAC-2025-005',
-      customer: 'Carlos Ramírez Sánchez',
-      date: '2025-11-23',
-      amount: 9280,
-      method: 'cash',
-      status: 'completed',
-      notes: 'Pago en efectivo en oficina'
-    },
-    {
-      id: 'PAY-004',
-      paymentNumber: 'PAG-2025-004',
-      invoice: 'FAC-2025-007',
-      customer: 'Empresa ABC Corp',
-      date: '2025-11-22',
-      amount: 139200,
-      method: 'transfer',
-      reference: 'SPEI-987654321',
-      status: 'completed',
-      notes: 'Transferencia internacional'
-    },
-    {
-      id: 'PAY-005',
-      paymentNumber: 'PAG-2025-005',
-      invoice: 'FAC-2025-012',
-      customer: 'TechStart S.A.',
-      date: '2025-11-25',
-      amount: 29000,
-      method: 'stripe',
-      reference: 'ch_3PL6xyz',
-      status: 'pending',
-      fee: 870,
-      notes: 'Pago procesándose en Stripe'
-    },
-    {
-      id: 'PAY-006',
-      paymentNumber: 'PAG-2025-006',
-      invoice: 'FAC-2025-014',
-      customer: 'Contadores Asociados',
-      date: '2025-11-24',
-      amount: 40600,
-      method: 'check',
-      reference: 'CHQ-001234',
-      status: 'completed',
-      notes: 'Cheque depositado y compensado'
-    },
-    {
-      id: 'PAY-007',
-      paymentNumber: 'PAG-2025-007',
-      invoice: 'FAC-2025-016',
-      customer: 'Servicios Pro',
-      date: '2025-11-23',
-      amount: 20880,
-      method: 'paypal',
-      reference: 'PP-8RHHX123',
-      status: 'completed',
-      fee: 626,
-      notes: 'Pago via PayPal'
-    },
-    {
-      id: 'PAY-008',
-      paymentNumber: 'PAG-2025-008',
-      invoice: 'FAC-2025-018',
-      customer: 'Innovación Digital',
-      date: '2025-11-25',
-      amount: 15000,
-      method: 'card',
-      reference: 'CARD-5555',
-      status: 'failed',
-      notes: 'Tarjeta rechazada - fondos insuficientes'
-    },
-    {
-      id: 'PAY-009',
-      paymentNumber: 'PAG-2025-009',
-      invoice: 'FAC-2025-020',
-      customer: 'Global Exports',
-      date: '2025-11-20',
-      amount: 8500,
-      method: 'transfer',
-      reference: 'SPEI-555444333',
-      status: 'refunded',
-      notes: 'Reembolso por servicio cancelado'
+    try {
+      const res = await fetch(`/api/invoices/payments?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setPayments(data.payments || [])
+      }
+    } catch (error) {
+      console.error('Error loading payments:', error)
     }
-  ]
+    setLoading(false)
+  }, [activeCompany?.id])
+
+  useEffect(() => {
+    loadPayments()
+  }, [loadPayments])
 
   const getMethodBadge = (method: string) => {
     const configs = {
