@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -26,7 +26,8 @@ import {
   Calculator,
   HelpCircle,
   Lightbulb,
-  Info
+  Info,
+  Plus
 } from 'lucide-react'
 
 interface Message {
@@ -53,30 +54,17 @@ interface QuickQuestion {
   icon: React.ReactNode
 }
 
-export default function AIAssistPage() {
-  const router = useRouter()
-  const { data: session, status } = useSession()
-  const { activeCompany } = useCompany()
-  const [loading, setLoading] = useState(true)
-  const [inputMessage, setInputMessage] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
+interface AIStats {
+  totalQuestions: number
+  avgResponseTime: string
+  helpfulRate: number
+  conversationsSaved: number
+}
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/login')
-    }
-  }, [status, router])
-
-  useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'assistant',
-      content: `¡Hola! Soy tu asistente contable IA. Estoy conectado a tu base de datos y puedo darte información precisa sobre:
+const getWelcomeMessage = (): Message => ({
+  id: '1',
+  type: 'assistant',
+  content: `¡Hola! Soy tu asistente contable IA. Estoy conectado a tu base de datos y puedo darte información precisa sobre:
 
 • 📊 Balance y situación financiera
 • 📄 Facturas pendientes y vencidas
@@ -86,41 +74,61 @@ export default function AIAssistPage() {
 • 🏛️ Información fiscal
 
 ¿En qué puedo ayudarte hoy?`,
-      timestamp: new Date().toISOString(),
-      category: 'greeting'
-    }
-  ])
+  timestamp: new Date().toISOString(),
+  category: 'greeting'
+})
 
-  const recentConversations: Conversation[] = [
-    {
-      id: '1',
-      title: 'Recording Equipment Purchase',
-      lastMessage: 'How do I record the purchase of new office equipment?',
-      timestamp: '2025-11-24T14:30:00',
-      messageCount: 8
-    },
-    {
-      id: '2',
-      title: 'Tax Deductions for Home Office',
-      lastMessage: 'What expenses can I deduct for my home office?',
-      timestamp: '2025-11-23T10:15:00',
-      messageCount: 12
-    },
-    {
-      id: '3',
-      title: 'Monthly Reconciliation Help',
-      lastMessage: 'I need help reconciling my bank account',
-      timestamp: '2025-11-22T16:45:00',
-      messageCount: 6
-    },
-    {
-      id: '4',
-      title: 'Invoice Payment Terms',
-      lastMessage: 'What are common payment terms for B2B invoices?',
-      timestamp: '2025-11-20T11:20:00',
-      messageCount: 5
+export default function AIAssistPage() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
+  const [loading, setLoading] = useState(true)
+  const [inputMessage, setInputMessage] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([getWelcomeMessage()])
+  const [recentConversations, setRecentConversations] = useState<Conversation[]>([])
+  const [stats, setStats] = useState<AIStats>({
+    totalQuestions: 0,
+    avgResponseTime: '0s',
+    helpfulRate: 0,
+    conversationsSaved: 0
+  })
+
+  const loadConversations = useCallback(async () => {
+    if (!activeCompany?.id) return
+    
+    try {
+      const response = await fetch(`/api/company/${activeCompany.id}/ai/conversations`)
+      if (response.ok) {
+        const data = await response.json()
+        setRecentConversations(data.conversations || [])
+        setStats(data.stats || {
+          totalQuestions: 0,
+          avgResponseTime: '1.2s',
+          helpfulRate: 0,
+          conversationsSaved: 0
+        })
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error)
     }
-  ]
+  }, [activeCompany?.id])
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/login')
+    }
+  }, [status, router])
+
+  useEffect(() => {
+    setLoading(true)
+    loadConversations().finally(() => setLoading(false))
+  }, [loadConversations])
+
+  const handleNewChat = () => {
+    setMessages([getWelcomeMessage()])
+    setInputMessage('')
+  }
 
   const quickQuestions: QuickQuestion[] = [
     {
@@ -160,13 +168,6 @@ export default function AIAssistPage() {
       icon: <Calculator className="w-4 h-4" />
     }
   ]
-
-  const stats = {
-    totalQuestions: 847,
-    avgResponseTime: '1.2s',
-    helpfulRate: 94.5,
-    conversationsSaved: 28
-  }
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return
@@ -257,8 +258,8 @@ export default function AIAssistPage() {
               <Bookmark className="w-4 h-4 mr-2" />
               Saved Conversations
             </Button>
-            <Button>
-              <MessageSquare className="w-4 h-4 mr-2" />
+            <Button onClick={handleNewChat}>
+              <Plus className="w-4 h-4 mr-2" />
               New Chat
             </Button>
           </div>
