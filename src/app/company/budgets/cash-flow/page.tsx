@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -47,8 +47,25 @@ export default function BudgetCashFlowPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [cashFlowItems, setCashFlowItems] = useState<CashFlowItem[]>([])
   const [selectedYear, setSelectedYear] = useState('2026')
   const [viewMode, setViewMode] = useState<'monthly' | 'quarterly'>('monthly')
+
+  const loadCashFlow = useCallback(async () => {
+    if (!activeCompany?.id) return
+    try {
+      setLoading(true)
+      const res = await fetch(`/api/budgets/cash-flow?companyId=${activeCompany.id}&year=${selectedYear}`)
+      if (res.ok) {
+        const data = await res.json()
+        setCashFlowItems(data.items || [])
+      }
+    } catch (error) {
+      console.error('Error loading cash flow:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id, selectedYear])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -57,243 +74,10 @@ export default function BudgetCashFlowPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const cashFlowItems: CashFlowItem[] = [
-    // Inflows
-    {
-      id: 'CF-IN-001',
-      category: 'Cobros a Clientes',
-      subcategory: 'Servicios de Consultoría',
-      type: 'inflow',
-      january: 2300000,
-      february: 2400000,
-      march: 2500000,
-      april: 2600000,
-      may: 2700000,
-      june: 2800000,
-      july: 2900000,
-      august: 3000000,
-      september: 3100000,
-      october: 3200000,
-      november: 3300000,
-      december: 3400000,
-      total: 34200000
-    },
-    {
-      id: 'CF-IN-002',
-      category: 'Cobros a Clientes',
-      subcategory: 'Desarrollo de Software',
-      type: 'inflow',
-      january: 1600000,
-      february: 1650000,
-      march: 1700000,
-      april: 1750000,
-      may: 1800000,
-      june: 1850000,
-      july: 1900000,
-      august: 1950000,
-      september: 2000000,
-      october: 2050000,
-      november: 2100000,
-      december: 2150000,
-      total: 22500000
-    },
-    {
-      id: 'CF-IN-003',
-      category: 'Cobros a Clientes',
-      subcategory: 'Licencias SaaS',
-      type: 'inflow',
-      january: 1150000,
-      february: 1180000,
-      march: 1200000,
-      april: 1230000,
-      may: 1250000,
-      june: 1280000,
-      july: 1300000,
-      august: 1330000,
-      september: 1350000,
-      october: 1380000,
-      november: 1400000,
-      december: 1450000,
-      total: 15500000
-    },
-    {
-      id: 'CF-IN-004',
-      category: 'Otras Entradas',
-      subcategory: 'Intereses Bancarios',
-      type: 'inflow',
-      january: 25000,
-      february: 26000,
-      march: 27000,
-      april: 28000,
-      may: 29000,
-      june: 30000,
-      july: 31000,
-      august: 32000,
-      september: 33000,
-      october: 34000,
-      november: 35000,
-      december: 36000,
-      total: 366000
-    },
-    // Outflows
-    {
-      id: 'CF-OUT-001',
-      category: 'Pagos de Nómina',
-      subcategory: 'Salarios y Prestaciones',
-      type: 'outflow',
-      january: 3200000,
-      february: 3250000,
-      march: 3300000,
-      april: 3350000,
-      may: 3400000,
-      june: 3450000,
-      july: 3500000,
-      august: 3550000,
-      september: 3600000,
-      october: 3650000,
-      november: 3700000,
-      december: 3750000,
-      total: 41700000
-    },
-    {
-      id: 'CF-OUT-002',
-      category: 'Proveedores',
-      subcategory: 'Infraestructura Cloud',
-      type: 'outflow',
-      january: 110000,
-      february: 115000,
-      march: 120000,
-      april: 125000,
-      may: 130000,
-      june: 135000,
-      july: 140000,
-      august: 145000,
-      september: 150000,
-      october: 155000,
-      november: 160000,
-      december: 165000,
-      total: 1650000
-    },
-    {
-      id: 'CF-OUT-003',
-      category: 'Gastos Operativos',
-      subcategory: 'Renta de Oficina',
-      type: 'outflow',
-      january: 300000,
-      february: 300000,
-      march: 300000,
-      april: 300000,
-      may: 300000,
-      june: 300000,
-      july: 300000,
-      august: 300000,
-      september: 300000,
-      october: 300000,
-      november: 300000,
-      december: 300000,
-      total: 3600000
-    },
-    {
-      id: 'CF-OUT-004',
-      category: 'Marketing',
-      subcategory: 'Publicidad Digital',
-      type: 'outflow',
-      january: 220000,
-      february: 230000,
-      march: 240000,
-      april: 250000,
-      may: 260000,
-      june: 270000,
-      july: 280000,
-      august: 290000,
-      september: 300000,
-      october: 310000,
-      november: 320000,
-      december: 330000,
-      total: 3300000
-    },
-    {
-      id: 'CF-OUT-005',
-      category: 'Impuestos',
-      subcategory: 'ISR e IVA',
-      type: 'outflow',
-      january: 450000,
-      february: 0,
-      march: 0,
-      april: 480000,
-      may: 0,
-      june: 0,
-      july: 510000,
-      august: 0,
-      september: 0,
-      october: 540000,
-      november: 0,
-      december: 0,
-      total: 1980000
-    },
-    {
-      id: 'CF-OUT-006',
-      category: 'Servicios',
-      subcategory: 'Servicios Públicos',
-      type: 'outflow',
-      january: 75000,
-      february: 78000,
-      march: 80000,
-      april: 82000,
-      may: 85000,
-      june: 88000,
-      july: 90000,
-      august: 92000,
-      september: 95000,
-      october: 97000,
-      november: 100000,
-      december: 103000,
-      total: 1065000
-    },
-    {
-      id: 'CF-OUT-007',
-      category: 'Capacitación',
-      subcategory: 'Formación Personal',
-      type: 'outflow',
-      january: 150000,
-      february: 160000,
-      march: 170000,
-      april: 180000,
-      may: 190000,
-      june: 200000,
-      july: 210000,
-      august: 220000,
-      september: 230000,
-      october: 240000,
-      november: 250000,
-      december: 260000,
-      total: 2460000
-    },
-    {
-      id: 'CF-OUT-008',
-      category: 'Inversiones',
-      subcategory: 'Equipamiento',
-      type: 'outflow',
-      january: 500000,
-      february: 0,
-      march: 0,
-      april: 0,
-      may: 600000,
-      june: 0,
-      july: 0,
-      august: 0,
-      september: 700000,
-      october: 0,
-      november: 0,
-      december: 800000,
-      total: 2600000
+    if (status === 'authenticated' && activeCompany?.id) {
+      loadCashFlow()
     }
-  ]
-
+  }, [status, activeCompany?.id, selectedYear, loadCashFlow])
   const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
   const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 

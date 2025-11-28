@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -53,10 +53,32 @@ export default function ProjectProfitabilityPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [projects, setProjects] = useState<ProjectProfitability[]>([])
+  const [summary, setSummary] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [sortBy, setSortBy] = useState<string>('roi')
-  const [selectedProject, setSelectedProject] = useState<string>('PROJ-001')
+  const [selectedProject, setSelectedProject] = useState<string>('')
+
+  const loadProfitability = useCallback(async () => {
+    if (!activeCompany?.id) return
+    try {
+      setLoading(true)
+      const res = await fetch(`/api/projects/profitability?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setProjects(data.projects || [])
+        setSummary(data.summary || null)
+        if (data.projects?.length > 0 && !selectedProject) {
+          setSelectedProject(data.projects[0].projectId)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading profitability:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id, selectedProject])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -65,225 +87,14 @@ export default function ProjectProfitabilityPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const projectsProfitability: ProjectProfitability[] = [
-    {
-      projectId: 'PROJ-001',
-      projectCode: 'ERP-2025-001',
-      projectName: 'Implementación Sistema ERP - GlobalTech',
-      client: 'GlobalTech Inc.',
-      status: 'active',
-      totalRevenue: 3500000,
-      actualRevenue: 1575000,
-      totalCosts: 1125000,
-      laborCosts: 675000,
-      materialCosts: 180000,
-      overheadCosts: 202500,
-      otherCosts: 67500,
-      grossProfit: 450000,
-      grossMarginPercent: 28.57,
-      netProfit: 450000,
-      netMarginPercent: 28.57,
-      roi: 40.0,
-      budgetEfficiency: 100.0,
-      revenueRealization: 45.0,
-      completionPercent: 45
-    },
-    {
-      projectId: 'PROJ-002',
-      projectCode: 'WEB-2025-012',
-      projectName: 'Portal E-commerce Acme Corp',
-      client: 'Acme Corp',
-      status: 'active',
-      totalRevenue: 1200000,
-      actualRevenue: 780000,
-      totalCosts: 552500,
-      laborCosts: 331500,
-      materialCosts: 110500,
-      overheadCosts: 88400,
-      otherCosts: 22100,
-      grossProfit: 227500,
-      grossMarginPercent: 29.17,
-      netProfit: 227500,
-      netMarginPercent: 29.17,
-      roi: 41.18,
-      budgetEfficiency: 100.0,
-      revenueRealization: 65.0,
-      completionPercent: 65
-    },
-    {
-      projectId: 'PROJ-003',
-      projectCode: 'APP-2025-008',
-      projectName: 'App Móvil Fintech - Innovatech',
-      client: 'Innovatech',
-      status: 'active',
-      totalRevenue: 1680000,
-      actualRevenue: 1344000,
-      totalCosts: 960000,
-      laborCosts: 576000,
-      materialCosts: 192000,
-      overheadCosts: 153600,
-      otherCosts: 38400,
-      grossProfit: 384000,
-      grossMarginPercent: 28.57,
-      netProfit: 384000,
-      netMarginPercent: 28.57,
-      roi: 40.0,
-      budgetEfficiency: 100.0,
-      revenueRealization: 80.0,
-      completionPercent: 80
-    },
-    {
-      projectId: 'PROJ-004',
-      projectCode: 'INF-2025-015',
-      projectName: 'Migración Cloud - Distribuidora Tech',
-      client: 'Distribuidora Tech Solutions',
-      status: 'active',
-      totalRevenue: 1330000,
-      actualRevenue: 731500,
-      totalCosts: 522500,
-      laborCosts: 313500,
-      materialCosts: 104500,
-      overheadCosts: 83600,
-      otherCosts: 20900,
-      grossProfit: 209000,
-      grossMarginPercent: 28.57,
-      netProfit: 209000,
-      netMarginPercent: 28.57,
-      roi: 40.0,
-      budgetEfficiency: 100.0,
-      revenueRealization: 55.0,
-      completionPercent: 55
-    },
-    {
-      projectId: 'PROJ-005',
-      projectCode: 'IOT-2025-004',
-      projectName: 'Plataforma IoT Industrial - ManufactureTech',
-      client: 'ManufactureTech',
-      status: 'active',
-      totalRevenue: 2030000,
-      actualRevenue: 1725500,
-      totalCosts: 1232500,
-      laborCosts: 739500,
-      materialCosts: 246500,
-      overheadCosts: 197200,
-      otherCosts: 49300,
-      grossProfit: 493000,
-      grossMarginPercent: 28.57,
-      netProfit: 493000,
-      netMarginPercent: 28.57,
-      roi: 40.0,
-      budgetEfficiency: 100.0,
-      revenueRealization: 85.0,
-      completionPercent: 85
-    },
-    {
-      projectId: 'PROJ-006',
-      projectCode: 'CON-2025-007',
-      projectName: 'Consultoría Transformación Digital - RetailCorp',
-      client: 'RetailCorp',
-      status: 'completed',
-      totalRevenue: 910000,
-      actualRevenue: 910000,
-      totalCosts: 620000,
-      laborCosts: 434000,
-      materialCosts: 93000,
-      overheadCosts: 74400,
-      otherCosts: 18600,
-      grossProfit: 290000,
-      grossMarginPercent: 31.87,
-      netProfit: 290000,
-      netMarginPercent: 31.87,
-      roi: 46.77,
-      budgetEfficiency: 104.6,
-      revenueRealization: 100.0,
-      completionPercent: 100
-    },
-    {
-      projectId: 'PROJ-007',
-      projectCode: 'DATA-2025-010',
-      projectName: 'Business Intelligence Dashboard - Analytics Pro',
-      client: 'Analytics Pro',
-      status: 'active',
-      totalRevenue: 1008000,
-      actualRevenue: 252000,
-      totalCosts: 180000,
-      laborCosts: 108000,
-      materialCosts: 36000,
-      overheadCosts: 28800,
-      otherCosts: 7200,
-      grossProfit: 72000,
-      grossMarginPercent: 28.57,
-      netProfit: 72000,
-      netMarginPercent: 28.57,
-      roi: 40.0,
-      budgetEfficiency: 100.0,
-      revenueRealization: 25.0,
-      completionPercent: 25
-    },
-    {
-      projectId: 'PROJ-008',
-      projectCode: 'WEB-2025-018',
-      projectName: 'Rediseño Sitio Corporativo - BrandCo',
-      client: 'BrandCo',
-      status: 'completed',
-      totalRevenue: 448000,
-      actualRevenue: 448000,
-      totalCosts: 304000,
-      laborCosts: 212800,
-      materialCosts: 45600,
-      overheadCosts: 36480,
-      otherCosts: 9120,
-      grossProfit: 144000,
-      grossMarginPercent: 32.14,
-      netProfit: 144000,
-      netMarginPercent: 32.14,
-      roi: 47.37,
-      budgetEfficiency: 105.0,
-      revenueRealization: 100.0,
-      completionPercent: 100
+    if (status === 'authenticated' && activeCompany?.id) {
+      loadProfitability()
     }
-  ]
+  }, [status, activeCompany?.id, loadProfitability])
 
-  const selectedProjectData = projectsProfitability.find(p => p.projectId === selectedProject) || projectsProfitability[0]
+  const selectedProjectData = projects.find(p => p.projectId === selectedProject) || projects[0]
 
-  const getProfitabilityBadge = (margin: number) => {
-    if (margin >= 30) {
-      return <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
-        <TrendingUp className="w-3 h-3" /> Excelente
-      </Badge>
-    } else if (margin >= 20) {
-      return <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
-        <CheckCircle className="w-3 h-3" /> Bueno
-      </Badge>
-    } else if (margin >= 10) {
-      return <Badge className="bg-orange-100 text-orange-700 flex items-center gap-1">
-        <AlertCircle className="w-3 h-3" /> Aceptable
-      </Badge>
-    } else {
-      return <Badge className="bg-red-100 text-red-700 flex items-center gap-1">
-        <TrendingDown className="w-3 h-3" /> Bajo
-      </Badge>
-    }
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-blue-100 text-blue-700">Activo</Badge>
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-700">Completado</Badge>
-      case 'on-hold':
-        return <Badge className="bg-orange-100 text-orange-700">En Espera</Badge>
-      default:
-        return null
-    }
-  }
-
-  const filteredProjects = projectsProfitability.filter(project => {
+  const filteredProjects = projects.filter(project => {
     if (filterStatus !== 'all' && project.status !== filterStatus) return false
     if (searchTerm && !project.projectName.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !project.client.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -304,11 +115,46 @@ export default function ProjectProfitabilityPage() {
     }
   })
 
-  const totalRevenue = projectsProfitability.reduce((sum, p) => sum + p.actualRevenue, 0)
-  const totalCosts = projectsProfitability.reduce((sum, p) => sum + p.totalCosts, 0)
+  const totalRevenue = projects.reduce((sum, p) => sum + p.actualRevenue, 0)
+  const totalCosts = projects.reduce((sum, p) => sum + p.totalCosts, 0)
   const totalProfit = totalRevenue - totalCosts
-  const avgMargin = (totalProfit / totalRevenue) * 100
-  const avgROI = projectsProfitability.reduce((sum, p) => sum + p.roi, 0) / projectsProfitability.length
+  const avgMargin = (totalProfit / totalRevenue) * 100 || 0
+  const avgROI = projects.length > 0 ? projects.reduce((sum, p) => sum + p.roi, 0) / projects.length : 0
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-blue-100 text-blue-700">Activo</Badge>
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-700">Completado</Badge>
+      case 'on-hold':
+        return <Badge className="bg-orange-100 text-orange-700">En Espera</Badge>
+      default:
+        return null
+    }
+  }
+
+  const getMarginBadge = (margin: number) => {
+    if (margin >= 30) {
+      return <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
+        <ArrowUpRight className="w-3 h-3" /> Excelente
+      </Badge>
+    } else if (margin >= 20) {
+      return <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
+        <CheckCircle className="w-3 h-3" /> Bueno
+      </Badge>
+    } else if (margin >= 10) {
+      return <Badge className="bg-orange-100 text-orange-700 flex items-center gap-1">
+        <AlertCircle className="w-3 h-3" /> Regular
+      </Badge>
+    } else {
+      return <Badge className="bg-red-100 text-red-700 flex items-center gap-1">
+        <ArrowDownRight className="w-3 h-3" /> Bajo
+      </Badge>
+    }
+  }
+
+  const getProfitabilityBadge = (margin: number) => getMarginBadge(margin)
 
   if (status === 'loading' || loading) {
     return (
@@ -406,7 +252,7 @@ export default function ProjectProfitabilityPage() {
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
               >
-                {projectsProfitability.map(project => (
+                {projects.map(project => (
                   <option key={project.projectId} value={project.projectId}>
                     {project.projectCode} - {project.projectName}
                   </option>

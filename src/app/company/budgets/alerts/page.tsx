@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -52,10 +52,27 @@ export default function BudgetAlertsPage() {
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
+  const [alerts, setAlerts] = useState<BudgetAlert[]>([])
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<string>('active')
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all')
+
+  const loadAlerts = useCallback(async () => {
+    if (!activeCompany?.id) return
+    try {
+      setLoading(true)
+      const res = await fetch(`/api/budgets/alerts?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setAlerts(data.alerts || [])
+      }
+    } catch (error) {
+      console.error('Error loading alerts:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -64,241 +81,10 @@ export default function BudgetAlertsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const alerts: BudgetAlert[] = [
-    {
-      id: 'ALT-001',
-      title: 'Marketing Digital - Exceso Crítico',
-      description: 'El gasto en marketing digital ha superado el 115% del presupuesto mensual. Se requiere aprobación para continuar.',
-      severity: 'critical',
-      status: 'active',
-      category: 'Marketing Digital',
-      department: 'Marketing',
-      budgetAmount: 250000,
-      actualAmount: 285000,
-      variance: 35000,
-      variancePercent: 14.0,
-      threshold: 110,
-      triggeredDate: '2025-11-28',
-      responsibleManager: 'Ana García',
-      dueDate: '2025-12-05'
-    },
-    {
-      id: 'ALT-002',
-      title: 'Servidores Cloud - Sobrecosto Alto',
-      description: 'Los costos de infraestructura cloud están 15% sobre presupuesto debido a incremento en uso de servicios.',
-      severity: 'high',
-      status: 'acknowledged',
-      category: 'Servidores y Cloud',
-      department: 'Tecnología',
-      budgetAmount: 120000,
-      actualAmount: 138000,
-      variance: 18000,
-      variancePercent: 15.0,
-      threshold: 110,
-      triggeredDate: '2025-11-25',
-      acknowledgedBy: 'Carlos Méndez',
-      acknowledgedDate: '2025-11-26',
-      responsibleManager: 'Carlos Méndez',
-      dueDate: '2025-12-10'
-    },
-    {
-      id: 'ALT-003',
-      title: 'Desarrollo Software - Ingresos Bajos',
-      description: 'Los ingresos por desarrollo de software están 8.3% por debajo del objetivo mensual.',
-      severity: 'high',
-      status: 'active',
-      category: 'Desarrollo de Software',
-      department: 'Ventas',
-      budgetAmount: 1800000,
-      actualAmount: 1650000,
-      variance: -150000,
-      variancePercent: -8.3,
-      threshold: 95,
-      triggeredDate: '2025-11-27',
-      responsibleManager: 'Luis Rodríguez',
-      dueDate: '2025-12-03'
-    },
-    {
-      id: 'ALT-004',
-      title: 'Capacitación - Presupuesto al 95%',
-      description: 'El presupuesto de capacitación ha alcanzado el 95% de su límite mensual con 5 días restantes.',
-      severity: 'medium',
-      status: 'active',
-      category: 'Capacitación',
-      department: 'RRHH',
-      budgetAmount: 200000,
-      actualAmount: 190000,
-      variance: 10000,
-      variancePercent: 95.0,
-      threshold: 95,
-      triggeredDate: '2025-11-26',
-      responsibleManager: 'María López',
-      dueDate: '2025-12-01'
-    },
-    {
-      id: 'ALT-005',
-      title: 'Nómina Operaciones - Aumento Imprevisto',
-      description: 'Pago de horas extras ha incrementado la nómina en 6.2% sobre lo presupuestado.',
-      severity: 'medium',
-      status: 'acknowledged',
-      category: 'Nómina Operaciones',
-      department: 'Operaciones',
-      budgetAmount: 2800000,
-      actualAmount: 2974000,
-      variance: 174000,
-      variancePercent: 6.2,
-      threshold: 105,
-      triggeredDate: '2025-11-24',
-      acknowledgedBy: 'Roberto Sánchez',
-      acknowledgedDate: '2025-11-25',
-      responsibleManager: 'Roberto Sánchez',
-      dueDate: '2025-12-08'
-    },
-    {
-      id: 'ALT-006',
-      title: 'Consultoría - Meta Superada',
-      description: 'Los ingresos por consultoría superaron el presupuesto en 7.2%. ¡Excelente desempeño!',
-      severity: 'low',
-      status: 'resolved',
-      category: 'Consultoría',
-      department: 'Ventas',
-      budgetAmount: 2500000,
-      actualAmount: 2680000,
-      variance: 180000,
-      variancePercent: 7.2,
-      threshold: 100,
-      triggeredDate: '2025-11-20',
-      acknowledgedBy: 'Luis Rodríguez',
-      acknowledgedDate: '2025-11-20',
-      resolvedBy: 'Luis Rodríguez',
-      resolvedDate: '2025-11-21',
-      actionTaken: 'Se actualizó la proyección de ingresos Q4. Se asignaron recursos adicionales para mantener el momentum.',
-      responsibleManager: 'Luis Rodríguez',
-      dueDate: '2025-11-25'
-    },
-    {
-      id: 'ALT-007',
-      title: 'Licencias Software - Próximo a Límite',
-      description: 'El gasto en licencias y herramientas está al 92% del presupuesto mensual.',
-      severity: 'low',
-      status: 'active',
-      category: 'Licencias y Herramientas',
-      department: 'Tecnología',
-      budgetAmount: 60000,
-      actualAmount: 55200,
-      variance: 4800,
-      variancePercent: 92.0,
-      threshold: 90,
-      triggeredDate: '2025-11-28',
-      responsibleManager: 'Carlos Méndez',
-      dueDate: '2025-12-02'
-    },
-    {
-      id: 'ALT-008',
-      title: 'Renta Oficina - Incremento Anual',
-      description: 'Se ha notificado un incremento del 5% en la renta de oficina para el próximo año.',
-      severity: 'medium',
-      status: 'acknowledged',
-      category: 'Renta de Oficina',
-      department: 'Administración',
-      budgetAmount: 300000,
-      actualAmount: 315000,
-      variance: 15000,
-      variancePercent: 5.0,
-      threshold: 100,
-      triggeredDate: '2025-11-22',
-      acknowledgedBy: 'Patricia Ruiz',
-      acknowledgedDate: '2025-11-23',
-      responsibleManager: 'Patricia Ruiz',
-      dueDate: '2025-12-15'
-    },
-    {
-      id: 'ALT-009',
-      title: 'Soporte - Ingresos por Debajo',
-      description: 'Los ingresos por soporte y mantenimiento están 3.4% por debajo del objetivo.',
-      severity: 'low',
-      status: 'dismissed',
-      category: 'Soporte y Mantenimiento',
-      department: 'Ventas',
-      budgetAmount: 290000,
-      actualAmount: 280000,
-      variance: -10000,
-      variancePercent: -3.4,
-      threshold: 95,
-      triggeredDate: '2025-11-23',
-      acknowledgedBy: 'Luis Rodríguez',
-      acknowledgedDate: '2025-11-24',
-      actionTaken: 'Variación dentro de límites aceptables para este mes. Se monitoreará en diciembre.',
-      responsibleManager: 'Luis Rodríguez',
-      dueDate: '2025-11-30'
-    },
-    {
-      id: 'ALT-010',
-      title: 'Servicios Generales - Gasto Elevado',
-      description: 'Los gastos en servicios públicos aumentaron 10% debido a incremento en tarifas eléctricas.',
-      severity: 'medium',
-      status: 'resolved',
-      category: 'Servicios Generales',
-      department: 'Administración',
-      budgetAmount: 100000,
-      actualAmount: 110000,
-      variance: 10000,
-      variancePercent: 10.0,
-      threshold: 105,
-      triggeredDate: '2025-11-21',
-      acknowledgedBy: 'Patricia Ruiz',
-      acknowledgedDate: '2025-11-21',
-      resolvedBy: 'Patricia Ruiz',
-      resolvedDate: '2025-11-23',
-      actionTaken: 'Se ajustó el presupuesto para reflejar nuevas tarifas. Se implementaron medidas de ahorro energético.',
-      responsibleManager: 'Patricia Ruiz',
-      dueDate: '2025-11-28'
-    },
-    {
-      id: 'ALT-011',
-      title: 'Nómina Tecnología - Bonos Trimestrales',
-      description: 'Pago de bonos de desempeño Q4 incrementó temporalmente la nómina en 4.8%.',
-      severity: 'low',
-      status: 'resolved',
-      category: 'Nómina Tecnología',
-      department: 'Tecnología',
-      budgetAmount: 3500000,
-      actualAmount: 3668000,
-      variance: 168000,
-      variancePercent: 4.8,
-      threshold: 105,
-      triggeredDate: '2025-11-20',
-      acknowledgedBy: 'Carlos Méndez',
-      acknowledgedDate: '2025-11-20',
-      resolvedBy: 'María López',
-      resolvedDate: '2025-11-22',
-      actionTaken: 'Bonos planeados y aprobados. Se registraron correctamente en contabilidad.',
-      responsibleManager: 'María López',
-      dueDate: '2025-11-25'
-    },
-    {
-      id: 'ALT-012',
-      title: 'Licencias SaaS - Renovación Anticipada',
-      description: 'Oportunidad de ahorro: renovación anticipada anual con 12% de descuento disponible.',
-      severity: 'low',
-      status: 'active',
-      category: 'Licencias de Software',
-      department: 'Ventas',
-      budgetAmount: 1200000,
-      actualAmount: 1056000,
-      variance: -144000,
-      variancePercent: -12.0,
-      threshold: 100,
-      triggeredDate: '2025-11-29',
-      responsibleManager: 'Luis Rodríguez',
-      dueDate: '2025-12-10'
+    if (status === 'authenticated' && activeCompany?.id) {
+      loadAlerts()
     }
-  ]
-
+  }, [status, activeCompany?.id, loadAlerts])
   const filteredAlerts = alerts.filter(alert => {
     if (selectedSeverity !== 'all' && alert.severity !== selectedSeverity) return false
     if (selectedStatus !== 'all' && alert.status !== selectedStatus) return false
