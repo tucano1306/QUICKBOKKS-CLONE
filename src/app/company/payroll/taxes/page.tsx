@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -68,209 +68,34 @@ export default function PayrollTaxesPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'individual' | 'summary'>('summary')
 
+  const [taxRecords, setTaxRecords] = useState<TaxRecord[]>([])
+  const [taxSummaries, setTaxSummaries] = useState<TaxSummary[]>([])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadTaxData = useCallback(async () => {
+    if (!activeCompany?.id) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const taxRecords: TaxRecord[] = [
-    {
-      id: 'TAX-001',
-      employee: 'Juan Carlos Pérez',
-      employeeId: 'EMP-001',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 28953.13,
-      isrWithheld: 3215.34,
-      imssEmployee: 869.59,
-      imssEmployer: 2318.25,
-      infonavitEmployee: 1250,
-      infonavitEmployer: 1447.66,
-      taxableIncome: 28953.13,
-      exemptIncome: 0,
-      totalWithholdings: 5334.93,
-      employerContributions: 3765.91,
-      status: 'calculated'
-    },
-    {
-      id: 'TAX-002',
-      employee: 'María González',
-      employeeId: 'EMP-002',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 23500,
-      isrWithheld: 2468.50,
-      imssEmployee: 766.25,
-      imssEmployer: 2042.50,
-      infonavitEmployee: 1100,
-      infonavitEmployer: 1175,
-      taxableIncome: 23500,
-      exemptIncome: 0,
-      totalWithholdings: 4334.75,
-      employerContributions: 3217.50,
-      status: 'filed'
-    },
-    {
-      id: 'TAX-003',
-      employee: 'Carlos Torres',
-      employeeId: 'EMP-003',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 23681.25,
-      isrWithheld: 2478.52,
-      imssEmployee: 627,
-      imssEmployer: 1894.50,
-      infonavitEmployee: 900,
-      infonavitEmployer: 1184.06,
-      taxableIncome: 22681.25,
-      exemptIncome: 1000,
-      totalWithholdings: 4005.52,
-      employerContributions: 3078.56,
-      status: 'calculated'
-    },
-    {
-      id: 'TAX-004',
-      employee: 'Ana Martínez',
-      employeeId: 'EMP-004',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 40000,
-      isrWithheld: 5832,
-      imssEmployee: 1225,
-      imssEmployer: 3480,
-      infonavitEmployee: 1750,
-      infonavitEmployer: 2000,
-      taxableIncome: 40000,
-      exemptIncome: 0,
-      totalWithholdings: 9307,
-      employerContributions: 5480,
-      status: 'filed'
-    },
-    {
-      id: 'TAX-005',
-      employee: 'Luis Fernández',
-      employeeId: 'EMP-005',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 25687.50,
-      isrWithheld: 2911.91,
-      imssEmployee: 700,
-      imssEmployer: 2054.20,
-      infonavitEmployee: 1000,
-      infonavitEmployer: 1284.38,
-      taxableIncome: 25687.50,
-      exemptIncome: 0,
-      totalWithholdings: 4611.91,
-      employerContributions: 3338.58,
-      status: 'calculated'
-    },
-    {
-      id: 'TAX-006',
-      employee: 'Pedro Sánchez',
-      employeeId: 'EMP-006',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 33781.25,
-      isrWithheld: 4466.37,
-      imssEmployee: 980,
-      imssEmployer: 2942.44,
-      infonavitEmployee: 1400,
-      infonavitEmployer: 1689.06,
-      taxableIncome: 33781.25,
-      exemptIncome: 0,
-      totalWithholdings: 6846.37,
-      employerContributions: 4631.50,
-      status: 'filed'
-    },
-    {
-      id: 'TAX-007',
-      employee: 'Laura Jiménez',
-      employeeId: 'EMP-007',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 25800,
-      isrWithheld: 2894.40,
-      imssEmployee: 840,
-      imssEmployer: 2244,
-      infonavitEmployee: 1200,
-      infonavitEmployer: 1290,
-      taxableIncome: 24000,
-      exemptIncome: 1800,
-      totalWithholdings: 4934.40,
-      employerContributions: 3534,
-      status: 'pending'
-    },
-    {
-      id: 'TAX-008',
-      employee: 'Roberto Díaz',
-      employeeId: 'EMP-008',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 30031.25,
-      isrWithheld: 3453.62,
-      imssEmployee: 910,
-      imssEmployer: 2612.72,
-      infonavitEmployee: 1300,
-      infonavitEmployer: 1501.56,
-      taxableIncome: 30031.25,
-      exemptIncome: 0,
-      totalWithholdings: 5663.62,
-      employerContributions: 4114.28,
-      status: 'calculated'
-    },
-    {
-      id: 'TAX-009',
-      employee: 'Sofia Ramírez',
-      employeeId: 'EMP-009',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 24200,
-      isrWithheld: 2598.40,
-      imssEmployee: 735,
-      imssEmployer: 2057.00,
-      infonavitEmployee: 1050,
-      infonavitEmployer: 1210,
-      taxableIncome: 22200,
-      exemptIncome: 2000,
-      totalWithholdings: 4383.40,
-      employerContributions: 3267,
-      status: 'calculated'
-    },
-    {
-      id: 'TAX-010',
-      employee: 'Miguel Ángel Ruiz',
-      employeeId: 'EMP-010',
-      period: 'Noviembre 2025 - Q2',
-      periodStart: '2025-11-16',
-      periodEnd: '2025-11-30',
-      grossPay: 23242.19,
-      isrWithheld: 2406.60,
-      imssEmployee: 665,
-      imssEmployer: 1859.38,
-      infonavitEmployee: 950,
-      infonavitEmployer: 1162.11,
-      taxableIncome: 20742.19,
-      exemptIncome: 2500,
-      totalWithholdings: 4021.60,
-      employerContributions: 3021.49,
-      status: 'filed'
+    try {
+      const res = await fetch(`/api/payroll/taxes?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTaxRecords(data.records || [])
+        setTaxSummaries(data.summaries || [])
+      }
+    } catch (error) {
+      console.error('Error loading tax data:', error)
     }
-  ]
+    setLoading(false)
+  }, [activeCompany?.id])
+
+  useEffect(() => {
+    loadTaxData()
+  }, [loadTaxData])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -302,8 +127,8 @@ export default function PayrollTaxesPage() {
     return true
   })
 
-  const taxSummary: TaxSummary = {
-    period: 'Noviembre 2025 - Quincena 2',
+  const taxSummary: TaxSummary = taxSummaries[0] || {
+    period: 'Período Actual',
     totalISR: taxRecords.reduce((sum, t) => sum + t.isrWithheld, 0),
     totalIMSSEmployee: taxRecords.reduce((sum, t) => sum + t.imssEmployee, 0),
     totalIMSSEmployer: taxRecords.reduce((sum, t) => sum + t.imssEmployer, 0),

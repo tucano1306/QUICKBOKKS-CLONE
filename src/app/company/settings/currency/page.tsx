@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -49,129 +49,65 @@ export default function CurrencySettingsPage() {
   const [saved, setSaved] = useState(false)
   const [updating, setUpdating] = useState(false)
 
+  const [currencies, setCurrencies] = useState<Currency[]>([])
+  const [baseCurrency, setBaseCurrency] = useState('USD')
+  const [autoUpdateRates, setAutoUpdateRates] = useState(true)
+  const [updateFrequency, setUpdateFrequency] = useState('Daily')
+  const [rateSource, setRateSource] = useState('European Central Bank')
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadCurrencies = useCallback(async () => {
+    if (!activeCompany?.id) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 500)
-  }, [])
-
-  const [baseCurrency, setBaseCurrency] = useState('USD')
-  const [autoUpdateRates, setAutoUpdateRates] = useState(true)
-  const [updateFrequency, setUpdateFrequency] = useState('Daily')
-  const [rateSource, setRateSource] = useState('European Central Bank')
-
-  const currencies: Currency[] = [
-    {
-      code: 'USD',
-      name: 'US Dollar',
-      symbol: '$',
-      enabled: true,
-      exchangeRate: 1.00,
-      lastUpdated: '2025-11-25 09:00 AM'
-    },
-    {
-      code: 'EUR',
-      name: 'Euro',
-      symbol: '€',
-      enabled: true,
-      exchangeRate: 0.92,
-      lastUpdated: '2025-11-25 09:00 AM'
-    },
-    {
-      code: 'GBP',
-      name: 'British Pound',
-      symbol: '£',
-      enabled: true,
-      exchangeRate: 0.79,
-      lastUpdated: '2025-11-25 09:00 AM'
-    },
-    {
-      code: 'CAD',
-      name: 'Canadian Dollar',
-      symbol: 'C$',
-      enabled: true,
-      exchangeRate: 1.36,
-      lastUpdated: '2025-11-25 09:00 AM'
-    },
-    {
-      code: 'MXN',
-      name: 'Mexican Peso',
-      symbol: 'MX$',
-      enabled: true,
-      exchangeRate: 17.25,
-      lastUpdated: '2025-11-25 09:00 AM'
-    },
-    {
-      code: 'JPY',
-      name: 'Japanese Yen',
-      symbol: '¥',
-      enabled: false,
-      exchangeRate: 148.50,
-      lastUpdated: '2025-11-25 09:00 AM'
-    },
-    {
-      code: 'AUD',
-      name: 'Australian Dollar',
-      symbol: 'A$',
-      enabled: false,
-      exchangeRate: 1.52,
-      lastUpdated: '2025-11-25 09:00 AM'
-    },
-    {
-      code: 'CHF',
-      name: 'Swiss Franc',
-      symbol: 'CHF',
-      enabled: false,
-      exchangeRate: 0.88,
-      lastUpdated: '2025-11-25 09:00 AM'
-    },
-    {
-      code: 'CNY',
-      name: 'Chinese Yuan',
-      symbol: '¥',
-      enabled: false,
-      exchangeRate: 7.18,
-      lastUpdated: '2025-11-25 09:00 AM'
-    },
-    {
-      code: 'INR',
-      name: 'Indian Rupee',
-      symbol: '₹',
-      enabled: false,
-      exchangeRate: 83.25,
-      lastUpdated: '2025-11-25 09:00 AM'
+    try {
+      const res = await fetch(`/api/settings/currencies?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setCurrencies(data.currencies || [])
+        if (data.baseCurrency) setBaseCurrency(data.baseCurrency)
+      }
+    } catch (error) {
+      console.error('Error loading currencies:', error)
     }
-  ]
+    setLoading(false)
+  }, [activeCompany?.id])
+
+  useEffect(() => {
+    loadCurrencies()
+  }, [loadCurrencies])
 
   const exchangeRateHistory: ExchangeRateHistory[] = [
-    { date: '2025-11-25', rate: 0.92, change: 0.002 },
-    { date: '2025-11-24', rate: 0.918, change: -0.001 },
-    { date: '2025-11-23', rate: 0.919, change: 0.003 },
-    { date: '2025-11-22', rate: 0.916, change: 0.001 },
-    { date: '2025-11-21', rate: 0.915, change: -0.002 },
-    { date: '2025-11-20', rate: 0.917, change: 0.004 },
-    { date: '2025-11-19', rate: 0.913, change: 0.001 }
+    { date: new Date().toISOString().split('T')[0], rate: 0.92, change: 0.002 }
   ]
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!activeCompany?.id) return
     setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
-    }, 1500)
+    try {
+      const res = await fetch(`/api/settings/currencies?companyId=${activeCompany.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currencies, baseCurrency })
+      })
+      if (res.ok) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      }
+    } catch (error) {
+      console.error('Error saving currencies:', error)
+    }
+    setSaving(false)
   }
 
-  const handleUpdateRates = () => {
+  const handleUpdateRates = async () => {
     setUpdating(true)
-    setTimeout(() => {
-      setUpdating(false)
-    }, 2000)
+    await loadCurrencies()
+    setUpdating(false)
   }
 
   const stats = {
