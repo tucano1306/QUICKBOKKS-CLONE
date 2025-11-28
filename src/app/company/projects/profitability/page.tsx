@@ -92,7 +92,31 @@ export default function ProjectProfitabilityPage() {
     }
   }, [status, activeCompany?.id, loadProfitability])
 
-  const selectedProjectData = projects.find(p => p.projectId === selectedProject) || projects[0]
+  // Default empty project data to prevent undefined errors
+  const defaultProjectData: ProjectProfitability = {
+    projectId: '',
+    projectCode: '',
+    projectName: 'Sin proyectos',
+    client: '-',
+    status: 'active',
+    totalRevenue: 0,
+    actualRevenue: 0,
+    totalCosts: 0,
+    laborCosts: 0,
+    materialCosts: 0,
+    overheadCosts: 0,
+    otherCosts: 0,
+    grossProfit: 0,
+    grossMarginPercent: 0,
+    netProfit: 0,
+    netMarginPercent: 0,
+    roi: 0,
+    budgetEfficiency: 0,
+    revenueRealization: 0,
+    completionPercent: 0
+  }
+
+  const selectedProjectData = projects.find(p => p.projectId === selectedProject) || projects[0] || defaultProjectData
 
   const filteredProjects = projects.filter(project => {
     if (filterStatus !== 'all' && project.status !== filterStatus) return false
