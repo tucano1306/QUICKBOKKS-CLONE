@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -46,6 +46,27 @@ export default function InvoicingSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [templates, setTemplates] = useState<InvoiceTemplate[]>([])
+
+  const loadSettings = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/settings/invoicing?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.settings) {
+          setInvoiceSettings(prev => ({ ...prev, ...data.settings }))
+        }
+        if (data.templates) {
+          setTemplates(data.templates)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading invoice settings:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -54,9 +75,8 @@ export default function InvoicingSettingsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 500)
-  }, [])
+    loadSettings()
+  }, [loadSettings])
 
   const [invoiceSettings, setInvoiceSettings] = useState({
     // Numbering
@@ -104,42 +124,6 @@ export default function InvoicingSettingsPage() {
     requirePONumber: false,
     attachPDF: true
   })
-
-  const templates: InvoiceTemplate[] = [
-    {
-      id: '1',
-      name: 'Professional',
-      description: 'Clean, modern design with company branding',
-      isDefault: true,
-      colorScheme: 'Blue',
-      logoPosition: 'Top Left',
-      showCompanyAddress: true,
-      showPaymentTerms: true,
-      customFields: 3
-    },
-    {
-      id: '2',
-      name: 'Minimal',
-      description: 'Simple, text-focused layout',
-      isDefault: false,
-      colorScheme: 'Gray',
-      logoPosition: 'Top Center',
-      showCompanyAddress: true,
-      showPaymentTerms: true,
-      customFields: 0
-    },
-    {
-      id: '3',
-      name: 'Bold',
-      description: 'Eye-catching design with large headers',
-      isDefault: false,
-      colorScheme: 'Purple',
-      logoPosition: 'Top Right',
-      showCompanyAddress: false,
-      showPaymentTerms: true,
-      customFields: 2
-    }
-  ]
 
   const paymentTermsOptions = [
     'Due on Receipt',

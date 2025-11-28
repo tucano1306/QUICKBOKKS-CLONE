@@ -54,6 +54,7 @@ export default function CurrencySettingsPage() {
   const [autoUpdateRates, setAutoUpdateRates] = useState(true)
   const [updateFrequency, setUpdateFrequency] = useState('Daily')
   const [rateSource, setRateSource] = useState('European Central Bank')
+  const [exchangeRateHistory, setExchangeRateHistory] = useState<ExchangeRateHistory[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -80,10 +81,6 @@ export default function CurrencySettingsPage() {
   useEffect(() => {
     loadCurrencies()
   }, [loadCurrencies])
-
-  const exchangeRateHistory: ExchangeRateHistory[] = [
-    { date: new Date().toISOString().split('T')[0], rate: 0.92, change: 0.002 }
-  ]
 
   const handleSave = async () => {
     if (!activeCompany?.id) return

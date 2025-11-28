@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
@@ -48,9 +48,10 @@ export default function MultiCompanyPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const [loading, setLoading] = useState(true)
-  const [activeCompanyId, setActiveCompanyId] = useState('COMP-001')
+  const [activeCompanyId, setActiveCompanyId] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [companies, setCompanies] = useState<Company[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -58,66 +59,40 @@ export default function MultiCompanyPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadCompanies = useCallback(async () => {
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const companies: Company[] = [
-    {
-      id: 'COMP-001',
-      name: 'Tech Solutions Inc.',
-      industry: 'Technology / Software',
-      taxId: 'RFC-TECH123456',
-      currency: 'USD',
-      fiscalYearEnd: '2025-12-31',
-      status: 'active',
-      createdDate: '2023-01-15',
-      users: 12,
-      revenue: 450000,
-      expenses: 280000,
-      isPrimary: true
-    },
-    {
-      id: 'COMP-002',
-      name: 'Marketing Agency LLC',
-      industry: 'Marketing / Advertising',
-      taxId: 'RFC-MARK789012',
-      currency: 'USD',
-      fiscalYearEnd: '2025-12-31',
-      status: 'active',
-      createdDate: '2024-03-20',
-      users: 5,
-      revenue: 180000,
-      expenses: 95000
-    },
-    {
-      id: 'COMP-003',
-      name: 'E-Commerce Ventures',
-      industry: 'Retail / E-Commerce',
-      taxId: 'RFC-ECOM345678',
-      currency: 'MXN',
-      fiscalYearEnd: '2025-12-31',
-      status: 'active',
-      createdDate: '2024-06-10',
-      users: 8,
-      revenue: 320000,
-      expenses: 240000
-    },
-    {
-      id: 'COMP-004',
-      name: 'Consulting Partners',
-      industry: 'Professional Services',
-      taxId: 'RFC-CONS901234',
-      currency: 'USD',
-      fiscalYearEnd: '2025-06-30',
-      status: 'inactive',
-      createdDate: '2022-09-05',
-      users: 3,
-      revenue: 120000,
-      expenses: 85000
+    try {
+      const res = await fetch('/api/companies')
+      if (res.ok) {
+        const data = await res.json()
+        const formattedCompanies = (data.companies || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          industry: c.industry || 'General',
+          taxId: c.rfc || c.taxId || '',
+          currency: c.currency || 'USD',
+          fiscalYearEnd: c.fiscalYearEnd || new Date().toISOString().split('T')[0],
+          status: c.status || 'active',
+          createdDate: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : '',
+          users: c._count?.users || 0,
+          revenue: c.totalRevenue || 0,
+          expenses: c.totalExpenses || 0,
+          isPrimary: c.isPrimary || false
+        }))
+        setCompanies(formattedCompanies)
+        if (formattedCompanies.length > 0 && !activeCompanyId) {
+          setActiveCompanyId(formattedCompanies[0].id)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading companies:', error)
     }
-  ]
+    setLoading(false)
+  }, [activeCompanyId])
+
+  useEffect(() => {
+    loadCompanies()
+  }, [loadCompanies])
 
   const getStatusBadge = (status: string) => {
     switch (status) {

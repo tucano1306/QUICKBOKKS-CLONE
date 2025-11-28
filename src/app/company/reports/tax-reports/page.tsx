@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -49,6 +49,22 @@ export default function TaxReportsPage() {
   const [selectedYear, setSelectedYear] = useState('2025')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [selectedType, setSelectedType] = useState<string>('all')
+  const [taxReports, setTaxReports] = useState<TaxReport[]>([])
+
+  const loadTaxReports = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/reports/tax-reports?companyId=${activeCompany.id}&year=${selectedYear}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTaxReports(data.reports || [])
+      }
+    } catch (error) {
+      console.error('Error loading tax reports:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id, selectedYear])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -57,228 +73,8 @@ export default function TaxReportsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const taxReports: TaxReport[] = [
-    // ISR (Impuesto Sobre la Renta)
-    {
-      id: 'ISR-2025-01',
-      type: 'ISR Mensual',
-      period: 'Enero 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-02-17',
-      status: 'filed',
-      filedDate: '2025-02-15',
-      taxBase: 2850000,
-      taxRate: 30,
-      amount: 855000,
-      withheld: 0,
-      balance: 855000,
-      folio: 'ISR2501234567',
-      acknowledgment: 'ACK-ISR-20250215-001'
-    },
-    {
-      id: 'ISR-2025-02',
-      type: 'ISR Mensual',
-      period: 'Febrero 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-03-17',
-      status: 'filed',
-      filedDate: '2025-03-14',
-      taxBase: 2920000,
-      taxRate: 30,
-      amount: 876000,
-      withheld: 0,
-      balance: 876000,
-      folio: 'ISR2501234568',
-      acknowledgment: 'ACK-ISR-20250314-001'
-    },
-    {
-      id: 'ISR-2025-11',
-      type: 'ISR Mensual',
-      period: 'Noviembre 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-12-17',
-      status: 'pending',
-      taxBase: 3150000,
-      taxRate: 30,
-      amount: 945000,
-      withheld: 0,
-      balance: 945000
-    },
-    // IVA (Impuesto al Valor Agregado)
-    {
-      id: 'IVA-2025-01',
-      type: 'IVA Mensual',
-      period: 'Enero 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-02-17',
-      status: 'filed',
-      filedDate: '2025-02-16',
-      taxBase: 8500000,
-      taxRate: 16,
-      amount: 1360000,
-      withheld: 850000,
-      balance: 510000,
-      folio: 'IVA2501234567',
-      acknowledgment: 'ACK-IVA-20250216-001'
-    },
-    {
-      id: 'IVA-2025-02',
-      type: 'IVA Mensual',
-      period: 'Febrero 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-03-17',
-      status: 'filed',
-      filedDate: '2025-03-15',
-      taxBase: 8750000,
-      taxRate: 16,
-      amount: 1400000,
-      withheld: 920000,
-      balance: 480000,
-      folio: 'IVA2501234568',
-      acknowledgment: 'ACK-IVA-20250315-001'
-    },
-    {
-      id: 'IVA-2025-11',
-      type: 'IVA Mensual',
-      period: 'Noviembre 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-12-17',
-      status: 'pending',
-      taxBase: 9200000,
-      taxRate: 16,
-      amount: 1472000,
-      withheld: 1050000,
-      balance: 422000
-    },
-    // IETU (Impuesto Empresarial a Tasa Única) - Historical
-    {
-      id: 'IETU-2024-ANUAL',
-      type: 'IETU Anual',
-      period: 'Año 2024',
-      fiscalYear: 2024,
-      dueDate: '2025-03-31',
-      status: 'filed',
-      filedDate: '2025-03-28',
-      taxBase: 95000000,
-      taxRate: 17.5,
-      amount: 16625000,
-      withheld: 0,
-      balance: 16625000,
-      folio: 'IETU2024567890',
-      acknowledgment: 'ACK-IETU-20250328-001'
-    },
-    // Retenciones (Withholdings)
-    {
-      id: 'RET-2025-01',
-      type: 'Retenciones ISR',
-      period: 'Enero 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-02-17',
-      status: 'filed',
-      filedDate: '2025-02-16',
-      taxBase: 12500000,
-      taxRate: 10,
-      amount: 1250000,
-      withheld: 1250000,
-      balance: 0,
-      folio: 'RET2501234567',
-      acknowledgment: 'ACK-RET-20250216-001'
-    },
-    {
-      id: 'RET-2025-11',
-      type: 'Retenciones ISR',
-      period: 'Noviembre 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-12-17',
-      status: 'pending',
-      taxBase: 13200000,
-      taxRate: 10,
-      amount: 1320000,
-      withheld: 1320000,
-      balance: 0
-    },
-    // DIOT (Declaración Informativa de Operaciones con Terceros)
-    {
-      id: 'DIOT-2025-01',
-      type: 'DIOT',
-      period: 'Enero 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-02-28',
-      status: 'filed',
-      filedDate: '2025-02-27',
-      taxBase: 4250000,
-      taxRate: 0,
-      amount: 0,
-      withheld: 0,
-      balance: 0,
-      folio: 'DIOT2501234567',
-      acknowledgment: 'ACK-DIOT-20250227-001'
-    },
-    {
-      id: 'DIOT-2025-11',
-      type: 'DIOT',
-      period: 'Noviembre 2025',
-      fiscalYear: 2025,
-      dueDate: '2025-12-31',
-      status: 'pending',
-      taxBase: 4680000,
-      taxRate: 0,
-      amount: 0,
-      withheld: 0,
-      balance: 0
-    },
-    // Declaración Anual
-    {
-      id: 'ANUAL-2024',
-      type: 'Declaración Anual',
-      period: 'Año 2024',
-      fiscalYear: 2024,
-      dueDate: '2025-03-31',
-      status: 'filed',
-      filedDate: '2025-03-29',
-      taxBase: 98500000,
-      taxRate: 30,
-      amount: 29550000,
-      withheld: 15200000,
-      balance: 14350000,
-      folio: 'ANUAL2024567890',
-      acknowledgment: 'ACK-ANUAL-20250329-001'
-    },
-    {
-      id: 'ANUAL-2025',
-      type: 'Declaración Anual',
-      period: 'Año 2025',
-      fiscalYear: 2025,
-      dueDate: '2026-03-31',
-      status: 'pending',
-      taxBase: 105000000,
-      taxRate: 30,
-      amount: 31500000,
-      withheld: 16800000,
-      balance: 14700000
-    },
-    // PTU (Participación de los Trabajadores en las Utilidades)
-    {
-      id: 'PTU-2024',
-      type: 'PTU',
-      period: 'Año 2024',
-      fiscalYear: 2024,
-      dueDate: '2025-05-30',
-      status: 'filed',
-      filedDate: '2025-05-28',
-      taxBase: 48500000,
-      taxRate: 10,
-      amount: 4850000,
-      withheld: 0,
-      balance: 4850000,
-      folio: 'PTU2024567890',
-      acknowledgment: 'ACK-PTU-20250528-001'
-    }
-  ]
+    loadTaxReports()
+  }, [loadTaxReports])
 
   const filteredReports = taxReports.filter(report => {
     if (report.fiscalYear.toString() !== selectedYear) return false
