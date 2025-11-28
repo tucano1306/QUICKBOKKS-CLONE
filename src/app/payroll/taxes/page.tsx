@@ -153,24 +153,45 @@ export default function PayrollTaxesPage() {
   }
 
   const handleFileFiling = async (filing: TaxFiling) => {
-    // Simulate filing
-    setFilings(prev => prev.map(f => 
-      f.id === filing.id 
-        ? { ...f, status: 'FILED' as const, filedDate: new Date().toISOString() }
-        : f
-    ))
-    alert(`Declaración ${filing.type} de ${filing.period} presentada exitosamente`)
+    try {
+      const response = await fetch(`/api/payroll/taxes/${filing.id}/file`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      if (response.ok) {
+        setFilings(prev => prev.map(f => 
+          f.id === filing.id 
+            ? { ...f, status: 'FILED' as const, filedDate: new Date().toISOString() }
+            : f
+        ))
+        alert(`Declaración ${filing.type} de ${filing.period} presentada exitosamente`)
+      }
+    } catch (error) {
+      console.error('Error filing:', error)
+    }
   }
 
   const handlePayFiling = async (filing: TaxFiling) => {
-    // Simulate payment
-    const reference = `${filing.type}-PAY-${Date.now().toString(36).toUpperCase()}`
-    setFilings(prev => prev.map(f => 
-      f.id === filing.id 
-        ? { ...f, status: 'PAID' as const, paidDate: new Date().toISOString(), reference }
-        : f
-    ))
-    alert(`Pago de ${filing.type} de ${filing.period} registrado. Referencia: ${reference}`)
+    try {
+      const response = await fetch(`/api/payroll/taxes/${filing.id}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const reference = data.reference || `${filing.type}-PAY-${Date.now().toString(36).toUpperCase()}`
+        setFilings(prev => prev.map(f => 
+          f.id === filing.id 
+            ? { ...f, status: 'PAID' as const, paidDate: new Date().toISOString(), reference }
+            : f
+        ))
+        alert(`Pago de ${filing.type} de ${filing.period} registrado. Referencia: ${reference}`)
+      }
+    } catch (error) {
+      console.error('Error paying filing:', error)
+    }
   }
 
   const handleNewFiling = async () => {

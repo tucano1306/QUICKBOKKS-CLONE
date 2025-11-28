@@ -143,7 +143,7 @@ export default function ReconcilePage() {
     }
   }, [status, activeCompany, loadData])
 
-  const handleManualMatch = () => {
+  const handleManualMatch = async () => {
     if (!selectedInvoice || !selectedPayment) {
       toast.error('Selecciona una factura y un pago')
       return
@@ -154,28 +154,56 @@ export default function ReconcilePage() {
       return
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      setUnpaidInvoices(prev => prev.filter(inv => inv.id !== selectedInvoice.id))
-      setUnmatchedPayments(prev => prev.filter(pay => pay.id !== selectedPayment.id))
-      setSelectedInvoice(null)
-      setSelectedPayment(null)
-      toast.success('Conciliación realizada exitosamente')
-    }, 500)
+    try {
+      const response = await fetch('/api/invoices/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceId: selectedInvoice.id,
+          paymentId: selectedPayment.id,
+          companyId: activeCompany?.id
+        })
+      })
+      
+      if (response.ok) {
+        setUnpaidInvoices(prev => prev.filter(inv => inv.id !== selectedInvoice.id))
+        setUnmatchedPayments(prev => prev.filter(pay => pay.id !== selectedPayment.id))
+        setSelectedInvoice(null)
+        setSelectedPayment(null)
+        toast.success('Conciliación realizada exitosamente')
+      }
+    } catch (error) {
+      console.error('Error reconciling:', error)
+      toast.error('Error al conciliar')
+    }
   }
 
-  const handleAutoMatch = (match: ReconciliationMatch) => {
+  const handleAutoMatch = async (match: ReconciliationMatch) => {
     const invoice = unpaidInvoices.find(inv => inv.id === match.invoiceId)
     const payment = unmatchedPayments.find(pay => pay.id === match.paymentId)
 
     if (!invoice || !payment) return
 
-    setTimeout(() => {
-      setUnpaidInvoices(prev => prev.filter(inv => inv.id !== match.invoiceId))
-      setUnmatchedPayments(prev => prev.filter(pay => pay.id !== match.paymentId))
-      setAutoMatches(prev => prev.filter(m => m.invoiceId !== match.invoiceId))
-      toast.success(`${invoice.invoiceNumber} conciliado con ${payment.reference}`)
-    }, 500)
+    try {
+      const response = await fetch('/api/invoices/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceId: match.invoiceId,
+          paymentId: match.paymentId,
+          companyId: activeCompany?.id
+        })
+      })
+      
+      if (response.ok) {
+        setUnpaidInvoices(prev => prev.filter(inv => inv.id !== match.invoiceId))
+        setUnmatchedPayments(prev => prev.filter(pay => pay.id !== match.paymentId))
+        setAutoMatches(prev => prev.filter(m => m.invoiceId !== match.invoiceId))
+        toast.success(`${invoice.invoiceNumber} conciliado con ${payment.reference}`)
+      }
+    } catch (error) {
+      console.error('Error reconciling:', error)
+    }
   }
 
   const filteredInvoices = unpaidInvoices.filter(inv =>

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, FileText, Calendar, Eye } from 'lucide-react'
+import { ArrowLeft, FileText, Calendar, Eye, Loader2 } from 'lucide-react'
 
 interface Receipt {
   id: string
@@ -17,34 +17,26 @@ interface Receipt {
 
 export default function ReceiptsHistoryPage() {
   const router = useRouter()
-  
-  // Sample data
-  const [receipts] = useState<Receipt[]>([
-    {
-      id: '1',
-      filename: 'recibo_office_depot.jpg',
-      uploadDate: '2024-11-20',
-      amount: 1250.50,
-      vendor: 'Office Depot',
-      status: 'processed'
-    },
-    {
-      id: '2',
-      filename: 'factura_gasolina.pdf',
-      uploadDate: '2024-11-18',
-      amount: 850.00,
-      vendor: 'Pemex',
-      status: 'processed'
-    },
-    {
-      id: '3',
-      filename: 'recibo_restaurant.jpg',
-      uploadDate: '2024-11-15',
-      amount: 450.75,
-      vendor: 'Restaurante La Cocina',
-      status: 'pending'
+  const [loading, setLoading] = useState(true)
+  const [receipts, setReceipts] = useState<Receipt[]>([])
+
+  const loadReceipts = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/expenses/receipts')
+      if (res.ok) {
+        const data = await res.json()
+        setReceipts(data.receipts || [])
+      }
+    } catch (error) {
+      console.error('Error loading receipts:', error)
     }
-  ])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    loadReceipts()
+  }, [loadReceipts])
 
   const getStatusBadge = (status: string) => {
     const styles = {

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Save, Camera } from 'lucide-react'
@@ -15,32 +15,60 @@ interface ExtractedData {
 
 export default function ScanReceiptPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [extractedData, setExtractedData] = useState<ExtractedData>({
-    description: 'Compra de material de oficina',
-    amount: '1250.50',
+    description: '',
+    amount: '',
     date: new Date().toISOString().split('T')[0],
-    vendor: 'Office Depot'
+    vendor: ''
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Simulate OCR processing
+  const loadOcrData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const receiptId = searchParams.get('receiptId')
+      if (receiptId) {
+        const res = await fetch(`/api/expenses/receipts/${receiptId}/ocr`)
+        if (res.ok) {
+          const data = await res.json()
+          setExtractedData(data.extractedData || {})
+        }
+      }
+    } catch (error) {
+      console.error('Error loading OCR data:', error)
+    }
+    setLoading(false)
+  }, [searchParams])
+
   useEffect(() => {
-    setTimeout(() => {
-      setLoading(false)
-    }, 2000)
-  }, [])
+    loadOcrData()
+  }, [loadOcrData])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setExtractedData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
-    setTimeout(() => {
-      router.push('/expenses/list')
-    }, 1000)
+    try {
+      const receiptId = searchParams.get('receiptId')
+      const response = await fetch(`/api/expenses/receipts/${receiptId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(extractedData)
+      })
+      
+      if (response.ok) {
+        router.push('/expenses/list')
+      }
+    } catch (error) {
+      console.error('Error saving receipt:', error)
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {

@@ -32,15 +32,26 @@ export default function UploadReceiptPage() {
 
     setUploading(true)
     
-    // Simulate upload
-    setTimeout(() => {
-      setUploading(false)
-      setSuccess(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
       
-      setTimeout(() => {
-        router.push('/expenses/receipts/scan')
-      }, 1500)
-    }, 2000)
+      const response = await fetch('/api/expenses/receipts/upload', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (response.ok) {
+        setSuccess(true)
+        setTimeout(() => {
+          router.push('/expenses/receipts/scan')
+        }, 1500)
+      }
+    } catch (error) {
+      console.error('Error uploading receipt:', error)
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
