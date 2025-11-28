@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -69,6 +69,24 @@ export default function ScheduledReportsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedTab, setSelectedTab] = useState<'schedules' | 'history'>('schedules')
   const [selectedFrequency, setSelectedFrequency] = useState<string>('all')
+  const [scheduledReports, setScheduledReports] = useState<ScheduledReport[]>([])
+  const [reportHistory, setReportHistory] = useState<ReportHistory[]>([])
+
+  const loadScheduledReports = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/reports/scheduled?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setScheduledReports(data.schedules || [])
+        setReportHistory(data.history || [])
+      }
+    } catch (error) {
+      console.error('Error loading scheduled reports:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -77,275 +95,8 @@ export default function ScheduledReportsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const scheduledReports: ScheduledReport[] = [
-    {
-      id: 'SCH-001',
-      name: 'Estado de Resultados Mensual',
-      reportType: 'Income Statement',
-      description: 'Estado de resultados consolidado enviado mensualmente a dirección',
-      frequency: 'monthly',
-      schedule: 'Día 5 de cada mes a las 08:00',
-      recipients: ['ceo@company.com', 'cfo@company.com', 'controller@company.com'],
-      format: 'PDF',
-      status: 'active',
-      lastRun: '2025-11-05T08:00:00',
-      nextRun: '2025-12-05T08:00:00',
-      lastStatus: 'success',
-      createdBy: 'Patricia Ruiz',
-      createdDate: '2025-01-15',
-      runsCount: 11
-    },
-    {
-      id: 'SCH-002',
-      name: 'Balance General Trimestral',
-      reportType: 'Balance Sheet',
-      description: 'Balance general para cierre de trimestre con análisis de ratios',
-      frequency: 'quarterly',
-      schedule: 'Primer día del mes siguiente al cierre',
-      recipients: ['cfo@company.com', 'board@company.com'],
-      format: 'Excel',
-      status: 'active',
-      lastRun: '2025-10-01T09:00:00',
-      nextRun: '2026-01-01T09:00:00',
-      lastStatus: 'success',
-      createdBy: 'Patricia Ruiz',
-      createdDate: '2025-01-20',
-      runsCount: 4
-    },
-    {
-      id: 'SCH-003',
-      name: 'Ventas Diarias',
-      reportType: 'Sales Report',
-      description: 'Reporte de ventas e ingresos del día anterior',
-      frequency: 'daily',
-      schedule: 'Todos los días a las 07:00',
-      recipients: ['sales@company.com', 'ceo@company.com'],
-      format: 'PDF',
-      status: 'active',
-      lastRun: '2025-11-25T07:00:00',
-      nextRun: '2025-11-26T07:00:00',
-      lastStatus: 'success',
-      createdBy: 'Luis Rodríguez',
-      createdDate: '2025-02-01',
-      runsCount: 298
-    },
-    {
-      id: 'SCH-004',
-      name: 'Cuentas por Cobrar Semanal',
-      reportType: 'AR Aging',
-      description: 'Antigüedad de saldos y análisis de cobranza',
-      frequency: 'weekly',
-      schedule: 'Todos los lunes a las 08:30',
-      recipients: ['collections@company.com', 'cfo@company.com'],
-      format: 'Excel',
-      status: 'active',
-      lastRun: '2025-11-25T08:30:00',
-      nextRun: '2025-12-02T08:30:00',
-      lastStatus: 'success',
-      createdBy: 'Ana García',
-      createdDate: '2025-02-15',
-      runsCount: 42
-    },
-    {
-      id: 'SCH-005',
-      name: 'Nómina Quincenal',
-      reportType: 'Payroll Report',
-      description: 'Reporte detallado de nómina con deducciones e impuestos',
-      frequency: 'monthly',
-      schedule: 'Días 15 y último del mes a las 10:00',
-      recipients: ['hr@company.com', 'payroll@company.com', 'cfo@company.com'],
-      format: 'PDF',
-      status: 'active',
-      lastRun: '2025-11-15T10:00:00',
-      nextRun: '2025-11-30T10:00:00',
-      lastStatus: 'success',
-      createdBy: 'María López',
-      createdDate: '2025-03-01',
-      runsCount: 18
-    },
-    {
-      id: 'SCH-006',
-      name: 'Presupuesto vs Real Mensual',
-      reportType: 'Budget vs Actual',
-      description: 'Análisis de variaciones presupuestarias por departamento',
-      frequency: 'monthly',
-      schedule: 'Día 10 de cada mes a las 09:00',
-      recipients: ['managers@company.com', 'cfo@company.com'],
-      format: 'Excel',
-      status: 'active',
-      lastRun: '2025-11-10T09:00:00',
-      nextRun: '2025-12-10T09:00:00',
-      lastStatus: 'success',
-      createdBy: 'Patricia Ruiz',
-      createdDate: '2025-04-01',
-      runsCount: 8
-    },
-    {
-      id: 'SCH-007',
-      name: 'Flujo de Efectivo Semanal',
-      reportType: 'Cash Flow',
-      description: 'Proyección de flujo de efectivo a 4 semanas',
-      frequency: 'weekly',
-      schedule: 'Todos los viernes a las 16:00',
-      recipients: ['treasury@company.com', 'cfo@company.com'],
-      format: 'PDF',
-      status: 'active',
-      lastRun: '2025-11-22T16:00:00',
-      nextRun: '2025-11-29T16:00:00',
-      lastStatus: 'success',
-      createdBy: 'Patricia Ruiz',
-      createdDate: '2025-05-01',
-      runsCount: 28
-    },
-    {
-      id: 'SCH-008',
-      name: 'Rentabilidad por Proyecto',
-      reportType: 'Project Profitability',
-      description: 'Análisis de margen y ROI por proyecto activo',
-      frequency: 'weekly',
-      schedule: 'Todos los miércoles a las 11:00',
-      recipients: ['projects@company.com', 'ceo@company.com'],
-      format: 'Excel',
-      status: 'paused',
-      lastRun: '2025-11-13T11:00:00',
-      nextRun: '2025-11-27T11:00:00',
-      lastStatus: 'success',
-      createdBy: 'Carlos Méndez',
-      createdDate: '2025-06-15',
-      runsCount: 22
-    },
-    {
-      id: 'SCH-009',
-      name: 'Indicadores Clave (KPIs)',
-      reportType: 'KPI Dashboard',
-      description: 'Dashboard ejecutivo con métricas principales del negocio',
-      frequency: 'daily',
-      schedule: 'Todos los días a las 06:30',
-      recipients: ['executives@company.com'],
-      format: 'PDF',
-      status: 'active',
-      lastRun: '2025-11-25T06:30:00',
-      nextRun: '2025-11-26T06:30:00',
-      lastStatus: 'success',
-      createdBy: 'Sistema',
-      createdDate: '2025-07-01',
-      runsCount: 148
-    },
-    {
-      id: 'SCH-010',
-      name: 'Declaraciones Fiscales',
-      reportType: 'Tax Reports',
-      description: 'Recordatorio y resumen de obligaciones fiscales del mes',
-      frequency: 'monthly',
-      schedule: 'Día 1 de cada mes a las 08:00',
-      recipients: ['accounting@company.com', 'tax@company.com'],
-      format: 'PDF',
-      status: 'failed',
-      lastRun: '2025-11-01T08:00:00',
-      nextRun: '2025-12-01T08:00:00',
-      lastStatus: 'failed',
-      createdBy: 'Patricia Ruiz',
-      createdDate: '2025-08-01',
-      runsCount: 4
-    }
-  ]
-
-  const reportHistory: ReportHistory[] = [
-    {
-      id: 'HIST-001',
-      scheduledReportId: 'SCH-003',
-      reportName: 'Ventas Diarias',
-      executionDate: '2025-11-25T07:00:00',
-      status: 'success',
-      fileSize: '2.4 MB',
-      recipients: 2,
-      duration: '12s'
-    },
-    {
-      id: 'HIST-002',
-      scheduledReportId: 'SCH-009',
-      reportName: 'Indicadores Clave (KPIs)',
-      executionDate: '2025-11-25T06:30:00',
-      status: 'success',
-      fileSize: '1.8 MB',
-      recipients: 1,
-      duration: '8s'
-    },
-    {
-      id: 'HIST-003',
-      scheduledReportId: 'SCH-004',
-      reportName: 'Cuentas por Cobrar Semanal',
-      executionDate: '2025-11-25T08:30:00',
-      status: 'success',
-      fileSize: '3.2 MB',
-      recipients: 2,
-      duration: '18s'
-    },
-    {
-      id: 'HIST-004',
-      scheduledReportId: 'SCH-007',
-      reportName: 'Flujo de Efectivo Semanal',
-      executionDate: '2025-11-22T16:00:00',
-      status: 'success',
-      fileSize: '1.5 MB',
-      recipients: 2,
-      duration: '10s'
-    },
-    {
-      id: 'HIST-005',
-      scheduledReportId: 'SCH-005',
-      reportName: 'Nómina Quincenal',
-      executionDate: '2025-11-15T10:00:00',
-      status: 'success',
-      fileSize: '4.8 MB',
-      recipients: 3,
-      duration: '25s'
-    },
-    {
-      id: 'HIST-006',
-      scheduledReportId: 'SCH-006',
-      reportName: 'Presupuesto vs Real Mensual',
-      executionDate: '2025-11-10T09:00:00',
-      status: 'success',
-      fileSize: '2.9 MB',
-      recipients: 2,
-      duration: '15s'
-    },
-    {
-      id: 'HIST-007',
-      scheduledReportId: 'SCH-001',
-      reportName: 'Estado de Resultados Mensual',
-      executionDate: '2025-11-05T08:00:00',
-      status: 'success',
-      fileSize: '3.5 MB',
-      recipients: 3,
-      duration: '20s'
-    },
-    {
-      id: 'HIST-008',
-      scheduledReportId: 'SCH-010',
-      reportName: 'Declaraciones Fiscales',
-      executionDate: '2025-11-01T08:00:00',
-      status: 'failed',
-      recipients: 2,
-      duration: '5s',
-      errorMessage: 'Error al conectar con el servidor de datos fiscales. Tiempo de espera agotado.'
-    },
-    {
-      id: 'HIST-009',
-      scheduledReportId: 'SCH-002',
-      reportName: 'Balance General Trimestral',
-      executionDate: '2025-10-01T09:00:00',
-      status: 'success',
-      fileSize: '5.2 MB',
-      recipients: 2,
-      duration: '28s'
-    }
-  ]
+    loadScheduledReports()
+  }, [loadScheduledReports])
 
   const filteredSchedules = scheduledReports.filter(report => {
     if (selectedFrequency !== 'all' && report.frequency !== selectedFrequency) return false

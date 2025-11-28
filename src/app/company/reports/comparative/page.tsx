@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -53,6 +53,22 @@ export default function ComparativeReportsPage() {
   const [viewMode, setViewMode] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [periodData, setPeriodData] = useState<PeriodData[]>([])
+
+  const loadComparativeData = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/reports/comparative?companyId=${activeCompany.id}&view=${viewMode}&start=${dateRange.startDate}&end=${dateRange.endDate}`)
+      if (res.ok) {
+        const data = await res.json()
+        setPeriodData(data.periods || [])
+      }
+    } catch (error) {
+      console.error('Error loading comparative data:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id, viewMode, dateRange])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -60,37 +76,11 @@ export default function ComparativeReportsPage() {
     }
   }, [status, router])
 
-  // Datos de ejemplo para comparación mensual
-  const monthlyData: PeriodData[] = [
-    { period: 'Enero 2025', ingresos: 150000, gastos: 95000, utilidad: 55000, margen: 36.7, activos: 2100000, pasivos: 850000, capital: 1250000 },
-    { period: 'Febrero 2025', ingresos: 165000, gastos: 98000, utilidad: 67000, margen: 40.6, activos: 2167000, pasivos: 840000, capital: 1327000 },
-    { period: 'Marzo 2025', ingresos: 172000, gastos: 102000, utilidad: 70000, margen: 40.7, activos: 2237000, pasivos: 835000, capital: 1402000 },
-    { period: 'Abril 2025', ingresos: 158000, gastos: 96000, utilidad: 62000, margen: 39.2, activos: 2299000, pasivos: 830000, capital: 1469000 },
-    { period: 'Mayo 2025', ingresos: 178000, gastos: 105000, utilidad: 73000, margen: 41.0, activos: 2372000, pasivos: 825000, capital: 1547000 },
-    { period: 'Junio 2025', ingresos: 185000, gastos: 108000, utilidad: 77000, margen: 41.6, activos: 2449000, pasivos: 820000, capital: 1629000 },
-    { period: 'Julio 2025', ingresos: 192000, gastos: 112000, utilidad: 80000, margen: 41.7, activos: 2529000, pasivos: 815000, capital: 1714000 },
-    { period: 'Agosto 2025', ingresos: 188000, gastos: 110000, utilidad: 78000, margen: 41.5, activos: 2607000, pasivos: 810000, capital: 1797000 },
-    { period: 'Septiembre 2025', ingresos: 195000, gastos: 115000, utilidad: 80000, margen: 41.0, activos: 2687000, pasivos: 805000, capital: 1882000 },
-    { period: 'Octubre 2025', ingresos: 198000, gastos: 117000, utilidad: 81000, margen: 40.9, activos: 2768000, pasivos: 800000, capital: 1968000 },
-    { period: 'Noviembre 2025', ingresos: 175000, gastos: 105000, utilidad: 70000, margen: 40.0, activos: 2838000, pasivos: 795000, capital: 2043000 },
-  ]
+  useEffect(() => {
+    loadComparativeData()
+  }, [loadComparativeData])
 
-  // Datos trimestrales
-  const quarterlyData: PeriodData[] = [
-    { period: 'Q1 2025', ingresos: 487000, gastos: 295000, utilidad: 192000, margen: 39.4, activos: 2237000, pasivos: 835000, capital: 1402000 },
-    { period: 'Q2 2025', ingresos: 521000, gastos: 309000, utilidad: 212000, margen: 40.7, activos: 2449000, pasivos: 820000, capital: 1629000 },
-    { period: 'Q3 2025', ingresos: 575000, gastos: 337000, utilidad: 238000, margen: 41.4, activos: 2687000, pasivos: 805000, capital: 1882000 },
-    { period: 'Q4 2025', ingresos: 373000, gastos: 222000, utilidad: 151000, margen: 40.5, activos: 2838000, pasivos: 795000, capital: 2043000 },
-  ]
-
-  // Datos anuales
-  const yearlyData: PeriodData[] = [
-    { period: '2023', ingresos: 1450000, gastos: 920000, utilidad: 530000, margen: 36.6, activos: 1850000, pasivos: 920000, capital: 930000 },
-    { period: '2024', ingresos: 1820000, gastos: 1100000, utilidad: 720000, margen: 39.6, activos: 2350000, pasivos: 875000, capital: 1475000 },
-    { period: '2025', ingresos: 1956000, gastos: 1163000, utilidad: 793000, margen: 40.5, activos: 2838000, pasivos: 795000, capital: 2043000 },
-  ]
-
-  const currentData = viewMode === 'monthly' ? monthlyData : viewMode === 'quarterly' ? quarterlyData : yearlyData
+  const currentData = periodData
 
   const recalculate = () => {
     setLoading(true)

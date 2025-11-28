@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -61,6 +61,24 @@ export default function CustomReportsPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [chartType, setChartType] = useState<'table' | 'bar' | 'line' | 'pie'>('table')
   const [selectedFields, setSelectedFields] = useState<string[]>([])
+  const [templates, setTemplates] = useState<ReportTemplate[]>([])
+  const [availableFields, setAvailableFields] = useState<ReportField[]>([])
+
+  const loadReportData = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/reports/custom?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTemplates(data.templates || [])
+        setAvailableFields(data.fields || [])
+      }
+    } catch (error) {
+      console.error('Error loading report data:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -69,124 +87,8 @@ export default function CustomReportsPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const templates: ReportTemplate[] = [
-    {
-      id: 'TPL-001',
-      name: 'Análisis de Ventas por Cliente',
-      description: 'Reporte detallado de ingresos por cliente con comparativo mensual',
-      category: 'Ventas',
-      dataSource: 'Invoices, Customers',
-      createdBy: 'Sistema',
-      createdDate: '2025-01-15',
-      lastRun: '2025-11-20',
-      isFavorite: true
-    },
-    {
-      id: 'TPL-002',
-      name: 'Rentabilidad por Proyecto',
-      description: 'Análisis de margen y ROI por proyecto con desglose de costos',
-      category: 'Proyectos',
-      dataSource: 'Projects, Expenses',
-      createdBy: 'Luis Rodríguez',
-      createdDate: '2025-02-10',
-      lastRun: '2025-11-22',
-      isFavorite: true
-    },
-    {
-      id: 'TPL-003',
-      name: 'Gastos por Departamento',
-      description: 'Comparativo de gastos mensuales por departamento y categoría',
-      category: 'Gastos',
-      dataSource: 'Expenses, Departments',
-      createdBy: 'Patricia Ruiz',
-      createdDate: '2025-03-05',
-      lastRun: '2025-11-18',
-      isFavorite: false
-    },
-    {
-      id: 'TPL-004',
-      name: 'Cuentas por Cobrar Vencidas',
-      description: 'Reporte de antigüedad de saldos con análisis de riesgo',
-      category: 'Cobros',
-      dataSource: 'Invoices, Customers',
-      createdBy: 'Ana García',
-      createdDate: '2025-03-20',
-      lastRun: '2025-11-24',
-      isFavorite: true
-    },
-    {
-      id: 'TPL-005',
-      name: 'Nómina por Período',
-      description: 'Detalle de nómina con deducciones, percepciones e impuestos',
-      category: 'Nómina',
-      dataSource: 'Payroll, Employees',
-      createdBy: 'María López',
-      createdDate: '2025-04-12',
-      lastRun: '2025-11-15',
-      isFavorite: false
-    },
-    {
-      id: 'TPL-006',
-      name: 'Análisis de Inventario',
-      description: 'Rotación de inventario, punto de reorden y valorización',
-      category: 'Inventario',
-      dataSource: 'Products, Inventory',
-      createdBy: 'Carlos Méndez',
-      createdDate: '2025-05-08',
-      isFavorite: false
-    },
-    {
-      id: 'TPL-007',
-      name: 'Presupuesto vs Real',
-      description: 'Comparativo de presupuesto contra real con análisis de variaciones',
-      category: 'Presupuesto',
-      dataSource: 'Budgets, Actuals',
-      createdBy: 'Sistema',
-      createdDate: '2025-06-01',
-      lastRun: '2025-11-25',
-      isFavorite: true
-    },
-    {
-      id: 'TPL-008',
-      name: 'Flujo de Efectivo Proyectado',
-      description: 'Proyección de entradas y salidas de efectivo a 90 días',
-      category: 'Tesorería',
-      dataSource: 'Banking, Invoices, Bills',
-      createdBy: 'Patricia Ruiz',
-      createdDate: '2025-07-15',
-      isFavorite: false
-    }
-  ]
-
-  const availableFields: ReportField[] = [
-    // Dimensions
-    { id: 'customer', name: 'Cliente', type: 'dimension', dataType: 'string', category: 'Clientes', selected: false },
-    { id: 'product', name: 'Producto/Servicio', type: 'dimension', dataType: 'string', category: 'Productos', selected: false },
-    { id: 'project', name: 'Proyecto', type: 'dimension', dataType: 'string', category: 'Proyectos', selected: false },
-    { id: 'department', name: 'Departamento', type: 'dimension', dataType: 'string', category: 'Organización', selected: false },
-    { id: 'employee', name: 'Empleado', type: 'dimension', dataType: 'string', category: 'Nómina', selected: false },
-    { id: 'account', name: 'Cuenta Contable', type: 'dimension', dataType: 'string', category: 'Contabilidad', selected: false },
-    { id: 'category', name: 'Categoría', type: 'dimension', dataType: 'string', category: 'Clasificación', selected: false },
-    // Date Fields
-    { id: 'date', name: 'Fecha', type: 'date', dataType: 'date', category: 'Tiempo', selected: false },
-    { id: 'month', name: 'Mes', type: 'date', dataType: 'date', category: 'Tiempo', selected: false },
-    { id: 'quarter', name: 'Trimestre', type: 'date', dataType: 'date', category: 'Tiempo', selected: false },
-    { id: 'year', name: 'Año', type: 'date', dataType: 'date', category: 'Tiempo', selected: false },
-    // Metrics
-    { id: 'revenue', name: 'Ingresos', type: 'metric', dataType: 'currency', category: 'Financiero', selected: false },
-    { id: 'expenses', name: 'Gastos', type: 'metric', dataType: 'currency', category: 'Financiero', selected: false },
-    { id: 'profit', name: 'Utilidad', type: 'metric', dataType: 'currency', category: 'Financiero', selected: false },
-    { id: 'margin', name: 'Margen %', type: 'metric', dataType: 'number', category: 'Financiero', selected: false },
-    { id: 'quantity', name: 'Cantidad', type: 'metric', dataType: 'number', category: 'Operaciones', selected: false },
-    { id: 'hours', name: 'Horas', type: 'metric', dataType: 'number', category: 'Tiempo', selected: false },
-    { id: 'cost', name: 'Costo', type: 'metric', dataType: 'currency', category: 'Financiero', selected: false },
-    { id: 'budget', name: 'Presupuesto', type: 'metric', dataType: 'currency', category: 'Presupuesto', selected: false },
-    { id: 'variance', name: 'Variación', type: 'metric', dataType: 'currency', category: 'Presupuesto', selected: false }
-  ]
+    loadReportData()
+  }, [loadReportData])
 
   const sampleData = [
     { customer: 'Acme Corp', month: 'Enero', revenue: 850000, expenses: 520000, profit: 330000, margin: 38.8 },
