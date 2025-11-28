@@ -56,7 +56,7 @@ export default function LaborCostsPage() {
     grandTotal: 0,
     totalHeadcount: 0,
     avgCostPerEmployee: 0,
-    yoyChange: 5.2 // Mock year-over-year change
+    yoyChange: 0
   })
 
   useEffect(() => {

@@ -417,7 +417,7 @@ export default function InvoicesPage() {
               Total: <span className="font-semibold">${selectedInvoice.total.toLocaleString('es-MX')}</span>
             </p>
             
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault()
               const formData = new FormData(e.currentTarget)
               const amount = parseFloat(formData.get('amount') as string)
@@ -429,17 +429,26 @@ export default function InvoicesPage() {
                 return
               }
               
-              // Simulate API call
-              setTimeout(() => {
-                setInvoices(prev => prev.map(inv => 
-                  inv.id === selectedInvoice.id 
-                    ? { ...inv, status: amount >= selectedInvoice.total ? 'PAID' : 'PARTIAL' }
-                    : inv
-                ))
-                toast.success(`Pago de $${amount.toLocaleString('es-MX')} registrado`)
-                setShowPaymentModal(false)
-                setSelectedInvoice(null)
-              }, 500)
+              try {
+                const response = await fetch(`/api/invoices/${selectedInvoice.id}/payment`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ amount, method, reference })
+                })
+                
+                if (response.ok) {
+                  setInvoices(prev => prev.map(inv => 
+                    inv.id === selectedInvoice.id 
+                      ? { ...inv, status: amount >= selectedInvoice.total ? 'PAID' : 'PARTIAL' }
+                      : inv
+                  ))
+                  toast.success(`Pago de $${amount.toLocaleString('es-MX')} registrado`)
+                  setShowPaymentModal(false)
+                  setSelectedInvoice(null)
+                }
+              } catch (error) {
+                toast.error('Error al registrar pago')
+              }
             }}>
               <div className="space-y-4">
                 <div>
