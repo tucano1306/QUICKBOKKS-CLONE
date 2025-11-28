@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -59,352 +59,33 @@ export default function BillableTimePage() {
   const [filterProject, setFilterProject] = useState<string>('all')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadTimeEntries = useCallback(async () => {
+    if (!activeCompany?.id) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const timeEntries: TimeEntry[] = [
-    {
-      id: 'TIME-001',
-      projectId: 'PROJ-001',
-      projectCode: 'ERP-2025-001',
-      projectName: 'Implementación Sistema ERP - GlobalTech',
-      employee: 'Juan Pérez',
-      employeeId: 'EMP-001',
-      date: '2025-11-24',
-      hoursWorked: 8,
-      hourlyRate: 750,
-      totalAmount: 6000,
-      taskDescription: 'Desarrollo módulo de contabilidad - Configuración inicial',
-      taskCategory: 'development',
-      billable: true,
-      billingStatus: 'pending',
-      approvalStatus: 'approved',
-      approvedBy: 'María González'
-    },
-    {
-      id: 'TIME-002',
-      projectId: 'PROJ-001',
-      projectCode: 'ERP-2025-001',
-      projectName: 'Implementación Sistema ERP - GlobalTech',
-      employee: 'Ana Martínez',
-      employeeId: 'EMP-002',
-      date: '2025-11-24',
-      hoursWorked: 6,
-      hourlyRate: 850,
-      totalAmount: 5100,
-      taskDescription: 'Diseño UI/UX dashboard principal',
-      taskCategory: 'design',
-      billable: true,
-      billingStatus: 'pending',
-      approvalStatus: 'approved',
-      approvedBy: 'María González'
-    },
-    {
-      id: 'TIME-003',
-      projectId: 'PROJ-002',
-      projectCode: 'WEB-2025-012',
-      projectName: 'Portal E-commerce Acme Corp',
-      employee: 'Carlos Ramírez',
-      employeeId: 'EMP-003',
-      date: '2025-11-23',
-      hoursWorked: 8,
-      hourlyRate: 800,
-      totalAmount: 6400,
-      taskDescription: 'Desarrollo carrito de compras y checkout',
-      taskCategory: 'development',
-      billable: true,
-      billingStatus: 'invoiced',
-      approvalStatus: 'approved',
-      approvedBy: 'Carlos Ramírez',
-      invoiceId: 'INV-2025-045'
-    },
-    {
-      id: 'TIME-004',
-      projectId: 'PROJ-002',
-      projectCode: 'WEB-2025-012',
-      projectName: 'Portal E-commerce Acme Corp',
-      employee: 'Laura Hernández',
-      employeeId: 'EMP-004',
-      date: '2025-11-23',
-      hoursWorked: 4,
-      hourlyRate: 700,
-      totalAmount: 2800,
-      taskDescription: 'Pruebas de integración pasarela de pagos',
-      taskCategory: 'testing',
-      billable: true,
-      billingStatus: 'invoiced',
-      approvalStatus: 'approved',
-      approvedBy: 'Carlos Ramírez',
-      invoiceId: 'INV-2025-045'
-    },
-    {
-      id: 'TIME-005',
-      projectId: 'PROJ-003',
-      projectCode: 'APP-2025-008',
-      projectName: 'App Móvil Fintech - Innovatech',
-      employee: 'Roberto Silva',
-      employeeId: 'EMP-005',
-      date: '2025-11-22',
-      hoursWorked: 7,
-      hourlyRate: 900,
-      totalAmount: 6300,
-      taskDescription: 'Desarrollo API transacciones financieras',
-      taskCategory: 'development',
-      billable: true,
-      billingStatus: 'paid',
-      approvalStatus: 'approved',
-      approvedBy: 'Ana Martínez',
-      invoiceId: 'INV-2025-038'
-    },
-    {
-      id: 'TIME-006',
-      projectId: 'PROJ-003',
-      projectCode: 'APP-2025-008',
-      projectName: 'App Móvil Fintech - Innovatech',
-      employee: 'Patricia Morales',
-      employeeId: 'EMP-006',
-      date: '2025-11-22',
-      hoursWorked: 2,
-      hourlyRate: 750,
-      totalAmount: 0,
-      taskDescription: 'Reunión interna equipo - Planning Sprint',
-      taskCategory: 'meetings',
-      billable: false,
-      billingStatus: 'non-billable',
-      approvalStatus: 'approved',
-      approvedBy: 'Ana Martínez',
-      notes: 'Reunión interna no facturable'
-    },
-    {
-      id: 'TIME-007',
-      projectId: 'PROJ-001',
-      projectCode: 'ERP-2025-001',
-      projectName: 'Implementación Sistema ERP - GlobalTech',
-      employee: 'Diego Torres',
-      employeeId: 'EMP-007',
-      date: '2025-11-21',
-      hoursWorked: 6,
-      hourlyRate: 700,
-      totalAmount: 4200,
-      taskDescription: 'Documentación técnica módulo inventarios',
-      taskCategory: 'documentation',
-      billable: true,
-      billingStatus: 'pending',
-      approvalStatus: 'approved',
-      approvedBy: 'María González'
-    },
-    {
-      id: 'TIME-008',
-      projectId: 'PROJ-004',
-      projectCode: 'INF-2025-015',
-      projectName: 'Migración Cloud - Distribuidora Tech',
-      employee: 'Sandra Ruiz',
-      employeeId: 'EMP-008',
-      date: '2025-11-20',
-      hoursWorked: 8,
-      hourlyRate: 850,
-      totalAmount: 6800,
-      taskDescription: 'Configuración infraestructura AWS y migración BD',
-      taskCategory: 'development',
-      billable: true,
-      billingStatus: 'pending',
-      approvalStatus: 'approved',
-      approvedBy: 'Laura Hernández'
-    },
-    {
-      id: 'TIME-009',
-      projectId: 'PROJ-004',
-      projectCode: 'INF-2025-015',
-      projectName: 'Migración Cloud - Distribuidora Tech',
-      employee: 'Fernando Castro',
-      employeeId: 'EMP-009',
-      date: '2025-11-20',
-      hoursWorked: 5,
-      hourlyRate: 800,
-      totalAmount: 4000,
-      taskDescription: 'Pruebas de carga y rendimiento',
-      taskCategory: 'testing',
-      billable: true,
-      billingStatus: 'pending',
-      approvalStatus: 'submitted'
-    },
-    {
-      id: 'TIME-010',
-      projectId: 'PROJ-002',
-      projectCode: 'WEB-2025-012',
-      projectName: 'Portal E-commerce Acme Corp',
-      employee: 'Lucía Fernández',
-      employeeId: 'EMP-010',
-      date: '2025-11-19',
-      hoursWorked: 6,
-      hourlyRate: 750,
-      totalAmount: 4500,
-      taskDescription: 'Diseño responsive páginas producto',
-      taskCategory: 'design',
-      billable: true,
-      billingStatus: 'invoiced',
-      approvalStatus: 'approved',
-      approvedBy: 'Carlos Ramírez',
-      invoiceId: 'INV-2025-042'
-    },
-    {
-      id: 'TIME-011',
-      projectId: 'PROJ-005',
-      projectCode: 'IOT-2025-004',
-      projectName: 'Plataforma IoT Industrial - ManufactureTech',
-      employee: 'Miguel Ángel Suárez',
-      employeeId: 'EMP-011',
-      date: '2025-11-18',
-      hoursWorked: 8,
-      hourlyRate: 950,
-      totalAmount: 7600,
-      taskDescription: 'Desarrollo protocolo comunicación sensores IoT',
-      taskCategory: 'development',
-      billable: true,
-      billingStatus: 'paid',
-      approvalStatus: 'approved',
-      approvedBy: 'Patricia Morales',
-      invoiceId: 'INV-2025-035'
-    },
-    {
-      id: 'TIME-012',
-      projectId: 'PROJ-001',
-      projectCode: 'ERP-2025-001',
-      projectName: 'Implementación Sistema ERP - GlobalTech',
-      employee: 'Juan Pérez',
-      employeeId: 'EMP-001',
-      date: '2025-11-17',
-      hoursWorked: 7,
-      hourlyRate: 750,
-      totalAmount: 5250,
-      taskDescription: 'Integración módulo contabilidad con reportes',
-      taskCategory: 'development',
-      billable: true,
-      billingStatus: 'pending',
-      approvalStatus: 'approved',
-      approvedBy: 'María González'
-    },
-    {
-      id: 'TIME-013',
-      projectId: 'PROJ-003',
-      projectCode: 'APP-2025-008',
-      projectName: 'App Móvil Fintech - Innovatech',
-      employee: 'Roberto Silva',
-      employeeId: 'EMP-005',
-      date: '2025-11-16',
-      hoursWorked: 3,
-      hourlyRate: 900,
-      totalAmount: 0,
-      taskDescription: 'Capacitación cliente uso plataforma',
-      taskCategory: 'support',
-      billable: false,
-      billingStatus: 'non-billable',
-      approvalStatus: 'approved',
-      approvedBy: 'Ana Martínez',
-      notes: 'Capacitación incluida en contrato'
-    },
-    {
-      id: 'TIME-014',
-      projectId: 'PROJ-002',
-      projectCode: 'WEB-2025-012',
-      projectName: 'Portal E-commerce Acme Corp',
-      employee: 'Carlos Ramírez',
-      employeeId: 'EMP-003',
-      date: '2025-11-15',
-      hoursWorked: 5,
-      hourlyRate: 800,
-      totalAmount: 4000,
-      taskDescription: 'Optimización SEO y performance',
-      taskCategory: 'development',
-      billable: true,
-      billingStatus: 'invoiced',
-      approvalStatus: 'approved',
-      approvedBy: 'Carlos Ramírez',
-      invoiceId: 'INV-2025-042'
-    },
-    {
-      id: 'TIME-015',
-      projectId: 'PROJ-004',
-      projectCode: 'INF-2025-015',
-      projectName: 'Migración Cloud - Distribuidora Tech',
-      employee: 'Sandra Ruiz',
-      employeeId: 'EMP-008',
-      date: '2025-11-14',
-      hoursWorked: 6,
-      hourlyRate: 850,
-      totalAmount: 5100,
-      taskDescription: 'Configuración CI/CD pipeline',
-      taskCategory: 'development',
-      billable: true,
-      billingStatus: 'pending',
-      approvalStatus: 'draft',
-      notes: 'Pendiente revisión PM'
-    },
-    {
-      id: 'TIME-016',
-      projectId: 'PROJ-005',
-      projectCode: 'IOT-2025-004',
-      projectName: 'Plataforma IoT Industrial - ManufactureTech',
-      employee: 'Miguel Ángel Suárez',
-      employeeId: 'EMP-011',
-      date: '2025-11-13',
-      hoursWorked: 4,
-      hourlyRate: 950,
-      totalAmount: 3800,
-      taskDescription: 'Pruebas integración dashboard tiempo real',
-      taskCategory: 'testing',
-      billable: true,
-      billingStatus: 'paid',
-      approvalStatus: 'approved',
-      approvedBy: 'Patricia Morales',
-      invoiceId: 'INV-2025-035'
-    },
-    {
-      id: 'TIME-017',
-      projectId: 'PROJ-001',
-      projectCode: 'ERP-2025-001',
-      projectName: 'Implementación Sistema ERP - GlobalTech',
-      employee: 'Ana Martínez',
-      employeeId: 'EMP-002',
-      date: '2025-11-12',
-      hoursWorked: 7,
-      hourlyRate: 850,
-      totalAmount: 5950,
-      taskDescription: 'Diseño módulo recursos humanos',
-      taskCategory: 'design',
-      billable: true,
-      billingStatus: 'pending',
-      approvalStatus: 'approved',
-      approvedBy: 'María González'
-    },
-    {
-      id: 'TIME-018',
-      projectId: 'PROJ-002',
-      projectCode: 'WEB-2025-012',
-      projectName: 'Portal E-commerce Acme Corp',
-      employee: 'Laura Hernández',
-      employeeId: 'EMP-004',
-      date: '2025-11-11',
-      hoursWorked: 8,
-      hourlyRate: 700,
-      totalAmount: 5600,
-      taskDescription: 'Desarrollo sistema gestión inventario',
-      taskCategory: 'development',
-      billable: true,
-      billingStatus: 'invoiced',
-      approvalStatus: 'approved',
-      approvedBy: 'Carlos Ramírez',
-      invoiceId: 'INV-2025-040'
+    try {
+      const res = await fetch(`/api/projects/billable-time?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTimeEntries(data.entries || [])
+      }
+    } catch (error) {
+      console.error('Error loading time entries:', error)
     }
-  ]
+    setLoading(false)
+  }, [activeCompany?.id])
+
+  useEffect(() => {
+    loadTimeEntries()
+  }, [loadTimeEntries])
+
 
   const getApprovalBadge = (status: string) => {
     switch (status) {

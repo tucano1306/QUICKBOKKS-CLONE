@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -68,8 +68,9 @@ export default function ProjectCostingPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [selectedProject, setSelectedProject] = useState<string>('PROJ-001')
+  const [selectedProject, setSelectedProject] = useState<string>('')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
+  const [projectCosts, setProjectCosts] = useState<ProjectCost[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -77,207 +78,53 @@ export default function ProjectCostingPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadProjectCosts = useCallback(async () => {
+    if (!activeCompany?.id) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const projectCosts: ProjectCost[] = [
-    {
-      projectId: 'PROJ-001',
-      projectCode: 'ERP-2025-001',
-      projectName: 'Implementación Sistema ERP - GlobalTech',
-      client: 'GlobalTech Inc.',
-      status: 'active',
-      totalBudget: 2500000,
-      totalActualCost: 1125000,
-      laborBudget: 1500000,
-      laborActual: 675000,
-      materialsBudget: 400000,
-      materialsActual: 180000,
-      equipmentBudget: 250000,
-      equipmentActual: 112500,
-      overheadBudget: 200000,
-      overheadActual: 90000,
-      subcontractorsBudget: 100000,
-      subcontractorsActual: 45000,
-      miscBudget: 50000,
-      miscActual: 22500,
-      costVariance: 0,
-      costVariancePercent: 0,
-      completionPercent: 45
-    },
-    {
-      projectId: 'PROJ-002',
-      projectCode: 'WEB-2025-012',
-      projectName: 'Portal E-commerce Acme Corp',
-      client: 'Acme Corp',
-      status: 'active',
-      totalBudget: 850000,
-      totalActualCost: 552500,
-      laborBudget: 510000,
-      laborActual: 331500,
-      materialsBudget: 170000,
-      materialsActual: 110500,
-      equipmentBudget: 85000,
-      equipmentActual: 55250,
-      overheadBudget: 51000,
-      overheadActual: 33150,
-      subcontractorsBudget: 25500,
-      subcontractorsActual: 16575,
-      miscBudget: 8500,
-      miscActual: 5525,
-      costVariance: 0,
-      costVariancePercent: 0,
-      completionPercent: 65
-    },
-    {
-      projectId: 'PROJ-003',
-      projectCode: 'APP-2025-008',
-      projectName: 'App Móvil Fintech - Innovatech',
-      client: 'Innovatech',
-      status: 'active',
-      totalBudget: 1200000,
-      totalActualCost: 960000,
-      laborBudget: 720000,
-      laborActual: 576000,
-      materialsBudget: 240000,
-      materialsActual: 192000,
-      equipmentBudget: 120000,
-      equipmentActual: 96000,
-      overheadBudget: 72000,
-      overheadActual: 57600,
-      subcontractorsBudget: 36000,
-      subcontractorsActual: 28800,
-      miscBudget: 12000,
-      miscActual: 9600,
-      costVariance: 0,
-      costVariancePercent: 0,
-      completionPercent: 80
-    },
-    {
-      projectId: 'PROJ-004',
-      projectCode: 'INF-2025-015',
-      projectName: 'Migración Cloud - Distribuidora Tech',
-      client: 'Distribuidora Tech Solutions',
-      status: 'active',
-      totalBudget: 950000,
-      totalActualCost: 522500,
-      laborBudget: 570000,
-      laborActual: 313500,
-      materialsBudget: 190000,
-      materialsActual: 104500,
-      equipmentBudget: 95000,
-      equipmentActual: 52250,
-      overheadBudget: 57000,
-      overheadActual: 31350,
-      subcontractorsBudget: 28500,
-      subcontractorsActual: 15675,
-      miscBudget: 9500,
-      miscActual: 5225,
-      costVariance: 0,
-      costVariancePercent: 0,
-      completionPercent: 55
-    },
-    {
-      projectId: 'PROJ-005',
-      projectCode: 'IOT-2025-004',
-      projectName: 'Plataforma IoT Industrial - ManufactureTech',
-      client: 'ManufactureTech',
-      status: 'active',
-      totalBudget: 1450000,
-      totalActualCost: 1232500,
-      laborBudget: 870000,
-      laborActual: 739500,
-      materialsBudget: 290000,
-      materialsActual: 246500,
-      equipmentBudget: 145000,
-      equipmentActual: 123250,
-      overheadBudget: 87000,
-      overheadActual: 73950,
-      subcontractorsBudget: 43500,
-      subcontractorsActual: 36975,
-      miscBudget: 14500,
-      miscActual: 12325,
-      costVariance: 0,
-      costVariancePercent: 0,
-      completionPercent: 85
-    },
-    {
-      projectId: 'PROJ-006',
-      projectCode: 'CON-2025-007',
-      projectName: 'Consultoría Transformación Digital - RetailCorp',
-      client: 'RetailCorp',
-      status: 'completed',
-      totalBudget: 650000,
-      totalActualCost: 620000,
-      laborBudget: 455000,
-      laborActual: 434000,
-      materialsBudget: 97500,
-      materialsActual: 93000,
-      equipmentBudget: 45500,
-      equipmentActual: 43400,
-      overheadBudget: 32500,
-      overheadActual: 31000,
-      subcontractorsBudget: 13000,
-      subcontractorsActual: 12400,
-      miscBudget: 6500,
-      miscActual: 6200,
-      costVariance: -30000,
-      costVariancePercent: -4.6,
-      completionPercent: 100
-    },
-    {
-      projectId: 'PROJ-007',
-      projectCode: 'DATA-2025-010',
-      projectName: 'Business Intelligence Dashboard - Analytics Pro',
-      client: 'Analytics Pro',
-      status: 'active',
-      totalBudget: 720000,
-      totalActualCost: 180000,
-      laborBudget: 432000,
-      laborActual: 108000,
-      materialsBudget: 144000,
-      materialsActual: 36000,
-      equipmentBudget: 72000,
-      equipmentActual: 18000,
-      overheadBudget: 43200,
-      overheadActual: 10800,
-      subcontractorsBudget: 21600,
-      subcontractorsActual: 5400,
-      miscBudget: 7200,
-      miscActual: 1800,
-      costVariance: 0,
-      costVariancePercent: 0,
-      completionPercent: 25
-    },
-    {
-      projectId: 'PROJ-008',
-      projectCode: 'WEB-2025-018',
-      projectName: 'Rediseño Sitio Corporativo - BrandCo',
-      client: 'BrandCo',
-      status: 'completed',
-      totalBudget: 320000,
-      totalActualCost: 304000,
-      laborBudget: 224000,
-      laborActual: 212800,
-      materialsBudget: 48000,
-      materialsActual: 45600,
-      equipmentBudget: 22400,
-      equipmentActual: 21280,
-      overheadBudget: 16000,
-      overheadActual: 15200,
-      subcontractorsBudget: 6400,
-      subcontractorsActual: 6080,
-      miscBudget: 3200,
-      miscActual: 3040,
-      costVariance: -16000,
-      costVariancePercent: -5.0,
-      completionPercent: 100
+    try {
+      const res = await fetch(`/api/projects/costing?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        const costs = data.projects || []
+        setProjectCosts(costs)
+        if (costs.length > 0 && !selectedProject) {
+          setSelectedProject(costs[0].projectId)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading project costs:', error)
     }
-  ]
+    setLoading(false)
+  }, [activeCompany?.id, selectedProject])
 
-  const selectedProjectData = projectCosts.find(p => p.projectId === selectedProject) || projectCosts[0]
+  useEffect(() => {
+    loadProjectCosts()
+  }, [loadProjectCosts])
+
+  const selectedProjectData = projectCosts.find(p => p.projectId === selectedProject) || projectCosts[0] || {
+    projectId: '',
+    projectCode: '',
+    projectName: '',
+    client: '',
+    status: 'active' as const,
+    totalBudget: 0,
+    totalActualCost: 0,
+    laborBudget: 0,
+    laborActual: 0,
+    materialsBudget: 0,
+    materialsActual: 0,
+    equipmentBudget: 0,
+    equipmentActual: 0,
+    overheadBudget: 0,
+    overheadActual: 0,
+    subcontractorsBudget: 0,
+    subcontractorsActual: 0,
+    miscBudget: 0,
+    miscActual: 0,
+    costVariance: 0,
+    costVariancePercent: 0,
+    completionPercent: 0
+  }
 
   const costBreakdown: CostBreakdown[] = [
     {
