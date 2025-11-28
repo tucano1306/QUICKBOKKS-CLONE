@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -78,115 +78,7 @@ export default function CustomerPortalPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
-  const [customerPortals, setCustomerPortals] = useState<CustomerPortal[]>([
-    {
-      id: 'CP-001',
-      customerId: 'CUST-001',
-      customerName: 'Juan Pérez García',
-      email: 'juan.perez@email.com',
-      portalUrl: 'https://portal.quickbooks.com/cliente/juan-perez-001',
-      status: 'active',
-      lastAccess: '2025-11-24',
-      accessCount: 47,
-      features: {
-        viewInvoices: true,
-        makePayments: true,
-        downloadDocuments: true,
-        updateInfo: true
-      },
-      createdDate: '2025-01-15',
-      invitationSent: '2025-01-15'
-    },
-    {
-      id: 'CP-002',
-      customerId: 'CUST-002',
-      customerName: 'María López Hernández',
-      email: 'maria.lopez@empresa.com',
-      portalUrl: 'https://portal.quickbooks.com/cliente/maria-lopez-002',
-      status: 'active',
-      lastAccess: '2025-11-25',
-      accessCount: 89,
-      features: {
-        viewInvoices: true,
-        makePayments: true,
-        downloadDocuments: true,
-        updateInfo: false
-      },
-      createdDate: '2025-02-20',
-      invitationSent: '2025-02-20'
-    },
-    {
-      id: 'CP-003',
-      customerId: 'CUST-003',
-      customerName: 'Carlos Ramírez Sánchez',
-      email: 'carlos.ramirez@mail.com',
-      portalUrl: 'https://portal.quickbooks.com/cliente/carlos-ramirez-003',
-      status: 'pending',
-      accessCount: 0,
-      features: {
-        viewInvoices: true,
-        makePayments: true,
-        downloadDocuments: true,
-        updateInfo: true
-      },
-      createdDate: '2025-11-23',
-      invitationSent: '2025-11-23'
-    },
-    {
-      id: 'CP-004',
-      customerId: 'CUST-004',
-      customerName: 'Empresa ABC Corp',
-      email: 'contacto@abccorp.com',
-      portalUrl: 'https://portal.quickbooks.com/cliente/abc-corp-004',
-      status: 'active',
-      lastAccess: '2025-11-22',
-      accessCount: 156,
-      features: {
-        viewInvoices: true,
-        makePayments: true,
-        downloadDocuments: true,
-        updateInfo: true
-      },
-      createdDate: '2024-11-01',
-      invitationSent: '2024-11-01'
-    },
-    {
-      id: 'CP-005',
-      customerId: 'CUST-005',
-      customerName: 'TechStart S.A.',
-      email: 'admin@techstart.com',
-      portalUrl: 'https://portal.quickbooks.com/cliente/techstart-005',
-      status: 'inactive',
-      lastAccess: '2025-09-15',
-      accessCount: 23,
-      features: {
-        viewInvoices: true,
-        makePayments: false,
-        downloadDocuments: true,
-        updateInfo: false
-      },
-      createdDate: '2025-06-10',
-      invitationSent: '2025-06-10'
-    },
-    {
-      id: 'CP-006',
-      customerId: 'CUST-006',
-      customerName: 'Contadores Asociados',
-      email: 'info@contadoresasoc.com',
-      portalUrl: 'https://portal.quickbooks.com/cliente/contadores-006',
-      status: 'active',
-      lastAccess: '2025-11-25',
-      accessCount: 134,
-      features: {
-        viewInvoices: true,
-        makePayments: true,
-        downloadDocuments: true,
-        updateInfo: true
-      },
-      createdDate: '2025-03-05',
-      invitationSent: '2025-03-05'
-    }
-  ])
+  const [customerPortals, setCustomerPortals] = useState<CustomerPortal[]>([])
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [inviteForm, setInviteForm] = useState({
@@ -202,6 +94,55 @@ export default function CustomerPortalPage() {
     defaultPermissions: { ...defaultPermissions }
   })
 
+  // Load customer portals from API
+  const loadCustomerPortals = useCallback(async () => {
+    if (!activeCompany?.id) return
+    
+    setLoading(true)
+    try {
+      // Get customers with portal access
+      const response = await fetch(`/api/customers?companyId=${activeCompany.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        const customers = data.customers || data || []
+        
+        // Transform customers to portal format
+        const portals: CustomerPortal[] = customers
+          .filter((c: { portalActive?: boolean }) => c.portalActive !== undefined)
+          .map((customer: {
+            id: string
+            name: string
+            email?: string
+            portalActive?: boolean
+            portalLastLogin?: string
+          }) => ({
+            id: `CP-${customer.id.slice(-6)}`,
+            customerId: customer.id,
+            customerName: customer.name,
+            email: customer.email || '',
+            portalUrl: `https://portal.quickbooks.com/cliente/${customer.id}`,
+            status: customer.portalActive ? 'active' : 'inactive',
+            lastAccess: customer.portalLastLogin || undefined,
+            accessCount: 0, // Would come from analytics
+            features: {
+              viewInvoices: true,
+              makePayments: true,
+              downloadDocuments: true,
+              updateInfo: false
+            },
+            createdDate: new Date().toISOString().split('T')[0],
+            invitationSent: undefined
+          }))
+        
+        setCustomerPortals(portals)
+      }
+    } catch (error) {
+      console.error('Error loading customer portals:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeCompany?.id])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
@@ -209,9 +150,8 @@ export default function CustomerPortalPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
+    loadCustomerPortals()
+  }, [loadCustomerPortals])
 
   const slugify = (value: string) =>
     value
