@@ -87,6 +87,7 @@ export default function AIAssistPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [messages, setMessages] = useState<Message[]>([getWelcomeMessage()])
   const [recentConversations, setRecentConversations] = useState<Conversation[]>([])
+  const [showSavedConversations, setShowSavedConversations] = useState(false)
   const [stats, setStats] = useState<AIStats>({
     totalQuestions: 0,
     avgResponseTime: '0s',
@@ -128,6 +129,11 @@ export default function AIAssistPage() {
   const handleNewChat = () => {
     setMessages([getWelcomeMessage()])
     setInputMessage('')
+    setShowSavedConversations(false)
+  }
+
+  const handleShowSavedConversations = () => {
+    setShowSavedConversations(!showSavedConversations)
   }
 
   const quickQuestions: QuickQuestion[] = [
@@ -254,7 +260,10 @@ export default function AIAssistPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button 
+              variant={showSavedConversations ? "default" : "outline"}
+              onClick={handleShowSavedConversations}
+            >
               <Bookmark className="w-4 h-4 mr-2" />
               Saved Conversations
             </Button>
@@ -315,6 +324,47 @@ export default function AIAssistPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Saved Conversations Panel */}
+        {showSavedConversations && (
+          <Card className="bg-white border-2 border-blue-200">
+            <CardHeader className="border-b bg-blue-50">
+              <CardTitle className="flex items-center gap-2 text-blue-900">
+                <Bookmark className="w-5 h-5" />
+                Conversaciones Guardadas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {recentConversations.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No hay conversaciones guardadas aún.</p>
+                  <p className="text-sm mt-1">Tus conversaciones aparecerán aquí.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recentConversations.map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => {
+                        // Cargar esta conversación
+                        setShowSavedConversations(false)
+                      }}
+                      className="p-4 text-left border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                    >
+                      <h4 className="font-semibold text-gray-900 mb-1">{conv.title}</h4>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{conv.lastMessage}</p>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{conv.messageCount} mensajes</span>
+                        <span>{new Date(conv.timestamp).toLocaleDateString()}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Chat Interface */}
