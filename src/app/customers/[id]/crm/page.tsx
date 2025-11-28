@@ -89,74 +89,19 @@ export default function CustomerCRMPage() {
 
   const loadData = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Mock customer data
-      const mockCustomer: Customer = {
-        id: customerId,
-        name: 'Acme Corporation',
-        email: 'contacto@acmecorp.com',
-        phone: '+52 55 1234 5678',
-        company: 'Acme Corp',
-        address: 'Av. Reforma 123, Piso 10',
-        city: 'Ciudad de México',
-        website: 'www.acmecorp.com',
-        accountManager: 'Juan Pérez',
-        status: 'ACTIVE',
-        lifetime_value: 250000,
-        total_invoices: 24,
-        paid_invoices: 20,
-        pending_amount: 45000,
-        last_interaction: '2024-01-20T14:30:00',
-        next_followup: '2024-01-28T10:00:00'
+      // Load customer data
+      const customerRes = await fetch(`/api/customers/${customerId}`)
+      if (customerRes.ok) {
+        const customerData = await customerRes.json()
+        setCustomer(customerData.customer || customerData)
       }
 
-      // Mock interactions
-      const mockInteractions: Interaction[] = [
-        {
-          id: '1',
-          type: 'CALL',
-          date: '2024-01-20T14:30:00',
-          duration: 25,
-          subject: 'Seguimiento propuesta Q1 2024',
-          notes: 'Cliente interesado en renovar contrato. Solicita reunión presencial para revisar términos.',
-          outcome: 'Positivo - Agendar reunión',
-          createdBy: 'Juan Pérez'
-        },
-        {
-          id: '2',
-          type: 'EMAIL',
-          date: '2024-01-18T09:15:00',
-          duration: 0,
-          subject: 'Envío de propuesta comercial',
-          notes: 'Enviada propuesta con descuento del 15% por renovación anticipada.',
-          outcome: 'Enviado - Esperando respuesta',
-          createdBy: 'María López'
-        },
-        {
-          id: '3',
-          type: 'MEETING',
-          date: '2024-01-15T16:00:00',
-          duration: 60,
-          subject: 'Reunión de revisión trimestral',
-          notes: 'Presentación de resultados Q4 2023. Cliente satisfecho con el servicio. Mencionó interés en servicios adicionales.',
-          outcome: 'Muy positivo - Upsell opportunity',
-          createdBy: 'Juan Pérez'
-        },
-        {
-          id: '4',
-          type: 'WHATSAPP',
-          date: '2024-01-12T11:45:00',
-          duration: 5,
-          subject: 'Confirmación de cita',
-          notes: 'Cliente confirma asistencia a reunión del 15 de enero.',
-          outcome: 'Confirmado',
-          createdBy: 'Juan Pérez'
-        }
-      ]
-
-      setCustomer(mockCustomer)
-      setInteractions(mockInteractions)
+      // Load interactions
+      const interactionsRes = await fetch(`/api/customers/${customerId}/interactions`)
+      if (interactionsRes.ok) {
+        const interactionsData = await interactionsRes.json()
+        setInteractions(interactionsData.interactions || [])
+      }
     } catch (error) {
       toast.error('Error al cargar datos')
     } finally {

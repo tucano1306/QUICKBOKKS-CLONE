@@ -77,88 +77,24 @@ export default function CustomerNotesPage() {
 
   const loadData = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800))
-
-      // Mock customer name
-      setCustomerName('Acme Corp')
-
-      // Mock notes
-      const mockNotes: Note[] = [
-        {
-          id: '1',
-          title: 'Primera reunión de discovery',
-          content: 'Cliente interesado en contratar servicios de consultoría. Presupuesto estimado: $50,000. Solicitan propuesta para la próxima semana.',
-          createdAt: '2024-01-15T10:30:00',
-          updatedAt: '2024-01-15T10:30:00',
-          createdBy: 'Juan Pérez',
-          tags: ['reunion', 'propuesta', 'urgente']
-        },
-        {
-          id: '2',
-          title: 'Seguimiento llamada telefónica',
-          content: 'Cliente preguntó sobre opciones de pago y descuentos por volumen. Pendiente enviar información de planes empresariales.',
-          createdAt: '2024-01-18T14:20:00',
-          updatedAt: '2024-01-18T14:20:00',
-          createdBy: 'María López',
-          tags: ['llamada', 'comercial']
-        },
-        {
-          id: '3',
-          title: 'Problema con factura INV-2024-001',
-          content: 'Cliente reportó error en el monto de la factura. Se corrigió y se envió factura rectificada. Cliente confirmó conformidad.',
-          createdAt: '2024-01-20T09:15:00',
-          updatedAt: '2024-01-20T16:45:00',
-          createdBy: 'Carlos Ruiz',
-          tags: ['facturacion', 'resuelto']
-        }
-      ]
-
-      // Mock tasks
-      const mockTasks: Task[] = [
-        {
-          id: '1',
-          title: 'Enviar propuesta comercial',
-          description: 'Preparar y enviar propuesta con precios y alcance del proyecto',
-          dueDate: '2024-01-30',
-          priority: 'HIGH',
-          status: 'IN_PROGRESS',
-          assignedTo: 'Juan Pérez',
-          createdAt: '2024-01-15T10:35:00'
-        },
-        {
-          id: '2',
-          title: 'Llamar para seguimiento',
-          description: 'Hacer seguimiento sobre la propuesta enviada la semana pasada',
-          dueDate: '2024-01-25',
-          priority: 'MEDIUM',
-          status: 'PENDING',
-          assignedTo: 'María López',
-          createdAt: '2024-01-18T14:25:00'
-        },
-        {
-          id: '3',
-          title: 'Programar reunión mensual',
-          description: 'Agendar reunión de revisión con el cliente para fin de mes',
-          dueDate: '2024-01-28',
-          priority: 'LOW',
-          status: 'PENDING',
-          assignedTo: 'Juan Pérez',
-          createdAt: '2024-01-20T11:00:00'
-        },
-        {
-          id: '4',
-          title: 'Verificar pago pendiente',
-          description: 'Cliente menciona que ya realizó pago hace 3 días, verificar en cuenta bancaria',
-          dueDate: '2024-01-23',
-          priority: 'URGENT',
-          status: 'PENDING',
-          assignedTo: 'Carlos Ruiz',
-          createdAt: '2024-01-21T15:30:00'
-        }
-      ]
-
-      setNotes(mockNotes)
-      setTasks(mockTasks)
+      const [notesRes, tasksRes, customerRes] = await Promise.all([
+        fetch(`/api/customers/${customerId}/notes`),
+        fetch(`/api/customers/${customerId}/tasks`),
+        fetch(`/api/customers/${customerId}`)
+      ])
+      
+      if (notesRes.ok) {
+        const notesData = await notesRes.json()
+        setNotes(notesData.notes || [])
+      }
+      if (tasksRes.ok) {
+        const tasksData = await tasksRes.json()
+        setTasks(tasksData.tasks || [])
+      }
+      if (customerRes.ok) {
+        const customerData = await customerRes.json()
+        setCustomerName(customerData.name || customerData.customer?.name || 'Cliente')
+      }
     } catch (error) {
       toast.error('Error al cargar datos')
     } finally {

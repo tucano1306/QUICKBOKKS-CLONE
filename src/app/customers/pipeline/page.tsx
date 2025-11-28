@@ -72,111 +72,11 @@ export default function PipelinePage() {
 
   const loadData = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Mock leads
-      const mockLeads: Lead[] = [
-        {
-          id: '1',
-          name: 'Tech Innovators SA',
-          company: 'Tech Innovators',
-          email: 'contacto@techinnovators.com',
-          phone: '+52 55 9876 5432',
-          value: 150000,
-          stage: 'PROPOSAL',
-          probability: 50,
-          expectedCloseDate: '2024-02-15',
-          lastContact: '2024-01-20',
-          assignedTo: 'Juan Pérez',
-          source: 'Referido'
-        },
-        {
-          id: '2',
-          name: 'Global Solutions Inc',
-          company: 'Global Solutions',
-          email: 'info@globalsolutions.com',
-          phone: '+52 55 1122 3344',
-          value: 280000,
-          stage: 'NEGOTIATION',
-          probability: 70,
-          expectedCloseDate: '2024-02-01',
-          lastContact: '2024-01-22',
-          assignedTo: 'María López',
-          source: 'Website'
-        },
-        {
-          id: '3',
-          name: 'StartUp Ventures',
-          company: 'StartUp Ventures',
-          email: 'hello@startupventures.com',
-          phone: '+52 55 5566 7788',
-          value: 85000,
-          stage: 'QUALIFIED',
-          probability: 30,
-          expectedCloseDate: '2024-03-10',
-          lastContact: '2024-01-18',
-          assignedTo: 'Carlos Ruiz',
-          source: 'LinkedIn'
-        },
-        {
-          id: '4',
-          name: 'Enterprise Corp',
-          company: 'Enterprise Corp',
-          email: 'sales@enterprisecorp.com',
-          phone: '+52 55 9988 7766',
-          value: 450000,
-          stage: 'PROPOSAL',
-          probability: 50,
-          expectedCloseDate: '2024-02-28',
-          lastContact: '2024-01-21',
-          assignedTo: 'Juan Pérez',
-          source: 'Evento'
-        },
-        {
-          id: '5',
-          name: 'Digital Marketing Pro',
-          company: 'Digital Marketing',
-          email: 'contact@digitalmarketing.com',
-          phone: '+52 55 4433 2211',
-          value: 120000,
-          stage: 'LEAD',
-          probability: 10,
-          expectedCloseDate: '2024-03-20',
-          lastContact: '2024-01-15',
-          assignedTo: 'María López',
-          source: 'Google Ads'
-        },
-        {
-          id: '6',
-          name: 'Acme Manufacturing',
-          company: 'Acme Manufacturing',
-          email: 'sales@acmemanufacturing.com',
-          phone: '+52 55 6677 8899',
-          value: 320000,
-          stage: 'CLOSED_WON',
-          probability: 100,
-          expectedCloseDate: '2024-01-25',
-          lastContact: '2024-01-23',
-          assignedTo: 'Carlos Ruiz',
-          source: 'Referido'
-        },
-        {
-          id: '7',
-          name: 'Small Business Co',
-          company: 'Small Business',
-          email: 'info@smallbiz.com',
-          phone: '+52 55 3344 5566',
-          value: 45000,
-          stage: 'CLOSED_LOST',
-          probability: 0,
-          expectedCloseDate: '2024-01-15',
-          lastContact: '2024-01-10',
-          assignedTo: 'Juan Pérez',
-          source: 'Llamada fría'
-        }
-      ]
-
-      setLeads(mockLeads)
+      const res = await fetch('/api/customers/pipeline')
+      if (res.ok) {
+        const data = await res.json()
+        setLeads(data.leads || [])
+      }
     } catch (error) {
       toast.error('Error al cargar datos')
     } finally {

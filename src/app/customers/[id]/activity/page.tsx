@@ -55,47 +55,12 @@ export default function CustomerActivityPage() {
         setCustomer(customerData)
       }
 
-      // Simulación de actividades del portal
-      // En producción esto vendría de una tabla de logs en la base de datos
-      const mockActivities: ActivityLog[] = [
-        {
-          id: '1',
-          action: 'LOGIN',
-          description: 'Inició sesión en el portal',
-          timestamp: new Date().toISOString(),
-          ipAddress: '192.168.1.100'
-        },
-        {
-          id: '2',
-          action: 'VIEW_INVOICE',
-          description: 'Visualizó la factura #INV-001',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          ipAddress: '192.168.1.100'
-        },
-        {
-          id: '3',
-          action: 'DOWNLOAD_PDF',
-          description: 'Descargó factura #INV-001 en PDF',
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          ipAddress: '192.168.1.100'
-        },
-        {
-          id: '4',
-          action: 'VIEW_STATEMENT',
-          description: 'Consultó estado de cuenta',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          ipAddress: '192.168.1.100'
-        },
-        {
-          id: '5',
-          action: 'PAYMENT',
-          description: 'Realizó pago de $5,250.00 MXN',
-          timestamp: new Date(Date.now() - 172800000).toISOString(),
-          ipAddress: '192.168.1.105'
-        }
-      ]
-
-      setActivities(mockActivities)
+      // Cargar actividades del cliente desde API
+      const activityRes = await fetch(`/api/customers/${params.id}/activity`)
+      if (activityRes.ok) {
+        const activityData = await activityRes.json()
+        setActivities(activityData.activities || [])
+      }
     } catch (error) {
       console.error('Error loading activity:', error)
       toast.error('Error al cargar actividad')
