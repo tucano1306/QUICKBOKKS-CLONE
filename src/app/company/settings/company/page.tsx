@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -64,49 +64,92 @@ export default function CompanySettingsPage() {
     }
   }, [status, router])
 
-  useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 500)
-  }, [])
-
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
-    legalName: 'Acme Corporation Inc.',
-    dbaName: 'Acme Business Solutions',
-    ein: '12-3456789',
-    businessType: 'C Corporation',
-    incorporationDate: '2018-03-15',
+    legalName: '',
+    dbaName: '',
+    ein: '',
+    businessType: 'LLC',
+    incorporationDate: '',
     fiscalYearEnd: '12-31',
-    address1: '1234 Business Park Drive',
-    address2: 'Suite 500',
-    city: 'Miami',
-    state: 'FL',
-    zipCode: '33131',
+    address1: '',
+    address2: '',
+    city: '',
+    state: '',
+    zipCode: '',
     country: 'United States',
-    phone: '+1 (305) 555-0123',
-    email: 'accounting@acmecorp.com',
-    website: 'https://www.acmecorp.com',
+    phone: '',
+    email: '',
+    website: '',
     industry: 'Professional Services',
-    employees: '50-100',
-    annualRevenue: '$5M-$10M'
+    employees: '1-10',
+    annualRevenue: '$0-$100K'
   })
 
   const [taxSettings, setTaxSettings] = useState({
-    federalTaxId: '12-3456789',
-    stateTaxId: 'FL-987654321',
-    salesTaxNumber: 'FL-ST-2024-12345',
+    federalTaxId: '',
+    stateTaxId: '',
+    salesTaxNumber: '',
     useAccrualBasis: true,
     taxFilingFrequency: 'Quarterly',
     salesTaxRate: '7.0',
-    nexusStates: ['Florida', 'Georgia', 'Texas']
+    nexusStates: [] as string[]
   })
 
-  const handleSave = () => {
+  const loadCompanyData = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      // Load company data from activeCompany context
+      setCompanyInfo(prev => ({
+        ...prev,
+        legalName: activeCompany.legalName || activeCompany.name || '',
+        dbaName: activeCompany.name || '',
+        ein: activeCompany.taxId || '',
+        industry: activeCompany.industry || 'Professional Services',
+      }))
+      setTaxSettings(prev => ({
+        ...prev,
+        federalTaxId: activeCompany.taxId || ''
+      }))
+    } catch (error) {
+      console.error('Error loading company data:', error)
+    }
+    setLoading(false)
+  }, [activeCompany])
+
+  useEffect(() => {
+    loadCompanyData()
+  }, [loadCompanyData])
+
+  const handleSave = async () => {
+    if (!activeCompany?.id) return
     setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
-    }, 1500)
+    try {
+      const res = await fetch(`/api/companies/${activeCompany.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: companyInfo.dbaName,
+          legalName: companyInfo.legalName,
+          taxId: companyInfo.ein,
+          industry: companyInfo.industry,
+          website: companyInfo.website,
+          address: companyInfo.address1,
+          city: companyInfo.city,
+          state: companyInfo.state,
+          zipCode: companyInfo.zipCode,
+          phone: companyInfo.phone,
+          email: companyInfo.email
+        })
+      })
+      if (res.ok) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      }
+    } catch (error) {
+      console.error('Error saving company:', error)
+    }
+    setSaving(false)
   }
 
   const businessTypes = [

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -60,154 +60,32 @@ export default function CustomerNotesPage() {
   const [selectedNote, setSelectedNote] = useState<CustomerNote | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
+  const [notes, setNotes] = useState<CustomerNote[]>([])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadNotes = useCallback(async () => {
+    if (!activeCompany?.id) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const notes: CustomerNote[] = [
-    {
-      id: 'NOTE-001',
-      customerId: 'CUST-001',
-      customerName: 'Juan Pérez García',
-      title: 'Cliente VIP - Atención Prioritaria',
-      content: 'Cliente de alto valor. Ha sido muy puntual en sus pagos durante todo el año. Solicita facturación el primer día de cada mes. Prefiere comunicación por email.',
-      category: 'general',
-      priority: 'high',
-      isPinned: true,
-      createdBy: 'Ana Martínez',
-      createdDate: '2025-01-15',
-      lastModified: '2025-11-20',
-      tags: ['VIP', 'Puntual', 'Email'],
-      relatedDocuments: ['FAC-2025-001']
-    },
-    {
-      id: 'NOTE-002',
-      customerId: 'CUST-002',
-      customerName: 'María López Hernández',
-      title: 'Reunión Trimestral - Q4 2025',
-      content: 'Reunión programada para revisar estado de cuenta y discutir nuevos proyectos para 2026. Cliente interesado en expandir servicios. Enviar propuesta antes del 30 de noviembre.',
-      category: 'meeting',
-      priority: 'high',
-      isPinned: true,
-      createdBy: 'Carlos Torres',
-      createdDate: '2025-11-22',
-      lastModified: '2025-11-24',
-      tags: ['Reunión', 'Propuesta', 'Expansión'],
-      relatedDocuments: ['COT-2025-015']
-    },
-    {
-      id: 'NOTE-003',
-      customerId: 'CUST-003',
-      customerName: 'Carlos Ramírez Sánchez',
-      title: 'Pago Parcial Acordado',
-      content: 'Cliente solicitó división de pago en dos partes debido a flujo de efectivo. Primera mitad pagada el 23/11. Segunda mitad acordada para el 10/12. Confirmación por email adjunta.',
-      category: 'payment',
-      priority: 'medium',
-      isPinned: false,
-      createdBy: 'Luis Fernández',
-      createdDate: '2025-11-23',
-      lastModified: '2025-11-23',
-      tags: ['Pago Parcial', 'Acuerdo', 'Flujo'],
-      relatedDocuments: ['FAC-2025-005', 'PAG-2025-003']
-    },
-    {
-      id: 'NOTE-004',
-      customerId: 'CUST-004',
-      customerName: 'Empresa ABC Corp',
-      title: 'Solicitud de Descuento - Volumen Alto',
-      content: 'Cliente solicita 10% de descuento por volumen en próximas facturas. Revisar con dirección. Volumen anual: $500k+. Cliente clave para retención.',
-      category: 'sales',
-      priority: 'high',
-      isPinned: true,
-      createdBy: 'Ana Martínez',
-      createdDate: '2025-11-18',
-      lastModified: '2025-11-18',
-      tags: ['Descuento', 'Volumen', 'Retención'],
-      relatedDocuments: []
-    },
-    {
-      id: 'NOTE-005',
-      customerId: 'CUST-005',
-      customerName: 'TechStart S.A.',
-      title: 'Factura Vencida - Seguimiento',
-      content: 'FAC-2025-012 vencida desde el 20/11. Se realizaron 2 llamadas (21/11 y 24/11). Cliente menciona problemas internos de aprobación. Comprometido a pagar esta semana. Seguimiento el 27/11.',
-      category: 'payment',
-      priority: 'urgent',
-      isPinned: true,
-      createdBy: 'Laura González',
-      createdDate: '2025-11-24',
-      lastModified: '2025-11-25',
-      tags: ['Vencida', 'Seguimiento', 'Urgente'],
-      relatedDocuments: ['FAC-2025-012']
-    },
-    {
-      id: 'NOTE-006',
-      customerId: 'CUST-006',
-      customerName: 'Contadores Asociados',
-      title: 'Cliente Satisfecho - Testimonial',
-      content: 'Cliente muy satisfecho con el servicio. Ha ofrecido dar testimonial para sitio web. Excelente comunicación y pagos puntuales. Posible referencia a otros contadores.',
-      category: 'general',
-      priority: 'low',
-      isPinned: false,
-      createdBy: 'Carlos Torres',
-      createdDate: '2025-11-24',
-      lastModified: '2025-11-24',
-      tags: ['Satisfecho', 'Testimonial', 'Referencias'],
-      relatedDocuments: []
-    },
-    {
-      id: 'NOTE-007',
-      customerId: 'CUST-007',
-      customerName: 'Servicios Pro',
-      title: 'Queja sobre Facturación',
-      content: 'Cliente reportó error en factura del mes pasado. Se emitió nota de crédito NC-2025-001 por $2,000. Situación resuelta. Cliente agradeció la rapidez en la respuesta.',
-      category: 'complaint',
-      priority: 'medium',
-      isPinned: false,
-      createdBy: 'Luis Fernández',
-      createdDate: '2025-10-28',
-      lastModified: '2025-10-30',
-      tags: ['Queja', 'Resuelta', 'Nota Crédito'],
-      relatedDocuments: ['FAC-2025-010', 'NC-2025-001']
-    },
-    {
-      id: 'NOTE-008',
-      customerId: 'CUST-001',
-      customerName: 'Juan Pérez García',
-      title: 'Actualización Datos Fiscales',
-      content: 'Cliente cambió de domicilio fiscal. Actualizar RFC y dirección en sistema. Nuevo RFC: PEGJ800101ABC. Nueva dirección: Av. Reforma 123, Col. Centro.',
-      category: 'support',
-      priority: 'medium',
-      isPinned: false,
-      createdBy: 'Ana Martínez',
-      createdDate: '2025-11-20',
-      lastModified: '2025-11-20',
-      tags: ['RFC', 'Actualización', 'Fiscal'],
-      relatedDocuments: []
-    },
-    {
-      id: 'NOTE-009',
-      customerId: 'CUST-002',
-      customerName: 'María López Hernández',
-      title: 'Llamada de Seguimiento - Nuevo Proyecto',
-      content: 'Llamada el 25/11 a las 10:00 AM. Cliente interesado en desarrollo de app móvil adicional al proyecto web. Solicita cotización formal. Enviar antes del viernes.',
-      category: 'sales',
-      priority: 'high',
-      isPinned: false,
-      createdBy: 'Carlos Torres',
-      createdDate: '2025-11-25',
-      lastModified: '2025-11-25',
-      tags: ['Llamada', 'App Móvil', 'Cotización'],
-      relatedDocuments: []
+    try {
+      const res = await fetch(`/api/customers/notes?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setNotes(data.notes || [])
+      }
+    } catch (error) {
+      console.error('Error loading notes:', error)
     }
-  ]
+    setLoading(false)
+  }, [activeCompany?.id])
+
+  useEffect(() => {
+    loadNotes()
+  }, [loadNotes])
 
   const getCategoryBadge = (category: string) => {
     const configs = {
