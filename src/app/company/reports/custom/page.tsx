@@ -63,6 +63,7 @@ export default function CustomReportsPage() {
   const [selectedFields, setSelectedFields] = useState<string[]>([])
   const [templates, setTemplates] = useState<ReportTemplate[]>([])
   const [availableFields, setAvailableFields] = useState<ReportField[]>([])
+  const [reportData, setReportData] = useState<Record<string, unknown>[]>([])
 
   const loadReportData = useCallback(async () => {
     if (!activeCompany?.id) return
@@ -73,6 +74,7 @@ export default function CustomReportsPage() {
         const data = await res.json()
         setTemplates(data.templates || [])
         setAvailableFields(data.fields || [])
+        setReportData(data.sampleData || [])
       }
     } catch (error) {
       console.error('Error loading report data:', error)
@@ -89,15 +91,6 @@ export default function CustomReportsPage() {
   useEffect(() => {
     loadReportData()
   }, [loadReportData])
-
-  const sampleData = [
-    { customer: 'Acme Corp', month: 'Enero', revenue: 850000, expenses: 520000, profit: 330000, margin: 38.8 },
-    { customer: 'TechStart Inc', month: 'Enero', revenue: 625000, expenses: 480000, profit: 145000, margin: 23.2 },
-    { customer: 'Global Systems', month: 'Enero', revenue: 920000, expenses: 590000, profit: 330000, margin: 35.9 },
-    { customer: 'Acme Corp', month: 'Febrero', revenue: 880000, expenses: 535000, profit: 345000, margin: 39.2 },
-    { customer: 'TechStart Inc', month: 'Febrero', revenue: 640000, expenses: 495000, profit: 145000, margin: 22.7 },
-    { customer: 'Global Systems', month: 'Febrero', revenue: 950000, expenses: 610000, profit: 340000, margin: 35.8 }
-  ]
 
   const toggleField = (fieldId: string) => {
     setSelectedFields(prev => 
@@ -505,7 +498,7 @@ export default function CustomReportsPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {sampleData.map((row, idx) => (
+                          {reportData.map((row, idx) => (
                             <tr key={idx} className="hover:bg-gray-50">
                               {selectedFields.map((fieldId) => {
                                 const field = availableFields.find(f => f.id === fieldId)
@@ -516,7 +509,7 @@ export default function CustomReportsPage() {
                                       ? `$${Number(value).toLocaleString('es-MX')}`
                                       : field?.dataType === 'number' && fieldId === 'margin'
                                       ? `${value}%`
-                                      : value
+                                      : String(value)
                                     }
                                   </td>
                                 )

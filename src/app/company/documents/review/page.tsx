@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -87,6 +87,21 @@ export default function DocumentReviewPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null)
 
+  const loadProcessedDocuments = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/documents/review?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setDocuments(data.documents || [])
+      }
+    } catch (error) {
+      console.error('Error loading processed documents:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
@@ -95,7 +110,7 @@ export default function DocumentReviewPage() {
 
   useEffect(() => {
     loadProcessedDocuments()
-  }, [])
+  }, [loadProcessedDocuments])
 
   // Auto-refresh cada 5 segundos para nuevos documentos
   useEffect(() => {
@@ -105,150 +120,24 @@ export default function DocumentReviewPage() {
       }, 5000)
       return () => clearInterval(interval)
     }
-  }, [autoRefresh])
+  }, [autoRefresh, loadProcessedDocuments])
 
-  const loadProcessedDocuments = () => {
-    // Simulación de documentos procesados por IA
-    const processedDocs: ProcessedDocument[] = [
-      {
-        id: 'DOC-AI-001',
-        filename: 'Factura_Amazon_Suministros_Nov25.pdf',
-        uploadDate: '2025-11-25 14:23:18',
-        aiCategory: 'Factura de Compra',
-        aiConfidence: 98,
-        amount: 986.00,
-        vendor: 'Amazon Business',
-        date: '2025-11-20',
-        invoiceNumber: 'AMZ-2025-9876',
-        taxId: 'RFC-AMAZON-MEX',
-        description: 'Suministros de oficina: papel, folders, clips',
-        suggestedAccount: 'Suministros de Oficina',
-        suggestedAccountCode: '5240',
-        reclassified: false,
-        journalEntry: {
-          debit: { account: '5240 - Suministros de Oficina', amount: 986.00 },
-          credit: { account: '2110 - Cuentas por Pagar', amount: 986.00 }
-        },
-        status: 'pending_review',
-        confidence: 'high'
-      },
-      {
-        id: 'DOC-AI-002',
-        filename: 'Recibo_CFE_Nov2025.pdf',
-        uploadDate: '2025-11-25 14:25:42',
-        aiCategory: 'Recibo de Servicios',
-        aiConfidence: 99,
-        amount: 2450.75,
-        vendor: 'CFE (Comisión Federal de Electricidad)',
-        date: '2025-11-15',
-        invoiceNumber: 'CFE-11-2025-12345',
-        description: 'Consumo de energía eléctrica - Noviembre 2025',
-        suggestedAccount: 'Servicios Públicos',
-        suggestedAccountCode: '5230',
-        reclassified: false,
-        journalEntry: {
-          debit: { account: '5230 - Servicios Públicos', amount: 2450.75 },
-          credit: { account: '1120 - Bancos', amount: 2450.75 }
-        },
-        status: 'pending_review',
-        confidence: 'high'
-      },
-      {
-        id: 'DOC-AI-003',
-        filename: 'Factura_Gasolina_Pemex.pdf',
-        uploadDate: '2025-11-25 14:28:15',
-        aiCategory: 'Compra de Combustible',
-        aiConfidence: 89,
-        amount: 850.00,
-        vendor: 'PEMEX',
-        date: '2025-11-24',
-        invoiceNumber: 'PEMEX-2025-4567',
-        description: 'Gasolina Premium - Vehículo de empresa',
-        suggestedAccount: 'Gastos Generales',
-        suggestedAccountCode: '5200',
-        reclassified: false,
-        journalEntry: {
-          debit: { account: '5200 - Gastos Generales', amount: 850.00 },
-          credit: { account: '1120 - Bancos', amount: 850.00 }
-        },
-        status: 'pending_review',
-        confidence: 'medium'
-      },
-      {
-        id: 'DOC-AI-004',
-        filename: 'Contrato_Renta_Oficina_Dic2025.pdf',
-        uploadDate: '2025-11-25 14:30:52',
-        aiCategory: 'Contrato de Arrendamiento',
-        aiConfidence: 95,
-        amount: 12000.00,
-        vendor: 'Inmobiliaria Centro SA de CV',
-        date: '2025-12-01',
-        invoiceNumber: 'CONT-RENT-DIC-2025',
-        taxId: 'ICE-950101-ABC',
-        description: 'Renta mensual oficina - Diciembre 2025',
-        suggestedAccount: 'Renta',
-        suggestedAccountCode: '5220',
-        reclassified: false,
-        journalEntry: {
-          debit: { account: '5220 - Renta', amount: 12000.00 },
-          credit: { account: '2110 - Cuentas por Pagar', amount: 12000.00 }
-        },
-        status: 'pending_review',
-        confidence: 'high'
-      },
-      {
-        id: 'DOC-AI-005',
-        filename: 'Factura_Internet_Telmex_Nov.pdf',
-        uploadDate: '2025-11-25 14:32:10',
-        aiCategory: 'Servicio de Internet',
-        aiConfidence: 97,
-        amount: 599.00,
-        vendor: 'Telmex',
-        date: '2025-11-01',
-        invoiceNumber: 'TELMEX-NOV-2025',
-        description: 'Servicio de Internet 100MB - Noviembre',
-        suggestedAccount: 'Servicios Públicos',
-        suggestedAccountCode: '5230',
-        reclassified: false,
-        journalEntry: {
-          debit: { account: '5230 - Servicios Públicos', amount: 599.00 },
-          credit: { account: '1120 - Bancos', amount: 599.00 }
-        },
-        status: 'pending_review',
-        confidence: 'high'
-      }
-    ]
-
-    setDocuments(processedDocs)
-    setLoading(false)
-  }
-
-  const handleReclassify = (doc: ProcessedDocument) => {
+  const handleReclassify = async (doc: ProcessedDocument) => {
     setSelectedDoc(doc)
     
-    // IA genera sugerencias alternativas
-    const suggestions: AccountSuggestion[] = [
-      {
-        code: '5250',
-        name: 'Gastos de Vehículo',
-        match: 95,
-        reason: 'Detectado keyword "gasolina" y "vehículo" en descripción'
-      },
-      {
-        code: '5200',
-        name: 'Gastos Generales',
-        match: 75,
-        reason: 'Cuenta actual sugerida por IA'
-      },
-      {
-        code: '5240',
-        name: 'Suministros de Oficina',
-        match: 45,
-        reason: 'Categoría alternativa por tipo de gasto'
+    // Cargar sugerencias de cuenta desde API
+    if (activeCompany?.id) {
+      try {
+        const res = await fetch(`/api/documents/suggestions?companyId=${activeCompany.id}&documentId=${doc.id}`)
+        if (res.ok) {
+          const data = await res.json()
+          setAiSuggestions(data.suggestions || [])
+        }
+      } catch (error) {
+        console.error('Error loading account suggestions:', error)
+        setAiSuggestions([])
       }
-    ]
-    
-    setAiSuggestions(suggestions)
+    }
     setShowReclassifyModal(true)
   }
 

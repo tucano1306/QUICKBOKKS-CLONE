@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -68,6 +68,22 @@ export default function DocumentUploadPage() {
   const [uploadedFiles, setUploadedFiles] = useState<ClientDocument[]>([])
   const [portalLink] = useState('https://portal.quickbooks.com/client/ABC123XYZ')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null)
+  const [documents, setDocuments] = useState<ClientDocument[]>([])
+
+  const loadDocuments = useCallback(async () => {
+    if (!activeCompany?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/documents?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setDocuments(data.documents || [])
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error)
+    }
+    setLoading(false)
+  }, [activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -76,139 +92,8 @@ export default function DocumentUploadPage() {
   }, [status, router])
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const documents: ClientDocument[] = [
-    {
-      id: 'DOC-001',
-      filename: 'Factura_ElectricCo_Nov2025.pdf',
-      fileType: 'PDF',
-      category: 'invoice',
-      uploadDate: '2025-11-25 10:30 AM',
-      uploadedBy: 'Cliente Portal',
-      fileSize: 245678,
-      status: 'categorized',
-      aiCategory: 'Utilities - Electricity',
-      aiConfidence: 98,
-      amount: 450.25,
-      vendor: 'Electric Company',
-      date: '2025-11-15',
-      accountCode: '5230 - Servicios Públicos',
-      aiProcessingTime: '2.3s'
-    },
-    {
-      id: 'DOC-002',
-      filename: 'Recibo_Renta_Diciembre.pdf',
-      fileType: 'PDF',
-      category: 'receipt',
-      uploadDate: '2025-11-24 03:45 PM',
-      uploadedBy: 'Cliente Portal',
-      fileSize: 189234,
-      status: 'categorized',
-      aiCategory: 'Rent Expense',
-      aiConfidence: 99,
-      amount: 2500.00,
-      vendor: 'Property Management LLC',
-      date: '2025-12-01',
-      accountCode: '5220 - Renta',
-      aiProcessingTime: '1.8s',
-      notes: 'Asiento contable creado automáticamente: JE-2025-1245'
-    },
-    {
-      id: 'DOC-003',
-      filename: 'Estado_Cuenta_Bancario_Octubre.pdf',
-      fileType: 'PDF',
-      category: 'bank_statement',
-      uploadDate: '2025-11-23 09:15 AM',
-      uploadedBy: 'Cliente Portal',
-      fileSize: 567890,
-      status: 'reviewed',
-      aiCategory: 'Bank Statement - Operating Account',
-      aiConfidence: 100,
-      accountCode: '1120 - Bancos',
-      aiProcessingTime: '5.2s',
-      notes: 'Conciliado automáticamente con 45 transacciones'
-    },
-    {
-      id: 'DOC-004',
-      filename: 'Factura_Proveedor_MegaCorp_548.jpg',
-      fileType: 'Image',
-      category: 'invoice',
-      uploadDate: '2025-11-22 11:20 AM',
-      uploadedBy: 'Cliente Portal',
-      fileSize: 1234567,
-      status: 'processing',
-      aiCategory: 'Office Supplies',
-      aiConfidence: 85,
-      amount: 890.50,
-      vendor: 'MegaCorp Supplies',
-      accountCode: '5240 - Suministros de Oficina',
-      aiProcessingTime: 'En proceso...'
-    },
-    {
-      id: 'DOC-005',
-      filename: 'Formulario_1099_Contractor_Johnson.pdf',
-      fileType: 'PDF',
-      category: 'tax_document',
-      uploadDate: '2025-11-20 02:00 PM',
-      uploadedBy: 'Cliente Portal',
-      fileSize: 98765,
-      status: 'reviewed',
-      aiCategory: 'Tax Form - 1099-NEC',
-      aiConfidence: 100,
-      amount: 15000.00,
-      vendor: 'John Johnson (Contractor)',
-      accountCode: '5210 - Sueldos y Salarios',
-      aiProcessingTime: '3.1s',
-      notes: 'Archivado para presentación anual IRS. Asiento: JE-2025-1189'
-    },
-    {
-      id: 'DOC-006',
-      filename: 'Recibo_Gasolina_Nov18.jpg',
-      fileType: 'Image',
-      category: 'receipt',
-      uploadDate: '2025-11-18 04:30 PM',
-      uploadedBy: 'Cliente Portal',
-      fileSize: 345678,
-      status: 'categorized',
-      aiCategory: 'Auto Expense - Fuel',
-      aiConfidence: 92,
-      amount: 65.80,
-      vendor: 'Shell Gas Station',
-      date: '2025-11-18',
-      accountCode: '5250 - Gastos de Vehículo',
-      aiProcessingTime: '1.5s'
-    },
-    {
-      id: 'DOC-007',
-      filename: 'Contrato_Servicio_2025.pdf',
-      fileType: 'PDF',
-      category: 'contract',
-      uploadDate: '2025-11-15 10:00 AM',
-      uploadedBy: 'Cliente Portal',
-      fileSize: 456789,
-      status: 'reviewed',
-      aiCategory: 'Contract - Service Agreement',
-      aiConfidence: 95,
-      accountCode: 'N/A - Documento Legal',
-      aiProcessingTime: '4.2s',
-      notes: 'Vigencia: Enero 2025 - Diciembre 2025. Sin transacción asociada.'
-    },
-    {
-      id: 'DOC-008',
-      filename: 'Documento_sin_nombre.png',
-      fileType: 'Image',
-      category: 'other',
-      uploadDate: '2025-11-10 08:45 AM',
-      uploadedBy: 'Cliente Portal',
-      fileSize: 234567,
-      status: 'rejected',
-      aiProcessingTime: '0.9s',
-      notes: 'Imagen ilegible - IA no pudo extraer información. Solicitar reenvío al cliente.'
-    }
-  ]
+    loadDocuments()
+  }, [loadDocuments])
 
   const allDocuments = [...uploadedFiles, ...documents]
   

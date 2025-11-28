@@ -232,21 +232,18 @@ export default function BankReconciliationPage() {
       return
     }
 
-    // Simulate importing transactions
-    const sampleTransactions = [
-      { date: new Date().toISOString().split('T')[0], description: 'Depósito cliente', amount: 5000, reference: 'DEP001' },
-      { date: new Date().toISOString().split('T')[0], description: 'Pago servicios', amount: -1500, reference: 'PAY001' },
-      { date: new Date().toISOString().split('T')[0], description: 'Comisión bancaria', amount: -50, reference: 'FEE001' }
-    ]
-
     setProcessing(true)
     try {
+      // Fetch pending transactions from banking API
+      const transactionsRes = await fetch(`/api/banking/transactions/pending?accountId=${importForm.accountId}`)
+      const transactionsData = transactionsRes.ok ? await transactionsRes.json() : { transactions: [] }
+      
       const response = await fetch('/api/banking/reconciliation/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bankAccountId: importForm.accountId,
-          transactions: sampleTransactions
+          transactions: transactionsData.transactions || []
         })
       })
 

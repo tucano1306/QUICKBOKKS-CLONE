@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect, useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
@@ -78,63 +78,27 @@ export default function CRMReportPage() {
     }
   }, [status])
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      loadMetrics()
-    }
-  }, [status, dateRange])
-
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
     try {
       setIsLoading(true)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Mock metrics
-      const mockMetrics: CRMMetrics = {
-        totalCustomers: 247,
-        activeCustomers: 189,
-        newCustomersThisMonth: 23,
-        churnRate: 3.2,
-        averageLifetimeValue: 125000,
-        totalRevenue: 3850000,
-        averageDealSize: 85000,
-        conversionRate: 24.5,
-        averageSalesCycle: 45,
-        totalInteractions: 1256,
-        callsCount: 423,
-        meetingsCount: 189,
-        emailsCount: 534,
-        whatsappCount: 110,
-        topPerformers: [
-          { name: 'Juan Pérez', customers: 45, revenue: 1250000, conversions: 12 },
-          { name: 'María López', customers: 38, revenue: 980000, conversions: 10 },
-          { name: 'Carlos Ruiz', customers: 32, revenue: 750000, conversions: 8 },
-          { name: 'Ana García', customers: 28, revenue: 620000, conversions: 7 }
-        ],
-        pipelineByStage: [
-          { stage: 'Lead', count: 45, value: 2250000 },
-          { stage: 'Calificado', count: 32, value: 1920000 },
-          { stage: 'Propuesta', count: 24, value: 2040000 },
-          { stage: 'Negociación', count: 18, value: 1800000 },
-          { stage: 'Ganado', count: 128, value: 10880000 }
-        ],
-        monthlyTrend: [
-          { month: 'Ago', customers: 18, revenue: 850000 },
-          { month: 'Sep', customers: 22, revenue: 920000 },
-          { month: 'Oct', customers: 19, revenue: 780000 },
-          { month: 'Nov', customers: 25, revenue: 1100000 },
-          { month: 'Dic', customers: 21, revenue: 950000 },
-          { month: 'Ene', customers: 23, revenue: 1020000 }
-        ]
+      const res = await fetch(`/api/customers/crm/metrics?dateRange=${dateRange}`)
+      if (res.ok) {
+        const data = await res.json()
+        setMetrics(data.metrics || null)
       }
-
-      setMetrics(mockMetrics)
     } catch (error) {
+      console.error('Error loading CRM metrics:', error)
       toast.error('Error al cargar métricas')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [dateRange])
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      loadMetrics()
+    }
+  }, [status, dateRange, loadMetrics])
 
   const exportReport = () => {
     if (!metrics) return
