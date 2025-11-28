@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -65,127 +65,48 @@ export default function PaymentLinksPage() {
   const [showLinkGenerator, setShowLinkGenerator] = useState(false)
   const [selectedLink, setSelectedLink] = useState<PaymentLink | null>(null)
 
+  const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>([])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
   }, [status, router])
 
-  useEffect(() => {
+  const loadPaymentLinks = useCallback(async () => {
+    if (!activeCompany?.id) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 800)
-  }, [])
-
-  const paymentLinks: PaymentLink[] = [
-    {
-      id: 'PL-001',
-      invoiceNumber: 'INV-2025-0124',
-      customerName: 'Tech Solutions Inc.',
-      customerEmail: 'billing@techsolutions.com',
-      amount: 4500.00,
-      issueDate: '2025-11-20',
-      dueDate: '2025-12-20',
-      status: 'active',
-      paymentLinkId: 'pl_ABC123XYZ456',
-      paymentLinkUrl: 'https://pay.quickbooks.com/pl_ABC123XYZ456',
-      linkExpiry: '2025-12-20',
-      linkActive: true,
-      paymentGateway: 'stripe',
-      linkClicks: 12,
-      lastClickedAt: '2025-11-24 10:30 AM'
-    },
-    {
-      id: 'PL-002',
-      invoiceNumber: 'INV-2025-0087',
-      customerName: 'Global Marketing LLC',
-      customerEmail: 'payments@globalmarketing.com',
-      amount: 2850.50,
-      issueDate: '2025-10-15',
-      dueDate: '2025-11-15',
-      status: 'paid',
-      paymentLinkId: 'pl_DEF789GHI012',
-      paymentLinkUrl: 'https://pay.quickbooks.com/pl_DEF789GHI012',
-      linkExpiry: '2025-11-15',
-      linkActive: false,
-      paymentGateway: 'stripe',
-      linkClicks: 8,
-      lastClickedAt: '2025-11-10 03:45 PM',
-      paidDate: '2025-11-10',
-      paymentMethod: 'Visa •••• 4242',
-      transactionId: 'ch_3MmlLrLkdIwHu7iw0YBvLKiI'
-    },
-    {
-      id: 'PL-003',
-      invoiceNumber: 'INV-2025-0156',
-      customerName: 'Consulting Partners SA',
-      customerEmail: 'admin@consultingpartners.com',
-      amount: 7200.00,
-      issueDate: '2025-11-22',
-      dueDate: '2025-12-22',
-      status: 'active',
-      paymentLinkId: 'pl_JKL345MNO678',
-      paymentLinkUrl: 'https://pay.quickbooks.com/pl_JKL345MNO678',
-      linkExpiry: '2025-12-22',
-      linkActive: true,
-      paymentGateway: 'paypal',
-      linkClicks: 5,
-      lastClickedAt: '2025-11-23 09:15 AM'
-    },
-    {
-      id: 'PL-004',
-      invoiceNumber: 'INV-2025-0098',
-      customerName: 'Startup Ventures Inc.',
-      customerEmail: 'finance@startupventures.com',
-      amount: 1250.00,
-      issueDate: '2025-09-10',
-      dueDate: '2025-10-10',
-      status: 'expired',
-      paymentLinkId: 'pl_PQR901STU234',
-      paymentLinkUrl: 'https://pay.quickbooks.com/pl_PQR901STU234',
-      linkExpiry: '2025-10-10',
-      linkActive: false,
-      paymentGateway: 'stripe',
-      linkClicks: 3,
-      lastClickedAt: '2025-10-08 02:00 PM'
-    },
-    {
-      id: 'PL-005',
-      invoiceNumber: 'INV-2025-0145',
-      customerName: 'E-Commerce Leaders',
-      customerEmail: 'billing@ecommerceleaders.com',
-      amount: 3600.75,
-      issueDate: '2025-11-18',
-      dueDate: '2025-12-18',
-      status: 'paid',
-      paymentLinkId: 'pl_VWX567YZA890',
-      paymentLinkUrl: 'https://pay.quickbooks.com/pl_VWX567YZA890',
-      linkExpiry: '2025-12-18',
-      linkActive: false,
-      paymentGateway: 'mercadopago',
-      linkClicks: 6,
-      lastClickedAt: '2025-11-19 11:20 AM',
-      paidDate: '2025-11-19',
-      paymentMethod: 'MasterCard •••• 5555',
-      transactionId: 'mp_9876543210'
-    },
-    {
-      id: 'PL-006',
-      invoiceNumber: 'INV-2025-0189',
-      customerName: 'Cloud Services Corp.',
-      customerEmail: 'accounts@cloudservices.com',
-      amount: 5400.00,
-      issueDate: '2025-11-25',
-      dueDate: '2025-12-25',
-      status: 'active',
-      paymentLinkId: 'pl_BCD123EFG456',
-      paymentLinkUrl: 'https://pay.quickbooks.com/pl_BCD123EFG456',
-      linkExpiry: '2025-12-25',
-      linkActive: true,
-      paymentGateway: 'stripe',
-      linkClicks: 2,
-      lastClickedAt: '2025-11-25 04:30 PM'
+    try {
+      const res = await fetch(`/api/invoices?companyId=${activeCompany.id}&hasPaymentLink=true`)
+      if (res.ok) {
+        const data = await res.json()
+        const links = (data.invoices || []).filter((inv: any) => inv.paymentLinkId).map((inv: any) => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          customerName: inv.customer?.name || 'Cliente',
+          customerEmail: inv.customer?.email || '',
+          amount: inv.total,
+          issueDate: inv.issueDate,
+          dueDate: inv.dueDate,
+          status: inv.paymentLinkActive ? 'active' : 'expired',
+          paymentLinkId: inv.paymentLinkId,
+          paymentLinkUrl: inv.paymentLinkUrl,
+          linkExpiry: inv.paymentLinkExpiry,
+          linkActive: inv.paymentLinkActive,
+          paymentGateway: 'stripe',
+          linkClicks: 0
+        }))
+        setPaymentLinks(links)
+      }
+    } catch (error) {
+      console.error('Error loading payment links:', error)
     }
-  ]
+    setLoading(false)
+  }, [activeCompany?.id])
+
+  useEffect(() => {
+    loadPaymentLinks()
+  }, [loadPaymentLinks])
 
   const filteredLinks = paymentLinks.filter(link => {
     const matchesSearch = 
