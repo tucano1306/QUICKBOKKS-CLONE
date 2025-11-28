@@ -98,11 +98,14 @@ export default function AIAssistantPage() {
     loadAIData()
   }, [loadAIData])
 
-  // Función para abrir el chat flotante con una pregunta específica
+  // Función para abrir el chat de IA
   const openFloatingChat = (question?: string) => {
-    // Disparar evento para abrir el FloatingAssistant con la pregunta
-    const event = new CustomEvent('openAIChat', { detail: { question } })
-    window.dispatchEvent(event)
+    // Navegar a la página de chat de IA
+    if (question) {
+      router.push(`/company/ai/assist?q=${encodeURIComponent(question)}`)
+    } else {
+      router.push('/company/ai/assist')
+    }
   }
 
   // Función para ver tutorial
