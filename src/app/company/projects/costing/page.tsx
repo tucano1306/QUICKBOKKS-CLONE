@@ -231,24 +231,33 @@ export default function ProjectCostingPage() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => {
-              const csv = 'Proyecto,Presupuestado,Gastado,Variación,Margen\nEjemplo de datos...'
-              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = `costeo-proyectos-${new Date().toISOString().split('T')[0]}.csv`
-              a.click()
-              URL.revokeObjectURL(url)
+              if (projectCosts.length === 0) return
+              const headers = ['Código', 'Proyecto', 'Cliente', 'Presupuesto', 'Costo Real', 'Varianza', '% Varianza', 'Completado']
+              const csvContent = [
+                headers.join(','),
+                ...projectCosts.map(p => [
+                  p.projectCode,
+                  `"${p.projectName}"`,
+                  `"${p.client}"`,
+                  p.totalBudget,
+                  p.totalActualCost,
+                  p.totalBudget - p.totalActualCost,
+                  ((p.totalActualCost / p.totalBudget - 1) * 100).toFixed(2),
+                  p.completionPercent
+                ].join(','))
+              ].join('\n')
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+              const link = document.createElement('a')
+              link.href = URL.createObjectURL(blob)
+              link.download = `costeo-proyectos_${new Date().toISOString().split('T')[0]}.csv`
+              link.click()
             }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar Reporte
             </Button>
-            <Button onClick={() => {
-              setMessage({ type: 'info', text: 'Calculando costos de proyectos: horas, gastos, overhead y márgenes' })
-              setTimeout(() => setMessage(null), 5000)
-            }}>
+            <Button onClick={loadProjectCosts}>
               <Calculator className="w-4 h-4 mr-2" />
-              Calcular Costos
+              Actualizar
             </Button>
           </div>
         </div>

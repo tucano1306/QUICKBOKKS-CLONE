@@ -178,13 +178,34 @@ export default function ProjectProfitabilityPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => {
+              if (projects.length === 0) return
+              const headers = ['Código', 'Proyecto', 'Cliente', 'Ingresos', 'Costos', 'Utilidad', 'Margen %', 'ROI %']
+              const csvContent = [
+                headers.join(','),
+                ...projects.map(p => [
+                  p.projectCode,
+                  `"${p.projectName}"`,
+                  `"${p.client}"`,
+                  p.actualRevenue,
+                  p.totalCosts,
+                  p.netProfit,
+                  p.netMarginPercent.toFixed(2),
+                  p.roi.toFixed(2)
+                ].join(','))
+              ].join('\n')
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+              const link = document.createElement('a')
+              link.href = URL.createObjectURL(blob)
+              link.download = `rentabilidad-proyectos_${new Date().toISOString().split('T')[0]}.csv`
+              link.click()
+            }}>
               <Download className="w-4 h-4 mr-2" />
               Exportar Análisis
             </Button>
-            <Button>
+            <Button onClick={loadProfitability}>
               <BarChart3 className="w-4 h-4 mr-2" />
-              Dashboard
+              Actualizar
             </Button>
           </div>
         </div>
