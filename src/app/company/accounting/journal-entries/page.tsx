@@ -311,17 +311,20 @@ export default function JournalEntriesPage() {
     }
   }
 
-  const filteredEntries = journalEntries.filter(entry => {
-    const statusLower = entry.status.toLowerCase()
+  const filteredEntries = (journalEntries || []).filter(entry => {
+    if (!entry) return false
+    const statusLower = (entry.status || '').toLowerCase()
     if (filterStatus !== 'all' && statusLower !== filterStatus) return false
-    if (searchTerm && !entry.description.toLowerCase().includes(searchTerm.toLowerCase()) && 
-        !entry.entryNumber.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    const searchLower = (searchTerm || '').toLowerCase()
+    if (searchLower && 
+        !(entry.description || '').toLowerCase().includes(searchLower) && 
+        !(entry.entryNumber || '').toLowerCase().includes(searchLower)) return false
     return true
   })
 
-  const totalPosted = journalEntries.filter(e => e.status.toLowerCase() === 'posted').length
-  const totalDraft = journalEntries.filter(e => e.status.toLowerCase() === 'draft').length
-  const totalAmount = journalEntries.filter(e => e.status.toLowerCase() === 'posted').reduce((sum, e) => sum + e.totalDebit, 0)
+  const totalPosted = (journalEntries || []).filter(e => e && (e.status || '').toLowerCase() === 'posted').length
+  const totalDraft = (journalEntries || []).filter(e => e && (e.status || '').toLowerCase() === 'draft').length
+  const totalAmount = (journalEntries || []).filter(e => e && (e.status || '').toLowerCase() === 'posted').reduce((sum, e) => sum + (e?.totalDebit || 0), 0)
 
   if (status === 'loading' || loading) {
     return (
