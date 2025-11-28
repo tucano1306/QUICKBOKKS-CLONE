@@ -278,16 +278,20 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
     pathname?.startsWith(`/company/${tab.id}`)
   ) || tabSections[0]
 
-  const [activeTab, setActiveTab] = useState<string>(currentTab.id)
-  const [showSubmenu, setShowSubmenu] = useState<{[key: string]: boolean}>({ [currentTab.id]: true })
+  const currentTabId = currentTab?.id || 'dashboard'
+  
+  const [activeTab, setActiveTab] = useState<string>(currentTabId)
+  const [showSubmenu, setShowSubmenu] = useState<{[key: string]: boolean}>({ [currentTabId]: true })
 
-  const activeSection = tabSections.find(tab => tab.id === activeTab) || currentTab
+  const activeSection = tabSections.find(tab => tab.id === activeTab) || currentTab || tabSections[0]
 
   // Sincronizar activeTab con la URL actual
   useEffect(() => {
-    setActiveTab(currentTab.id)
-    setShowSubmenu(prev => ({ ...prev, [currentTab.id]: true }))
-  }, [currentTab.id])
+    if (currentTabId) {
+      setActiveTab(currentTabId)
+      setShowSubmenu(prev => ({ ...prev, [currentTabId]: true }))
+    }
+  }, [currentTabId])
 
   // Return condicional DESPUÉS de todos los hooks
   if (!activeCompany) {
@@ -414,7 +418,7 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
       </main>
 
       {/* AI Assistant flotante disponible en todas las páginas de company */}
-      <FloatingAssistant />
+      {/* <FloatingAssistant /> */}
       
       {/* Actualizaciones en tiempo real */}
       {/* Temporalmente desactivado para evitar rebuilds constantes */}
