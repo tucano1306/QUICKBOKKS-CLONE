@@ -14,7 +14,7 @@ if (GROQ_API_KEY) {
 // Tipos de acciones
 type ActionType = 
   | 'create_invoice' | 'create_expense' | 'create_customer' 
-  | 'create_product' | 'create_chart_of_accounts' | 'none';
+  | 'create_product' | 'create_chart_of_accounts' | 'clear_chart_of_accounts' | 'none';
 
 interface AIAction {
   type: ActionType;
@@ -158,8 +158,15 @@ function detectAction(msg: string): AIAction {
   const createWords = ['crea', 'crear', 'genera', 'generar', 'hazme', 'haz', 'nuevo', 'nueva', 'agrega', 'agregar', 'registra', 'registrar', 'añade', 'añadir'];
   const hasCreate = createWords.some(w => msg.includes(w));
 
+  // Limpiar catálogo
+  if ((msg.includes('limpia') || msg.includes('elimina') || msg.includes('borra') || msg.includes('resetea')) && 
+      (msg.includes('catálogo') || msg.includes('catalogo') || msg.includes('cuentas'))) {
+    return { type: 'clear_chart_of_accounts', params: {} };
+  }
+
   if (hasCreate) {
-    if (msg.includes('catálogo') || msg.includes('catalogo') || msg.includes('plan de cuenta') || (msg.includes('cuentas') && msg.includes('contab'))) {
+    if (msg.includes('catálogo') || msg.includes('catalogo') || msg.includes('plan de cuenta') || 
+        (msg.includes('cuentas') && (msg.includes('contab') || msg.includes('para')))) {
       return { type: 'create_chart_of_accounts', params: { description: msg } };
     }
     if (msg.includes('factura') || msg.includes('invoice')) {
@@ -181,6 +188,8 @@ function detectAction(msg: string): AIAction {
 // Ejecutar acción
 async function executeAction(action: AIAction, msg: string, userId: string, companyId: string): Promise<string> {
   switch (action.type) {
+    case 'clear_chart_of_accounts':
+      return await clearChartOfAccounts(companyId);
     case 'create_chart_of_accounts':
       return await createChartOfAccounts(msg, companyId);
     case 'create_invoice':
@@ -196,57 +205,172 @@ async function executeAction(action: AIAction, msg: string, userId: string, comp
   }
 }
 
+// LIMPIAR CATÁLOGO DE CUENTAS
+async function clearChartOfAccounts(companyId: string): Promise<string> {
+  try {
+    const count = await prisma.chartOfAccounts.count({ where: { companyId } });
+    
+    if (count === 0) {
+      return `ℹ️ El catálogo de cuentas ya está vacío. Puedes crear uno nuevo con:\n\n"Crea catálogo de cuentas para [tipo de negocio]"`;
+    }
+
+    await prisma.chartOfAccounts.deleteMany({ where: { companyId } });
+    
+    return `🗑️ **Catálogo Limpiado**
+
+Se eliminaron **${count}** cuentas del catálogo.
+
+Ahora puedes crear un catálogo nuevo con:
+• "Crea catálogo para panadería"
+• "Genera catálogo para compañía de transporte"
+• "Hazme un catálogo para restaurante"`;
+  } catch (error: any) {
+    return `❌ Error al limpiar el catálogo: ${error.message}`;
+  }
+}
+
 // CREAR CATÁLOGO DE CUENTAS
 async function createChartOfAccounts(userMessage: string, companyId: string): Promise<string> {
-  const prompt = `Genera catálogo de cuentas para: "${userMessage}"
+  // Extraer el tipo de negocio del mensaje
+  const businessMatch = userMessage.match(/(?:para|de)\s+(?:una?\s+)?(.+?)(?:\s*$)/i);
+  const businessType = businessMatch ? businessMatch[1].trim() : 'negocio general';
 
-RESPONDE SOLO JSON (sin markdown):
-{"businessType":"tipo","accounts":[{"code":"1000","name":"ACTIVOS","type":"ASSET","category":"CURRENT_ASSET","level":1},...]}
+  const prompt = `Eres un contador experto. Genera un catálogo de cuentas COMPLETO y ESPECÍFICO para: "${businessType}"
 
-TIPOS: ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
-CATEGORÍAS: CURRENT_ASSET, FIXED_ASSET, OTHER_ASSET, CURRENT_LIABILITY, LONG_TERM_LIABILITY, EQUITY, OPERATING_REVENUE, OTHER_REVENUE, COST_OF_GOODS_SOLD, OPERATING_EXPENSE, OTHER_EXPENSE
-Incluye 40-60 cuentas específicas. Códigos: 1000-1999 Activos, 2000-2999 Pasivos, 3000-3999 Patrimonio, 4000-4999 Ingresos, 5000-6999 Gastos`;
+INSTRUCCIONES IMPORTANTES:
+1. Las cuentas deben ser MUY ESPECÍFICAS para este tipo de negocio
+2. Incluye cuentas que SOLO aplican a "${businessType}"
+3. NO uses cuentas genéricas - sé muy específico
+
+EJEMPLOS DE CUENTAS ESPECÍFICAS:
+- Para PANADERÍA: "Inventario de Harina", "Inventario de Levadura", "Equipo de Hornos", "Ventas de Pan", "Costo de Ingredientes"
+- Para TRANSPORTE/CAMIONES: "Flota de Camiones", "Combustible Diesel", "Mantenimiento de Vehículos", "Licencias DOT", "Ingresos por Flete"
+- Para RESTAURANTE: "Inventario de Alimentos", "Equipo de Cocina", "Propinas por Pagar", "Ventas de Alimentos"
+
+RESPONDE SOLO JSON VÁLIDO (sin markdown, sin texto adicional):
+{"businessType":"${businessType}","accounts":[{"code":"1000","name":"ACTIVOS","type":"ASSET","category":"CURRENT_ASSET","level":1,"description":"Cuenta principal"},{"code":"1010","name":"Caja General","type":"ASSET","category":"CURRENT_ASSET","level":2,"description":"Efectivo en caja"}]}
+
+ESTRUCTURA DE CÓDIGOS:
+- 1000-1099: Efectivo y Bancos
+- 1100-1199: Cuentas por Cobrar
+- 1200-1299: Inventarios (específicos del negocio)
+- 1300-1399: Otros Activos Circulantes
+- 1500-1599: Activos Fijos (equipo específico del negocio)
+- 1600-1699: Depreciación Acumulada
+- 2000-2099: Cuentas por Pagar
+- 2100-2199: Impuestos por Pagar
+- 2200-2299: Nómina por Pagar
+- 2500-2599: Préstamos
+- 3000-3099: Capital
+- 3100-3199: Utilidades
+- 4000-4099: Ingresos Operativos (específicos del negocio)
+- 4100-4199: Otros Ingresos
+- 5000-5099: Costo de Ventas (específicos del negocio)
+- 6000-6099: Gastos de Operación
+- 6100-6199: Gastos de Nómina
+- 6200-6299: Gastos Administrativos
+- 6300-6399: Gastos específicos del negocio
+
+Genera EXACTAMENTE 50 cuentas específicas para "${businessType}".`;
 
   try {
+    console.log('[AI] Generando catálogo para:', businessType);
+    
     const completion = await groq!.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-      max_tokens: 4000
+      temperature: 0.3,
+      max_tokens: 6000
     });
 
     let content = completion.choices[0]?.message?.content || '{}';
+    console.log('[AI] Respuesta raw:', content.substring(0, 500));
+    
+    // Limpiar respuesta
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
-    const { businessType, accounts } = JSON.parse(content);
-    let created = 0, skipped = 0;
+    // Encontrar el JSON válido
+    const jsonStart = content.indexOf('{');
+    const jsonEnd = content.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      content = content.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (parseError) {
+      console.error('[AI] Error parsing JSON:', parseError);
+      return `❌ Error procesando respuesta de IA. Intenta de nuevo con: "Genera catálogo para ${businessType}"`;
+    }
 
-    for (const acc of accounts || []) {
+    const { accounts } = parsed;
+    if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+      return `❌ No se generaron cuentas. Intenta: "Crea catálogo de cuentas para ${businessType}"`;
+    }
+
+    // Contar cuentas existentes
+    const existingCount = await prisma.chartOfAccounts.count({ where: { companyId } });
+    
+    let created = 0, skipped = 0;
+    const createdAccounts: string[] = [];
+
+    for (const acc of accounts) {
       try {
-        // Verificar si existe
-        const exists = await prisma.chartOfAccounts.findFirst({ where: { code: acc.code, companyId } });
-        if (exists) { skipped++; continue; }
+        if (!acc.code || !acc.name || !acc.type) {
+          skipped++;
+          continue;
+        }
+
+        // Verificar si existe por código
+        const exists = await prisma.chartOfAccounts.findFirst({ 
+          where: { code: acc.code, companyId } 
+        });
+        
+        if (exists) { 
+          skipped++; 
+          continue; 
+        }
+
+        // Validar tipo
+        const validTypes = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'];
+        let accountType = acc.type.toUpperCase();
+        if (accountType === 'INCOME') accountType = 'REVENUE';
+        if (!validTypes.includes(accountType)) accountType = 'EXPENSE';
 
         await prisma.chartOfAccounts.create({
           data: {
             code: acc.code,
             name: acc.name,
-            type: (acc.type === 'INCOME' ? 'REVENUE' : acc.type) as any,
+            type: accountType as any,
             category: (acc.category || 'OTHER') as any,
             level: acc.level || 1,
+            description: acc.description || '',
             companyId,
             isActive: true,
             balance: 0
           }
         });
         created++;
-      } catch (e) { skipped++; }
+        if (created <= 10) {
+          createdAccounts.push(`${acc.code} - ${acc.name}`);
+        }
+      } catch (e) { 
+        skipped++; 
+      }
     }
 
-    return `✅ **Catálogo para ${businessType || 'Negocio'} Creado**
+    // Mostrar algunas cuentas creadas como ejemplo
+    const accountsList = createdAccounts.length > 0 
+      ? `\n\n**Algunas cuentas creadas:**\n${createdAccounts.map(a => `• ${a}`).join('\n')}${created > 10 ? `\n• ... y ${created - 10} más` : ''}`
+      : '';
+
+    return `✅ **Catálogo para ${parsed.businessType || businessType} Creado**
 
 📊 **${created}** cuentas nuevas creadas
-${skipped > 0 ? `⏭️ ${skipped} cuentas ya existían` : ''}
+${skipped > 0 ? `⏭️ ${skipped} cuentas omitidas (duplicadas o inválidas)\n` : ''}
+📁 Total en catálogo: ${existingCount + created} cuentas
+${accountsList}
 
 **Estructura:**
 🏦 Activos (1000-1999)
@@ -255,7 +379,9 @@ ${skipped > 0 ? `⏭️ ${skipped} cuentas ya existían` : ''}
 📈 Ingresos (4000-4999)
 📉 Gastos (5000-6999)
 
-💡 Ve a **Configuración → Plan de Cuentas** para revisar`;
+💡 Ve a **Configuración → Plan de Cuentas** para revisar
+
+⚠️ Si quieres un catálogo limpio, primero elimina las cuentas existentes desde Configuración.`;
 
   } catch (e: any) {
     return `❌ Error: ${e.message}`;
