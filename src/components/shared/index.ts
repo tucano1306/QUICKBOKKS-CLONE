@@ -7,5 +7,5 @@ export * from './ui'
 // Layout Components (navigation, sidebars, layouts)
 export * from './layout'
 
-// Modal Components (confirmation dialogs, alerts)
-export * from './modals'
+// Modal Components - Import directly from './modals/confirm-modal'
+// Not re-exported here due to function prop serialization requirements
