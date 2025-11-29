@@ -1,14 +1,19 @@
 /**
- * Document AI Processing API (Simplified Version)
+ * Document AI Processing API
  * 
- * Esta versión usa la tabla de documentos existente
- * hasta que se genere el cliente Prisma con los nuevos modelos
+ * Usa Groq AI (GRATIS) para procesar documentos
+ * Fallback a análisis local si no está configurado
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { 
+  extractDocumentData, 
+  isGroqConfigured,
+  suggestJournalEntry 
+} from '@/lib/groq-ai-service'
 
 // Tipos
 interface ExtractedData {
@@ -393,8 +398,61 @@ export async function POST(request: NextRequest) {
     
     // Analyze document if autoProcess is enabled
     let analysis: DocumentAnalysis | null = null
+    let usingGroq = false
+    
     if (autoProcess) {
-      analysis = analyzeDocument(file.name)
+      // Intentar usar Groq AI primero (GRATIS)
+      if (isGroqConfigured()) {
+        try {
+          // Simular OCR text (en producción usar Tesseract.js o similar)
+          const ocrText = generateSimulatedOCRText(file.name)
+          
+          // Procesar con Groq AI
+          const groqResult = await extractDocumentData(ocrText, file.name, file.type)
+          
+          if (groqResult.success) {
+            usingGroq = true
+            
+            // Generar asiento contable sugerido
+            const journalSuggestion = await suggestJournalEntry(groqResult.data, groqResult.documentType)
+            
+            analysis = {
+              documentType: groqResult.documentType as DocumentAnalysis['documentType'],
+              confidence: groqResult.confidence,
+              extractedData: {
+                amount: groqResult.data.total,
+                date: groqResult.data.date,
+                dueDate: groqResult.data.dueDate,
+                vendor: groqResult.data.vendor,
+                invoiceNumber: groqResult.data.invoiceNumber,
+                description: groqResult.data.description,
+                taxAmount: groqResult.data.taxAmount,
+                subtotal: groqResult.data.subtotal,
+                lineItems: groqResult.data.lineItems,
+                taxId: groqResult.data.taxId,
+                paymentMethod: groqResult.data.paymentMethod
+              },
+              suggestedAccount: {
+                code: groqResult.suggestedAccountCode,
+                name: groqResult.suggestedCategory
+              },
+              suggestedCategory: groqResult.suggestedCategory,
+              journalEntry: journalSuggestion.entries.length > 0 ? {
+                description: journalSuggestion.description,
+                lines: journalSuggestion.entries
+              } : null,
+              processingTime: groqResult.processingTimeMs
+            }
+          }
+        } catch (groqError) {
+          console.error('Groq processing failed, falling back to local:', groqError)
+        }
+      }
+      
+      // Fallback a análisis local si Groq no está disponible o falló
+      if (!analysis) {
+        analysis = analyzeDocument(file.name)
+      }
     }
 
     // Store in memory (in production, use database)
@@ -425,13 +483,15 @@ export async function POST(request: NextRequest) {
         processingTime: analysis?.processingTime || null,
         createdAt: doc.createdAt.toISOString(),
         uploadedBy: { name: session.user.name, email: session.user.email },
+        aiProvider: usingGroq ? 'Groq (Llama 3 70B)' : 'Local Analysis',
         processingLogs: autoProcess ? [
           { id: '1', stage: 'OCR', status: 'SUCCESS', message: 'Text extracted', duration: 50, createdAt: new Date().toISOString() },
-          { id: '2', stage: 'AI_ANALYSIS', status: 'SUCCESS', message: `Classified as ${analysis?.documentType}`, duration: 30, createdAt: new Date().toISOString() },
-          { id: '3', stage: 'COMPLETE', status: 'SUCCESS', message: 'Processing complete', duration: analysis?.processingTime || 0, createdAt: new Date().toISOString() }
+          { id: '2', stage: 'AI_ANALYSIS', status: 'SUCCESS', message: `${usingGroq ? '🤖 Groq AI' : '📊 Local'}: ${analysis?.documentType}`, duration: 30, createdAt: new Date().toISOString() },
+          { id: '3', stage: 'COMPLETE', status: 'SUCCESS', message: `Processing complete (${usingGroq ? 'Groq' : 'Local'})`, duration: analysis?.processingTime || 0, createdAt: new Date().toISOString() }
         ] : []
       },
-      analysis
+      analysis,
+      aiProvider: usingGroq ? 'groq' : 'local'
     })
 
   } catch (error) {

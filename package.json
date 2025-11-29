@@ -66,6 +66,7 @@
     "date-fns": "^3.0.6",
     "date-fns-tz": "^3.2.0",
     "googleapis": "^166.0.0",
+    "groq-sdk": "^0.37.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.2",
     "lucide-react": "^0.303.0",
