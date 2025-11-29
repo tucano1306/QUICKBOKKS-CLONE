@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs sm:text-sm font-semibold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]",
   {
     variants: {
       variant: {
@@ -21,10 +21,11 @@ const buttonVariants = cva(
         purple: "bg-purple-600 text-white hover:bg-purple-700 shadow-md shadow-purple-500/25",
       },
       size: {
-        default: "h-10 px-5 py-2",
-        sm: "h-9 rounded-lg px-4 text-xs",
-        lg: "h-12 rounded-lg px-8 text-base",
-        icon: "h-10 w-10 rounded-lg",
+        default: "h-9 px-3 py-2 sm:h-10 sm:px-5",
+        sm: "h-8 rounded-lg px-3 text-xs sm:h-9 sm:px-4",
+        lg: "h-11 rounded-lg px-6 text-sm sm:h-12 sm:px-8 sm:text-base",
+        icon: "h-9 w-9 sm:h-10 sm:w-10 rounded-lg",
+        xs: "h-7 px-2 text-xs rounded-md",
       },
     },
     defaultVariants: {
@@ -39,7 +40,7 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | "success" | "purple"
-  size?: "default" | "sm" | "lg" | "icon"
+  size?: "default" | "sm" | "lg" | "icon" | "xs"
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

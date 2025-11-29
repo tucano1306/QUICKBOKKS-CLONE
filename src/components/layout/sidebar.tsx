@@ -11,15 +11,17 @@ import {
   Menu,
   X,
   Building2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import CompanySelector from '@/components/CompanySelector'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Empresas', href: '/companies', icon: Building2 },
-  { name: '🤖 Agente IA', href: '/ai-agent', icon: TrendingUp },
+  { name: 'Agente IA', href: '/ai-agent', icon: TrendingUp },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ]
 
@@ -27,66 +29,111 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  
+  // Detectar tamaño de pantalla para colapsar automáticamente en tablets
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024 && window.innerWidth >= 768) {
+        setIsCollapsed(true)
+      }
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/auth/login' })
   }
 
+  const sidebarWidth = isCollapsed ? 'w-20' : 'w-64'
+
   return (
     <>
-      {/* Mobile menu button - moved to avoid conflict with table buttons */}
+      {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-[60] p-2 rounded-md bg-white shadow-lg border border-gray-200"
+        className="lg:hidden fixed top-4 left-4 z-[60] p-2.5 rounded-xl bg-white shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors"
         aria-label="Toggle menu"
       >
-        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {isOpen ? <X className="h-5 w-5 text-gray-700" /> : <Menu className="h-5 w-5 text-gray-700" />}
       </button>
 
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 text-white transform transition-all duration-300 ease-in-out lg:translate-x-0 shadow-2xl',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed inset-y-0 left-0 z-40 bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 text-white transform transition-all duration-300 ease-in-out shadow-2xl',
+          sidebarWidth,
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo - Click para ir al menú principal */}
+          {/* Logo */}
           <Link 
             href="/dashboard" 
             className="flex items-center justify-center h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 cursor-pointer shadow-lg"
           >
-            <h1 className="text-xl font-extrabold tracking-wide">QuickBooks Clone</h1>
+            {isCollapsed ? (
+              <span className="text-2xl font-extrabold">QB</span>
+            ) : (
+              <h1 className="text-lg sm:text-xl font-extrabold tracking-wide">QuickBooks Clone</h1>
+            )}
           </Link>
 
-          {/* User info - Click para ir al menú principal */}
-          <div className="p-4 bg-gray-800/30 backdrop-blur-sm border-b border-gray-700/50">
+          {/* Collapse toggle button - only on desktop */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden lg:flex absolute -right-3 top-20 w-6 h-6 bg-gray-800 border border-gray-700 rounded-full items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-all z-50"
+          >
+            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+
+          {/* User info */}
+          <div className={cn(
+            "bg-gray-800/30 backdrop-blur-sm border-b border-gray-700/50 transition-all duration-300",
+            isCollapsed ? "p-2" : "p-4"
+          )}>
             <Link 
               href="/dashboard"
-              className="flex items-center space-x-3 mb-3 p-3 -m-1 rounded-xl hover:bg-gray-700/50 transition-all duration-200 cursor-pointer group"
+              className={cn(
+                "flex items-center rounded-xl hover:bg-gray-700/50 transition-all duration-200 cursor-pointer group",
+                isCollapsed ? "justify-center p-2" : "space-x-3 p-3 -m-1 mb-3"
+              )}
+              title={isCollapsed ? session?.user?.name || 'Usuario' : undefined}
             >
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg ring-2 ring-blue-400/30 group-hover:ring-blue-400/50 transition-all">
-                <span className="text-lg font-bold">
+              <div className={cn(
+                "rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg ring-2 ring-blue-400/30 group-hover:ring-blue-400/50 transition-all flex-shrink-0",
+                isCollapsed ? "w-10 h-10" : "w-11 h-11"
+              )}>
+                <span className={cn("font-bold", isCollapsed ? "text-base" : "text-lg")}>
                   {session?.user?.name?.charAt(0) || 'U'}
                 </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate text-white">
-                  {session?.user?.name || 'Usuario'}
-                </p>
-                <p className="text-xs text-gray-400 truncate">
-                  {session?.user?.email}
-                </p>
-              </div>
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate text-white">
+                    {session?.user?.name || 'Usuario'}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {session?.user?.email}
+                  </p>
+                </div>
+              )}
             </Link>
-            {/* Company Selector */}
-            <div className="mt-3">
-              <CompanySelector />
-            </div>
+            {/* Company Selector - hidden when collapsed */}
+            {!isCollapsed && (
+              <div className="mt-3">
+                <CompanySelector />
+              </div>
+            )}
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
+          <nav className={cn(
+            "flex-1 py-4 space-y-2 overflow-y-auto overflow-x-hidden",
+            isCollapsed ? "px-2" : "px-3"
+          )}>
             {navigation.map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
               return (
@@ -94,31 +141,44 @@ export default function Sidebar() {
                   key={item.name}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
+                  title={isCollapsed ? item.name : undefined}
                   className={cn(
-                    'flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group',
+                    'flex items-center text-sm font-medium rounded-xl transition-all duration-200 group',
+                    isCollapsed ? 'justify-center p-3' : 'px-4 py-3',
                     isActive
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
-                      : 'text-gray-300 hover:bg-gray-800/80 hover:text-white hover:translate-x-1'
+                      : 'text-gray-300 hover:bg-gray-800/80 hover:text-white'
                   )}
                 >
                   <item.icon className={cn(
-                    "mr-3 h-5 w-5 transition-transform duration-200",
+                    "h-5 w-5 transition-transform duration-200 flex-shrink-0",
+                    isCollapsed ? "" : "mr-3",
                     isActive ? "" : "group-hover:scale-110"
                   )} />
-                  <span className="tracking-wide">{item.name}</span>
+                  {!isCollapsed && <span className="tracking-wide truncate">{item.name}</span>}
                 </Link>
               )
             })}
           </nav>
 
           {/* Sign out */}
-          <div className="p-4 border-t border-gray-700/50">
+          <div className={cn(
+            "border-t border-gray-700/50",
+            isCollapsed ? "p-2" : "p-4"
+          )}>
             <button
               onClick={handleSignOut}
-              className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-300 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition-all duration-200 group"
+              title={isCollapsed ? 'Cerrar Sesión' : undefined}
+              className={cn(
+                "flex items-center w-full text-sm font-medium text-gray-300 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition-all duration-200 group",
+                isCollapsed ? "justify-center p-3" : "px-4 py-3"
+              )}
             >
-              <LogOut className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform" />
-              <span className="tracking-wide">Cerrar Sesión</span>
+              <LogOut className={cn(
+                "h-5 w-5 group-hover:scale-110 transition-transform flex-shrink-0",
+                isCollapsed ? "" : "mr-3"
+              )} />
+              {!isCollapsed && <span className="tracking-wide">Cerrar Sesión</span>}
             </button>
           </div>
         </div>
