@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Send, Bot, User, Loader2, Sparkles, MessageSquare } from 'lucide-react'
+import { Send, Bot, User, Loader2, Sparkles, MessageSquare, Home } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ReactMarkdown from 'react-markdown'
+import { useRouter } from 'next/navigation'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -23,6 +24,7 @@ interface Message {
 
 export default function AIAgentChat() {
   const { data: session } = useSession()
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -144,24 +146,35 @@ Puedo ayudarte con:
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="container mx-auto max-w-5xl px-4 py-8">
         {/* Header */}
-        <div className="mb-6 text-center">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
-              <Sparkles className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Agente IA Financiero
-            </h1>
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors font-medium"
+            >
+              <Home className="w-4 h-4" />
+              <span>Menú Principal</span>
+            </button>
           </div>
-          <p className="text-slate-600 dark:text-slate-400">
-            Tu asistente inteligente que ejecuta acciones en tiempo real
-          </p>
-          {conversationId && (
-            <Badge variant="outline" className="mt-2">
-              <MessageSquare className="h-3 w-3 mr-1" />
-              Conversación activa
-            </Badge>
-          )}
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
+                <Sparkles className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Agente IA Financiero
+              </h1>
+            </div>
+            <p className="text-slate-600 dark:text-slate-400">
+              Tu asistente inteligente que ejecuta acciones en tiempo real
+            </p>
+            {conversationId && (
+              <Badge variant="outline" className="mt-2">
+                <MessageSquare className="h-3 w-3 mr-1" />
+                Conversación activa
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Chat Container */}
