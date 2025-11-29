@@ -127,14 +127,13 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
     setIsLoading(true)
 
     try {
-      // Llamar al API endpoint del AI assistant
-      const response = await fetch('/api/ai-assistant/chat', {
+      // Llamar al API endpoint del AI assistant con Groq
+      const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyId: activeCompany.id,
-          message: inputValue,
-          conversationHistory: messages.slice(-5) // últimos 5 mensajes para contexto
+          message: inputValue
         })
       })
 
