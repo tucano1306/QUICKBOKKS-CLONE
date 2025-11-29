@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +12,8 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
+  BarChart3,
+  Receipt,
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -27,6 +29,7 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
+  const router = useRouter()
   const [stats, setStats] = useState<DashboardStats>({
     totalRevenue: 0,
     totalExpenses: 0,
@@ -237,25 +240,46 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Acciones Rápidas</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Acciones Rápidas</span>
+              <span className="text-sm font-normal text-gray-500">
+                Usuario: {session?.user?.name || 'Usuario'}
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-4">
-              <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
-                <FileText className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+              <button 
+                onClick={() => router.push('/companies')}
+                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+              >
+                <FileText className="h-8 w-8 text-blue-600 mb-2" />
                 <p className="text-sm font-medium text-gray-900">Nueva Factura</p>
+                <p className="text-xs text-gray-500 mt-1">Selecciona una empresa primero</p>
               </button>
-              <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors">
-                <Users className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <button 
+                onClick={() => router.push('/customers/new')}
+                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-left"
+              >
+                <Users className="h-8 w-8 text-green-600 mb-2" />
                 <p className="text-sm font-medium text-gray-900">Nuevo Cliente</p>
+                <p className="text-xs text-gray-500 mt-1">Agregar cliente general</p>
               </button>
-              <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors">
-                <TrendingDown className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+              <button 
+                onClick={() => router.push('/companies')}
+                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
+              >
+                <Receipt className="h-8 w-8 text-purple-600 mb-2" />
                 <p className="text-sm font-medium text-gray-900">Registrar Gasto</p>
+                <p className="text-xs text-gray-500 mt-1">Selecciona una empresa primero</p>
               </button>
-              <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors">
-                <DollarSign className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+              <button 
+                onClick={() => router.push('/companies')}
+                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors text-left"
+              >
+                <BarChart3 className="h-8 w-8 text-orange-600 mb-2" />
                 <p className="text-sm font-medium text-gray-900">Ver Reportes</p>
+                <p className="text-xs text-gray-500 mt-1">Selecciona una empresa primero</p>
               </button>
             </div>
           </CardContent>
