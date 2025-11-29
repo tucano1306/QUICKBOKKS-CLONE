@@ -333,6 +333,7 @@ export default function FloridaPayrollPage() {
     const taxDue = taxableWages * FLORIDA_TAX_RATES.suta
 
     const doc = createPDF('FLORIDA DEPARTMENT OF REVENUE', `RT-6 - Employer's Quarterly Report - Q${quarter} ${year}`)
+    const pageWidth = doc.internal.pageSize.getWidth()
     
     let y = 45
     
