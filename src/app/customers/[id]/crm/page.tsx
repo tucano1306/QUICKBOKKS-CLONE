@@ -264,27 +264,27 @@ export default function CustomerCRMPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Valor del Cliente (LTV)</span>
                     <span className="text-lg font-bold text-green-600">
-                      ${customer.lifetime_value.toLocaleString('es-MX')}
+                      ${(customer.lifetime_value || 0).toLocaleString('es-MX')}
                     </span>
                   </div>
                 </div>
                 <div className="bg-white p-3 rounded-lg border">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Total Facturas</span>
-                    <span className="text-lg font-bold">{customer.total_invoices}</span>
+                    <span className="text-lg font-bold">{customer.total_invoices || 0}</span>
                   </div>
                 </div>
                 <div className="bg-white p-3 rounded-lg border">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Facturas Pagadas</span>
-                    <span className="text-lg font-bold text-green-600">{customer.paid_invoices}</span>
+                    <span className="text-lg font-bold text-green-600">{customer.paid_invoices || 0}</span>
                   </div>
                 </div>
                 <div className="bg-white p-3 rounded-lg border">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Monto Pendiente</span>
                     <span className="text-lg font-bold text-orange-600">
-                      ${customer.pending_amount.toLocaleString('es-MX')}
+                      ${(customer.pending_amount || 0).toLocaleString('es-MX')}
                     </span>
                   </div>
                 </div>
@@ -314,7 +314,9 @@ export default function CustomerCRMPage() {
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-gray-400" />
                     <span className="text-sm">
-                      {format(new Date(customer.last_interaction), "dd MMM yyyy 'a las' HH:mm", { locale: es })}
+                      {customer.last_interaction 
+                        ? format(new Date(customer.last_interaction), "dd MMM yyyy 'a las' HH:mm", { locale: es })
+                        : 'Sin interacciones'}
                     </span>
                   </div>
                 </div>
@@ -323,7 +325,9 @@ export default function CustomerCRMPage() {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-orange-600" />
                     <span className="text-sm font-medium text-orange-600">
-                      {format(new Date(customer.next_followup), "dd MMM yyyy 'a las' HH:mm", { locale: es })}
+                      {customer.next_followup
+                        ? format(new Date(customer.next_followup), "dd MMM yyyy 'a las' HH:mm", { locale: es })
+                        : 'No programado'}
                     </span>
                   </div>
                 </div>

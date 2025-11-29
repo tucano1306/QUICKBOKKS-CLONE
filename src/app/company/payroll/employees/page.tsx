@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, Edit, Trash2, UserCheck, Mail, Phone, Briefcase, DollarSign } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, UserCheck, Mail, Phone, Briefcase, DollarSign, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Employee {
@@ -42,6 +42,20 @@ export default function EmployeesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showNewEmployeeModal, setShowNewEmployeeModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
+  const [editFormData, setEditFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    position: '',
+    department: '',
+    salary: 0,
+    startDate: '',
+    status: 'ACTIVE'
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -78,6 +92,80 @@ export default function EmployeesPage() {
       toast.error('Error al cargar empleados')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Función para abrir modal de edición
+  const handleEditEmployee = (employee: Employee) => {
+    setSelectedEmployee(employee)
+    setEditFormData({
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      email: employee.email,
+      phone: employee.phone || '',
+      position: employee.position,
+      department: employee.department,
+      salary: employee.salary,
+      startDate: employee.startDate ? (typeof employee.startDate === 'string' ? employee.startDate.split('T')[0] : new Date(employee.startDate).toISOString().split('T')[0]) : '',
+      status: employee.status
+    })
+    setShowEditModal(true)
+  }
+
+  // Función para guardar cambios de edición
+  const handleSaveEdit = async () => {
+    if (!selectedEmployee) return
+
+    try {
+      const response = await fetch(`/api/employees/${selectedEmployee.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editFormData,
+          companyId: activeCompany?.id
+        })
+      })
+
+      if (response.ok) {
+        toast.success('✅ Empleado actualizado exitosamente')
+        setShowEditModal(false)
+        setSelectedEmployee(null)
+        fetchEmployees() // Recargar lista
+      } else {
+        throw new Error('Error al actualizar')
+      }
+    } catch (error) {
+      console.error('Error updating employee:', error)
+      toast.error('Error al actualizar empleado')
+    }
+  }
+
+  // Función para abrir modal de eliminación
+  const handleDeleteClick = (employee: Employee) => {
+    setSelectedEmployee(employee)
+    setShowDeleteModal(true)
+  }
+
+  // Función para confirmar eliminación
+  const handleConfirmDelete = async () => {
+    if (!selectedEmployee) return
+
+    try {
+      const response = await fetch(`/api/employees/${selectedEmployee.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        toast.success('✅ Empleado eliminado exitosamente')
+        setShowDeleteModal(false)
+        setSelectedEmployee(null)
+        fetchEmployees() // Recargar lista
+      } else {
+        throw new Error('Error al eliminar')
+      }
+    } catch (error) {
+      console.error('Error deleting employee:', error)
+      toast.error('Error al eliminar empleado')
     }
   }
 
@@ -248,10 +336,20 @@ export default function EmployeesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditEmployee(employee)}
+                            title="Editar empleado"
+                          >
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteClick(employee)}
+                            title="Eliminar empleado"
+                          >
                             <Trash2 className="w-4 h-4 text-red-600" />
                           </Button>
                         </div>
@@ -263,6 +361,160 @@ export default function EmployeesPage() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Modal Editar Empleado */}
+        {showEditModal && selectedEmployee && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
+            <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <CardHeader>
+                <CardTitle>Editar Empleado: {selectedEmployee.firstName} {selectedEmployee.lastName}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Nombre</label>
+                    <Input 
+                      value={editFormData.firstName}
+                      onChange={(e) => setEditFormData({...editFormData, firstName: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Apellido</label>
+                    <Input 
+                      value={editFormData.lastName}
+                      onChange={(e) => setEditFormData({...editFormData, lastName: e.target.value})}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Email</label>
+                    <Input 
+                      type="email" 
+                      value={editFormData.email}
+                      onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Teléfono</label>
+                    <Input 
+                      value={editFormData.phone}
+                      onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Puesto</label>
+                    <Input 
+                      value={editFormData.position}
+                      onChange={(e) => setEditFormData({...editFormData, position: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Departamento</label>
+                    <select 
+                      className="w-full border rounded-md p-2"
+                      value={editFormData.department}
+                      onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
+                    >
+                      <option value="Contabilidad">Contabilidad</option>
+                      <option value="Ventas">Ventas</option>
+                      <option value="Operaciones">Operaciones</option>
+                      <option value="Administración">Administración</option>
+                      <option value="IT">IT</option>
+                      <option value="RRHH">RRHH</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="Legal">Legal</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Salario Anual</label>
+                    <Input 
+                      type="number" 
+                      value={editFormData.salary}
+                      onChange={(e) => setEditFormData({...editFormData, salary: Number(e.target.value)})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Fecha de Inicio</label>
+                    <Input 
+                      type="date" 
+                      value={editFormData.startDate}
+                      onChange={(e) => setEditFormData({...editFormData, startDate: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Estado</label>
+                  <select 
+                    className="w-full border rounded-md p-2"
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                  >
+                    <option value="ACTIVE">Activo</option>
+                    <option value="INACTIVE">Inactivo</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button variant="outline" onClick={() => {
+                    setShowEditModal(false)
+                    setSelectedEmployee(null)
+                  }}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSaveEdit}>
+                    Guardar Cambios
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Modal Confirmar Eliminación */}
+        {showDeleteModal && selectedEmployee && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteModal(false)}>
+            <Card className="w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-600">
+                  <AlertTriangle className="w-5 h-5" />
+                  Confirmar Eliminación
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-gray-600">
+                  ¿Estás seguro de que deseas eliminar al empleado{' '}
+                  <span className="font-semibold text-gray-900">
+                    {selectedEmployee.firstName} {selectedEmployee.lastName}
+                  </span>
+                  ?
+                </p>
+                <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                  Esta acción no se puede deshacer. Se eliminarán todos los registros asociados a este empleado.
+                </p>
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button variant="outline" onClick={() => {
+                    setShowDeleteModal(false)
+                    setSelectedEmployee(null)
+                  }}>
+                    Cancelar
+                  </Button>
+                  <Button variant="destructive" onClick={handleConfirmDelete}>
+                    Eliminar Empleado
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Modal Nuevo Empleado */}
         {showNewEmployeeModal && (

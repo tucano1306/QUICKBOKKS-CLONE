@@ -7,6 +7,7 @@ import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { 
   Download,
@@ -19,8 +20,11 @@ import {
   Calendar,
   ArrowUpRight,
   ArrowDownRight,
-  Wallet
+  Wallet,
+  Plus,
+  X
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface CashFlowItem {
   id: string
@@ -50,6 +54,16 @@ export default function BudgetCashFlowPage() {
   const [cashFlowItems, setCashFlowItems] = useState<CashFlowItem[]>([])
   const [selectedYear, setSelectedYear] = useState('2026')
   const [viewMode, setViewMode] = useState<'monthly' | 'quarterly'>('monthly')
+  const [showNewPeriodModal, setShowNewPeriodModal] = useState(false)
+  const [newPeriodData, setNewPeriodData] = useState({
+    category: '',
+    subcategory: '',
+    type: 'inflow' as 'inflow' | 'outflow',
+    amounts: {
+      january: 0, february: 0, march: 0, april: 0, may: 0, june: 0,
+      july: 0, august: 0, september: 0, october: 0, november: 0, december: 0
+    }
+  })
 
   const loadCashFlow = useCallback(async () => {
     if (!activeCompany?.id) return
@@ -80,6 +94,7 @@ export default function BudgetCashFlowPage() {
   }, [status, activeCompany?.id, selectedYear, loadCashFlow])
   const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
   const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  const quarterNames = ['Q1', 'Q2', 'Q3', 'Q4']
 
   // Calculate monthly totals
   const monthlyInflows = months.map(month => 
@@ -110,6 +125,111 @@ export default function BudgetCashFlowPage() {
   const minCashPosition = Math.min(...cumulativeCashPosition)
   const maxCashPosition = Math.max(...cumulativeCashPosition)
 
+  // Quarterly totals
+  const quarterlyInflows = [
+    monthlyInflows.slice(0, 3).reduce((a, b) => a + b, 0),
+    monthlyInflows.slice(3, 6).reduce((a, b) => a + b, 0),
+    monthlyInflows.slice(6, 9).reduce((a, b) => a + b, 0),
+    monthlyInflows.slice(9, 12).reduce((a, b) => a + b, 0)
+  ]
+  const quarterlyOutflows = [
+    monthlyOutflows.slice(0, 3).reduce((a, b) => a + b, 0),
+    monthlyOutflows.slice(3, 6).reduce((a, b) => a + b, 0),
+    monthlyOutflows.slice(6, 9).reduce((a, b) => a + b, 0),
+    monthlyOutflows.slice(9, 12).reduce((a, b) => a + b, 0)
+  ]
+  const quarterlyNetCashFlow = quarterlyInflows.map((inf, i) => inf - quarterlyOutflows[i])
+  const quarterlyCashPosition = [
+    cumulativeCashPosition[2], // End of Q1 (March)
+    cumulativeCashPosition[5], // End of Q2 (June)
+    cumulativeCashPosition[8], // End of Q3 (September)
+    cumulativeCashPosition[11] // End of Q4 (December)
+  ]
+
+  // Función para exportar a CSV
+  const handleExport = () => {
+    const headers = viewMode === 'monthly' 
+      ? ['Tipo', 'Categoría', 'Subcategoría', ...monthNames, 'Total']
+      : ['Tipo', 'Categoría', 'Subcategoría', 'Q1', 'Q2', 'Q3', 'Q4', 'Total']
+
+    const rows = cashFlowItems.map(item => {
+      if (viewMode === 'monthly') {
+        return [
+          item.type === 'inflow' ? 'Entrada' : 'Salida',
+          item.category,
+          item.subcategory,
+          ...months.map(m => item[m as keyof CashFlowItem]),
+          item.total
+        ]
+      } else {
+        const q1 = item.january + item.february + item.march
+        const q2 = item.april + item.may + item.june
+        const q3 = item.july + item.august + item.september
+        const q4 = item.october + item.november + item.december
+        return [
+          item.type === 'inflow' ? 'Entrada' : 'Salida',
+          item.category,
+          item.subcategory,
+          q1, q2, q3, q4,
+          item.total
+        ]
+      }
+    })
+
+    // Agregar filas de resumen
+    if (viewMode === 'monthly') {
+      rows.push(['', '', 'TOTAL ENTRADAS', ...monthlyInflows, totalInflows])
+      rows.push(['', '', 'TOTAL SALIDAS', ...monthlyOutflows, totalOutflows])
+      rows.push(['', '', 'FLUJO NETO', ...monthlyNetCashFlow, netCashFlow])
+      rows.push(['', '', 'POSICIÓN EFECTIVO', ...cumulativeCashPosition, endingBalance])
+    } else {
+      rows.push(['', '', 'TOTAL ENTRADAS', ...quarterlyInflows, totalInflows])
+      rows.push(['', '', 'TOTAL SALIDAS', ...quarterlyOutflows, totalOutflows])
+      rows.push(['', '', 'FLUJO NETO', ...quarterlyNetCashFlow, netCashFlow])
+    }
+
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `flujo_efectivo_${selectedYear}_${viewMode}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+    toast.success(`✅ Exportado: flujo_efectivo_${selectedYear}_${viewMode}.csv`)
+  }
+
+  // Función para agregar nuevo período
+  const handleAddPeriod = () => {
+    if (!newPeriodData.category || !newPeriodData.subcategory) {
+      toast.error('Por favor complete categoría y subcategoría')
+      return
+    }
+
+    const total = Object.values(newPeriodData.amounts).reduce((a, b) => a + b, 0)
+    const newItem: CashFlowItem = {
+      id: `cf-${Date.now()}`,
+      category: newPeriodData.category,
+      subcategory: newPeriodData.subcategory,
+      type: newPeriodData.type,
+      ...newPeriodData.amounts,
+      total
+    }
+
+    setCashFlowItems([...cashFlowItems, newItem])
+    setShowNewPeriodModal(false)
+    setNewPeriodData({
+      category: '',
+      subcategory: '',
+      type: 'inflow',
+      amounts: {
+        january: 0, february: 0, march: 0, april: 0, may: 0, june: 0,
+        july: 0, august: 0, september: 0, october: 0, november: 0, december: 0
+      }
+    })
+    toast.success('✅ Nuevo período agregado exitosamente')
+  }
+
   if (status === 'loading' || loading) {
     return (
       <CompanyTabsLayout>
@@ -132,12 +252,12 @@ export default function BudgetCashFlowPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button>
-              <Calendar className="w-4 h-4 mr-2" />
+            <Button onClick={() => setShowNewPeriodModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
               Nuevo Período
             </Button>
           </div>
@@ -155,6 +275,8 @@ export default function BudgetCashFlowPage() {
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
               >
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
                 <option value="2028">2028</option>
@@ -246,10 +368,12 @@ export default function BudgetCashFlowPage() {
           </Card>
         </div>
 
-        {/* Monthly Cash Flow Summary */}
+        {/* Monthly/Quarterly Cash Flow Summary */}
         <Card>
           <CardHeader>
-            <CardTitle>Flujo de Efectivo Mensual - {selectedYear}</CardTitle>
+            <CardTitle>
+              Flujo de Efectivo {viewMode === 'monthly' ? 'Mensual' : 'Trimestral'} - {selectedYear}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -257,16 +381,22 @@ export default function BudgetCashFlowPage() {
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Concepto</th>
-                    {monthNames.map((month, idx) => (
-                      <th key={idx} className="px-3 py-3 text-right text-xs font-semibold text-gray-600">{month}</th>
-                    ))}
+                    {viewMode === 'monthly' ? (
+                      monthNames.map((month, idx) => (
+                        <th key={idx} className="px-3 py-3 text-right text-xs font-semibold text-gray-600">{month}</th>
+                      ))
+                    ) : (
+                      quarterNames.map((q, idx) => (
+                        <th key={idx} className="px-4 py-3 text-right text-xs font-semibold text-gray-600">{q}</th>
+                      ))
+                    )}
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   <tr className="bg-green-50">
                     <td className="px-4 py-3 font-semibold text-sm text-green-900">Entradas de Efectivo</td>
-                    {monthlyInflows.map((amount, idx) => (
+                    {(viewMode === 'monthly' ? monthlyInflows : quarterlyInflows).map((amount, idx) => (
                       <td key={idx} className="px-3 py-3 text-right text-sm font-semibold text-green-700">
                         ${(amount / 1000).toLocaleString('es-MX')}K
                       </td>
@@ -277,7 +407,7 @@ export default function BudgetCashFlowPage() {
                   </tr>
                   <tr className="bg-red-50">
                     <td className="px-4 py-3 font-semibold text-sm text-red-900">Salidas de Efectivo</td>
-                    {monthlyOutflows.map((amount, idx) => (
+                    {(viewMode === 'monthly' ? monthlyOutflows : quarterlyOutflows).map((amount, idx) => (
                       <td key={idx} className="px-3 py-3 text-right text-sm font-semibold text-red-700">
                         ${(amount / 1000).toLocaleString('es-MX')}K
                       </td>
@@ -288,7 +418,7 @@ export default function BudgetCashFlowPage() {
                   </tr>
                   <tr className="bg-blue-50">
                     <td className="px-4 py-3 font-semibold text-sm text-blue-900">Flujo Neto del Período</td>
-                    {monthlyNetCashFlow.map((amount, idx) => (
+                    {(viewMode === 'monthly' ? monthlyNetCashFlow : quarterlyNetCashFlow).map((amount, idx) => (
                       <td key={idx} className={`px-3 py-3 text-right text-sm font-bold ${
                         amount >= 0 ? 'text-blue-700' : 'text-red-600'
                       }`}>
@@ -301,7 +431,7 @@ export default function BudgetCashFlowPage() {
                   </tr>
                   <tr className="bg-indigo-50">
                     <td className="px-4 py-3 font-semibold text-sm text-indigo-900">Posición de Efectivo</td>
-                    {cumulativeCashPosition.map((amount, idx) => (
+                    {(viewMode === 'monthly' ? cumulativeCashPosition : quarterlyCashPosition).map((amount, idx) => (
                       <td key={idx} className={`px-3 py-3 text-right text-sm font-bold ${
                         amount >= 3000000 ? 'text-green-700' : 
                         amount >= 1000000 ? 'text-orange-600' : 'text-red-600'
@@ -554,6 +684,93 @@ export default function BudgetCashFlowPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal Nuevo Período */}
+        {showNewPeriodModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewPeriodModal(false)}>
+            <Card className="w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Nuevo Período de Flujo de Efectivo</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowNewPeriodModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Tipo</label>
+                    <select 
+                      className="w-full border rounded-md p-2"
+                      value={newPeriodData.type}
+                      onChange={(e) => setNewPeriodData({...newPeriodData, type: e.target.value as 'inflow' | 'outflow'})}
+                    >
+                      <option value="inflow">Entrada de Efectivo</option>
+                      <option value="outflow">Salida de Efectivo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Categoría</label>
+                    <Input 
+                      placeholder="Ej: Ventas, Nómina, Servicios"
+                      value={newPeriodData.category}
+                      onChange={(e) => setNewPeriodData({...newPeriodData, category: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Subcategoría</label>
+                    <Input 
+                      placeholder="Ej: Cobro clientes, Sueldos"
+                      value={newPeriodData.subcategory}
+                      onChange={(e) => setNewPeriodData({...newPeriodData, subcategory: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">Montos por Mes (en USD)</h3>
+                  <div className="grid grid-cols-4 gap-3">
+                    {monthNames.map((month, idx) => (
+                      <div key={months[idx]}>
+                        <label className="text-xs font-medium text-gray-600">{month}</label>
+                        <Input 
+                          type="number"
+                          placeholder="0"
+                          value={newPeriodData.amounts[months[idx] as keyof typeof newPeriodData.amounts] || ''}
+                          onChange={(e) => setNewPeriodData({
+                            ...newPeriodData,
+                            amounts: {
+                              ...newPeriodData.amounts,
+                              [months[idx]]: Number(e.target.value) || 0
+                            }
+                          })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">Total Anual Proyectado:</span>
+                    <span className={`text-xl font-bold ${newPeriodData.type === 'inflow' ? 'text-green-600' : 'text-red-600'}`}>
+                      ${Object.values(newPeriodData.amounts).reduce((a, b) => a + b, 0).toLocaleString('es-MX')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button variant="outline" onClick={() => setShowNewPeriodModal(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleAddPeriod}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Agregar Período
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

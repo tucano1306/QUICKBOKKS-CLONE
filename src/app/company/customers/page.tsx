@@ -523,18 +523,23 @@ export default function CustomersPage() {
                         <TableCell>
                           <div className="flex flex-wrap items-center justify-end gap-2">
                             {/* BOTÓN 1: Ver Detalles */}
-                            <Link href={`/customers/${customer.id}`}>
-                              <Button variant="outline" size="sm" className="bg-blue-50 hover:bg-blue-100 border-blue-300">
-                                <Eye className="h-4 w-4 mr-1 text-blue-600" />
-                                <span className="text-xs font-semibold text-blue-700">Ver</span>
-                              </Button>
-                            </Link>
+                            <Button 
+                              type="button"
+                              variant="outline" 
+                              size="sm" 
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}`; }}
+                              className="bg-blue-50 hover:bg-blue-100 border-blue-300"
+                            >
+                              <Eye className="h-4 w-4 mr-1 text-blue-600" />
+                              <span className="text-xs font-semibold text-blue-700">Ver</span>
+                            </Button>
 
                             {/* BOTÓN 2: Editar */}
                             <Button 
+                              type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={() => openEditModal(customer)}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditModal(customer); }}
                               className="bg-green-50 hover:bg-green-100 border-green-300"
                             >
                               <Edit className="h-4 w-4 mr-1 text-green-600" />
@@ -544,9 +549,10 @@ export default function CustomersPage() {
                             {/* BOTÓN 3: Invitar al Portal */}
                             {customer.email && !customer.portalActive && (
                               <Button 
+                                type="button"
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => handleInviteToPortal(customer)}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleInviteToPortal(customer); }}
                                 className="bg-blue-50 hover:bg-blue-100 border-blue-300"
                               >
                                 <Send className="h-4 w-4 mr-1 text-blue-600" />
@@ -556,9 +562,12 @@ export default function CustomersPage() {
 
                             {/* BOTÓN 4: Configurar Permisos */}
                             <Button 
+                              type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={() => { 
+                              onClick={(e) => { 
+                                e.preventDefault();
+                                e.stopPropagation();
                                 setSelectedCustomer(customer); 
                                 setShowPermissionsModal(true); 
                               }}
@@ -570,59 +579,84 @@ export default function CustomersPage() {
 
                             {/* BOTÓN 5: Ver Actividad Portal */}
                             {customer.portalActive && (
-                              <Link href={`/customers/${customer.id}/activity`}>
-                                <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-300">
-                                  <Activity className="h-4 w-4 mr-1 text-green-600" />
-                                  <span className="text-xs font-semibold text-green-700">Actividad</span>
-                                </Button>
-                              </Link>
+                              <Button 
+                                type="button"
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}/activity`; }}
+                                className="bg-green-50 hover:bg-green-100 border-green-300"
+                              >
+                                <Activity className="h-4 w-4 mr-1 text-green-600" />
+                                <span className="text-xs font-semibold text-green-700">Actividad</span>
+                              </Button>
                             )}
 
                             {/* BOTÓN 6: Subir Documentos */}
-                            <Link href={`/company/documents/upload?customerId=${customer.id}`}>
-                              <Button variant="outline" size="sm" className="bg-orange-50 hover:bg-orange-100 border-orange-300">
-                                <Upload className="h-4 w-4 mr-1 text-orange-600" />
-                                <span className="text-xs font-semibold text-orange-700">Docs</span>
-                              </Button>
-                            </Link>
+                            <Button 
+                              type="button"
+                              variant="outline" 
+                              size="sm" 
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/company/documents/upload?customerId=${customer.id}`; }}
+                              className="bg-orange-50 hover:bg-orange-100 border-orange-300"
+                            >
+                              <Upload className="h-4 w-4 mr-1 text-orange-600" />
+                              <span className="text-xs font-semibold text-orange-700">Docs</span>
+                            </Button>
 
                             {/* BOTÓN 7: Ver Transacciones */}
-                            <Link href={`/company/customers/transactions?customerId=${customer.id}`}>
-                              <Button variant="outline" size="sm" className="bg-indigo-50 hover:bg-indigo-100 border-indigo-300">
-                                <DollarSign className="h-4 w-4 mr-1 text-indigo-600" />
-                                <span className="text-xs font-semibold text-indigo-700">Trans</span>
-                              </Button>
-                            </Link>
+                            <Button 
+                              type="button"
+                              variant="outline" 
+                              size="sm" 
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/company/customers/transactions?customerId=${customer.id}`; }}
+                              className="bg-indigo-50 hover:bg-indigo-100 border-indigo-300"
+                            >
+                              <DollarSign className="h-4 w-4 mr-1 text-indigo-600" />
+                              <span className="text-xs font-semibold text-indigo-700">Trans</span>
+                            </Button>
 
                             {/* BOTÓN 8: Ver Facturas */}
-                            <Link href={`/invoices?customerId=${customer.id}`}>
-                              <Button variant="outline" size="sm" className="bg-teal-50 hover:bg-teal-100 border-teal-300">
-                                <Receipt className="h-4 w-4 mr-1 text-teal-600" />
-                                <span className="text-xs font-semibold text-teal-700">Facturas</span>
-                              </Button>
-                            </Link>
+                            <Button 
+                              type="button"
+                              variant="outline" 
+                              size="sm" 
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/invoices?customerId=${customer.id}`; }}
+                              className="bg-teal-50 hover:bg-teal-100 border-teal-300"
+                            >
+                              <Receipt className="h-4 w-4 mr-1 text-teal-600" />
+                              <span className="text-xs font-semibold text-teal-700">Facturas</span>
+                            </Button>
 
                             {/* BOTÓN 9: Notas y Seguimiento */}
-                            <Link href={`/customers/${customer.id}/notes`}>
-                              <Button variant="outline" size="sm" className="bg-yellow-50 hover:bg-yellow-100 border-yellow-300">
-                                <StickyNote className="h-4 w-4 mr-1 text-yellow-600" />
-                                <span className="text-xs font-semibold text-yellow-700">Notas</span>
-                              </Button>
-                            </Link>
+                            <Button 
+                              type="button"
+                              variant="outline" 
+                              size="sm" 
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}/notes`; }}
+                              className="bg-yellow-50 hover:bg-yellow-100 border-yellow-300"
+                            >
+                              <StickyNote className="h-4 w-4 mr-1 text-yellow-600" />
+                              <span className="text-xs font-semibold text-yellow-700">Notas</span>
+                            </Button>
 
                             {/* BOTÓN 10: CRM 360° */}
-                            <Link href={`/customers/${customer.id}/crm`}>
-                              <Button variant="outline" size="sm" className="bg-pink-50 hover:bg-pink-100 border-pink-300">
-                                <UserCircle className="h-4 w-4 mr-1 text-pink-600" />
-                                <span className="text-xs font-semibold text-pink-700">CRM</span>
-                              </Button>
-                            </Link>
+                            <Button 
+                              type="button"
+                              variant="outline" 
+                              size="sm" 
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}/crm`; }}
+                              className="bg-pink-50 hover:bg-pink-100 border-pink-300"
+                            >
+                              <UserCircle className="h-4 w-4 mr-1 text-pink-600" />
+                              <span className="text-xs font-semibold text-pink-700">CRM</span>
+                            </Button>
 
                             {/* BOTÓN 11: Eliminar */}
                             <Button 
+                              type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={() => handleDeleteCustomer(customer.id)}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteCustomer(customer.id); }}
                               className="bg-red-50 hover:bg-red-100 border-red-300"
                             >
                               <Trash2 className="h-4 w-4 mr-1 text-red-600" />

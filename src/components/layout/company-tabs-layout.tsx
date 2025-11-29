@@ -35,7 +35,9 @@ import {
   Smartphone,
   Globe,
   Cloud,
-  BarChart3
+  BarChart3,
+  Home,
+  LogOut
 } from 'lucide-react'
 
 interface SubMenuItem {
@@ -337,6 +339,15 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                 </p>
               </div>
             </div>
+            
+            {/* Botón para salir al menú principal */}
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors font-medium"
+            >
+              <Home className="w-4 h-4" />
+              <span>Menú Principal</span>
+            </button>
           </div>
         </div>
 

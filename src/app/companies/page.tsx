@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Building, Edit, Check } from 'lucide-react'
+import { Plus, Building, Edit, Check, Trash2, X, AlertTriangle, ArrowRight, LogIn } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useCompany } from '@/contexts/CompanyContext'
 
@@ -44,6 +44,9 @@ export default function CompaniesPage() {
   const { companies, activeCompany, setActiveCompany, refreshCompanies } = useCompany()
   const [isLoading, setIsLoading] = useState(false)
   const [showNewCompanyForm, setShowNewCompanyForm] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [companyToDelete, setCompanyToDelete] = useState<CompanyDetailed | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [formData, setFormData] = useState<NewCompanyForm>({
     name: '',
     legalName: '',
@@ -140,6 +143,50 @@ export default function CompaniesPage() {
         return 'bg-blue-100 text-blue-800'
       default:
         return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const handleEnterCompany = (e: React.MouseEvent, company: any) => {
+    e.stopPropagation()
+    setActiveCompany(company)
+    toast.success(`Entrando a ${company.name}...`)
+    router.push('/company/dashboard')
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent, company: CompanyDetailed) => {
+    e.stopPropagation()
+    setCompanyToDelete(company)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!companyToDelete) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/companies/${companyToDelete.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        toast.success(`Empresa "${companyToDelete.name}" eliminada exitosamente`)
+        setShowDeleteModal(false)
+        setCompanyToDelete(null)
+        refreshCompanies()
+        
+        // Si la empresa eliminada era la activa, limpiar la selección
+        if (activeCompany?.id === companyToDelete.id) {
+          setActiveCompany(null as any)
+        }
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Error al eliminar la empresa')
+      }
+    } catch (error) {
+      console.error('Error deleting company:', error)
+      toast.error('Error al eliminar la empresa')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -391,6 +438,27 @@ export default function CompaniesPage() {
                     {company.status === 'ACTIVE' ? 'Activa' : 'Inactiva'}
                   </Badge>
                 </div>
+
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={(e) => handleEnterCompany(e, company)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    Entrar
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleDeleteClick(e, company as CompanyDetailed)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -412,6 +480,66 @@ export default function CompaniesPage() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Modal de confirmación para eliminar */}
+        {showDeleteModal && companyToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Eliminar Empresa</h3>
+                </div>
+                <button
+                  onClick={() => { setShowDeleteModal(false); setCompanyToDelete(null); }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-600 mb-4">
+                  ¿Estás seguro de que deseas eliminar la empresa <strong>"{companyToDelete.name}"</strong>?
+                </p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-800">
+                    <strong>⚠️ Advertencia:</strong> Esta acción eliminará permanentemente:
+                  </p>
+                  <ul className="text-sm text-red-700 mt-2 ml-4 list-disc">
+                    <li>Todos los clientes de esta empresa</li>
+                    <li>Todas las facturas y transacciones</li>
+                    <li>Todos los empleados y nóminas</li>
+                    <li>Todos los documentos y reportes</li>
+                  </ul>
+                  <p className="text-sm text-red-800 mt-2 font-semibold">
+                    Esta acción NO se puede deshacer.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => { setShowDeleteModal(false); setCompanyToDelete(null); }}
+                  disabled={isDeleting}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {isDeleting ? 'Eliminando...' : 'Sí, Eliminar Empresa'}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>

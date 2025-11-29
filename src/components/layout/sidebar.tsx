@@ -34,10 +34,11 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
+      {/* Mobile menu button - moved to avoid conflict with table buttons */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-white shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-[60] p-2 rounded-md bg-white shadow-lg border border-gray-200"
+        aria-label="Toggle menu"
       >
         {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
@@ -50,14 +51,20 @@ export default function Sidebar() {
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-center h-16 bg-gray-800">
+          {/* Logo - Click para ir al menú principal */}
+          <Link 
+            href="/dashboard" 
+            className="flex items-center justify-center h-16 bg-gray-800 hover:bg-gray-700 transition-colors cursor-pointer"
+          >
             <h1 className="text-xl font-bold">QuickBooks Clone</h1>
-          </div>
+          </Link>
 
-          {/* User info */}
+          {/* User info - Click para ir al menú principal */}
           <div className="p-4 bg-gray-800/50">
-            <div className="flex items-center space-x-3 mb-3">
+            <Link 
+              href="/dashboard"
+              className="flex items-center space-x-3 mb-3 p-2 -m-2 rounded-lg hover:bg-gray-700/50 transition-colors cursor-pointer"
+            >
               <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
                 <span className="text-lg font-semibold">
                   {session?.user?.name?.charAt(0) || 'U'}
@@ -71,7 +78,7 @@ export default function Sidebar() {
                   {session?.user?.email}
                 </p>
               </div>
-            </div>
+            </Link>
             {/* Company Selector */}
             <div className="mt-3">
               <CompanySelector />
