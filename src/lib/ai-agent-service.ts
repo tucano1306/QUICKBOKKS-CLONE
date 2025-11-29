@@ -9,6 +9,7 @@
  * - Aprender de interacciones
  * 
  * Soporta:
+ * - Groq (GRATIS - Llama 3.3 70B)
  * - OpenAI GPT-4 (cloud)
  * - Llama 3 (local)
  * - Mixtral (local)
@@ -16,10 +17,11 @@
 
 import { prisma } from './prisma';
 import OpenAI from 'openai';
+import Groq from 'groq-sdk';
 
 // ============== TIPOS ==============
 
-export type AIProvider = 'openai' | 'llama' | 'mixtral';
+export type AIProvider = 'groq' | 'openai' | 'llama' | 'mixtral';
 
 export interface AgentMessage {
   role: 'system' | 'user' | 'assistant' | 'function';
@@ -54,10 +56,25 @@ export interface AgentContext {
 
 // ============== CONFIGURACIÓN ==============
 
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const AI_PROVIDER: AIProvider = (process.env.AI_PROVIDER as AIProvider) || 'openai';
+const AI_PROVIDER: AIProvider = (process.env.AI_PROVIDER as AIProvider) || (GROQ_API_KEY ? 'groq' : 'openai');
 const LLAMA_ENDPOINT = process.env.LLAMA_ENDPOINT || 'http://localhost:8000';
 const MIXTRAL_ENDPOINT = process.env.MIXTRAL_ENDPOINT || 'http://localhost:8001';
+
+// Debug: Log de configuración
+console.log('[AI-Agent] Configuración:', {
+  hasGroqKey: !!GROQ_API_KEY,
+  groqKeyLength: GROQ_API_KEY?.length,
+  provider: AI_PROVIDER
+});
+
+// Cliente Groq (GRATIS)
+let groq: Groq | null = null;
+if (GROQ_API_KEY) {
+  groq = new Groq({ apiKey: GROQ_API_KEY });
+  console.log('[AI-Agent] Cliente Groq inicializado');
+}
 
 // Cliente OpenAI
 let openai: OpenAI | null = null;
@@ -845,14 +862,27 @@ export async function chatWithAgent(
 
     let response: AgentResponse;
 
-    if (AI_PROVIDER === 'openai' && openai) {
+    // Debug
+    console.log('[AI-Agent] chatWithAgent llamado:', {
+      message: userMessage,
+      hasGroq: !!groq,
+      provider: AI_PROVIDER
+    });
+
+    // Prioridad: Groq (gratis) > OpenAI > Llama > Mixtral
+    if (groq) {
+      console.log('[AI-Agent] Usando Groq...');
+      response = await chatWithGroq(context);
+    } else if (AI_PROVIDER === 'openai' && openai) {
       response = await chatWithOpenAI(context);
     } else if (AI_PROVIDER === 'llama') {
       response = await chatWithLlama(context);
     } else if (AI_PROVIDER === 'mixtral') {
       response = await chatWithMixtral(context);
     } else {
-      throw new Error(`Proveedor de IA no configurado: ${AI_PROVIDER}`);
+      // Fallback: respuesta básica sin IA
+      console.log('[AI-Agent] Cayendo en fallback - sin IA disponible');
+      response = await generateFallbackResponse(context, userMessage);
     }
 
     // Guardar conversación en DB
@@ -947,6 +977,351 @@ async function chatWithOpenAI(context: AgentContext): Promise<AgentResponse> {
   return {
     success: true,
     message: assistantMessage.content || 'Lo siento, no pude procesar tu solicitud.',
+    suggestions: generateDefaultSuggestions(),
+  };
+}
+
+// ============== INTEGRACIÓN GROQ (GRATIS) ==============
+
+async function chatWithGroq(context: AgentContext): Promise<AgentResponse> {
+  if (!groq) {
+    throw new Error('Groq no está configurado. Establece GROQ_API_KEY en .env');
+  }
+
+  // Obtener datos del contexto para enriquecer la respuesta
+  let companyData = '';
+  try {
+    const company = await prisma.company.findFirst({
+      where: { id: context.companyId }
+    });
+    
+    if (company) {
+      // Contar entidades relacionadas por separado
+      const [customerCount, invoiceCount, expenseCount] = await Promise.all([
+        prisma.customer.count({ where: { companyId: context.companyId } }),
+        prisma.invoice.count({ where: { companyId: context.companyId } }),
+        prisma.expense.count({ where: { companyId: context.companyId } })
+      ]);
+      
+      companyData = `
+Datos de la empresa actual:
+- Nombre: ${company.name}
+- Clientes: ${customerCount}
+- Facturas: ${invoiceCount}
+- Gastos: ${expenseCount}
+`;
+    }
+  } catch (e) {
+    // Ignorar si no hay datos
+  }
+
+  const systemPromptWithContext = SYSTEM_PROMPT + '\n\n' + companyData;
+
+  // Detectar si el usuario quiere crear un catálogo de cuentas
+  const userMessage = context.history[context.history.length - 1]?.content || '';
+  const wantsChartOfAccounts = 
+    (userMessage.toLowerCase().includes('crear') || userMessage.toLowerCase().includes('generar') || userMessage.toLowerCase().includes('crea') || userMessage.toLowerCase().includes('créa')) &&
+    (userMessage.toLowerCase().includes('catálogo') || userMessage.toLowerCase().includes('catalogo') || userMessage.toLowerCase().includes('cuentas') || userMessage.toLowerCase().includes('plan de cuentas'));
+
+  if (wantsChartOfAccounts) {
+    // Generar catálogo de cuentas directamente
+    const catalogResult = await generateChartOfAccounts(context, userMessage);
+    
+    if (catalogResult && !catalogResult.error) {
+      let responseMessage = `✅ **¡Catálogo de Cuentas Creado Exitosamente!**
+
+📊 Se han creado **${catalogResult.created}** cuentas contables de **${catalogResult.total}** para tu Dealer de Carros.
+
+**Estructura del Catálogo:**
+
+🏦 **ACTIVOS (1000-1999)**
+- Caja y Bancos
+- Cuentas por Cobrar
+- Inventario de Vehículos (Nuevos y Usados)
+- Repuestos y Accesorios
+- Activos Fijos (Terrenos, Edificios, Equipos)
+
+💳 **PASIVOS (2000-2999)**
+- Cuentas por Pagar
+- Floor Plan (Financiamiento de Inventario)
+- Impuestos y Salarios por Pagar
+- Préstamos Bancarios
+
+💰 **PATRIMONIO (3000-3999)**
+- Capital Social
+- Utilidades Retenidas
+
+📈 **INGRESOS (4000-4999)**
+- Venta de Vehículos Nuevos y Usados
+- Venta de Repuestos
+- Servicios de Taller
+- Comisiones (Financiamiento, Seguros, Garantías)
+
+📉 **COSTOS Y GASTOS (5000-6999)**
+- Costo de Vehículos Vendidos
+- Gastos de Personal y Comisiones
+- Gastos de Instalaciones
+- Publicidad y Marketing
+- Gastos Financieros
+
+💡 **Próximos pasos sugeridos:**
+1. Revisa el catálogo en Configuración → Plan de Cuentas
+2. Ajusta las cuentas según tus necesidades específicas
+3. Comienza a registrar tus transacciones
+
+¿Necesitas algo más?`;
+
+      return {
+        success: true,
+        message: responseMessage,
+        actions: [{
+          type: 'create_chart_of_accounts',
+          description: 'Catálogo de cuentas para dealer de carros',
+          result: catalogResult
+        }],
+        data: catalogResult,
+        suggestions: [
+          'Ver catálogo de cuentas',
+          'Crear una factura',
+          'Registrar un gasto',
+          'Agregar un cliente'
+        ],
+      };
+    } else {
+      return {
+        success: false,
+        message: `❌ Hubo un problema creando el catálogo: ${catalogResult?.error || 'Error desconocido'}. Por favor intenta nuevamente.`,
+        suggestions: ['Intentar de nuevo', 'Crear catálogo manualmente'],
+      };
+    }
+  }
+
+  const messages: any[] = [
+    { role: 'system', content: systemPromptWithContext },
+    ...context.history.map(m => ({ role: m.role, content: m.content })),
+  ];
+
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages,
+    temperature: 0.7,
+    max_tokens: 2000,
+  });
+
+  const assistantMessage = completion.choices[0]?.message?.content || '';
+
+  return {
+    success: true,
+    message: assistantMessage,
+    suggestions: generateDefaultSuggestions(),
+  };
+}
+
+// Función para generar catálogo de cuentas con IA
+async function generateChartOfAccounts(context: AgentContext, userMessage: string): Promise<any> {
+  if (!groq) return null;
+
+  const prompt = `Genera un catálogo de cuentas contables completo para un DEALER DE CARROS / CONCESIONARIO DE VEHÍCULOS.
+
+Responde SOLO con un JSON válido con esta estructura exacta (sin markdown ni comentarios):
+{
+  "accounts": [
+    {"code": "1000", "name": "ACTIVOS", "type": "ASSET", "category": "CURRENT_ASSET", "level": 1},
+    {"code": "1100", "name": "Activos Corrientes", "type": "ASSET", "category": "CURRENT_ASSET", "level": 2},
+    {"code": "1110", "name": "Caja General", "type": "ASSET", "category": "CURRENT_ASSET", "level": 3},
+    {"code": "1111", "name": "Caja Chica", "type": "ASSET", "category": "CURRENT_ASSET", "level": 3},
+    {"code": "1120", "name": "Bancos", "type": "ASSET", "category": "CURRENT_ASSET", "level": 3},
+    {"code": "1200", "name": "Cuentas por Cobrar", "type": "ASSET", "category": "CURRENT_ASSET", "level": 2},
+    {"code": "1210", "name": "Cuentas por Cobrar Clientes", "type": "ASSET", "category": "CURRENT_ASSET", "level": 3},
+    {"code": "1220", "name": "Documentos por Cobrar", "type": "ASSET", "category": "CURRENT_ASSET", "level": 3},
+    {"code": "1300", "name": "Inventarios", "type": "ASSET", "category": "CURRENT_ASSET", "level": 2},
+    {"code": "1310", "name": "Inventario de Vehículos Nuevos", "type": "ASSET", "category": "CURRENT_ASSET", "level": 3},
+    {"code": "1320", "name": "Inventario de Vehículos Usados", "type": "ASSET", "category": "CURRENT_ASSET", "level": 3},
+    {"code": "1330", "name": "Inventario de Repuestos y Accesorios", "type": "ASSET", "category": "CURRENT_ASSET", "level": 3},
+    {"code": "1500", "name": "Activos Fijos", "type": "ASSET", "category": "FIXED_ASSET", "level": 2},
+    {"code": "1510", "name": "Terrenos", "type": "ASSET", "category": "FIXED_ASSET", "level": 3},
+    {"code": "1520", "name": "Edificios", "type": "ASSET", "category": "FIXED_ASSET", "level": 3},
+    {"code": "1530", "name": "Mobiliario y Equipo", "type": "ASSET", "category": "FIXED_ASSET", "level": 3},
+    {"code": "1540", "name": "Vehículos de la Empresa", "type": "ASSET", "category": "FIXED_ASSET", "level": 3},
+    {"code": "1550", "name": "Equipo de Cómputo", "type": "ASSET", "category": "FIXED_ASSET", "level": 3},
+    {"code": "1560", "name": "Herramientas de Taller", "type": "ASSET", "category": "FIXED_ASSET", "level": 3},
+    {"code": "2000", "name": "PASIVOS", "type": "LIABILITY", "category": "CURRENT_LIABILITY", "level": 1},
+    {"code": "2100", "name": "Pasivos Corrientes", "type": "LIABILITY", "category": "CURRENT_LIABILITY", "level": 2},
+    {"code": "2110", "name": "Cuentas por Pagar Proveedores", "type": "LIABILITY", "category": "CURRENT_LIABILITY", "level": 3},
+    {"code": "2120", "name": "Floor Plan - Financiamiento Vehículos", "type": "LIABILITY", "category": "CURRENT_LIABILITY", "level": 3},
+    {"code": "2130", "name": "Impuestos por Pagar", "type": "LIABILITY", "category": "CURRENT_LIABILITY", "level": 3},
+    {"code": "2140", "name": "Salarios por Pagar", "type": "LIABILITY", "category": "CURRENT_LIABILITY", "level": 3},
+    {"code": "2150", "name": "Comisiones por Pagar", "type": "LIABILITY", "category": "CURRENT_LIABILITY", "level": 3},
+    {"code": "2200", "name": "Pasivos a Largo Plazo", "type": "LIABILITY", "category": "LONG_TERM_LIABILITY", "level": 2},
+    {"code": "2210", "name": "Préstamos Bancarios", "type": "LIABILITY", "category": "LONG_TERM_LIABILITY", "level": 3},
+    {"code": "2220", "name": "Hipotecas por Pagar", "type": "LIABILITY", "category": "LONG_TERM_LIABILITY", "level": 3},
+    {"code": "3000", "name": "PATRIMONIO", "type": "EQUITY", "category": "EQUITY", "level": 1},
+    {"code": "3100", "name": "Capital Social", "type": "EQUITY", "category": "EQUITY", "level": 2},
+    {"code": "3200", "name": "Reserva Legal", "type": "EQUITY", "category": "EQUITY", "level": 2},
+    {"code": "3300", "name": "Utilidades Retenidas", "type": "EQUITY", "category": "EQUITY", "level": 2},
+    {"code": "3400", "name": "Utilidad del Ejercicio", "type": "EQUITY", "category": "EQUITY", "level": 2},
+    {"code": "4000", "name": "INGRESOS", "type": "INCOME", "category": "OPERATING_INCOME", "level": 1},
+    {"code": "4100", "name": "Ingresos por Ventas", "type": "INCOME", "category": "OPERATING_INCOME", "level": 2},
+    {"code": "4110", "name": "Venta de Vehículos Nuevos", "type": "INCOME", "category": "OPERATING_INCOME", "level": 3},
+    {"code": "4120", "name": "Venta de Vehículos Usados", "type": "INCOME", "category": "OPERATING_INCOME", "level": 3},
+    {"code": "4130", "name": "Venta de Repuestos y Accesorios", "type": "INCOME", "category": "OPERATING_INCOME", "level": 3},
+    {"code": "4200", "name": "Ingresos por Servicios", "type": "INCOME", "category": "OPERATING_INCOME", "level": 2},
+    {"code": "4210", "name": "Servicios de Taller y Reparación", "type": "INCOME", "category": "OPERATING_INCOME", "level": 3},
+    {"code": "4220", "name": "Servicios de Garantía", "type": "INCOME", "category": "OPERATING_INCOME", "level": 3},
+    {"code": "4300", "name": "Otros Ingresos", "type": "INCOME", "category": "OTHER_INCOME", "level": 2},
+    {"code": "4310", "name": "Comisiones por Financiamiento", "type": "INCOME", "category": "OTHER_INCOME", "level": 3},
+    {"code": "4320", "name": "Comisiones por Seguros", "type": "INCOME", "category": "OTHER_INCOME", "level": 3},
+    {"code": "4330", "name": "Comisiones por Garantías Extendidas", "type": "INCOME", "category": "OTHER_INCOME", "level": 3},
+    {"code": "5000", "name": "COSTOS", "type": "EXPENSE", "category": "COST_OF_GOODS_SOLD", "level": 1},
+    {"code": "5100", "name": "Costo de Ventas", "type": "EXPENSE", "category": "COST_OF_GOODS_SOLD", "level": 2},
+    {"code": "5110", "name": "Costo de Vehículos Nuevos Vendidos", "type": "EXPENSE", "category": "COST_OF_GOODS_SOLD", "level": 3},
+    {"code": "5120", "name": "Costo de Vehículos Usados Vendidos", "type": "EXPENSE", "category": "COST_OF_GOODS_SOLD", "level": 3},
+    {"code": "5130", "name": "Costo de Repuestos Vendidos", "type": "EXPENSE", "category": "COST_OF_GOODS_SOLD", "level": 3},
+    {"code": "5140", "name": "Costo de Reconocimiento Vehículos Usados", "type": "EXPENSE", "category": "COST_OF_GOODS_SOLD", "level": 3},
+    {"code": "6000", "name": "GASTOS OPERATIVOS", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 1},
+    {"code": "6100", "name": "Gastos de Personal", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 2},
+    {"code": "6110", "name": "Salarios y Sueldos", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6120", "name": "Comisiones de Vendedores", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6130", "name": "Bonificaciones", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6140", "name": "Prestaciones Sociales", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6200", "name": "Gastos de Instalaciones", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 2},
+    {"code": "6210", "name": "Alquiler de Local", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6220", "name": "Servicios Públicos", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6230", "name": "Mantenimiento de Instalaciones", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6300", "name": "Gastos de Vehículos", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 2},
+    {"code": "6310", "name": "Combustible", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6320", "name": "Mantenimiento de Flota", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6330", "name": "Seguros de Vehículos", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6400", "name": "Gastos de Publicidad y Marketing", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 2},
+    {"code": "6410", "name": "Publicidad Digital", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6420", "name": "Publicidad Tradicional", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6430", "name": "Eventos y Promociones", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6500", "name": "Gastos Financieros", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 2},
+    {"code": "6510", "name": "Intereses Floor Plan", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6520", "name": "Intereses Bancarios", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6530", "name": "Comisiones Bancarias", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6600", "name": "Depreciación y Amortización", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 2},
+    {"code": "6610", "name": "Depreciación de Edificios", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6620", "name": "Depreciación de Mobiliario", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3},
+    {"code": "6630", "name": "Depreciación de Vehículos", "type": "EXPENSE", "category": "OPERATING_EXPENSE", "level": 3}
+  ]
+}`;
+
+  try {
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 4000,
+    });
+
+    const content = response.choices[0]?.message?.content || '{}';
+    
+    // Limpiar el contenido de posible markdown
+    let cleanContent = content;
+    if (content.includes('```json')) {
+      cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    } else if (content.includes('```')) {
+      cleanContent = content.replace(/```\n?/g, '');
+    }
+    
+    const parsed = JSON.parse(cleanContent.trim());
+    
+    // Crear las cuentas en ChartOfAccounts
+    if (parsed.accounts && Array.isArray(parsed.accounts)) {
+      let created = 0;
+      const createdAccounts: any[] = [];
+      
+      for (const account of parsed.accounts) {
+        try {
+          // Mapear category string a enum válido
+          let category = account.category || 'OTHER';
+          const validCategories = [
+            'CURRENT_ASSET', 'FIXED_ASSET', 'OTHER_ASSET',
+            'CURRENT_LIABILITY', 'LONG_TERM_LIABILITY',
+            'EQUITY', 'OPERATING_INCOME', 'OTHER_INCOME',
+            'COST_OF_GOODS_SOLD', 'OPERATING_EXPENSE', 'OTHER_EXPENSE', 'OTHER'
+          ];
+          if (!validCategories.includes(category)) {
+            category = 'OTHER';
+          }
+
+          const newAccount = await prisma.chartOfAccounts.create({
+            data: {
+              code: account.code,
+              name: account.name,
+              type: account.type as any,
+              category: category as any,
+              level: account.level || 1,
+              companyId: context.companyId,
+              isActive: true,
+              balance: 0,
+              description: account.description || null
+            }
+          });
+          created++;
+          createdAccounts.push({
+            code: newAccount.code,
+            name: newAccount.name,
+            type: newAccount.type
+          });
+        } catch (e: any) {
+          // Ignorar duplicados (código único)
+          console.log(`Cuenta ${account.code} ya existe o error:`, e.message);
+        }
+      }
+      return { 
+        created, 
+        total: parsed.accounts.length, 
+        accounts: createdAccounts,
+        message: `Se crearon ${created} cuentas de ${parsed.accounts.length} en el catálogo.`
+      };
+    }
+    
+    return parsed;
+  } catch (e: any) {
+    console.error('Error generando catálogo:', e);
+    return { error: e.message };
+  }
+}
+
+// Respuesta de fallback sin IA
+async function generateFallbackResponse(context: AgentContext, userMessage: string): Promise<AgentResponse> {
+  // Obtener estadísticas básicas
+  let stats = { customers: 0, invoices: 0, products: 0, employees: 0 };
+  try {
+    const [customers, invoices, products, employees] = await Promise.all([
+      prisma.customer.count({ where: { companyId: context.companyId } }),
+      prisma.invoice.count({ where: { companyId: context.companyId } }),
+      prisma.product.count({ where: { companyId: context.companyId } }),
+      prisma.employee.count({ where: { companyId: context.companyId } })
+    ]);
+    stats = { customers, invoices, products, employees };
+  } catch (e) {
+    // Ignorar errores
+  }
+
+  return {
+    success: true,
+    message: `👋 **¡Hola! Soy tu asistente contable IA.**
+
+Puedo ayudarte con información sobre:
+
+📊 **Finanzas:** "¿Cuál es mi balance?", "Muestra mi resumen financiero"
+📄 **Facturas:** "¿Cuántas facturas tengo pendientes?", "Facturas vencidas"
+💰 **Gastos:** "¿Cuáles son mis principales gastos?", "Gastos del mes"
+👥 **Clientes:** "¿Quiénes son mis mejores clientes?", "Clientes que me deben"
+📈 **Predicciones:** "Pronóstico de flujo de caja", "Tendencias"
+🏛️ **Impuestos:** "Información fiscal", "Deducciones"
+👔 **Nómina:** "Resumen de empleados", "Costos de nómina"
+
+**Datos actuales:**
+- ${stats.customers} clientes registrados
+- ${stats.invoices} facturas
+- ${stats.products} productos
+- ${stats.employees} empleados
+
+¿En qué puedo ayudarte?`,
     suggestions: generateDefaultSuggestions(),
   };
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import {
   chatWithAgent,
   createAgentConversation,
@@ -16,7 +17,8 @@ import {
  * Body:
  * {
  *   "message": "Crea una factura para el cliente ABC por $5,000",
- *   "conversationId": "optional-conversation-id"
+ *   "conversationId": "optional-conversation-id",
+ *   "companyId": "optional-company-id"
  * }
  */
 export async function POST(request: NextRequest) {
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { message, conversationId } = body;
+    const { message, conversationId, companyId: bodyCompanyId } = body;
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -40,22 +42,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener o crear conversación
-    let convId = conversationId;
-    if (!convId) {
-      convId = await createAgentConversation(
-        session.user.id, // companyId
-        session.user.id   // userId
-      );
+    // Obtener companyId del body, o buscar la primera empresa del usuario
+    let companyId = bodyCompanyId;
+    if (!companyId) {
+      try {
+        // Buscar empresa a través de CompanyUser
+        const companyUser = await prisma.companyUser.findFirst({
+          where: { userId: session.user.id },
+          select: { companyId: true }
+        });
+        companyId = companyUser?.companyId;
+      } catch (e) {
+        // Si no hay empresas, usar el userId como fallback
+        companyId = null;
+      }
     }
 
-    // Obtener historial de la conversación
-    const history = await getAgentHistory(convId, 10);
+    // Si no hay empresa, el chat funciona sin guardar en DB
+    let convId = conversationId;
+    let history: any[] = [];
+    
+    if (companyId) {
+      // Obtener o crear conversación solo si hay empresa
+      if (!convId) {
+        convId = await createAgentConversation(
+          companyId,
+          session.user.id
+        );
+      }
+      // Obtener historial de la conversación
+      history = await getAgentHistory(convId, 10);
+    } else {
+      convId = `temp_${Date.now()}`;
+    }
 
     // Crear contexto del agente
     const context: AgentContext = {
       conversationId: convId,
-      companyId: session.user.id,
+      companyId: companyId || session.user.id,
       userId: session.user.id,
       history,
     };

@@ -24,7 +24,7 @@ const groq = new Groq({
 
 // Modelos disponibles en Groq (todos gratis)
 export const GROQ_MODELS = {
-  LLAMA_70B: 'llama-3.1-70b-versatile',      // Mejor calidad
+  LLAMA_70B: 'llama-3.3-70b-versatile',      // Mejor calidad
   LLAMA_8B: 'llama-3.1-8b-instant',          // Más rápido
   MIXTRAL: 'mixtral-8x7b-32768',             // Buen balance
   GEMMA: 'gemma2-9b-it'                       // Alternativa
