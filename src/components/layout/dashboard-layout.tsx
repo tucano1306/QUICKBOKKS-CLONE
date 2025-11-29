@@ -9,10 +9,10 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50">
       <Sidebar />
-      <main className="lg:pl-64">
-        <div className="py-6 px-4 sm:px-6 lg:px-8">
+      <main className="lg:pl-64 min-h-screen">
+        <div className="py-8 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto">
           {children}
         </div>
       </main>

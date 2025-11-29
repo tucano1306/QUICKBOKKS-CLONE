@@ -46,7 +46,7 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 bg-gray-900 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 text-white transform transition-all duration-300 ease-in-out lg:translate-x-0 shadow-2xl',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -54,24 +54,24 @@ export default function Sidebar() {
           {/* Logo - Click para ir al menú principal */}
           <Link 
             href="/dashboard" 
-            className="flex items-center justify-center h-16 bg-gray-800 hover:bg-gray-700 transition-colors cursor-pointer"
+            className="flex items-center justify-center h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 cursor-pointer shadow-lg"
           >
-            <h1 className="text-xl font-bold">QuickBooks Clone</h1>
+            <h1 className="text-xl font-extrabold tracking-wide">QuickBooks Clone</h1>
           </Link>
 
           {/* User info - Click para ir al menú principal */}
-          <div className="p-4 bg-gray-800/50">
+          <div className="p-4 bg-gray-800/30 backdrop-blur-sm border-b border-gray-700/50">
             <Link 
               href="/dashboard"
-              className="flex items-center space-x-3 mb-3 p-2 -m-2 rounded-lg hover:bg-gray-700/50 transition-colors cursor-pointer"
+              className="flex items-center space-x-3 mb-3 p-3 -m-1 rounded-xl hover:bg-gray-700/50 transition-all duration-200 cursor-pointer group"
             >
-              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-                <span className="text-lg font-semibold">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg ring-2 ring-blue-400/30 group-hover:ring-blue-400/50 transition-all">
+                <span className="text-lg font-bold">
                   {session?.user?.name?.charAt(0) || 'U'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
+                <p className="text-sm font-semibold truncate text-white">
                   {session?.user?.name || 'Usuario'}
                 </p>
                 <p className="text-xs text-gray-400 truncate">
@@ -86,7 +86,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
             {navigation.map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
               return (
@@ -95,27 +95,30 @@ export default function Sidebar() {
                   href={item.href}
                   onClick={() => setIsOpen(false)}
                   className={cn(
-                    'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                    'flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group',
                     isActive
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
+                      : 'text-gray-300 hover:bg-gray-800/80 hover:text-white hover:translate-x-1'
                   )}
                 >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.name}
+                  <item.icon className={cn(
+                    "mr-3 h-5 w-5 transition-transform duration-200",
+                    isActive ? "" : "group-hover:scale-110"
+                  )} />
+                  <span className="tracking-wide">{item.name}</span>
                 </Link>
               )
             })}
           </nav>
 
           {/* Sign out */}
-          <div className="p-4 border-t border-gray-800">
+          <div className="p-4 border-t border-gray-700/50">
             <button
               onClick={handleSignOut}
-              className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-800 hover:text-white transition-colors"
+              className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-300 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition-all duration-200 group"
             >
-              <LogOut className="mr-3 h-5 w-5" />
-              Cerrar Sesión
+              <LogOut className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform" />
+              <span className="tracking-wide">Cerrar Sesión</span>
             </button>
           </div>
         </div>
@@ -124,7 +127,7 @@ export default function Sidebar() {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
         />
       )}
