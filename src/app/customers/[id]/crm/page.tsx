@@ -223,7 +223,7 @@ export default function CustomerCRMPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">{customer.name}</h2>
-                    <Badge variant={customer.status === 'ACTIVE' ? 'success' : 'secondary'}>
+                    <Badge variant={customer.status === 'ACTIVE' ? 'default' : 'secondary'}>
                       {customer.status === 'ACTIVE' ? 'Cliente Activo' : 'Inactivo'}
                     </Badge>
                   </div>

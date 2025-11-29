@@ -7,10 +7,17 @@ import { prisma } from '@/lib/prisma'
 
 interface CustomerNote {
   id: string
-  date: string
+  customerId: string
+  customerName?: string
+  title: string
   content: string
-  type: string
+  category: 'general' | 'payment' | 'support' | 'sales' | 'complaint' | 'meeting'
+  priority: 'urgent' | 'high' | 'medium' | 'low'
+  isPinned: boolean
   createdBy: string
+  createdDate: string
+  lastModified: string
+  tags: string[]
 }
 
 export async function GET(request: NextRequest) {
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Parse notes - notes field contains JSON array of notes
-    const allNotes: Array<CustomerNote & { customerName: string; customerId: string }> = []
+    const allNotes: CustomerNote[] = []
     
     customers.forEach(customer => {
       if (customer.notes) {
@@ -58,48 +65,73 @@ export async function GET(request: NextRequest) {
           // Try parsing as JSON array
           const parsedNotes = JSON.parse(customer.notes)
           if (Array.isArray(parsedNotes)) {
-            parsedNotes.forEach((note: CustomerNote) => {
+            parsedNotes.forEach((note: Partial<CustomerNote>) => {
               allNotes.push({
-                ...note,
+                id: note.id || `note-${customer.id}-${Date.now()}`,
+                customerId: customer.id,
                 customerName: customer.name,
-                customerId: customer.id
+                title: note.title || 'Nota sin título',
+                content: note.content || '',
+                category: note.category || 'general',
+                priority: note.priority || 'medium',
+                isPinned: note.isPinned || false,
+                createdBy: note.createdBy || 'Sistema',
+                createdDate: note.createdDate || customer.updatedAt.toISOString(),
+                lastModified: note.lastModified || customer.updatedAt.toISOString(),
+                tags: note.tags || []
               })
             })
           } else {
-            // Simple text note
+            // Simple text note - convert to new format
             allNotes.push({
               id: `note-${customer.id}`,
-              date: customer.updatedAt.toISOString().split('T')[0],
-              content: customer.notes,
-              type: 'general',
-              createdBy: 'Sistema',
+              customerId: customer.id,
               customerName: customer.name,
-              customerId: customer.id
+              title: 'Nota',
+              content: customer.notes,
+              category: 'general',
+              priority: 'medium',
+              isPinned: false,
+              createdBy: 'Sistema',
+              createdDate: customer.updatedAt.toISOString(),
+              lastModified: customer.updatedAt.toISOString(),
+              tags: []
             })
           }
         } catch {
-          // Plain text note
+          // Plain text note - convert to new format
           allNotes.push({
             id: `note-${customer.id}`,
-            date: customer.updatedAt.toISOString().split('T')[0],
-            content: customer.notes,
-            type: 'general',
-            createdBy: 'Sistema',
+            customerId: customer.id,
             customerName: customer.name,
-            customerId: customer.id
+            title: 'Nota',
+            content: customer.notes,
+            category: 'general',
+            priority: 'medium',
+            isPinned: false,
+            createdBy: 'Sistema',
+            createdDate: customer.updatedAt.toISOString(),
+            lastModified: customer.updatedAt.toISOString(),
+            tags: []
           })
         }
       }
     })
 
-    // Sort by date descending
-    allNotes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    // Sort by pinned first, then by date descending
+    allNotes.sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1
+      if (!a.isPinned && b.isPinned) return 1
+      return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
+    })
 
     return NextResponse.json({ 
       notes: allNotes,
       summary: {
         total: allNotes.length,
-        customers: customers.length
+        customers: customers.length,
+        pinned: allNotes.filter(n => n.isPinned).length,
+        urgent: allNotes.filter(n => n.priority === 'urgent').length
       }
     })
 
@@ -117,10 +149,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { customerId, content, type } = body
+    const { customerId, title, content, category, priority, isPinned, tags } = body
 
-    if (!customerId || !content) {
-      return NextResponse.json({ error: 'Customer ID and content required' }, { status: 400 })
+    if (!customerId || !title || !content) {
+      return NextResponse.json({ error: 'Customer ID, title and content required' }, { status: 400 })
     }
 
     // Get current customer
@@ -144,21 +176,34 @@ export async function POST(request: NextRequest) {
         // Convert old plain text note to array format
         existingNotes = [{
           id: `note-old-${Date.now()}`,
-          date: customer.updatedAt.toISOString().split('T')[0],
+          customerId: customer.id,
+          title: 'Nota anterior',
           content: customer.notes,
-          type: 'general',
-          createdBy: 'Sistema'
+          category: 'general',
+          priority: 'medium',
+          isPinned: false,
+          createdBy: 'Sistema',
+          createdDate: customer.updatedAt.toISOString(),
+          lastModified: customer.updatedAt.toISOString(),
+          tags: []
         }]
       }
     }
 
     // Add new note
+    const now = new Date().toISOString()
     const newNote: CustomerNote = {
       id: `note-${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
+      customerId,
+      title,
       content,
-      type: type || 'general',
-      createdBy: session.user?.name || session.user?.email || 'Usuario'
+      category: category || 'general',
+      priority: priority || 'medium',
+      isPinned: isPinned || false,
+      createdBy: session.user?.name || session.user?.email || 'Usuario',
+      createdDate: now,
+      lastModified: now,
+      tags: tags || []
     }
 
     existingNotes.unshift(newNote)

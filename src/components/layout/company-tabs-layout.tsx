@@ -130,7 +130,9 @@ const tabSections: TabSection[] = [
     submenus: [
       { name: 'Lista de Clientes', href: '/company/customers', description: 'Directorio completo' },
       { name: 'Portal del Cliente', href: '/company/customers/portal', description: 'Acceso para clientes' },
+      { name: '📧 Bandeja de Email', href: '/company/documents/inbox', description: 'Recibir docs por email' },
       { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir docs con IA' },
+      { name: '🤖 AI Doc Processor', href: '/company/documents/ai', description: 'Procesar con IA' },
       { name: '🤖 Revisión IA Docs', href: '/company/documents/review', description: 'Aprobar y reclasificar' },
       { name: 'Historial de Transacciones', href: '/company/customers/transactions', description: 'Facturas y pagos' },
       { name: 'Notas y Seguimiento', href: '/company/customers/notes', description: 'CRM básico' }
@@ -275,10 +277,26 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
   const pathname = usePathname()
   const router = useRouter()
   
+  // Mapa de rutas especiales que no coinciden con el patrón /company/{tabId}
+  // pero pertenecen a un tab específico
+  const specialRouteMappings: { [key: string]: string } = {
+    '/company/documents': 'customers',  // Bandeja email, AI docs, etc. pertenecen a Clientes
+    '/company/ai-assistant': 'dashboard' // Asistente IA pertenece a Dashboard
+  }
+  
   // Detectar la pestaña activa según la URL (ANTES del return condicional)
-  const currentTab = tabSections.find(tab => 
-    pathname?.startsWith(`/company/${tab.id}`)
-  ) || tabSections[0]
+  const findCurrentTab = () => {
+    // Primero verificar rutas especiales
+    for (const [routePrefix, tabId] of Object.entries(specialRouteMappings)) {
+      if (pathname?.startsWith(routePrefix)) {
+        return tabSections.find(tab => tab.id === tabId)
+      }
+    }
+    // Luego buscar por el patrón estándar /company/{tabId}
+    return tabSections.find(tab => pathname?.startsWith(`/company/${tab.id}`))
+  }
+  
+  const currentTab = findCurrentTab() || tabSections[0]
 
   const currentTabId = currentTab?.id || 'dashboard'
   
@@ -291,9 +309,27 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
   useEffect(() => {
     if (currentTabId) {
       setActiveTab(currentTabId)
-      setShowSubmenu(prev => ({ ...prev, [currentTabId]: true }))
+      setShowSubmenu({ [currentTabId]: true })
     }
   }, [currentTabId])
+
+  // Función para cambiar de categoría y navegar al primer submenú
+  const handleTabChange = (tab: TabSection) => {
+    // Si es la misma pestaña, solo toggle el submenú
+    if (activeTab === tab.id) {
+      setShowSubmenu(prev => ({ [tab.id]: !prev[tab.id] }))
+      return
+    }
+    
+    // Cambiar a la nueva pestaña y navegar al primer submenú
+    setActiveTab(tab.id)
+    setShowSubmenu({ [tab.id]: true })
+    
+    // Navegar automáticamente al primer submenú de esa categoría
+    if (tab.submenus.length > 0) {
+      router.push(tab.submenus[0].href)
+    }
+  }
 
   // Return condicional DESPUÉS de todos los hooks
   if (!activeCompany) {
@@ -352,39 +388,60 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
         </div>
 
         {/* Barra de pestañas horizontal */}
-        <div className="border-t border-gray-200 bg-gray-50">
-          <div className="overflow-x-auto">
-            <nav className="flex space-x-1 px-4" aria-label="Tabs">
+        <div className="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
+            <nav className="flex space-x-1 px-4 py-1" aria-label="Tabs">
               {tabSections.map((tab) => {
                 const Icon = tab.icon
                 const isActive = currentTab.id === tab.id
                 const isSubmenuOpen = showSubmenu[tab.id] || false
                 
+                // Colores específicos por categoría
+                const colorClasses: Record<string, { active: string; hover: string; icon: string; bg: string }> = {
+                  blue: { active: 'border-blue-500 text-blue-700 bg-blue-50', hover: 'hover:bg-blue-50 hover:text-blue-600', icon: 'text-blue-500', bg: 'bg-blue-500' },
+                  green: { active: 'border-green-500 text-green-700 bg-green-50', hover: 'hover:bg-green-50 hover:text-green-600', icon: 'text-green-500', bg: 'bg-green-500' },
+                  purple: { active: 'border-purple-500 text-purple-700 bg-purple-50', hover: 'hover:bg-purple-50 hover:text-purple-600', icon: 'text-purple-500', bg: 'bg-purple-500' },
+                  red: { active: 'border-red-500 text-red-700 bg-red-50', hover: 'hover:bg-red-50 hover:text-red-600', icon: 'text-red-500', bg: 'bg-red-500' },
+                  orange: { active: 'border-orange-500 text-orange-700 bg-orange-50', hover: 'hover:bg-orange-50 hover:text-orange-600', icon: 'text-orange-500', bg: 'bg-orange-500' },
+                  cyan: { active: 'border-cyan-500 text-cyan-700 bg-cyan-50', hover: 'hover:bg-cyan-50 hover:text-cyan-600', icon: 'text-cyan-500', bg: 'bg-cyan-500' },
+                  indigo: { active: 'border-indigo-500 text-indigo-700 bg-indigo-50', hover: 'hover:bg-indigo-50 hover:text-indigo-600', icon: 'text-indigo-500', bg: 'bg-indigo-500' },
+                  emerald: { active: 'border-emerald-500 text-emerald-700 bg-emerald-50', hover: 'hover:bg-emerald-50 hover:text-emerald-600', icon: 'text-emerald-500', bg: 'bg-emerald-500' },
+                  violet: { active: 'border-violet-500 text-violet-700 bg-violet-50', hover: 'hover:bg-violet-50 hover:text-violet-600', icon: 'text-violet-500', bg: 'bg-violet-500' },
+                  pink: { active: 'border-pink-500 text-pink-700 bg-pink-50', hover: 'hover:bg-pink-50 hover:text-pink-600', icon: 'text-pink-500', bg: 'bg-pink-500' },
+                  teal: { active: 'border-teal-500 text-teal-700 bg-teal-50', hover: 'hover:bg-teal-50 hover:text-teal-600', icon: 'text-teal-500', bg: 'bg-teal-500' },
+                  yellow: { active: 'border-yellow-500 text-yellow-700 bg-yellow-50', hover: 'hover:bg-yellow-50 hover:text-yellow-600', icon: 'text-yellow-600', bg: 'bg-yellow-500' },
+                  amber: { active: 'border-amber-500 text-amber-700 bg-amber-50', hover: 'hover:bg-amber-50 hover:text-amber-600', icon: 'text-amber-500', bg: 'bg-amber-500' },
+                  fuchsia: { active: 'border-fuchsia-500 text-fuchsia-700 bg-fuchsia-50', hover: 'hover:bg-fuchsia-50 hover:text-fuchsia-600', icon: 'text-fuchsia-500', bg: 'bg-fuchsia-500' },
+                  gray: { active: 'border-gray-500 text-gray-700 bg-gray-100', hover: 'hover:bg-gray-100 hover:text-gray-600', icon: 'text-gray-500', bg: 'bg-gray-500' },
+                }
+                
+                const colors = colorClasses[tab.color] || colorClasses.blue
+                
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id)
-                      setShowSubmenu(prev => ({
-                        ...prev,
-                        [tab.id]: !prev[tab.id]
-                      }))
-                    }}
+                    onClick={() => handleTabChange(tab)}
                     className={cn(
-                      'group relative flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+                      'group relative flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap border-b-3',
                       isActive
-                        ? `border-${tab.color}-600 text-${tab.color}-600 bg-white`
-                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                        ? `${colors.active} border-b-4 shadow-sm`
+                        : `border-transparent text-gray-500 ${colors.hover}`
                     )}
                   >
+                    {/* Indicador de pestaña activa */}
+                    {isActive && (
+                      <span className={`absolute -bottom-0.5 left-0 right-0 h-1 ${colors.bg} rounded-t-full`} />
+                    )}
+                    
                     <Icon className={cn(
-                      'w-4 h-4',
-                      isActive ? `text-${tab.color}-600` : 'text-gray-400 group-hover:text-gray-600'
+                      'w-5 h-5 transition-transform duration-200',
+                      isActive ? colors.icon : 'text-gray-400 group-hover:scale-110'
                     )} />
-                    <span>{tab.name}</span>
+                    <span className="font-semibold">{tab.name}</span>
                     <ChevronDown className={cn(
-                      'w-4 h-4 transition-transform',
-                      isSubmenuOpen ? 'rotate-180' : ''
+                      'w-4 h-4 transition-transform duration-200',
+                      isSubmenuOpen ? 'rotate-180' : '',
+                      isActive ? colors.icon : 'text-gray-400'
                     )} />
                   </button>
                 )
@@ -393,30 +450,155 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
           </div>
         </div>
 
-        {/* Submenú desplegable */}
+        {/* Submenú desplegable con diseño mejorado */}
         {showSubmenu[activeTab] && (
-          <div className="bg-white border-t border-gray-200 shadow-lg">
+          <div className={cn(
+            'border-t-2 shadow-lg transition-all duration-300',
+            activeSection.color === 'blue' ? 'bg-gradient-to-r from-blue-50 to-white border-blue-200' :
+            activeSection.color === 'green' ? 'bg-gradient-to-r from-green-50 to-white border-green-200' :
+            activeSection.color === 'purple' ? 'bg-gradient-to-r from-purple-50 to-white border-purple-200' :
+            activeSection.color === 'red' ? 'bg-gradient-to-r from-red-50 to-white border-red-200' :
+            activeSection.color === 'cyan' ? 'bg-gradient-to-r from-cyan-50 to-white border-cyan-200' :
+            activeSection.color === 'indigo' ? 'bg-gradient-to-r from-indigo-50 to-white border-indigo-200' :
+            activeSection.color === 'emerald' ? 'bg-gradient-to-r from-emerald-50 to-white border-emerald-200' :
+            activeSection.color === 'violet' ? 'bg-gradient-to-r from-violet-50 to-white border-violet-200' :
+            activeSection.color === 'pink' ? 'bg-gradient-to-r from-pink-50 to-white border-pink-200' :
+            activeSection.color === 'teal' ? 'bg-gradient-to-r from-teal-50 to-white border-teal-200' :
+            activeSection.color === 'yellow' ? 'bg-gradient-to-r from-yellow-50 to-white border-yellow-200' :
+            activeSection.color === 'amber' ? 'bg-gradient-to-r from-amber-50 to-white border-amber-200' :
+            activeSection.color === 'fuchsia' ? 'bg-gradient-to-r from-fuchsia-50 to-white border-fuchsia-200' :
+            activeSection.color === 'gray' ? 'bg-gradient-to-r from-gray-50 to-white border-gray-200' :
+            'bg-gradient-to-r from-blue-50 to-white border-blue-200'
+          )}>
+            {/* Título de la sección actual */}
+            <div className="px-6 pt-4 pb-2 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <activeSection.icon className={cn(
+                  'w-5 h-5',
+                  activeSection.color === 'blue' ? 'text-blue-600' :
+                  activeSection.color === 'green' ? 'text-green-600' :
+                  activeSection.color === 'purple' ? 'text-purple-600' :
+                  activeSection.color === 'red' ? 'text-red-600' :
+                  activeSection.color === 'cyan' ? 'text-cyan-600' :
+                  activeSection.color === 'indigo' ? 'text-indigo-600' :
+                  activeSection.color === 'emerald' ? 'text-emerald-600' :
+                  activeSection.color === 'violet' ? 'text-violet-600' :
+                  activeSection.color === 'pink' ? 'text-pink-600' :
+                  activeSection.color === 'teal' ? 'text-teal-600' :
+                  activeSection.color === 'yellow' ? 'text-yellow-600' :
+                  activeSection.color === 'amber' ? 'text-amber-600' :
+                  activeSection.color === 'fuchsia' ? 'text-fuchsia-600' :
+                  'text-gray-600'
+                )} />
+                <span className="text-sm font-bold text-gray-700">{activeSection.name}</span>
+                <span className="text-xs text-gray-400">•</span>
+                <span className="text-xs text-gray-500">{activeSection.submenus.length} opciones</span>
+              </div>
+            </div>
+            
             <div className="max-w-7xl mx-auto px-6 py-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {activeSection.submenus.map((submenu) => (
-                  <Link
-                    key={submenu.href}
-                    href={submenu.href}
-                    className="group p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className={cn(
-                      'text-sm font-medium mb-1',
-                      pathname === submenu.href ? `text-${activeSection.color}-600` : 'text-gray-900 group-hover:text-blue-600'
-                    )}>
-                      {submenu.name}
-                    </div>
-                    {submenu.description && (
-                      <div className="text-xs text-gray-500">
-                        {submenu.description}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {activeSection.submenus.map((submenu, index) => {
+                  const isCurrentPage = pathname === submenu.href
+                  
+                  // Colores para el submenú activo
+                  const submenuActiveClasses: Record<string, string> = {
+                    blue: 'bg-blue-100 border-blue-400 ring-2 ring-blue-200',
+                    green: 'bg-green-100 border-green-400 ring-2 ring-green-200',
+                    purple: 'bg-purple-100 border-purple-400 ring-2 ring-purple-200',
+                    red: 'bg-red-100 border-red-400 ring-2 ring-red-200',
+                    cyan: 'bg-cyan-100 border-cyan-400 ring-2 ring-cyan-200',
+                    indigo: 'bg-indigo-100 border-indigo-400 ring-2 ring-indigo-200',
+                    emerald: 'bg-emerald-100 border-emerald-400 ring-2 ring-emerald-200',
+                    violet: 'bg-violet-100 border-violet-400 ring-2 ring-violet-200',
+                    pink: 'bg-pink-100 border-pink-400 ring-2 ring-pink-200',
+                    teal: 'bg-teal-100 border-teal-400 ring-2 ring-teal-200',
+                    yellow: 'bg-yellow-100 border-yellow-400 ring-2 ring-yellow-200',
+                    amber: 'bg-amber-100 border-amber-400 ring-2 ring-amber-200',
+                    fuchsia: 'bg-fuchsia-100 border-fuchsia-400 ring-2 ring-fuchsia-200',
+                    gray: 'bg-gray-100 border-gray-400 ring-2 ring-gray-200',
+                  }
+
+                  const submenuTextClasses: Record<string, string> = {
+                    blue: 'text-blue-700',
+                    green: 'text-green-700',
+                    purple: 'text-purple-700',
+                    red: 'text-red-700',
+                    cyan: 'text-cyan-700',
+                    indigo: 'text-indigo-700',
+                    emerald: 'text-emerald-700',
+                    violet: 'text-violet-700',
+                    pink: 'text-pink-700',
+                    teal: 'text-teal-700',
+                    yellow: 'text-yellow-700',
+                    amber: 'text-amber-700',
+                    fuchsia: 'text-fuchsia-700',
+                    gray: 'text-gray-700',
+                  }
+                  
+                  return (
+                    <Link
+                      key={submenu.href}
+                      href={submenu.href}
+                      className={cn(
+                        'group relative p-3 rounded-xl border-2 transition-all duration-200',
+                        isCurrentPage
+                          ? `${submenuActiveClasses[activeSection.color] || submenuActiveClasses.blue} shadow-md transform scale-[1.02]`
+                          : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md hover:scale-[1.01]'
+                      )}
+                    >
+                      {/* Indicador de página actual */}
+                      {isCurrentPage && (
+                        <div className={cn(
+                          'absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center',
+                          activeSection.color === 'blue' ? 'bg-blue-500' :
+                          activeSection.color === 'green' ? 'bg-green-500' :
+                          activeSection.color === 'purple' ? 'bg-purple-500' :
+                          activeSection.color === 'red' ? 'bg-red-500' :
+                          activeSection.color === 'cyan' ? 'bg-cyan-500' :
+                          activeSection.color === 'indigo' ? 'bg-indigo-500' :
+                          activeSection.color === 'emerald' ? 'bg-emerald-500' :
+                          activeSection.color === 'violet' ? 'bg-violet-500' :
+                          activeSection.color === 'pink' ? 'bg-pink-500' :
+                          activeSection.color === 'teal' ? 'bg-teal-500' :
+                          activeSection.color === 'yellow' ? 'bg-yellow-500' :
+                          activeSection.color === 'amber' ? 'bg-amber-500' :
+                          activeSection.color === 'fuchsia' ? 'bg-fuchsia-500' :
+                          'bg-gray-500'
+                        )}>
+                          <span className="text-white text-[10px] font-bold">✓</span>
+                        </div>
+                      )}
+                      
+                      {/* Número de orden */}
+                      <span className={cn(
+                        'absolute top-2 left-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
+                        isCurrentPage 
+                          ? `${submenuTextClasses[activeSection.color] || 'text-blue-700'} bg-white/60`
+                          : 'text-gray-400 bg-gray-100'
+                      )}>
+                        {index + 1}
+                      </span>
+                      
+                      <div className={cn(
+                        'text-sm font-semibold mb-1 mt-3',
+                        isCurrentPage 
+                          ? submenuTextClasses[activeSection.color] || 'text-blue-700'
+                          : 'text-gray-800 group-hover:text-gray-900'
+                      )}>
+                        {submenu.name}
                       </div>
-                    )}
-                  </Link>
-                ))}
+                      {submenu.description && (
+                        <div className={cn(
+                          'text-xs leading-tight',
+                          isCurrentPage ? 'text-gray-600' : 'text-gray-500'
+                        )}>
+                          {submenu.description}
+                        </div>
+                      )}
+                    </Link>
+                  )
+                })}
               </div>
             </div>
           </div>

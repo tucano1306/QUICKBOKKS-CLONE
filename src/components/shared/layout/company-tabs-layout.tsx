@@ -131,6 +131,7 @@ const tabSections: TabSection[] = [
       { name: 'Lista de Clientes', href: '/company/customers', description: 'Directorio completo' },
       { name: 'Portal del Cliente', href: '/company/customers/portal', description: 'Acceso para clientes' },
       { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir docs con IA' },
+      { name: '🤖 AI Doc Processor', href: '/company/documents/ai', description: 'Procesar con IA' },
       { name: '🤖 Revisión IA Docs', href: '/company/documents/review', description: 'Aprobar y reclasificar' },
       { name: 'Historial de Transacciones', href: '/company/customers/transactions', description: 'Facturas y pagos' },
       { name: 'Notas y Seguimiento', href: '/company/customers/notes', description: 'CRM básico' }

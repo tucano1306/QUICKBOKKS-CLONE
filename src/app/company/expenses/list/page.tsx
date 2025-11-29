@@ -85,7 +85,10 @@ export default function ExpensesListPage() {
       const expensesRes = await fetch('/api/expenses')
       if (expensesRes.ok) {
         const expensesData = await expensesRes.json()
-        const expensesArray = Array.isArray(expensesData) ? expensesData : []
+        // La API puede devolver { data: [...] } o un array directo
+        const expensesArray = Array.isArray(expensesData) 
+          ? expensesData 
+          : (expensesData.data || [])
         setExpenses(expensesArray)
         setFilteredExpenses(expensesArray)
         calculateStats(expensesArray)
@@ -294,7 +297,7 @@ export default function ExpensesListPage() {
               <Download className="h-4 w-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => router.push('/expenses/new')}>
+            <Button onClick={() => router.push('/company/expenses/new')}>
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Gasto
             </Button>
@@ -448,7 +451,7 @@ export default function ExpensesListPage() {
                           ? 'No se encontraron gastos con los filtros aplicados'
                           : 'No hay gastos registrados'}
                       </p>
-                      <Button onClick={() => router.push('/expenses/new')}>
+                      <Button onClick={() => router.push('/company/expenses/new')}>
                         <Plus className="h-4 w-4 mr-2" />
                         Crear Primer Gasto
                       </Button>
@@ -495,7 +498,7 @@ export default function ExpensesListPage() {
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => router.push(`/expenses/${expense.id}/edit`)}
+                            onClick={() => router.push(`/company/expenses/${expense.id}/edit`)}
                             className="text-green-600 hover:text-green-800"
                             title="Editar"
                           >

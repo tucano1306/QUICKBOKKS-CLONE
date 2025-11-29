@@ -85,13 +85,13 @@ export default function CustomerActivityPage() {
     }
   }
 
-  const getActionBadge = (action: string) => {
-    const variants: { [key: string]: 'default' | 'secondary' | 'success' } = {
+  const getActionBadge = (action: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    const variants: { [key: string]: 'default' | 'secondary' | 'destructive' | 'outline' } = {
       LOGIN: 'default',
       VIEW_INVOICE: 'secondary',
       VIEW_STATEMENT: 'secondary',
-      DOWNLOAD_PDF: 'success',
-      PAYMENT: 'success'
+      DOWNLOAD_PDF: 'default',
+      PAYMENT: 'default'
     }
     return variants[action] || 'default'
   }

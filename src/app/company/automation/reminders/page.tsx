@@ -61,6 +61,9 @@ export default function RemindersPage() {
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null)
+  const [sendingReminder, setSendingReminder] = useState<string | null>(null)
   const [newReminder, setNewReminder] = useState<{
     name: string
     description: string
@@ -193,13 +196,38 @@ export default function RemindersPage() {
     setReminders(reminders.map(r => r.id === reminder.id ? { ...r, status: newStatus } : r))
   }
 
-  const handleSendNow = (reminder: Reminder) => {
-    setReminders(reminders.map(r => r.id === reminder.id ? { 
-      ...r, 
-      lastSent: new Date().toISOString(),
-      timesSent: r.timesSent + 1 
-    } : r))
-    setMessage({ type: 'success', text: `Recordatorio "${reminder.name}" enviado` })
+  const handleSendNow = async (reminder: Reminder) => {
+    setSendingReminder(reminder.id)
+    try {
+      // Simulate sending delay
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      setReminders(reminders.map(r => r.id === reminder.id ? { 
+        ...r, 
+        lastSent: new Date().toISOString(),
+        timesSent: r.timesSent + 1 
+      } : r))
+      setMessage({ type: 'success', text: `✅ Recordatorio "${reminder.name}" enviado exitosamente a ${reminder.recipient.join(', ')}` })
+    } catch (error) {
+      setMessage({ type: 'error', text: `❌ Error enviando recordatorio: ${error}` })
+    } finally {
+      setSendingReminder(null)
+      setTimeout(() => setMessage(null), 4000)
+    }
+  }
+
+  const handleEditReminder = (reminder: Reminder) => {
+    setEditingReminder(reminder)
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = () => {
+    if (!editingReminder) return
+    
+    setReminders(reminders.map(r => r.id === editingReminder.id ? editingReminder : r))
+    setShowEditModal(false)
+    setEditingReminder(null)
+    setMessage({ type: 'success', text: `✅ Recordatorio "${editingReminder.name}" actualizado` })
     setTimeout(() => setMessage(null), 3000)
   }
 
@@ -514,9 +542,23 @@ export default function RemindersPage() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleSendNow(reminder)}>
-                        <Send className="w-3 h-3 mr-1" />
-                        Send Now
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleSendNow(reminder)}
+                        disabled={sendingReminder === reminder.id}
+                      >
+                        {sendingReminder === reminder.id ? (
+                          <>
+                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3 h-3 mr-1" />
+                            Send Now
+                          </>
+                        )}
                       </Button>
                       {reminder.status === 'active' ? (
                         <Button size="sm" variant="outline" onClick={() => handleToggleStatus(reminder)}>
@@ -529,7 +571,7 @@ export default function RemindersPage() {
                           Activate
                         </Button>
                       )}
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleEditReminder(reminder)}>
                         <Edit className="w-3 h-3 mr-1" />
                         Edit
                       </Button>
@@ -666,6 +708,110 @@ export default function RemindersPage() {
                   <Button className="flex-1" onClick={handleCreateReminder}>
                     <Save className="w-4 h-4 mr-2" />
                     Create Reminder
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Edit Reminder Modal */}
+        {showEditModal && editingReminder && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Editar Recordatorio</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => { setShowEditModal(false); setEditingReminder(null); }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Nombre</label>
+                    <Input
+                      value={editingReminder.name}
+                      onChange={(e) => setEditingReminder({ ...editingReminder, name: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Descripción</label>
+                    <Input
+                      value={editingReminder.description}
+                      onChange={(e) => setEditingReminder({ ...editingReminder, description: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Tipo</label>
+                      <select 
+                        className="w-full mt-1 p-2 border rounded-md"
+                        value={editingReminder.type}
+                        onChange={(e) => setEditingReminder({ ...editingReminder, type: e.target.value })}
+                      >
+                        <option value="Accounts Receivable">Cuentas por Cobrar</option>
+                        <option value="Accounts Payable">Cuentas por Pagar</option>
+                        <option value="Payroll">Nómina</option>
+                        <option value="Expense Management">Gastos</option>
+                        <option value="Banking">Banca</option>
+                        <option value="Tax Compliance">Impuestos</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Canal</label>
+                      <select 
+                        className="w-full mt-1 p-2 border rounded-md"
+                        value={editingReminder.channel}
+                        onChange={(e) => setEditingReminder({ ...editingReminder, channel: e.target.value as 'email' | 'sms' | 'both' | 'in-app' })}
+                      >
+                        <option value="email">Email</option>
+                        <option value="sms">SMS</option>
+                        <option value="both">Email + SMS</option>
+                        <option value="in-app">In-App</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Trigger/Disparador</label>
+                    <Input
+                      value={editingReminder.trigger}
+                      onChange={(e) => setEditingReminder({ ...editingReminder, trigger: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Frecuencia</label>
+                    <select 
+                      className="w-full mt-1 p-2 border rounded-md"
+                      value={editingReminder.frequency}
+                      onChange={(e) => setEditingReminder({ ...editingReminder, frequency: e.target.value })}
+                    >
+                      <option value="Daily">Diario</option>
+                      <option value="Weekly">Semanal</option>
+                      <option value="Monthly">Mensual</option>
+                      <option value="Quarterly">Trimestral</option>
+                      <option value="As needed">Según necesidad</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Destinatarios</label>
+                    <Input
+                      value={editingReminder.recipient.join(', ')}
+                      onChange={(e) => setEditingReminder({ ...editingReminder, recipient: e.target.value.split(',').map(r => r.trim()) })}
+                      className="mt-1"
+                      placeholder="Ej: Finance Team, Manager"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={() => { setShowEditModal(false); setEditingReminder(null); }}>
+                    Cancelar
+                  </Button>
+                  <Button className="flex-1" onClick={handleSaveEdit}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Guardar Cambios
                   </Button>
                 </div>
               </CardContent>

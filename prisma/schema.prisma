@@ -29,6 +29,7 @@ model User {
   reconciliationRules ReconciliationRule[]
   sessions            Session[]
   taxReturns          TaxReturn[]
+  uploadedDocuments   UploadedDocument[]
 
   @@map("users")
 }
@@ -119,6 +120,7 @@ model Vendor {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   payables       VendorPayable[]
+  documents      UploadedDocument[]
 
   @@map("vendors")
 }
@@ -594,23 +596,25 @@ model ReconciliationMatch {
 }
 
 model ChartOfAccounts {
-  id             String             @id @default(cuid())
-  code           String             @unique
-  name           String
-  type           AccountType
-  category       AccountCategory?
-  parentId       String?
-  level          Int                @default(1)
-  isActive       Boolean            @default(true)
-  description    String?
-  balance        Float              @default(0)
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  companyId      String?
-  budgets        Budget[]
-  parent         ChartOfAccounts?   @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children       ChartOfAccounts[]  @relation("AccountHierarchy")
-  journalEntries JournalEntryLine[]
+  id                  String             @id @default(cuid())
+  code                String             @unique
+  name                String
+  type                AccountType
+  category            AccountCategory?
+  parentId            String?
+  level               Int                @default(1)
+  isActive            Boolean            @default(true)
+  description         String?
+  balance             Float              @default(0)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  companyId           String?
+  budgets             Budget[]
+  parent              ChartOfAccounts?   @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children            ChartOfAccounts[]  @relation("AccountHierarchy")
+  journalEntries      JournalEntryLine[]
+  suggestedDocuments  UploadedDocument[]
+  categorizationRules AiCategorizationRule[]
 
   @@map("chart_of_accounts")
 }
@@ -635,6 +639,7 @@ model JournalEntry {
   reversedBy   JournalEntry?      @relation("ReversedEntries", fields: [reversedById], references: [id])
   reversals    JournalEntry[]     @relation("ReversedEntries")
   lines        JournalEntryLine[]
+  documents    UploadedDocument[]
 
   @@map("journal_entries")
 }
@@ -1691,44 +1696,46 @@ model SalesTaxNexus {
 }
 
 model Company {
-  id                String              @id @default(cuid())
-  name              String
-  legalName         String?
-  taxId             String?
-  industry          String?
-  website           String?
-  logo              String?
-  address           String?
-  city              String?
-  state             String?
-  zipCode           String?
-  country           String              @default("US")
-  phone             String?
-  email             String?
-  settings          Json?
-  subscription      SubscriptionTier    @default(FREE)
-  isActive          Boolean             @default(true)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  aiModels          AIModel[]
-  anomalyDetections AnomalyDetection[]
-  apiKeys           ApiKey[]
-  backupJobs        BackupJob[]
-  chatConversations ChatConversation[]
-  invitations       CompanyInvitation[]
-  roles             CompanyRole[]
-  users             CompanyUser[]
-  dashboards        Dashboard[]
-  dataExports       DataExport[]
-  dataImports       DataImport[]
-  integrations      Integration[]
-  kpis              KPI[]
-  predictionLogs    PredictionLog[]
-  recommendations   Recommendation[]
-  systemLogs        SystemLog[]
-  trainingData      TrainingData[]
-  webhooks          Webhook[]
-  whiteLabel        WhiteLabel?
+  id                   String              @id @default(cuid())
+  name                 String
+  legalName            String?
+  taxId                String?
+  industry             String?
+  website              String?
+  logo                 String?
+  address              String?
+  city                 String?
+  state                String?
+  zipCode              String?
+  country              String              @default("US")
+  phone                String?
+  email                String?
+  settings             Json?
+  subscription         SubscriptionTier    @default(FREE)
+  isActive             Boolean             @default(true)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  aiModels             AIModel[]
+  anomalyDetections    AnomalyDetection[]
+  apiKeys              ApiKey[]
+  backupJobs           BackupJob[]
+  chatConversations    ChatConversation[]
+  invitations          CompanyInvitation[]
+  roles                CompanyRole[]
+  users                CompanyUser[]
+  dashboards           Dashboard[]
+  dataExports          DataExport[]
+  dataImports          DataImport[]
+  integrations         Integration[]
+  kpis                 KPI[]
+  predictionLogs       PredictionLog[]
+  recommendations      Recommendation[]
+  systemLogs           SystemLog[]
+  trainingData         TrainingData[]
+  webhooks             Webhook[]
+  whiteLabel           WhiteLabel?
+  uploadedDocuments    UploadedDocument[]
+  categorizationRules  AiCategorizationRule[]
 
   @@map("companies")
 }
@@ -3062,4 +3069,129 @@ enum PayrollRunStatus {
   PROCESSING
   COMPLETED
   CANCELLED
+}
+
+// ============================================
+// DOCUMENT PROCESSING AI - Sistema Inteligente
+// ============================================
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  ANALYZED
+  APPROVED
+  REJECTED
+  ERROR
+}
+
+enum DocumentType {
+  INVOICE
+  RECEIPT
+  BANK_STATEMENT
+  TAX_DOCUMENT
+  CONTRACT
+  EXPENSE_REPORT
+  PAYROLL
+  OTHER
+}
+
+model UploadedDocument {
+  id                  String         @id @default(cuid())
+  filename            String
+  originalName        String
+  mimeType            String
+  fileSize            Int
+  filePath            String?
+  fileUrl             String?
+  documentType        DocumentType   @default(OTHER)
+  status              DocumentStatus @default(PENDING)
+  
+  // Relaciones
+  uploadedById        String
+  uploadedBy          User           @relation(fields: [uploadedById], references: [id])
+  companyId           String
+  company             Company        @relation(fields: [companyId], references: [id])
+  
+  // OCR y AI
+  ocrText             String?        @db.Text
+  ocrConfidence       Float?
+  aiAnalysis          Json?
+  extractedData       Json?
+  suggestedAccountId  String?
+  suggestedAccount    ChartOfAccounts? @relation(fields: [suggestedAccountId], references: [id])
+  suggestedCategory   String?
+  aiConfidence        Float?
+  processingTime      Int?           // en milisegundos
+  
+  // Datos extraídos
+  journalEntryId      String?
+  journalEntry        JournalEntry?  @relation(fields: [journalEntryId], references: [id])
+  transactionId       String?
+  expenseId           String?
+  vendorId            String?
+  vendor              Vendor?        @relation(fields: [vendorId], references: [id])
+  customerId          String?
+  amount              Float?
+  documentDate        DateTime?
+  dueDate             DateTime?
+  invoiceNumber       String?
+  description         String?
+  notes               String?
+  
+  // Revisión
+  reviewedById        String?
+  reviewedAt          DateTime?
+  approvedById        String?
+  approvedAt          DateTime?
+  errorMessage        String?
+  metadata            Json?
+  
+  // Logs de procesamiento
+  processingLogs      DocumentProcessingLog[]
+  
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+  @@index([documentType])
+  @@index([uploadedById])
+  @@index([createdAt])
+  @@map("uploaded_documents")
+}
+
+model DocumentProcessingLog {
+  id          String           @id @default(cuid())
+  documentId  String
+  document    UploadedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  stage       String           // OCR, ANALYSIS, CATEGORIZATION, JOURNAL_ENTRY, etc.
+  status      String           // SUCCESS, ERROR, WARNING
+  message     String?
+  details     Json?
+  duration    Int?             // en milisegundos
+  createdAt   DateTime         @default(now())
+
+  @@index([documentId])
+  @@map("document_processing_logs")
+}
+
+model AiCategorizationRule {
+  id                 String          @id @default(cuid())
+  companyId          String
+  company            Company         @relation(fields: [companyId], references: [id])
+  vendorPattern      String?         // Regex pattern para vendor
+  descriptionPattern String?         // Regex pattern para descripción
+  amountMin          Float?
+  amountMax          Float?
+  accountId          String
+  account            ChartOfAccounts @relation(fields: [accountId], references: [id])
+  category           String?
+  priority           Int             @default(0)
+  isActive           Boolean         @default(true)
+  timesUsed          Int             @default(0)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([companyId])
+  @@map("ai_categorization_rules")
 }

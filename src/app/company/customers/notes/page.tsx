@@ -61,6 +61,21 @@ export default function CustomerNotesPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
   const [notes, setNotes] = useState<CustomerNote[]>([])
+  
+  // Modal states for creating/editing notes
+  const [showNoteModal, setShowNoteModal] = useState(false)
+  const [editingNote, setEditingNote] = useState<CustomerNote | null>(null)
+  const [savingNote, setSavingNote] = useState(false)
+  const [newNote, setNewNote] = useState({
+    customerId: '',
+    title: '',
+    content: '',
+    category: 'general' as 'general' | 'payment' | 'support' | 'sales' | 'complaint' | 'meeting',
+    priority: 'medium' as 'urgent' | 'high' | 'medium' | 'low',
+    isPinned: false,
+    tags: ''
+  })
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -138,6 +153,135 @@ export default function CustomerNotesPage() {
     return true
   })
 
+  // Load customers for dropdown
+  const loadCustomers = useCallback(async () => {
+    if (!activeCompany?.id) return
+    try {
+      const res = await fetch(`/api/customers?companyId=${activeCompany.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setCustomers(data.customers?.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })) || [])
+      }
+    } catch (error) {
+      console.error('Error loading customers:', error)
+    }
+  }, [activeCompany?.id])
+
+  useEffect(() => {
+    loadCustomers()
+  }, [loadCustomers])
+
+  // Open modal for new note
+  const handleNewNote = () => {
+    setEditingNote(null)
+    setNewNote({
+      customerId: '',
+      title: '',
+      content: '',
+      category: 'general',
+      priority: 'medium',
+      isPinned: false,
+      tags: ''
+    })
+    setShowNoteModal(true)
+  }
+
+  // Open modal for editing
+  const handleEditNote = (note: CustomerNote) => {
+    setEditingNote(note)
+    setNewNote({
+      customerId: note.customerId,
+      title: note.title,
+      content: note.content,
+      category: note.category as 'general' | 'payment' | 'support' | 'sales' | 'complaint' | 'meeting',
+      priority: note.priority as 'urgent' | 'high' | 'medium' | 'low',
+      isPinned: note.isPinned,
+      tags: note.tags.join(', ')
+    })
+    setShowNoteModal(true)
+  }
+
+  // Save note (create or update)
+  const handleSaveNote = async () => {
+    if (!newNote.title.trim() || !newNote.content.trim() || !newNote.customerId) {
+      setMessage({ type: 'error', text: 'Por favor completa título, cliente y contenido' })
+      setTimeout(() => setMessage(null), 3000)
+      return
+    }
+
+    setSavingNote(true)
+    try {
+      const noteData = {
+        ...newNote,
+        companyId: activeCompany?.id,
+        tags: newNote.tags.split(',').map(t => t.trim()).filter(t => t)
+      }
+
+      const url = editingNote 
+        ? `/api/customers/notes/${editingNote.id}` 
+        : '/api/customers/notes'
+      
+      const res = await fetch(url, {
+        method: editingNote ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(noteData)
+      })
+
+      if (res.ok) {
+        setMessage({ type: 'success', text: editingNote ? 'Nota actualizada exitosamente' : 'Nota creada exitosamente' })
+        setShowNoteModal(false)
+        loadNotes()
+      } else {
+        setMessage({ type: 'error', text: 'Error al guardar la nota' })
+      }
+    } catch (error) {
+      console.error('Error saving note:', error)
+      setMessage({ type: 'error', text: 'Error al guardar la nota' })
+    }
+    setSavingNote(false)
+    setTimeout(() => setMessage(null), 3000)
+  }
+
+  // Toggle pin status
+  const handleTogglePin = async (note: CustomerNote, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      const res = await fetch(`/api/customers/notes/${note.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...note, isPinned: !note.isPinned, companyId: activeCompany?.id })
+      })
+
+      if (res.ok) {
+        loadNotes()
+        setMessage({ type: 'success', text: note.isPinned ? 'Nota desfijada' : 'Nota fijada' })
+        setTimeout(() => setMessage(null), 3000)
+      }
+    } catch (error) {
+      console.error('Error toggling pin:', error)
+    }
+  }
+
+  // Delete note
+  const handleDeleteNote = async (note: CustomerNote, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!confirm('¿Estás seguro de eliminar esta nota?')) return
+
+    try {
+      const res = await fetch(`/api/customers/notes/${note.id}?companyId=${activeCompany?.id}`, {
+        method: 'DELETE'
+      })
+
+      if (res.ok) {
+        loadNotes()
+        setMessage({ type: 'success', text: 'Nota eliminada exitosamente' })
+        setTimeout(() => setMessage(null), 3000)
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error)
+    }
+  }
+
   // Get unique customers
   const uniqueCustomers = Array.from(new Set(notes.map(n => n.customerName)))
     .map(name => notes.find(n => n.customerName === name)!)
@@ -173,10 +317,7 @@ export default function CustomerNotesPage() {
               CRM básico para gestión de relaciones con clientes
             </p>
           </div>
-          <Button onClick={() => {
-            setMessage({ type: 'info', text: 'Función Nueva Nota próximamente' });
-            setTimeout(() => setMessage(null), 3000);
-          }}>
+          <Button onClick={handleNewNote}>
             <Plus className="w-4 h-4 mr-2" />
             Nueva Nota
           </Button>
@@ -388,7 +529,7 @@ export default function CustomerNotesPage() {
                     className="flex-1"
                     onClick={(e) => {
                       e.stopPropagation()
-                      // Edit logic
+                      handleEditNote(note)
                     }}
                   >
                     <Edit className="w-3 h-3 mr-1" />
@@ -397,10 +538,8 @@ export default function CustomerNotesPage() {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      // Pin logic
-                    }}
+                    className={note.isPinned ? 'bg-purple-100 text-purple-700' : ''}
+                    onClick={(e) => handleTogglePin(note, e)}
                   >
                     <Pin className="w-3 h-3" />
                   </Button>
@@ -408,10 +547,7 @@ export default function CustomerNotesPage() {
                     size="sm" 
                     variant="outline"
                     className="text-red-600"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      // Delete logic
-                    }}
+                    onClick={(e) => handleDeleteNote(note, e)}
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -431,7 +567,7 @@ export default function CustomerNotesPage() {
               <p className="text-gray-600 mb-4">
                 Crea tu primera nota para comenzar a dar seguimiento a tus clientes
               </p>
-              <Button>
+              <Button onClick={handleNewNote}>
                 <Plus className="w-4 h-4 mr-2" />
                 Crear Primera Nota
               </Button>
@@ -463,6 +599,160 @@ export default function CustomerNotesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Note Modal */}
+        {showNoteModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <StickyNote className="w-5 h-5" />
+                  {editingNote ? 'Editar Nota' : 'Nueva Nota'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Customer Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cliente *
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    value={newNote.customerId}
+                    onChange={(e) => setNewNote({ ...newNote, customerId: e.target.value })}
+                  >
+                    <option value="">Seleccionar cliente...</option>
+                    {customers.map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Title */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Título *
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Título de la nota..."
+                    value={newNote.title}
+                    onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+                  />
+                </div>
+
+                {/* Content */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Contenido *
+                  </label>
+                  <textarea
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[120px]"
+                    placeholder="Escribe los detalles de la nota..."
+                    value={newNote.content}
+                    onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+                  />
+                </div>
+
+                {/* Category and Priority */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Categoría
+                    </label>
+                    <select
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      value={newNote.category}
+                      onChange={(e) => setNewNote({ ...newNote, category: e.target.value as typeof newNote.category })}
+                    >
+                      <option value="general">General</option>
+                      <option value="payment">Pagos</option>
+                      <option value="support">Soporte</option>
+                      <option value="sales">Ventas</option>
+                      <option value="complaint">Queja</option>
+                      <option value="meeting">Reunión</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Prioridad
+                    </label>
+                    <select
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      value={newNote.priority}
+                      onChange={(e) => setNewNote({ ...newNote, priority: e.target.value as typeof newNote.priority })}
+                    >
+                      <option value="low">Baja</option>
+                      <option value="medium">Media</option>
+                      <option value="high">Alta</option>
+                      <option value="urgent">Urgente</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Etiquetas (separadas por comas)
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="seguimiento, importante, urgente..."
+                    value={newNote.tags}
+                    onChange={(e) => setNewNote({ ...newNote, tags: e.target.value })}
+                  />
+                </div>
+
+                {/* Pin Option */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPinned"
+                    checked={newNote.isPinned}
+                    onChange={(e) => setNewNote({ ...newNote, isPinned: e.target.checked })}
+                    className="rounded"
+                  />
+                  <label htmlFor="isPinned" className="text-sm text-gray-700">
+                    Fijar nota (aparecerá destacada)
+                  </label>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowNoteModal(false)}
+                    disabled={savingNote}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={handleSaveNote}
+                    disabled={savingNote}
+                  >
+                    {savingNote ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        {editingNote ? 'Guardar Cambios' : 'Crear Nota'}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

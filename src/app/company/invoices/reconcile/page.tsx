@@ -307,7 +307,7 @@ export default function ReconcilePage() {
                         <p className="font-bold text-green-600">
                           ${payment.amount.toLocaleString('es-MX')}
                         </p>
-                        <Badge variant="success" className="text-xs">
+                        <Badge variant="secondary" className="text-xs">
                           {match.matchScore}% Match
                         </Badge>
                       </div>
@@ -334,7 +334,7 @@ export default function ReconcilePage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Facturas Pendientes</h3>
-                <Badge variant="warning">{filteredInvoices.length}</Badge>
+                <Badge variant="outline">{filteredInvoices.length}</Badge>
               </div>
               <div className="relative mt-2">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
