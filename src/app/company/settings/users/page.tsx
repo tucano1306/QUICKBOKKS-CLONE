@@ -9,6 +9,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { 
   Users,
   UserPlus,
@@ -27,8 +43,11 @@ import {
   Info,
   Search,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Loader2,
+  Send
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface User {
   id: string
@@ -65,6 +84,17 @@ export default function UsersSettingsPage() {
   const [selectedRole, setSelectedRole] = useState<string>('All')
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>([])
+  
+  // Modal state
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  const [inviteForm, setInviteForm] = useState({
+    email: '',
+    name: '',
+    role: 'Viewer',
+    department: '',
+    title: ''
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -113,6 +143,51 @@ export default function UsersSettingsPage() {
       loadData()
     }
   }, [status, activeCompany, loadData])
+
+  // Invite user function
+  const handleInviteUser = async () => {
+    if (!inviteForm.email || !inviteForm.name) {
+      toast.error('Email and name are required')
+      return
+    }
+
+    if (!activeCompany) {
+      toast.error('No company selected')
+      return
+    }
+
+    setInviting(true)
+    try {
+      const response = await fetch('/api/settings/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: activeCompany.id,
+          email: inviteForm.email,
+          name: inviteForm.name,
+          role: inviteForm.role,
+          department: inviteForm.department,
+          title: inviteForm.title
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success(`Invitation sent to ${inviteForm.email}`)
+        setShowInviteModal(false)
+        setInviteForm({ email: '', name: '', role: 'Viewer', department: '', title: '' })
+        loadData() // Reload users list
+      } else {
+        toast.error(data.error || 'Failed to send invitation')
+      }
+    } catch (error) {
+      console.error('Error inviting user:', error)
+      toast.error('Failed to send invitation')
+    } finally {
+      setInviting(false)
+    }
+  }
 
   const filteredUsers = users
     .filter(user => selectedRole === 'All' || user.role === selectedRole)
@@ -179,11 +254,109 @@ export default function UsersSettingsPage() {
               Manage users, roles, and permissions
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setShowInviteModal(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             Invite User
           </Button>
         </div>
+
+        {/* Invite User Modal */}
+        <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-blue-600" />
+                Invite New User
+              </DialogTitle>
+              <DialogDescription>
+                Send an invitation email to add a new user to {activeCompany?.name}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="user@example.com"
+                  value={inviteForm.email}
+                  onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
+                  placeholder="John Doe"
+                  value={inviteForm.name}
+                  onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={inviteForm.role}
+                  onValueChange={(value) => setInviteForm({ ...inviteForm, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Admin">Admin - Full access</SelectItem>
+                    <SelectItem value="Accountant">Accountant - Financial access</SelectItem>
+                    <SelectItem value="Manager">Manager - Team management</SelectItem>
+                    <SelectItem value="Staff">Staff - Basic access</SelectItem>
+                    <SelectItem value="Viewer">Viewer - Read-only access</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Input
+                    id="department"
+                    placeholder="e.g., Accounting"
+                    value={inviteForm.department}
+                    onChange={(e) => setInviteForm({ ...inviteForm, department: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="title">Job Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="e.g., Senior Accountant"
+                    value={inviteForm.title}
+                    onChange={(e) => setInviteForm({ ...inviteForm, title: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowInviteModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleInviteUser} disabled={inviting}>
+                {inviting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Invitation
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
