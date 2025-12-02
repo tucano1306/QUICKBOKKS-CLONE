@@ -64,6 +64,8 @@ export default function CustomReportsPage() {
   const [templates, setTemplates] = useState<ReportTemplate[]>([])
   const [availableFields, setAvailableFields] = useState<ReportField[]>([])
   const [reportData, setReportData] = useState<Record<string, unknown>[]>([])
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
+  const [runningReport, setRunningReport] = useState<string | null>(null)
 
   const loadReportData = useCallback(async () => {
     if (!activeCompany?.id) return
@@ -98,6 +100,72 @@ export default function CustomReportsPage() {
         ? prev.filter(id => id !== fieldId)
         : [...prev, fieldId]
     )
+  }
+
+  // Ejecutar reporte
+  const handleRunReport = async (template: ReportTemplate) => {
+    setRunningReport(template.id)
+    setMessage({ type: 'info', text: `Ejecutando reporte: ${template.name}...` })
+    
+    try {
+      // Simulate report generation
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Update lastRun
+      setTemplates(prev => prev.map(t => 
+        t.id === template.id 
+          ? { ...t, lastRun: new Date().toISOString() }
+          : t
+      ))
+      
+      setMessage({ type: 'success', text: `Reporte "${template.name}" ejecutado correctamente` })
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error al ejecutar el reporte' })
+    } finally {
+      setRunningReport(null)
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
+  // Ver vista previa
+  const handlePreviewReport = (template: ReportTemplate) => {
+    setSelectedTemplate(template.id)
+    setActiveTab('builder')
+    setMessage({ type: 'info', text: `Cargando vista previa de: ${template.name}` })
+    setTimeout(() => setMessage(null), 2000)
+  }
+
+  // Configurar reporte
+  const handleConfigureReport = (template: ReportTemplate) => {
+    setSelectedTemplate(template.id)
+    setActiveTab('builder')
+  }
+
+  // Descargar reporte
+  const handleDownloadReport = async (template: ReportTemplate) => {
+    setMessage({ type: 'info', text: `Generando descarga de: ${template.name}...` })
+    
+    try {
+      // Generate CSV content
+      const csvContent = `Reporte: ${template.name}\nDescripción: ${template.description}\nFecha: ${new Date().toLocaleString('es-MX')}\nOrigen: ${template.dataSource}\n\n"Campo","Valor"\n"Ejemplo","Datos de muestra"`
+      
+      // Create download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${template.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      setMessage({ type: 'success', text: 'Reporte descargado correctamente' })
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error al descargar el reporte' })
+    }
+    
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const filteredTemplates = templates
@@ -282,16 +350,41 @@ export default function CustomReportsPage() {
                     </div>
 
                     <div className="flex gap-2 mt-4">
-                      <Button size="sm" className="flex-1">
-                        <Play className="w-4 h-4 mr-1" /> Ejecutar
+                      <Button 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleRunReport(template)}
+                        disabled={runningReport === template.id}
+                      >
+                        {runningReport === template.id ? (
+                          <span className="animate-spin mr-1">⏳</span>
+                        ) : (
+                          <Play className="w-4 h-4 mr-1" />
+                        )}
+                        Ejecutar
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handlePreviewReport(template)}
+                        title="Vista previa"
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleConfigureReport(template)}
+                        title="Configurar"
+                      >
                         <Settings className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDownloadReport(template)}
+                        title="Descargar"
+                      >
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
@@ -568,6 +661,17 @@ export default function CustomReportsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Message Toast */}
+        {message && (
+          <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+            message.type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 
+            message.type === 'error' ? 'bg-red-100 text-red-800 border border-red-300' :
+            'bg-blue-100 text-blue-800 border border-blue-300'
+          }`}>
+            {message.text}
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

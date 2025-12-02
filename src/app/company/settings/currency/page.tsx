@@ -9,6 +9,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { 
   DollarSign,
   TrendingUp,
@@ -22,8 +38,10 @@ import {
   AlertCircle,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Currency {
   code: string
@@ -55,6 +73,37 @@ export default function CurrencySettingsPage() {
   const [updateFrequency, setUpdateFrequency] = useState('Daily')
   const [rateSource, setRateSource] = useState('European Central Bank')
   const [exchangeRateHistory, setExchangeRateHistory] = useState<ExchangeRateHistory[]>([])
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditRateModal, setShowEditRateModal] = useState(false)
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null)
+  const [newCurrency, setNewCurrency] = useState({ code: '', name: '', symbol: '', exchangeRate: 1 })
+  const [editingRate, setEditingRate] = useState('')
+
+  // Available currencies to add
+  const availableCurrencies = [
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'GBP', name: 'British Pound', symbol: '£' },
+    { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
+    { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+    { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+    { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' },
+    { code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
+    { code: 'MXN', name: 'Mexican Peso', symbol: '$' },
+    { code: 'BRL', name: 'Brazilian Real', symbol: 'R$' },
+    { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
+    { code: 'KRW', name: 'South Korean Won', symbol: '₩' },
+    { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
+    { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$' },
+    { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$' },
+    { code: 'SEK', name: 'Swedish Krona', symbol: 'kr' },
+    { code: 'NOK', name: 'Norwegian Krone', symbol: 'kr' },
+    { code: 'DKK', name: 'Danish Krone', symbol: 'kr' },
+    { code: 'ZAR', name: 'South African Rand', symbol: 'R' },
+    { code: 'RUB', name: 'Russian Ruble', symbol: '₽' },
+    { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ' },
+  ]
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -105,6 +154,128 @@ export default function CurrencySettingsPage() {
     setUpdating(true)
     await loadCurrencies()
     setUpdating(false)
+  }
+
+  // Add a new currency
+  const handleAddCurrency = async () => {
+    if (!activeCompany?.id) return
+    if (!newCurrency.code) {
+      toast.error('Please select a currency')
+      return
+    }
+    
+    // Check if already exists
+    if (currencies.some(c => c.code === newCurrency.code)) {
+      toast.error('Currency already added')
+      return
+    }
+
+    const currencyToAdd = availableCurrencies.find(c => c.code === newCurrency.code)
+    if (!currencyToAdd) return
+
+    const newCurrencyData: Currency = {
+      code: currencyToAdd.code,
+      name: currencyToAdd.name,
+      symbol: currencyToAdd.symbol,
+      exchangeRate: newCurrency.exchangeRate,
+      enabled: true,
+      lastUpdated: new Date().toISOString().split('T')[0]
+    }
+
+    try {
+      const updatedCurrencies = [...currencies, newCurrencyData]
+      const res = await fetch(`/api/settings/currencies?companyId=${activeCompany.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currencies: updatedCurrencies, baseCurrency })
+      })
+      
+      if (res.ok) {
+        setCurrencies(updatedCurrencies)
+        toast.success(`${currencyToAdd.name} added successfully`)
+        setShowAddModal(false)
+        setNewCurrency({ code: '', name: '', symbol: '', exchangeRate: 1 })
+      } else {
+        toast.error('Failed to add currency')
+      }
+    } catch (error) {
+      console.error('Error adding currency:', error)
+      toast.error('Error adding currency')
+    }
+  }
+
+  // Edit exchange rate
+  const handleEditRate = async () => {
+    if (!activeCompany?.id || !selectedCurrency) return
+    
+    const rate = parseFloat(editingRate)
+    if (isNaN(rate) || rate <= 0) {
+      toast.error('Please enter a valid exchange rate')
+      return
+    }
+
+    try {
+      const updatedCurrencies = currencies.map(c => 
+        c.code === selectedCurrency.code 
+          ? { ...c, exchangeRate: rate, lastUpdated: new Date().toISOString().split('T')[0] }
+          : c
+      )
+      
+      const res = await fetch(`/api/settings/currencies?companyId=${activeCompany.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currencies: updatedCurrencies, baseCurrency })
+      })
+      
+      if (res.ok) {
+        setCurrencies(updatedCurrencies)
+        toast.success(`Exchange rate updated for ${selectedCurrency.code}`)
+        setShowEditRateModal(false)
+        setSelectedCurrency(null)
+        setEditingRate('')
+      } else {
+        toast.error('Failed to update exchange rate')
+      }
+    } catch (error) {
+      console.error('Error updating rate:', error)
+      toast.error('Error updating exchange rate')
+    }
+  }
+
+  // Toggle currency enabled/disabled
+  const handleToggleCurrency = async (currency: Currency) => {
+    if (!activeCompany?.id) return
+
+    try {
+      const updatedCurrencies = currencies.map(c => 
+        c.code === currency.code 
+          ? { ...c, enabled: !c.enabled }
+          : c
+      )
+      
+      const res = await fetch(`/api/settings/currencies?companyId=${activeCompany.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currencies: updatedCurrencies, baseCurrency })
+      })
+      
+      if (res.ok) {
+        setCurrencies(updatedCurrencies)
+        toast.success(`${currency.code} ${currency.enabled ? 'disabled' : 'enabled'}`)
+      } else {
+        toast.error('Failed to update currency')
+      }
+    } catch (error) {
+      console.error('Error toggling currency:', error)
+      toast.error('Error updating currency')
+    }
+  }
+
+  // Open edit rate modal
+  const openEditRateModal = (currency: Currency) => {
+    setSelectedCurrency(currency)
+    setEditingRate(currency.exchangeRate.toString())
+    setShowEditRateModal(true)
   }
 
   const stats = {
@@ -335,7 +506,7 @@ export default function CurrencySettingsPage() {
                 <Globe className="w-5 h-5" />
                 Supported Currencies
               </CardTitle>
-              <Button size="sm">
+              <Button size="sm" onClick={() => setShowAddModal(true)}>
                 <Plus className="w-4 h-4 mr-1" />
                 Add Currency
               </Button>
@@ -394,13 +565,14 @@ export default function CurrencySettingsPage() {
                     <div className="flex gap-2">
                       {currency.code !== baseCurrency && (
                         <>
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => openEditRateModal(currency)}>
                             <Edit className="w-4 h-4 mr-1" />
                             Edit Rate
                           </Button>
                           <Button
                             size="sm"
                             variant={currency.enabled ? 'outline' : 'default'}
+                            onClick={() => handleToggleCurrency(currency)}
                           >
                             {currency.enabled ? 'Disable' : 'Enable'}
                           </Button>
@@ -501,6 +673,104 @@ export default function CurrencySettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add Currency Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Currency</DialogTitle>
+            <DialogDescription>
+              Select a currency to add to your supported currencies list.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="currency-select">Currency</Label>
+              <Select 
+                value={newCurrency.code} 
+                onValueChange={(value) => setNewCurrency({ ...newCurrency, code: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCurrencies
+                    .filter(c => !currencies.some(existing => existing.code === c.code))
+                    .map((currency) => (
+                      <SelectItem key={currency.code} value={currency.code}>
+                        {currency.symbol} {currency.name} ({currency.code})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="exchange-rate">Exchange Rate (1 {baseCurrency} = X)</Label>
+              <Input
+                id="exchange-rate"
+                type="number"
+                step="0.0001"
+                min="0.0001"
+                value={newCurrency.exchangeRate}
+                onChange={(e) => setNewCurrency({ ...newCurrency, exchangeRate: parseFloat(e.target.value) || 1 })}
+                placeholder="Enter exchange rate"
+              />
+              <p className="text-xs text-gray-500">
+                Enter how many units of the new currency equal 1 {baseCurrency}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddCurrency}>
+              <Plus className="w-4 h-4 mr-1" />
+              Add Currency
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Rate Modal */}
+      <Dialog open={showEditRateModal} onOpenChange={setShowEditRateModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Exchange Rate</DialogTitle>
+            <DialogDescription>
+              Update the exchange rate for {selectedCurrency?.name} ({selectedCurrency?.code})
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-rate">
+                Exchange Rate (1 {baseCurrency} = X {selectedCurrency?.code})
+              </Label>
+              <Input
+                id="edit-rate"
+                type="number"
+                step="0.0001"
+                min="0.0001"
+                value={editingRate}
+                onChange={(e) => setEditingRate(e.target.value)}
+                placeholder="Enter new exchange rate"
+              />
+              <p className="text-xs text-gray-500">
+                Current rate: 1 {baseCurrency} = {selectedCurrency?.exchangeRate} {selectedCurrency?.code}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditRateModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditRate}>
+              <Save className="w-4 h-4 mr-1" />
+              Save Rate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </CompanyTabsLayout>
   )
 }

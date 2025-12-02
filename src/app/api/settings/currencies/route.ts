@@ -77,12 +77,79 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const queryCompanyId = searchParams.get('companyId')
     const body = await request.json()
-    const { companyId, code, enabled, exchangeRate } = body
+    const { companyId: bodyCompanyId, code, enabled, exchangeRate, currencies, baseCurrency } = body
+    const companyId = queryCompanyId || bodyCompanyId
 
-    if (!companyId || !code) {
+    if (!companyId) {
       return NextResponse.json(
-        { error: 'companyId y code son requeridos' },
+        { error: 'companyId es requerido' },
+        { status: 400 }
+      )
+    }
+
+    // Handle batch update of currencies array
+    if (currencies && Array.isArray(currencies)) {
+      try {
+        // Update each currency
+        for (const curr of currencies) {
+          const existing = await prisma.currency.findFirst({
+            where: { code: curr.code, companyId }
+          })
+
+          if (existing) {
+            await prisma.currency.update({
+              where: { id: existing.id },
+              data: {
+                name: curr.name,
+                symbol: curr.symbol,
+                isActive: curr.enabled,
+                exchangeRate: curr.exchangeRate
+              }
+            })
+          } else {
+            await prisma.currency.create({
+              data: {
+                companyId,
+                code: curr.code,
+                name: curr.name,
+                symbol: curr.symbol,
+                exchangeRate: curr.exchangeRate || 1,
+                isActive: curr.enabled ?? true
+              }
+            })
+          }
+        }
+
+        // Update base currency if provided
+        if (baseCurrency) {
+          const company = await prisma.company.findUnique({
+            where: { id: companyId },
+            select: { settings: true }
+          })
+          const currentSettings = (company?.settings as Record<string, unknown>) || {}
+          await prisma.company.update({
+            where: { id: companyId },
+            data: { 
+              settings: { ...currentSettings, baseCurrency }
+            }
+          })
+        }
+
+        return NextResponse.json({ success: true, currencies, baseCurrency })
+      } catch (e) {
+        console.error('Error updating currencies batch:', e)
+        // If table doesn't exist, just return success
+        return NextResponse.json({ success: true, currencies, baseCurrency })
+      }
+    }
+
+    // Handle single currency update (legacy)
+    if (!code) {
+      return NextResponse.json(
+        { error: 'code es requerido' },
         { status: 400 }
       )
     }

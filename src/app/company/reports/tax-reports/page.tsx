@@ -8,6 +8,16 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { 
   Download,
   FileText,
@@ -21,7 +31,9 @@ import {
   FileCheck,
   Send,
   Printer,
-  Eye
+  Eye,
+  Plus,
+  X
 } from 'lucide-react'
 
 interface TaxReport {
@@ -41,6 +53,16 @@ interface TaxReport {
   acknowledgment?: string
 }
 
+interface NewDeclarationForm {
+  type: string
+  period: string
+  fiscalYear: string
+  taxBase: number
+  taxRate: number
+  withheld: number
+  dueDate: string
+}
+
 export default function TaxReportsPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -50,6 +72,38 @@ export default function TaxReportsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [selectedType, setSelectedType] = useState<string>('all')
   const [taxReports, setTaxReports] = useState<TaxReport[]>([])
+  
+  // Modal state
+  const [showNewModal, setShowNewModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [selectedReport, setSelectedReport] = useState<TaxReport | null>(null)
+  const [savingDeclaration, setSavingDeclaration] = useState(false)
+  const [newDeclaration, setNewDeclaration] = useState<NewDeclarationForm>({
+    type: 'ISR Mensual',
+    period: '',
+    fiscalYear: '2025',
+    taxBase: 0,
+    taxRate: 0,
+    withheld: 0,
+    dueDate: ''
+  })
+
+  const taxTypes = [
+    { value: 'ISR Mensual', label: 'ISR Mensual', rate: 30 },
+    { value: 'IVA Mensual', label: 'IVA Mensual', rate: 16 },
+    { value: 'Retenciones ISR', label: 'Retenciones ISR', rate: 10 },
+    { value: 'DIOT', label: 'DIOT (Operaciones con Terceros)', rate: 0 },
+    { value: 'Declaración Anual', label: 'Declaración Anual', rate: 30 },
+    { value: 'PTU', label: 'PTU (Participación de Utilidades)', rate: 10 },
+    { value: 'Sales Tax', label: 'Sales & Use Tax (Florida)', rate: 6 },
+    { value: 'Corporate Tax', label: 'Corporate Income Tax (Florida)', rate: 5.5 },
+  ]
+
+  const periods = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    'Q1 (Ene-Mar)', 'Q2 (Abr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Oct-Dic)', 'Anual'
+  ]
 
   const loadTaxReports = useCallback(async () => {
     if (!activeCompany?.id) return
@@ -75,6 +129,195 @@ export default function TaxReportsPage() {
   useEffect(() => {
     loadTaxReports()
   }, [loadTaxReports])
+
+  // Calculate tax amount when base or rate changes
+  const calculateTaxAmount = (base: number, rate: number) => {
+    return base * (rate / 100)
+  }
+
+  const handleTypeChange = (type: string) => {
+    const taxType = taxTypes.find(t => t.value === type)
+    setNewDeclaration(prev => ({
+      ...prev,
+      type,
+      taxRate: taxType?.rate || 0
+    }))
+  }
+
+  const handleSaveDeclaration = async () => {
+    if (!newDeclaration.type || !newDeclaration.period || !newDeclaration.dueDate) {
+      setMessage({ type: 'error', text: 'Por favor complete todos los campos requeridos' })
+      setTimeout(() => setMessage(null), 3000)
+      return
+    }
+
+    setSavingDeclaration(true)
+    try {
+      const taxAmount = calculateTaxAmount(newDeclaration.taxBase, newDeclaration.taxRate)
+      const balance = taxAmount - newDeclaration.withheld
+
+      const newReport: TaxReport = {
+        id: `tax-${Date.now()}`,
+        type: newDeclaration.type,
+        period: newDeclaration.period,
+        fiscalYear: parseInt(newDeclaration.fiscalYear),
+        dueDate: newDeclaration.dueDate,
+        status: 'pending',
+        amount: taxAmount,
+        taxBase: newDeclaration.taxBase,
+        taxRate: newDeclaration.taxRate,
+        withheld: newDeclaration.withheld,
+        balance: balance > 0 ? balance : 0
+      }
+
+      // Add to local state (in production, this would be an API call)
+      setTaxReports(prev => [...prev, newReport])
+      
+      setMessage({ type: 'success', text: `Declaración de ${newDeclaration.type} creada exitosamente` })
+      setShowNewModal(false)
+      setNewDeclaration({
+        type: 'ISR Mensual',
+        period: '',
+        fiscalYear: '2025',
+        taxBase: 0,
+        taxRate: 0,
+        withheld: 0,
+        dueDate: ''
+      })
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error al crear la declaración' })
+    } finally {
+      setSavingDeclaration(false)
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
+  const handleFileDeclaration = async (report: TaxReport) => {
+    // Simulate filing
+    setTaxReports(prev => prev.map(r => 
+      r.id === report.id 
+        ? { 
+            ...r, 
+            status: 'filed' as const, 
+            filedDate: new Date().toISOString(),
+            folio: `FOL-${Date.now().toString().slice(-8)}`,
+            acknowledgment: `ACK-${Math.random().toString(36).substring(7).toUpperCase()}`
+          } 
+        : r
+    ))
+    setMessage({ type: 'success', text: `Declaración de ${report.type} presentada exitosamente` })
+    setTimeout(() => setMessage(null), 3000)
+  }
+
+  const handleViewReport = (report: TaxReport) => {
+    setSelectedReport(report)
+    setShowViewModal(true)
+  }
+
+  const handlePrintReport = (report: TaxReport) => {
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Declaración ${report.type} - ${report.period}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .company-name { font-size: 24px; font-weight: bold; color: #1a365d; }
+            .report-title { font-size: 20px; margin-top: 10px; color: #333; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+            .info-box { padding: 15px; background: #f8f8f8; border-radius: 8px; }
+            .info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+            .info-value { font-size: 16px; font-weight: bold; }
+            .amount-section { background: #e0f2fe; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .amount-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #bae6fd; }
+            .amount-row:last-child { border-bottom: none; }
+            .total-row { font-size: 18px; font-weight: bold; background: #1a365d; color: white; padding: 15px; border-radius: 8px; margin-top: 20px; }
+            .status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+            .status-filed { background: #dcfce7; color: #166534; }
+            .status-pending { background: #fef3c7; color: #92400e; }
+            .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
+            @media print { body { padding: 20px; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="company-name">${activeCompany?.name || 'Empresa'}</div>
+            <div class="report-title">Declaración Fiscal: ${report.type}</div>
+          </div>
+          
+          <div class="info-grid">
+            <div class="info-box">
+              <div class="info-label">Período</div>
+              <div class="info-value">${report.period} ${report.fiscalYear}</div>
+            </div>
+            <div class="info-box">
+              <div class="info-label">Fecha de Vencimiento</div>
+              <div class="info-value">${new Date(report.dueDate).toLocaleDateString('es-ES')}</div>
+            </div>
+            <div class="info-box">
+              <div class="info-label">Estado</div>
+              <div class="info-value">
+                <span class="status-badge ${report.status === 'filed' ? 'status-filed' : 'status-pending'}">
+                  ${report.status === 'filed' ? 'Presentada' : 'Pendiente'}
+                </span>
+              </div>
+            </div>
+            ${report.folio ? `
+            <div class="info-box">
+              <div class="info-label">Folio</div>
+              <div class="info-value">${report.folio}</div>
+            </div>
+            ` : ''}
+          </div>
+          
+          <div class="amount-section">
+            <div class="amount-row">
+              <span>Base Gravable</span>
+              <span>$${report.taxBase.toLocaleString()}</span>
+            </div>
+            <div class="amount-row">
+              <span>Tasa de Impuesto</span>
+              <span>${report.taxRate}%</span>
+            </div>
+            <div class="amount-row">
+              <span>Impuesto Calculado</span>
+              <span>$${report.amount.toLocaleString()}</span>
+            </div>
+            ${report.withheld ? `
+            <div class="amount-row">
+              <span>Retenciones</span>
+              <span>-$${report.withheld.toLocaleString()}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          <div class="total-row" style="display: flex; justify-content: space-between;">
+            <span>SALDO A PAGAR</span>
+            <span>$${report.balance.toLocaleString()}</span>
+          </div>
+          
+          ${report.acknowledgment ? `
+          <div style="margin-top: 30px; padding: 15px; background: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">
+            <strong>Acuse de Recibo:</strong> ${report.acknowledgment}<br>
+            <strong>Fecha de Presentación:</strong> ${report.filedDate ? new Date(report.filedDate).toLocaleDateString('es-ES') : 'N/A'}
+          </div>
+          ` : ''}
+          
+          <div class="footer">
+            <p>Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+            <p>Este documento es un comprobante de declaración fiscal.</p>
+          </div>
+        </body>
+        </html>
+      `)
+      printWindow.document.close()
+      printWindow.focus()
+      setTimeout(() => printWindow.print(), 250)
+    }
+  }
 
   const filteredReports = taxReports.filter(report => {
     if (report.fiscalYear.toString() !== selectedYear) return false
@@ -143,12 +386,215 @@ export default function TaxReportsPage() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
-            <Button onClick={() => { setMessage({ type: 'success', text: 'Iniciando nueva declaración fiscal' }); setTimeout(() => setMessage(null), 3000); }}>
-              <FileText className="w-4 h-4 mr-2" />
+            <Button onClick={() => setShowNewModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
               Nueva Declaración
             </Button>
           </div>
         </div>
+
+        {/* Modal Nueva Declaración */}
+        <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                Nueva Declaración Fiscal
+              </DialogTitle>
+              <DialogDescription>
+                Complete los datos para crear una nueva declaración fiscal
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="taxType">Tipo de Impuesto *</Label>
+                  <select
+                    id="taxType"
+                    className="w-full px-3 py-2 border rounded-md"
+                    value={newDeclaration.type}
+                    onChange={(e) => handleTypeChange(e.target.value)}
+                  >
+                    {taxTypes.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="period">Período *</Label>
+                  <select
+                    id="period"
+                    className="w-full px-3 py-2 border rounded-md"
+                    value={newDeclaration.period}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, period: e.target.value }))}
+                  >
+                    <option value="">Seleccionar período</option>
+                    {periods.map(period => (
+                      <option key={period} value={period}>{period}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fiscalYear">Año Fiscal *</Label>
+                  <select
+                    id="fiscalYear"
+                    className="w-full px-3 py-2 border rounded-md"
+                    value={newDeclaration.fiscalYear}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, fiscalYear: e.target.value }))}
+                  >
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">Fecha de Vencimiento *</Label>
+                  <Input
+                    id="dueDate"
+                    type="date"
+                    value={newDeclaration.dueDate}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, dueDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="taxBase">Base Gravable</Label>
+                  <Input
+                    id="taxBase"
+                    type="number"
+                    placeholder="0.00"
+                    value={newDeclaration.taxBase || ''}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxBase: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="taxRate">Tasa (%)</Label>
+                  <Input
+                    id="taxRate"
+                    type="number"
+                    step="0.1"
+                    value={newDeclaration.taxRate || ''}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxRate: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="withheld">Retenciones</Label>
+                  <Input
+                    id="withheld"
+                    type="number"
+                    placeholder="0.00"
+                    value={newDeclaration.withheld || ''}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, withheld: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+              </div>
+              {/* Preview */}
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-blue-900 mb-2">Resumen del Cálculo</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-blue-700">Impuesto Calculado:</div>
+                  <div className="font-bold text-blue-900">
+                    ${calculateTaxAmount(newDeclaration.taxBase, newDeclaration.taxRate).toLocaleString()}
+                  </div>
+                  <div className="text-blue-700">Menos Retenciones:</div>
+                  <div className="font-bold text-blue-900">
+                    -${newDeclaration.withheld.toLocaleString()}
+                  </div>
+                  <div className="text-blue-700 font-semibold">Saldo a Pagar:</div>
+                  <div className="font-bold text-green-700 text-lg">
+                    ${Math.max(0, calculateTaxAmount(newDeclaration.taxBase, newDeclaration.taxRate) - newDeclaration.withheld).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowNewModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveDeclaration} disabled={savingDeclaration}>
+                {savingDeclaration ? 'Guardando...' : 'Crear Declaración'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal Ver Declaración */}
+        <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-blue-600" />
+                Detalle de Declaración
+              </DialogTitle>
+            </DialogHeader>
+            {selectedReport && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {getTaxTypeIcon(selectedReport.type)}
+                    <span className="font-semibold">{selectedReport.type}</span>
+                  </div>
+                  {getStatusBadge(selectedReport.status)}
+                </div>
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <div className="text-xs text-gray-500">Período</div>
+                    <div className="font-medium">{selectedReport.period} {selectedReport.fiscalYear}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Vencimiento</div>
+                    <div className="font-medium">{new Date(selectedReport.dueDate).toLocaleDateString('es-ES')}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Base Gravable</div>
+                    <div className="font-medium">${selectedReport.taxBase.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Tasa</div>
+                    <div className="font-medium">{selectedReport.taxRate}%</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Impuesto</div>
+                    <div className="font-medium text-blue-600">${selectedReport.amount.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Retenciones</div>
+                    <div className="font-medium">${selectedReport.withheld?.toLocaleString() || 0}</div>
+                  </div>
+                </div>
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-green-800">Saldo a Pagar</span>
+                    <span className="text-2xl font-bold text-green-700">${selectedReport.balance.toLocaleString()}</span>
+                  </div>
+                </div>
+                {selectedReport.status === 'filed' && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm space-y-1">
+                      <div><strong>Folio:</strong> {selectedReport.folio}</div>
+                      <div><strong>Acuse:</strong> {selectedReport.acknowledgment}</div>
+                      <div><strong>Fecha Presentación:</strong> {selectedReport.filedDate ? new Date(selectedReport.filedDate).toLocaleDateString('es-ES') : 'N/A'}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowViewModal(false)}>
+                Cerrar
+              </Button>
+              {selectedReport && (
+                <Button onClick={() => { handlePrintReport(selectedReport); setShowViewModal(false); }}>
+                  <Printer className="w-4 h-4 mr-2" />
+                  Imprimir
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {message && (
           <div className={`p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
@@ -346,22 +792,22 @@ export default function TaxReportsPage() {
                           <div className="flex items-center justify-center gap-1">
                             {report.status === 'filed' ? (
                               <>
-                                <Button size="sm" variant="outline" className="h-8 px-2">
+                                <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => handleViewReport(report)} title="Ver detalle">
                                   <Eye className="w-4 h-4" />
                                 </Button>
-                                <Button size="sm" variant="outline" className="h-8 px-2">
+                                <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => handlePrintReport(report)} title="Descargar">
                                   <Download className="w-4 h-4" />
                                 </Button>
-                                <Button size="sm" variant="outline" className="h-8 px-2">
+                                <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => handlePrintReport(report)} title="Imprimir">
                                   <Printer className="w-4 h-4" />
                                 </Button>
                               </>
                             ) : (
                               <>
-                                <Button size="sm" className="h-8 px-2">
+                                <Button size="sm" className="h-8 px-2" onClick={() => handleFileDeclaration(report)} title="Presentar declaración">
                                   <Send className="w-4 h-4" />
                                 </Button>
-                                <Button size="sm" variant="outline" className="h-8 px-2">
+                                <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => handleViewReport(report)} title="Ver detalle">
                                   <Eye className="w-4 h-4" />
                                 </Button>
                               </>

@@ -43,37 +43,53 @@ export async function GET(request: NextRequest) {
         id: 'TPL-001',
         name: 'Reporte de Ventas por Cliente',
         description: 'Desglose de ventas por cliente con totales',
+        category: 'Ventas',
         dataSource: 'invoices',
         fields: ['customer', 'total', 'status', 'date'],
         groupBy: 'customer',
-        aggregations: ['sum', 'count']
+        aggregations: ['sum', 'count'],
+        createdBy: 'Sistema',
+        createdDate: new Date().toISOString(),
+        isFavorite: true
       },
       {
         id: 'TPL-002',
         name: 'Análisis de Gastos',
         description: 'Gastos agrupados por categoría',
+        category: 'Gastos',
         dataSource: 'expenses',
         fields: ['category', 'amount', 'date', 'vendor'],
         groupBy: 'category',
-        aggregations: ['sum', 'average']
+        aggregations: ['sum', 'average'],
+        createdBy: 'Sistema',
+        createdDate: new Date().toISOString(),
+        isFavorite: false
       },
       {
         id: 'TPL-003',
         name: 'Rentabilidad por Producto',
         description: 'Ingresos y margen por producto',
+        category: 'Productos',
         dataSource: 'products',
         fields: ['name', 'price', 'cost', 'margin'],
         groupBy: 'category',
-        aggregations: ['sum', 'average']
+        aggregations: ['sum', 'average'],
+        createdBy: 'Sistema',
+        createdDate: new Date().toISOString(),
+        isFavorite: false
       },
       {
         id: 'TPL-004',
         name: 'Antigüedad de Cuentas',
         description: 'Cuentas por cobrar por antigüedad',
+        category: 'Cobranza',
         dataSource: 'invoices',
         fields: ['customer', 'total', 'dueDate', 'daysOverdue'],
         groupBy: 'aging',
-        aggregations: ['sum', 'count']
+        aggregations: ['sum', 'count'],
+        createdBy: 'Sistema',
+        createdDate: new Date().toISOString(),
+        isFavorite: true
       }
     ]
 

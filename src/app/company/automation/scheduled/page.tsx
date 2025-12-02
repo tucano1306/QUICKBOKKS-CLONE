@@ -64,6 +64,8 @@ export default function ScheduledTasksPage() {
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null)
   const [newTask, setNewTask] = useState({
     name: '',
     description: '',
@@ -204,6 +206,20 @@ export default function ScheduledTasksPage() {
   const handleDeleteTask = (id: string) => {
     if (!confirm('¿Eliminar esta tarea programada?')) return
     setTasks(tasks.filter(t => t.id !== id))
+  }
+
+  const handleEditTask = (task: ScheduledTask) => {
+    setEditingTask(task)
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = () => {
+    if (!editingTask) return
+    setTasks(tasks.map(t => t.id === editingTask.id ? editingTask : t))
+    setShowEditModal(false)
+    setEditingTask(null)
+    setMessage({ type: 'success', text: `Tarea "${editingTask.name}" actualizada correctamente` })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const types = [
@@ -527,7 +543,7 @@ export default function ScheduledTasksPage() {
                           Activate
                         </Button>
                       )}
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleEditTask(task)}>
                         <Edit className="w-3 h-3 mr-1" />
                         Edit
                       </Button>
@@ -640,6 +656,82 @@ export default function ScheduledTasksPage() {
                   <Button className="flex-1" onClick={handleCreateTask}>
                     <Save className="w-4 h-4 mr-2" />
                     Create Task
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Edit Task Modal */}
+        {showEditModal && editingTask && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Edit Scheduled Task</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowEditModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Task Name</label>
+                  <Input
+                    value={editingTask.name}
+                    onChange={(e) => setEditingTask({ ...editingTask, name: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Description</label>
+                  <Input
+                    value={editingTask.description}
+                    onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Type</label>
+                    <select
+                      value={editingTask.type}
+                      onChange={(e) => setEditingTask({ ...editingTask, type: e.target.value })}
+                      className="w-full mt-1 px-4 py-2 border rounded-lg"
+                    >
+                      {types.filter(t => t !== 'all').map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Frequency</label>
+                    <select
+                      value={editingTask.frequency}
+                      onChange={(e) => setEditingTask({ ...editingTask, frequency: e.target.value })}
+                      className="w-full mt-1 px-4 py-2 border rounded-lg"
+                    >
+                      <option value="Daily">Daily</option>
+                      <option value="Weekly">Weekly</option>
+                      <option value="Monthly">Monthly</option>
+                      <option value="Quarterly">Quarterly</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Schedule</label>
+                  <Input
+                    value={editingTask.schedule}
+                    onChange={(e) => setEditingTask({ ...editingTask, schedule: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowEditModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1" onClick={handleSaveEdit}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
                   </Button>
                 </div>
               </CardContent>

@@ -57,6 +57,9 @@ export default function RulesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingRule, setEditingRule] = useState<Rule | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [newRule, setNewRule] = useState({
     name: '',
     description: '',
@@ -166,6 +169,20 @@ export default function RulesPage() {
   const handleDeleteRule = (id: string) => {
     if (!confirm('¿Eliminar esta regla?')) return
     setRules(rules.filter(r => r.id !== id))
+  }
+
+  const handleEditRule = (rule: Rule) => {
+    setEditingRule(rule)
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = () => {
+    if (!editingRule) return
+    setRules(rules.map(r => r.id === editingRule.id ? editingRule : r))
+    setShowEditModal(false)
+    setEditingRule(null)
+    setMessage({ type: 'success', text: `Regla "${editingRule.name}" actualizada correctamente` })
+    setTimeout(() => setMessage(null), 3000)
   }
 
   const handleDuplicateRule = (rule: Rule) => {
@@ -453,7 +470,7 @@ export default function RulesPage() {
                         Activate
                       </Button>
                     )}
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleEditRule(rule)}>
                       <Edit className="w-3 h-3 mr-1" />
                       Edit
                     </Button>
@@ -565,6 +582,76 @@ export default function RulesPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Edit Rule Modal */}
+        {showEditModal && editingRule && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Edit Rule</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowEditModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Rule Name</label>
+                  <Input
+                    value={editingRule.name}
+                    onChange={(e) => setEditingRule({ ...editingRule, name: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Description</label>
+                  <Input
+                    value={editingRule.description}
+                    onChange={(e) => setEditingRule({ ...editingRule, description: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Category</label>
+                  <select
+                    value={editingRule.category}
+                    onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
+                    className="w-full mt-1 px-4 py-2 border rounded-lg"
+                  >
+                    {categories.filter(c => c !== 'all').map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Action</label>
+                  <Input
+                    value={editingRule.action}
+                    onChange={(e) => setEditingRule({ ...editingRule, action: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowEditModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1" onClick={handleSaveEdit}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Success/Error Message */}
+        {message && (
+          <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${
+            message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {message.text}
           </div>
         )}
       </div>

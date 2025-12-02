@@ -108,7 +108,9 @@ export default function ScheduledReportsPage() {
     active: scheduledReports.filter(r => r.status === 'active').length,
     paused: scheduledReports.filter(r => r.status === 'paused').length,
     failed: scheduledReports.filter(r => r.status === 'failed').length,
-    successRate: (reportHistory.filter(h => h.status === 'success').length / reportHistory.length * 100).toFixed(1)
+    successRate: reportHistory.length > 0 
+      ? (reportHistory.filter(h => h.status === 'success').length / reportHistory.length * 100).toFixed(1)
+      : '100'
   }
 
   const getStatusBadge = (status: string) => {

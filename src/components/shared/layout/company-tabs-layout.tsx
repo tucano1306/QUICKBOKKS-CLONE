@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
@@ -209,9 +209,9 @@ const tabSections: TabSection[] = [
       { name: 'Pérdidas y Ganancias', href: '/company/reports/profit-loss', description: 'Estado de resultados' },
       { name: 'Balance General', href: '/company/reports/balance-sheet', description: 'Activos, pasivos y capital' },
       { name: 'Flujo de Caja', href: '/company/reports/cash-flow', description: 'Entradas y salidas' },
-      { name: '📖 Mayor Analítico', href: '/company/reports/advanced', description: 'Detalle de cuenta contable' },
-      { name: '⚖️ Balance de Comprobación', href: '/company/reports/advanced', description: 'Verificación de saldos' },
-      { name: '📒 Libro Diario Legal', href: '/company/reports/advanced', description: 'Asientos contables oficiales' },
+      { name: '📖 Mayor Analítico', href: '/company/reports/advanced?type=analytical-ledger', description: 'Detalle de cuenta contable' },
+      { name: '⚖️ Balance de Comprobación', href: '/company/reports/advanced?type=trial-balance', description: 'Verificación de saldos' },
+      { name: '📒 Libro Diario Legal', href: '/company/reports/advanced?type=legal-journal', description: 'Asientos contables oficiales' },
       { name: 'Reportes por Impuestos', href: '/company/reports/tax-reports', description: 'Para declaraciones' },
       { name: 'Reportes Personalizados', href: '/company/reports/custom', description: 'Crear reportes a medida' },
       { name: 'Envío Automático', href: '/company/reports/scheduled', description: 'Programar reportes' }
@@ -274,7 +274,13 @@ const tabSections: TabSection[] = [
 export default function CompanyTabsLayout({ children }: { children: React.ReactNode }) {
   const { activeCompany } = useCompany()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const router = useRouter()
+  
+  // Construir la URL completa con query params para comparar
+  const currentUrl = searchParams.toString() 
+    ? `${pathname}?${searchParams.toString()}` 
+    : pathname
   
   // Detectar la pestaña activa según la URL (ANTES del return condicional)
   const currentTab = tabSections.find(tab => 
@@ -407,7 +413,7 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                   >
                     <div className={cn(
                       'text-sm font-medium mb-1',
-                      pathname === submenu.href ? `text-${activeSection.color}-600` : 'text-gray-900 group-hover:text-blue-600'
+                      (currentUrl === submenu.href || pathname === submenu.href) ? `text-${activeSection.color}-600` : 'text-gray-900 group-hover:text-blue-600'
                     )}>
                       {submenu.name}
                     </div>

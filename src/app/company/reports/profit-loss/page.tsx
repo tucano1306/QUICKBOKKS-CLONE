@@ -195,7 +195,83 @@ export default function ProfitLossPage() {
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
             </Button>
-            <Button onClick={() => window.print()}>
+            <Button onClick={() => {
+              const printWindow = window.open('', '_blank')
+              if (printWindow) {
+                const ingresosRows = ingresos.map(i => `<tr><td style="padding-left: 20px;">${i.concepto}</td><td class="amount">$${i.monto.toLocaleString()}</td></tr>`).join('')
+                const gastosOpRows = gastosOperativos.map(g => `<tr><td style="padding-left: 20px;">${g.concepto}</td><td class="amount negative">$${g.monto.toLocaleString()}</td></tr>`).join('')
+                const otrosGastosRows = otrosGastos.map(g => `<tr><td style="padding-left: 20px;">${g.concepto}</td><td class="amount negative">$${g.monto.toLocaleString()}</td></tr>`).join('')
+                
+                printWindow.document.write(`
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <title>Estado de Resultados - ${activeCompany?.name || 'Empresa'}</title>
+                    <style>
+                      body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+                      .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                      .company-name { font-size: 24px; font-weight: bold; color: #1a365d; }
+                      .report-title { font-size: 20px; margin-top: 10px; color: #333; }
+                      .period { font-size: 14px; color: #666; margin-top: 5px; }
+                      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                      th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ddd; }
+                      .section-header { font-weight: bold; background: #f0f0f0; font-size: 14px; }
+                      .amount { text-align: right; font-family: monospace; }
+                      .positive { color: #047857; }
+                      .negative { color: #dc2626; }
+                      .total-row { font-weight: bold; background: #f0f7ff; }
+                      .net-income { font-size: 18px; font-weight: bold; padding: 15px; background: ${utilidadNeta >= 0 ? '#dcfce7' : '#fee2e2'}; border-radius: 8px; margin-top: 20px; }
+                      .net-income .label { color: #374151; }
+                      .net-income .value { float: right; color: ${utilidadNeta >= 0 ? '#047857' : '#dc2626'}; }
+                      .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
+                      @media print { body { padding: 20px; } }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="header">
+                      <div class="company-name">${activeCompany?.name || 'Empresa'}</div>
+                      <div class="report-title">Estado de Resultados (P&L)</div>
+                      <div class="period">Período: ${dateRange.startDate} al ${dateRange.endDate}</div>
+                    </div>
+                    
+                    <table>
+                      <tr class="section-header"><td colspan="2">INGRESOS</td></tr>
+                      ${ingresosRows}
+                      <tr class="total-row"><td>Total Ingresos</td><td class="amount positive">$${totalIngresos.toLocaleString()}</td></tr>
+                      
+                      <tr class="section-header"><td colspan="2">GASTOS OPERATIVOS</td></tr>
+                      ${gastosOpRows}
+                      <tr class="total-row"><td>Total Gastos Operativos</td><td class="amount negative">$${totalGastosOp.toLocaleString()}</td></tr>
+                      
+                      <tr class="total-row"><td>UTILIDAD OPERATIVA</td><td class="amount ${utilidadOperativa >= 0 ? 'positive' : 'negative'}">$${utilidadOperativa.toLocaleString()}</td></tr>
+                      
+                      ${otrosGastos.length > 0 ? `
+                        <tr class="section-header"><td colspan="2">OTROS GASTOS</td></tr>
+                        ${otrosGastosRows}
+                        <tr class="total-row"><td>Total Otros Gastos</td><td class="amount negative">$${totalOtrosGastos.toLocaleString()}</td></tr>
+                      ` : ''}
+                    </table>
+                    
+                    <div class="net-income">
+                      <span class="label">UTILIDAD NETA</span>
+                      <span class="value">$${utilidadNeta.toLocaleString()}</span>
+                    </div>
+                    <div style="text-align: right; margin-top: 10px; color: #666;">
+                      Margen Neto: ${margenNeto.toFixed(2)}%
+                    </div>
+                    
+                    <div class="footer">
+                      <p>Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      <p>Este reporte fue generado automáticamente por el sistema de contabilidad.</p>
+                    </div>
+                  </body>
+                  </html>
+                `)
+                printWindow.document.close()
+                printWindow.focus()
+                setTimeout(() => printWindow.print(), 250)
+              }
+            }}>
               <Printer className="w-4 h-4 mr-2" />
               Imprimir
             </Button>

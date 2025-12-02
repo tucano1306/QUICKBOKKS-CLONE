@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useCompany } from '@/contexts/CompanyContext';
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout';
 import { Card } from '@/components/ui/card';
@@ -8,12 +9,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Printer, FileText, Download, AlertCircle, CheckCircle } from 'lucide-react';
 
+type ReportType = 'analytical-ledger' | 'trial-balance' | 'legal-journal' | 'check-search';
+
 export default function AdvancedReportsPage() {
   const { activeCompany } = useCompany();
-  const [reportType, setReportType] = useState<'analytical-ledger' | 'trial-balance' | 'legal-journal' | 'check-search'>('trial-balance');
+  const searchParams = useSearchParams();
+  
+  // Leer el tipo de reporte de la URL
+  const urlReportType = searchParams.get('type') as ReportType | null;
+  
+  const [reportType, setReportType] = useState<ReportType>('trial-balance');
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
+  
+  // Actualizar el tipo de reporte cuando cambia la URL
+  useEffect(() => {
+    if (urlReportType && ['analytical-ledger', 'trial-balance', 'legal-journal', 'check-search'].includes(urlReportType)) {
+      setReportType(urlReportType);
+    }
+  }, [urlReportType]);
   
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
 
@@ -89,12 +104,172 @@ export default function AdvancedReportsPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!reportData) {
+      window.print();
+      return;
+    }
+    
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return;
+    
+    const reportTitle = {
+      'analytical-ledger': 'Mayor Analítico',
+      'trial-balance': 'Balance de Comprobación',
+      'legal-journal': 'Libro Diario Legal',
+      'check-search': 'Búsqueda de Cheque'
+    }[reportType];
+    
+    let contentHtml = '';
+    
+    if (reportType === 'trial-balance' && reportData.accounts) {
+      const accountRows = reportData.accounts.map((acc: any) => `
+        <tr>
+          <td>${acc.code}</td>
+          <td>${acc.name}</td>
+          <td class="amount">$${(acc.periodDebits || 0).toLocaleString()}</td>
+          <td class="amount">$${(acc.periodCredits || 0).toLocaleString()}</td>
+          <td class="amount ${(acc.closingBalance || 0) >= 0 ? 'positive' : 'negative'}">$${(acc.closingBalance || 0).toLocaleString()}</td>
+        </tr>
+      `).join('');
+      
+      contentHtml = `
+        <div class="balance-status ${reportData.isBalanced ? 'balanced' : 'unbalanced'}">
+          ${reportData.isBalanced ? '✓ Balance Cuadrado' : '⚠ Balance Descuadrado'}
+        </div>
+        <table>
+          <thead>
+            <tr><th>Código</th><th>Cuenta</th><th>Débitos</th><th>Créditos</th><th>Saldo</th></tr>
+          </thead>
+          <tbody>
+            ${accountRows}
+            <tr class="total-row">
+              <td colspan="2"><strong>TOTALES</strong></td>
+              <td class="amount"><strong>$${(reportData.totals?.periodDebits || 0).toLocaleString()}</strong></td>
+              <td class="amount"><strong>$${(reportData.totals?.periodCredits || 0).toLocaleString()}</strong></td>
+              <td class="amount"><strong>$${(reportData.totals?.closingBalance || 0).toLocaleString()}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    } else if (reportType === 'analytical-ledger' && reportData.transactions) {
+      const txRows = reportData.transactions.map((tx: any) => `
+        <tr>
+          <td>${new Date(tx.date).toLocaleDateString()}</td>
+          <td>${tx.journalEntryNumber}</td>
+          <td>${tx.description}</td>
+          <td class="amount">$${(tx.debit || 0).toLocaleString()}</td>
+          <td class="amount">$${(tx.credit || 0).toLocaleString()}</td>
+          <td class="amount ${(tx.balance || 0) >= 0 ? 'positive' : 'negative'}">$${(tx.balance || 0).toLocaleString()}</td>
+        </tr>
+      `).join('');
+      
+      contentHtml = `
+        <div class="account-info">
+          <strong>Cuenta:</strong> ${reportData.accountCode} - ${reportData.accountName}
+        </div>
+        <table>
+          <thead>
+            <tr><th>Fecha</th><th>Asiento</th><th>Descripción</th><th>Débito</th><th>Crédito</th><th>Saldo</th></tr>
+          </thead>
+          <tbody>
+            ${txRows}
+            <tr class="total-row">
+              <td colspan="3"><strong>TOTALES</strong></td>
+              <td class="amount"><strong>$${(reportData.totalDebits || 0).toLocaleString()}</strong></td>
+              <td class="amount"><strong>$${(reportData.totalCredits || 0).toLocaleString()}</strong></td>
+              <td class="amount"><strong>$${(reportData.closingBalance || 0).toLocaleString()}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    } else if (reportType === 'legal-journal' && reportData.entries) {
+      const entriesHtml = reportData.entries.map((entry: any) => `
+        <div class="journal-entry">
+          <div class="entry-header">
+            <strong>Asiento #${entry.entryNumber}</strong> - ${new Date(entry.date).toLocaleDateString()}
+            <span class="entry-status ${entry.status === 'POSTED' ? 'posted' : ''}">${entry.status}</span>
+          </div>
+          <div class="entry-description">${entry.description}</div>
+          <table class="lines-table">
+            <thead><tr><th>Cuenta</th><th>Débito</th><th>Crédito</th></tr></thead>
+            <tbody>
+              ${entry.lines?.map((line: any) => `
+                <tr>
+                  <td>${line.accountName}</td>
+                  <td class="amount">${line.debit ? '$' + line.debit.toLocaleString() : ''}</td>
+                  <td class="amount">${line.credit ? '$' + line.credit.toLocaleString() : ''}</td>
+                </tr>
+              `).join('') || ''}
+              <tr class="subtotal-row">
+                <td><strong>Total</strong></td>
+                <td class="amount"><strong>$${(entry.totalDebits || 0).toLocaleString()}</strong></td>
+                <td class="amount"><strong>$${(entry.totalCredits || 0).toLocaleString()}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `).join('');
+      
+      contentHtml = entriesHtml;
+    }
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${reportTitle} - ${activeCompany?.name || 'Empresa'}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 900px; margin: 0 auto; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+          .company-name { font-size: 24px; font-weight: bold; color: #1a365d; }
+          .report-title { font-size: 20px; margin-top: 10px; color: #333; }
+          .period { font-size: 14px; color: #666; margin-top: 5px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+          th { background: #1a365d; color: white; padding: 10px 8px; text-align: left; }
+          td { padding: 8px; border-bottom: 1px solid #ddd; }
+          .amount { text-align: right; font-family: monospace; }
+          .positive { color: #047857; }
+          .negative { color: #dc2626; }
+          .total-row { font-weight: bold; background: #f0f7ff; }
+          .subtotal-row { background: #f8f8f8; }
+          .balance-status { padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; }
+          .balanced { background: #dcfce7; color: #166534; }
+          .unbalanced { background: #fee2e2; color: #991b1b; }
+          .account-info { background: #f0f7ff; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+          .journal-entry { border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+          .entry-header { font-size: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+          .entry-status { padding: 2px 8px; border-radius: 4px; background: #e5e7eb; font-size: 11px; }
+          .entry-status.posted { background: #dcfce7; color: #166534; }
+          .entry-description { color: #666; margin-bottom: 10px; font-size: 13px; }
+          .lines-table { margin-top: 10px; }
+          .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">${activeCompany?.name || 'Empresa'}</div>
+          <div class="report-title">${reportTitle}</div>
+          <div class="period">Período: ${startDate} al ${endDate}</div>
+        </div>
+        
+        ${contentHtml}
+        
+        <div class="footer">
+          <p>Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+          <p>Este reporte fue generado automáticamente por el sistema de contabilidad.</p>
+        </div>
+      </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.focus()
+    setTimeout(() => printWindow.print(), 250)
   };
 
   const handleExportPDF = () => {
-    // Implementación simplificada - usar window.print con CSS print-friendly
-    window.print();
+    // Usar la misma función de impresión que genera un reporte formateado
+    handlePrint();
   };
 
   const handleExportExcel = () => {

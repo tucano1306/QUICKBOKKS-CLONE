@@ -166,7 +166,113 @@ export default function ComparativeReportsPage() {
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
             </Button>
-            <Button onClick={() => window.print()}>
+            <Button onClick={() => {
+              const printWindow = window.open('', '_blank')
+              if (printWindow) {
+                const viewLabel = viewMode === 'monthly' ? 'Mensual' : viewMode === 'quarterly' ? 'Trimestral' : 'Anual'
+                const dataRows = currentData.map(row => `
+                  <tr>
+                    <td>${row.period}</td>
+                    <td class="amount positive">$${row.ingresos.toLocaleString()}</td>
+                    <td class="amount negative">$${row.gastos.toLocaleString()}</td>
+                    <td class="amount ${row.utilidad >= 0 ? 'positive' : 'negative'}">$${row.utilidad.toLocaleString()}</td>
+                    <td class="amount">${row.margen.toFixed(1)}%</td>
+                    <td class="amount">$${row.activos.toLocaleString()}</td>
+                    <td class="amount">$${row.pasivos.toLocaleString()}</td>
+                    <td class="amount">$${row.capital.toLocaleString()}</td>
+                  </tr>
+                `).join('')
+                
+                printWindow.document.write(`
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <title>Reporte Comparativo ${viewLabel} - ${activeCompany?.name || 'Empresa'}</title>
+                    <style>
+                      body { font-family: Arial, sans-serif; padding: 40px; max-width: 1000px; margin: 0 auto; }
+                      .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                      .company-name { font-size: 24px; font-weight: bold; color: #1a365d; }
+                      .report-title { font-size: 20px; margin-top: 10px; color: #333; }
+                      .period { font-size: 14px; color: #666; margin-top: 5px; }
+                      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+                      th { background: #1a365d; color: white; padding: 12px 8px; text-align: left; }
+                      td { padding: 10px 8px; border-bottom: 1px solid #ddd; }
+                      .amount { text-align: right; font-family: monospace; }
+                      .positive { color: #047857; }
+                      .negative { color: #dc2626; }
+                      .total-row { font-weight: bold; background: #f0f7ff; }
+                      .summary { display: flex; justify-content: space-around; margin-top: 30px; padding: 20px; background: #f9fafb; border-radius: 8px; }
+                      .summary-item { text-align: center; }
+                      .summary-label { font-size: 12px; color: #666; }
+                      .summary-value { font-size: 18px; font-weight: bold; margin-top: 5px; }
+                      .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
+                      @media print { body { padding: 20px; } }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="header">
+                      <div class="company-name">${activeCompany?.name || 'Empresa'}</div>
+                      <div class="report-title">Reporte Comparativo ${viewLabel}</div>
+                      <div class="period">Período: ${dateRange.startDate} al ${dateRange.endDate}</div>
+                    </div>
+                    
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Período</th>
+                          <th>Ingresos</th>
+                          <th>Gastos</th>
+                          <th>Utilidad</th>
+                          <th>Margen</th>
+                          <th>Activos</th>
+                          <th>Pasivos</th>
+                          <th>Capital</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${dataRows}
+                        <tr class="total-row">
+                          <td><strong>TOTALES</strong></td>
+                          <td class="amount positive"><strong>$${totalIngresos.toLocaleString()}</strong></td>
+                          <td class="amount negative"><strong>$${totalGastos.toLocaleString()}</strong></td>
+                          <td class="amount ${totalUtilidad >= 0 ? 'positive' : 'negative'}"><strong>$${totalUtilidad.toLocaleString()}</strong></td>
+                          <td class="amount"><strong>${(promedioMargen || 0).toFixed(1)}%</strong></td>
+                          <td colspan="3"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    
+                    <div class="summary">
+                      <div class="summary-item">
+                        <div class="summary-label">Total Ingresos</div>
+                        <div class="summary-value positive">$${totalIngresos.toLocaleString()}</div>
+                      </div>
+                      <div class="summary-item">
+                        <div class="summary-label">Total Gastos</div>
+                        <div class="summary-value negative">$${totalGastos.toLocaleString()}</div>
+                      </div>
+                      <div class="summary-item">
+                        <div class="summary-label">Utilidad Neta</div>
+                        <div class="summary-value ${totalUtilidad >= 0 ? 'positive' : 'negative'}">$${totalUtilidad.toLocaleString()}</div>
+                      </div>
+                      <div class="summary-item">
+                        <div class="summary-label">Margen Promedio</div>
+                        <div class="summary-value">${(promedioMargen || 0).toFixed(1)}%</div>
+                      </div>
+                    </div>
+                    
+                    <div class="footer">
+                      <p>Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      <p>Este reporte fue generado automáticamente por el sistema de contabilidad.</p>
+                    </div>
+                  </body>
+                  </html>
+                `)
+                printWindow.document.close()
+                printWindow.focus()
+                setTimeout(() => printWindow.print(), 250)
+              }
+            }}>
               <Printer className="w-4 h-4 mr-2" />
               Imprimir
             </Button>

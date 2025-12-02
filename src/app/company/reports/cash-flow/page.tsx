@@ -56,7 +56,9 @@ export default function CashFlowPage() {
       const response = await fetch(`/api/accounting/reports/cash-flow?${params}`)
       if (!response.ok) throw new Error('Error al cargar flujo de efectivo')
       const data = await response.json()
-      setCashFlowData(data.cashFlow)
+      if (data.cashFlow) {
+        setCashFlowData(data.cashFlow)
+      }
       setMessage({ type: 'success', text: 'Flujo de efectivo actualizado' })
     } catch (error) {
       console.error('Error fetching cash flow:', error)
@@ -86,26 +88,26 @@ export default function CashFlowPage() {
   // Convertir datos de API al formato para mostrar
   const cashFlowDataDisplay = {
     operaciones: [
-      { concepto: 'Cobros de Clientes', monto: cashFlowData.operating.inflow, tipo: 'entrada' },
-      { concepto: 'Pagos Operativos', monto: -cashFlowData.operating.outflow, tipo: 'salida' }
+      { concepto: 'Cobros de Clientes', monto: cashFlowData?.operating?.inflow || 0, tipo: 'entrada' },
+      { concepto: 'Pagos Operativos', monto: -(cashFlowData?.operating?.outflow || 0), tipo: 'salida' }
     ],
     inversion: [
-      { concepto: 'Venta de Activos', monto: cashFlowData.investing.inflow, tipo: 'entrada' },
-      { concepto: 'Compra de Activos', monto: -cashFlowData.investing.outflow, tipo: 'salida' }
+      { concepto: 'Venta de Activos', monto: cashFlowData?.investing?.inflow || 0, tipo: 'entrada' },
+      { concepto: 'Compra de Activos', monto: -(cashFlowData?.investing?.outflow || 0), tipo: 'salida' }
     ],
     financiamiento: [
-      { concepto: 'Préstamos Recibidos', monto: cashFlowData.financing.inflow, tipo: 'entrada' },
-      { concepto: 'Pago de Préstamos', monto: -cashFlowData.financing.outflow, tipo: 'salida' }
+      { concepto: 'Préstamos Recibidos', monto: cashFlowData?.financing?.inflow || 0, tipo: 'entrada' },
+      { concepto: 'Pago de Préstamos', monto: -(cashFlowData?.financing?.outflow || 0), tipo: 'salida' }
     ]
   }
 
-  const flujoOperaciones = cashFlowData.operating.net
-  const flujoInversion = cashFlowData.investing.net
-  const flujoFinanciamiento = cashFlowData.financing.net
-  const flujoNetoTotal = cashFlowData.netCashFlow
+  const flujoOperaciones = cashFlowData?.operating?.net || 0
+  const flujoInversion = cashFlowData?.investing?.net || 0
+  const flujoFinanciamiento = cashFlowData?.financing?.net || 0
+  const flujoNetoTotal = cashFlowData?.netCashFlow || 0
 
-  const efectivoInicial = cashFlowData.beginningBalance
-  const efectivoFinal = cashFlowData.endingBalance
+  const efectivoInicial = cashFlowData?.beginningBalance || 0
+  const efectivoFinal = cashFlowData?.endingBalance || 0
 
   const cambioPercentage = efectivoInicial > 0 ? ((flujoNetoTotal / efectivoInicial) * 100).toFixed(1) : '0.0'
 
@@ -160,7 +162,92 @@ export default function CashFlowPage() {
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
             </Button>
-            <Button onClick={() => window.print()}>
+            <Button onClick={() => {
+              const printWindow = window.open('', '_blank')
+              if (printWindow) {
+                printWindow.document.write(`
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <title>Estado de Flujo de Efectivo - ${activeCompany?.name || 'Empresa'}</title>
+                    <style>
+                      body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+                      .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                      .company-name { font-size: 24px; font-weight: bold; color: #1a365d; }
+                      .report-title { font-size: 20px; margin-top: 10px; color: #333; }
+                      .period { font-size: 14px; color: #666; margin-top: 5px; }
+                      .section { margin-bottom: 25px; }
+                      .section-title { font-size: 16px; font-weight: bold; background: #f0f0f0; padding: 8px 12px; margin-bottom: 10px; }
+                      table { width: 100%; border-collapse: collapse; }
+                      th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ddd; }
+                      th { background: #f8f8f8; font-weight: bold; }
+                      .amount { text-align: right; font-family: monospace; }
+                      .positive { color: #047857; }
+                      .negative { color: #dc2626; }
+                      .total-row { font-weight: bold; background: #f0f7ff; }
+                      .grand-total { font-size: 18px; font-weight: bold; margin-top: 20px; padding: 15px; background: #e0f2fe; border-radius: 8px; }
+                      .summary-box { display: flex; justify-content: space-between; margin-top: 30px; padding: 20px; background: #f9fafb; border-radius: 8px; }
+                      .summary-item { text-align: center; }
+                      .summary-label { font-size: 12px; color: #666; }
+                      .summary-value { font-size: 20px; font-weight: bold; margin-top: 5px; }
+                      .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
+                      @media print { body { padding: 20px; } }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="header">
+                      <div class="company-name">${activeCompany?.name || 'Empresa'}</div>
+                      <div class="report-title">Estado de Flujo de Efectivo</div>
+                      <div class="period">Período: ${dateRange.startDate} al ${dateRange.endDate}</div>
+                    </div>
+                    
+                    <div class="section">
+                      <div class="section-title">Actividades de Operación</div>
+                      <table>
+                        <tr><td>Cobros de Clientes</td><td class="amount positive">$${(cashFlowData?.operating?.inflow || 0).toLocaleString()}</td></tr>
+                        <tr><td>Pagos Operativos</td><td class="amount negative">($${(cashFlowData?.operating?.outflow || 0).toLocaleString()})</td></tr>
+                        <tr class="total-row"><td>Flujo Neto de Operaciones</td><td class="amount ${(cashFlowData?.operating?.net || 0) >= 0 ? 'positive' : 'negative'}">$${(cashFlowData?.operating?.net || 0).toLocaleString()}</td></tr>
+                      </table>
+                    </div>
+                    
+                    <div class="section">
+                      <div class="section-title">Actividades de Inversión</div>
+                      <table>
+                        <tr><td>Venta de Activos</td><td class="amount positive">$${(cashFlowData?.investing?.inflow || 0).toLocaleString()}</td></tr>
+                        <tr><td>Compra de Activos</td><td class="amount negative">($${(cashFlowData?.investing?.outflow || 0).toLocaleString()})</td></tr>
+                        <tr class="total-row"><td>Flujo Neto de Inversión</td><td class="amount ${(cashFlowData?.investing?.net || 0) >= 0 ? 'positive' : 'negative'}">$${(cashFlowData?.investing?.net || 0).toLocaleString()}</td></tr>
+                      </table>
+                    </div>
+                    
+                    <div class="section">
+                      <div class="section-title">Actividades de Financiamiento</div>
+                      <table>
+                        <tr><td>Préstamos Recibidos</td><td class="amount positive">$${(cashFlowData?.financing?.inflow || 0).toLocaleString()}</td></tr>
+                        <tr><td>Pago de Préstamos</td><td class="amount negative">($${(cashFlowData?.financing?.outflow || 0).toLocaleString()})</td></tr>
+                        <tr class="total-row"><td>Flujo Neto de Financiamiento</td><td class="amount ${(cashFlowData?.financing?.net || 0) >= 0 ? 'positive' : 'negative'}">$${(cashFlowData?.financing?.net || 0).toLocaleString()}</td></tr>
+                      </table>
+                    </div>
+                    
+                    <div class="grand-total">
+                      <table>
+                        <tr><td>Efectivo al Inicio del Período</td><td class="amount">$${efectivoInicial.toLocaleString()}</td></tr>
+                        <tr><td><strong>Flujo Neto Total</strong></td><td class="amount ${flujoNetoTotal >= 0 ? 'positive' : 'negative'}"><strong>$${flujoNetoTotal.toLocaleString()}</strong></td></tr>
+                        <tr><td><strong>Efectivo al Final del Período</strong></td><td class="amount"><strong>$${efectivoFinal.toLocaleString()}</strong></td></tr>
+                      </table>
+                    </div>
+                    
+                    <div class="footer">
+                      <p>Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      <p>Este reporte fue generado automáticamente por el sistema de contabilidad.</p>
+                    </div>
+                  </body>
+                  </html>
+                `)
+                printWindow.document.close()
+                printWindow.focus()
+                setTimeout(() => printWindow.print(), 250)
+              }
+            }}>
               <Printer className="w-4 h-4 mr-2" />
               Imprimir
             </Button>

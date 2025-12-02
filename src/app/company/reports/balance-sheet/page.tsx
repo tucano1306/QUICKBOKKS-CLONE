@@ -207,7 +207,98 @@ export default function BalanceSheetPage() {
               Exportar CSV
             </Button>
             <Button onClick={() => {
-              window.print()
+              const printWindow = window.open('', '_blank')
+              if (printWindow) {
+                const activosCircRows = activosCirculantes.map(a => `<tr><td style="padding-left: 30px;">${a.concepto}</td><td class="amount">$${a.monto.toLocaleString()}</td></tr>`).join('')
+                const activosFijosRows = activosFijos.map(a => `<tr><td style="padding-left: 30px;">${a.concepto}</td><td class="amount">$${a.monto.toLocaleString()}</td></tr>`).join('')
+                const pasivosCortoRows = pasivosCorto.map(p => `<tr><td style="padding-left: 30px;">${p.concepto}</td><td class="amount">$${p.monto.toLocaleString()}</td></tr>`).join('')
+                const pasivosLargoRows = pasivosLargo.map(p => `<tr><td style="padding-left: 30px;">${p.concepto}</td><td class="amount">$${p.monto.toLocaleString()}</td></tr>`).join('')
+                const capitalRows = capital.map(c => `<tr><td style="padding-left: 30px;">${c.concepto}</td><td class="amount">$${c.monto.toLocaleString()}</td></tr>`).join('')
+                
+                printWindow.document.write(`
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <title>Balance General - ${activeCompany?.name || 'Empresa'}</title>
+                    <style>
+                      body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+                      .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                      .company-name { font-size: 24px; font-weight: bold; color: #1a365d; }
+                      .report-title { font-size: 20px; margin-top: 10px; color: #333; }
+                      .date { font-size: 14px; color: #666; margin-top: 5px; }
+                      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                      th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ddd; }
+                      .section-header { font-weight: bold; background: #1a365d; color: white; font-size: 14px; }
+                      .subsection { font-weight: bold; background: #f0f0f0; padding-left: 15px !important; }
+                      .amount { text-align: right; font-family: monospace; }
+                      .subtotal-row { font-weight: bold; background: #f8f8f8; }
+                      .total-row { font-weight: bold; background: #e0f2fe; font-size: 15px; }
+                      .grand-total { font-weight: bold; background: #1a365d; color: white; font-size: 16px; }
+                      .balance-check { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; }
+                      .balanced { background: #dcfce7; color: #166534; }
+                      .unbalanced { background: #fee2e2; color: #991b1b; }
+                      .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
+                      @media print { body { padding: 20px; } }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="header">
+                      <div class="company-name">${activeCompany?.name || 'Empresa'}</div>
+                      <div class="report-title">Balance General</div>
+                      <div class="date">Al ${new Date(dateRange.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+                    </div>
+                    
+                    <table>
+                      <tr class="section-header"><td colspan="2">ACTIVOS</td></tr>
+                      <tr class="subsection"><td colspan="2">Activos Circulantes</td></tr>
+                      ${activosCircRows}
+                      <tr class="subtotal-row"><td>Total Activos Circulantes</td><td class="amount">$${totalActivosCirc.toLocaleString()}</td></tr>
+                      
+                      <tr class="subsection"><td colspan="2">Activos Fijos</td></tr>
+                      ${activosFijosRows}
+                      <tr class="subtotal-row"><td>Total Activos Fijos</td><td class="amount">$${totalActivosFijos.toLocaleString()}</td></tr>
+                      
+                      <tr class="total-row"><td>TOTAL ACTIVOS</td><td class="amount">$${totalActivos.toLocaleString()}</td></tr>
+                    </table>
+                    
+                    <table>
+                      <tr class="section-header"><td colspan="2">PASIVOS</td></tr>
+                      <tr class="subsection"><td colspan="2">Pasivos a Corto Plazo</td></tr>
+                      ${pasivosCortoRows}
+                      <tr class="subtotal-row"><td>Total Pasivos Corto Plazo</td><td class="amount">$${totalPasivosCorto.toLocaleString()}</td></tr>
+                      
+                      <tr class="subsection"><td colspan="2">Pasivos a Largo Plazo</td></tr>
+                      ${pasivosLargoRows}
+                      <tr class="subtotal-row"><td>Total Pasivos Largo Plazo</td><td class="amount">$${totalPasivosLargo.toLocaleString()}</td></tr>
+                      
+                      <tr class="total-row"><td>TOTAL PASIVOS</td><td class="amount">$${totalPasivos.toLocaleString()}</td></tr>
+                    </table>
+                    
+                    <table>
+                      <tr class="section-header"><td colspan="2">CAPITAL CONTABLE</td></tr>
+                      ${capitalRows}
+                      <tr class="total-row"><td>TOTAL CAPITAL</td><td class="amount">$${totalCapital.toLocaleString()}</td></tr>
+                      
+                      <tr class="grand-total"><td>TOTAL PASIVOS + CAPITAL</td><td class="amount">$${totalPasivosCapital.toLocaleString()}</td></tr>
+                    </table>
+                    
+                    <div class="balance-check ${Math.abs(totalActivos - totalPasivosCapital) < 0.01 ? 'balanced' : 'unbalanced'}">
+                      ${Math.abs(totalActivos - totalPasivosCapital) < 0.01 
+                        ? '✓ Balance Cuadrado: Activos = Pasivos + Capital' 
+                        : '⚠ Diferencia detectada: $' + Math.abs(totalActivos - totalPasivosCapital).toLocaleString()}
+                    </div>
+                    
+                    <div class="footer">
+                      <p>Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      <p>Este reporte fue generado automáticamente por el sistema de contabilidad.</p>
+                    </div>
+                  </body>
+                  </html>
+                `)
+                printWindow.document.close()
+                printWindow.focus()
+                setTimeout(() => printWindow.print(), 250)
+              }
             }}>
               <Printer className="w-4 h-4 mr-2" />
               Imprimir

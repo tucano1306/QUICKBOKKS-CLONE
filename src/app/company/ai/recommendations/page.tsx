@@ -81,11 +81,7 @@ export default function AIRecommendationsPage() {
         setLoading(true)
         setError(null)
         
-        const response = await fetch('/api/ai/recommendations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companyId: activeCompany.id })
-        })
+        const response = await fetch(`/api/ai/recommendations?companyId=${activeCompany.id}`)
         
         if (!response.ok) {
           throw new Error('Error al cargar recomendaciones')
@@ -93,11 +89,11 @@ export default function AIRecommendationsPage() {
         
         const data = await response.json()
         setRecommendations(data.recommendations || [])
-        setStats(data.stats || {
-          totalRecommendations: 0,
-          potentialSavings: 0,
-          potentialRevenue: 0,
-          avgROI: 0
+        setStats({
+          totalRecommendations: data.summary?.totalRecommendations || 0,
+          potentialSavings: data.summary?.totalPotentialSavings || 0,
+          potentialRevenue: data.summary?.totalPotentialRevenue || 0,
+          avgROI: data.summary?.avgROI || 0
         })
       } catch (err) {
         console.error('Error fetching recommendations:', err)
