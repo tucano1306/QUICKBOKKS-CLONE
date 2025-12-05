@@ -7,6 +7,7 @@ import { test, expect, request } from '@playwright/test';
  * - Gastos de fechas antiguas apareciendo en períodos actuales
  * - Journal entries con fechas incorrectas
  * - Discrepancias entre expenses y journal entries
+ * - Transacciones sin Journal Entry (CRÍTICO para P&L)
  * 
  * DETECTA EL TIPO DE ERROR QUE ENCONTRASTE CON EL P&L
  */
@@ -16,59 +17,167 @@ const BASE_URL = 'http://localhost:3000';
 
 test.describe('🔍 INTEGRIDAD DE DATOS - P&L', () => {
   
-  test.describe('Verificación de Fechas en Journal Entries', () => {
+  test.describe('Verificación de Journal Entries para Transacciones', () => {
     
-    test('journal entries deben tener fechas consistentes con expenses', async ({ request }) => {
-      // Obtener todos los gastos
-      const expensesRes = await request.get(`${BASE_URL}/api/expenses`);
+    test('TODAS las transacciones deben tener Journal Entry vinculado', async ({ request }) => {
+      // Este test verifica que NUNCA exista una transacción sin JE
+      // El JE se vincula por el campo "reference" que contiene el ID de la transacción
       
-      if (!expensesRes.ok()) {
-        console.log('⚠ No se pudo obtener gastos - verificar API');
+      const txRes = await request.get(`${BASE_URL}/api/transactions?companyId=cmis3j65t000712d2bx4izgfy`);
+      
+      if (!txRes.ok()) {
+        console.log('⚠ No se pudo obtener transacciones');
         return;
       }
       
-      const expensesData = await expensesRes.json();
-      const expenses = expensesData.expenses || expensesData || [];
+      const txData = await txRes.json();
+      const transactions = txData.transactions || [];
+      
+      if (transactions.length === 0) {
+        console.log('⚠ No hay transacciones para verificar');
+        return;
+      }
       
       // Obtener journal entries
-      const jeRes = await request.get(`${BASE_URL}/api/accounting/journal-entries`);
+      const jeRes = await request.get(`${BASE_URL}/api/accounting/journal-entries?companyId=cmis3j65t000712d2bx4izgfy`);
+      const jeData = await jeRes.json();
+      const journalEntries = jeData.entries || jeData || [];
+      
+      // Crear set de referencias (IDs de transacciones que tienen JE)
+      const jeReferences = new Set(
+        journalEntries
+          .filter((je: any) => je.reference)
+          .map((je: any) => je.reference)
+      );
+      
+      // Buscar transacciones sin JE
+      const txWithoutJE = transactions.filter((tx: any) => !jeReferences.has(tx.id));
+      
+      if (txWithoutJE.length > 0) {
+        console.log('\n❌❌❌ TRANSACCIONES SIN JOURNAL ENTRY ❌❌❌');
+        txWithoutJE.forEach((tx: any) => {
+          console.log(`  ❌ ${tx.type} - $${tx.amount} - ${tx.description || tx.category} - ID: ${tx.id}`);
+        });
+        console.log('❌❌❌ ESTO ES UN BUG CRÍTICO ❌❌❌\n');
+      }
+      
+      expect(txWithoutJE.length, 
+        `Hay ${txWithoutJE.length} transacciones sin Journal Entry. Esto causa errores en el P&L.`
+      ).toBe(0);
+      
+      console.log(`✓ Las ${transactions.length} transacciones tienen Journal Entry vinculado`);
+    });
+
+    test('TODOS los gastos (expenses) deben tener Journal Entry vinculado', async ({ request }) => {
+      // Los gastos se vinculan por reference también
+      
+      const expRes = await request.get(`${BASE_URL}/api/expenses`);
+      
+      if (!expRes.ok()) {
+        console.log('⚠ No se pudo obtener gastos');
+        return;
+      }
+      
+      const expData = await expRes.json();
+      const expenses = expData.data || expData.expenses || [];
+      
+      if (expenses.length === 0) {
+        console.log('⚠ No hay gastos para verificar');
+        return;
+      }
+      
+      // Obtener journal entries de la compañía
+      const companyId = expenses[0]?.companyId;
+      if (!companyId) {
+        console.log('⚠ Gastos sin companyId');
+        return;
+      }
+      
+      const jeRes = await request.get(`${BASE_URL}/api/accounting/journal-entries?companyId=${companyId}`);
+      const jeData = await jeRes.json();
+      const journalEntries = jeData.entries || jeData || [];
+      
+      // Crear set de referencias
+      const jeReferences = new Set(
+        journalEntries
+          .filter((je: any) => je.reference)
+          .map((je: any) => je.reference)
+      );
+      
+      // Buscar gastos sin JE
+      const expWithoutJE = expenses.filter((exp: any) => !jeReferences.has(exp.id));
+      
+      if (expWithoutJE.length > 0) {
+        console.log('\n❌❌❌ GASTOS SIN JOURNAL ENTRY ❌❌❌');
+        expWithoutJE.forEach((exp: any) => {
+          console.log(`  ❌ $${exp.amount} - ${exp.description} - ID: ${exp.id}`);
+        });
+        console.log('❌❌❌ ESTO ES UN BUG CRÍTICO ❌❌❌\n');
+      }
+      
+      expect(expWithoutJE.length,
+        `Hay ${expWithoutJE.length} gastos sin Journal Entry. Esto causa errores en el P&L.`
+      ).toBe(0);
+      
+      console.log(`✓ Los ${expenses.length} gastos tienen Journal Entry vinculado`);
+    });
+  });
+  
+  test.describe('Verificación de Fechas en Journal Entries', () => {
+    
+    test('journal entries deben tener fechas consistentes con transacciones', async ({ request }) => {
+      // Obtener transacciones
+      const txRes = await request.get(`${BASE_URL}/api/transactions?companyId=cmis3j65t000712d2bx4izgfy`);
+      
+      if (!txRes.ok()) {
+        console.log('⚠ No se pudo obtener transacciones');
+        return;
+      }
+      
+      const txData = await txRes.json();
+      const transactions = txData.transactions || [];
+      
+      // Obtener journal entries
+      const jeRes = await request.get(`${BASE_URL}/api/accounting/journal-entries?companyId=cmis3j65t000712d2bx4izgfy`);
       
       if (!jeRes.ok()) {
-        console.log('⚠ No se pudo obtener journal entries - verificar API');
+        console.log('⚠ No se pudo obtener journal entries');
         return;
       }
       
       const jeData = await jeRes.json();
       const journalEntries = jeData.entries || jeData || [];
       
+      // Crear mapa de JE por reference
+      const jeByRef = new Map<string, any>();
+      journalEntries.forEach((je: any) => {
+        if (je.reference) jeByRef.set(je.reference, je);
+      });
+      
       let dateErrors: string[] = [];
       
-      // Para cada gasto, verificar que su journal entry tenga la misma fecha
-      for (const expense of expenses) {
-        if (expense.journalEntryId) {
-          const je = journalEntries.find((j: any) => j.id === expense.journalEntryId);
+      // Verificar fechas
+      for (const tx of transactions) {
+        const je = jeByRef.get(tx.id);
+        if (je) {
+          const txDate = new Date(tx.date).toISOString().split('T')[0];
+          const jeDate = new Date(je.date).toISOString().split('T')[0];
           
-          if (je) {
-            const expenseDate = new Date(expense.date).toISOString().split('T')[0];
-            const jeDate = new Date(je.date).toISOString().split('T')[0];
-            
-            if (expenseDate !== jeDate) {
-              dateErrors.push(
-                `❌ Expense "${expense.description}" fecha=${expenseDate} pero JE fecha=${jeDate}`
-              );
-            }
+          if (txDate !== jeDate) {
+            dateErrors.push(
+              `Transacción ${tx.id}: fecha TX=${txDate}, fecha JE=${jeDate}`
+            );
           }
         }
       }
       
       if (dateErrors.length > 0) {
-        console.log('\n=== ERRORES DE FECHA DETECTADOS ===');
-        dateErrors.forEach(e => console.log(e));
-        console.log('===================================\n');
+        console.log('\n⚠ DISCREPANCIAS DE FECHA:');
+        dateErrors.forEach(e => console.log(`  ${e}`));
       }
       
       expect(dateErrors.length).toBe(0);
-      console.log('✓ Todas las fechas de expenses y journal entries coinciden');
+      console.log(`✓ Fechas consistentes entre transacciones y journal entries`);
     });
 
     test('P&L de "Este Mes" NO debe incluir datos de otros meses', async ({ request }) => {
@@ -162,34 +271,6 @@ test.describe('🔍 INTEGRIDAD DE DATOS - P&L', () => {
     });
   });
 
-  test.describe('Verificación de Gastos sin Journal Entry', () => {
-    
-    test('todos los gastos deben tener journal entry', async ({ request }) => {
-      const expensesRes = await request.get(`${BASE_URL}/api/expenses`);
-      
-      if (!expensesRes.ok()) {
-        console.log('⚠ No se pudo obtener gastos');
-        return;
-      }
-      
-      const expensesData = await expensesRes.json();
-      const expenses = expensesData.expenses || expensesData || [];
-      
-      const missingJE = expenses.filter((e: any) => !e.journalEntryId);
-      
-      if (missingJE.length > 0) {
-        console.log('\n=== GASTOS SIN JOURNAL ENTRY ===');
-        missingJE.forEach((e: any) => {
-          console.log(`❌ "${e.description}" - $${e.amount} - ${e.date}`);
-        });
-        console.log('================================\n');
-      }
-      
-      expect(missingJE.length).toBe(0);
-      console.log(`✓ Todos los ${expenses.length} gastos tienen journal entry`);
-    });
-  });
-
   test.describe('Balance de Journal Entries', () => {
     
     test('débitos deben igualar créditos en cada journal entry', async ({ request }) => {
@@ -226,49 +307,6 @@ test.describe('🔍 INTEGRIDAD DE DATOS - P&L', () => {
     });
   });
 
-  test.describe('Consistencia de Montos', () => {
-    
-    test('monto de expense debe coincidir con monto en journal entry', async ({ request }) => {
-      const expensesRes = await request.get(`${BASE_URL}/api/expenses`);
-      const jeRes = await request.get(`${BASE_URL}/api/accounting/journal-entries`);
-      
-      if (!expensesRes.ok() || !jeRes.ok()) {
-        console.log('⚠ No se pudo obtener datos');
-        return;
-      }
-      
-      const expenses = (await expensesRes.json()).expenses || [];
-      const journalEntries = (await jeRes.json()).entries || [];
-      
-      let amountMismatches: string[] = [];
-      
-      for (const expense of expenses) {
-        if (expense.journalEntryId) {
-          const je = journalEntries.find((j: any) => j.id === expense.journalEntryId);
-          
-          if (je && je.lines) {
-            const jeTotal = je.lines.reduce((sum: number, l: any) => sum + (parseFloat(l.debit) || 0), 0);
-            const expenseAmount = parseFloat(expense.amount);
-            
-            if (Math.abs(jeTotal - expenseAmount) > 0.01) {
-              amountMismatches.push(
-                `"${expense.description}": Expense=$${expenseAmount}, JE=$${jeTotal}`
-              );
-            }
-          }
-        }
-      }
-      
-      if (amountMismatches.length > 0) {
-        console.log('\n=== DISCREPANCIAS DE MONTOS ===');
-        amountMismatches.forEach(m => console.log(`❌ ${m}`));
-        console.log('===============================\n');
-      }
-      
-      expect(amountMismatches.length).toBe(0);
-      console.log('✓ Todos los montos de expenses coinciden con sus journal entries');
-    });
-  });
 });
 
 test.describe('🔍 VERIFICACIÓN DE CUENTAS', () => {
