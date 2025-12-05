@@ -58,24 +58,22 @@ export async function GET(request: NextRequest) {
         
         if (line.account.type === 'REVENUE') {
           // Revenue: balance normal es CRÉDITO
+          // Créditos aumentan ingresos, Débitos los disminuyen (reversiones)
           const amount = (line.credit || 0) - (line.debit || 0);
-          if (amount > 0) {
-            journalRevenue += amount;
-            if (!incomeByCategory[line.account.name]) {
-              incomeByCategory[line.account.name] = { name: line.account.name, amount: 0 };
-            }
-            incomeByCategory[line.account.name].amount += amount;
+          journalRevenue += amount; // Puede ser negativo (reversiones)
+          if (!incomeByCategory[line.account.name]) {
+            incomeByCategory[line.account.name] = { name: line.account.name, amount: 0 };
           }
+          incomeByCategory[line.account.name].amount += amount;
         } else if (line.account.type === 'EXPENSE') {
           // Expense: balance normal es DÉBITO
+          // Débitos aumentan gastos, Créditos los disminuyen (reversiones)
           const amount = (line.debit || 0) - (line.credit || 0);
-          if (amount > 0) {
-            journalExpenses += amount;
-            if (!expensesByCategory[line.account.name]) {
-              expensesByCategory[line.account.name] = { name: line.account.name, amount: 0 };
-            }
-            expensesByCategory[line.account.name].amount += amount;
+          journalExpenses += amount; // Puede ser negativo (reversiones)
+          if (!expensesByCategory[line.account.name]) {
+            expensesByCategory[line.account.name] = { name: line.account.name, amount: 0 };
           }
+          expensesByCategory[line.account.name].amount += amount;
         }
       }
     }
