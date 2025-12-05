@@ -139,25 +139,47 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
 
       if (!response.ok) throw new Error('Failed to get AI response')
 
-      const data = await response.json()
+      let data;
+      try {
+        const text = await response.text()
+        data = JSON.parse(text)
+      } catch (parseError) {
+        console.error('Error parsing AI response:', parseError)
+        throw new Error('Error al procesar respuesta de IA')
+      }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response,
+        content: data.response || 'Lo siento, no pude procesar tu solicitud.',
         timestamp: new Date(),
-        suggestions: data.suggestions
+        suggestions: data.suggestions || []
       }
 
       setMessages(prev => [...prev, assistantMessage])
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Assistant error:', error)
       
+      // Mostrar mensaje de error más amigable
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `⚠️ ${error.message || 'Error al conectar con el asistente. Por favor intenta de nuevo.'}`,
+        timestamp: new Date(),
+        suggestions: ['Intenta de nuevo', '¿Cuál es mi balance?', '¿Tengo facturas pendientes?']
+      }
+      setMessages(prev => [...prev, errorMessage])
+      setIsLoading(false)
+      return
+    }
+    setIsLoading(false)
+  }
+
+  // Manejar respuestas simuladas en caso de error adicional  
+  const handleSimulatedResponse = (query: string) => {
       // Respuestas inteligentes simuladas basadas en palabras clave
       let simulatedResponse = ''
       let simulatedSuggestions: string[] = []
-      
-      const query = inputValue.toLowerCase()
       
       if (query.includes('balance') || query.includes('estado financiero') || query.includes('situación')) {
         simulatedResponse = `📊 **Estado Financiero Actual de ${activeCompany?.name}**\n\n💰 **Balance General:**\n• Activos Totales: $2,450,000\n• Pasivos: $890,000\n• Capital: $1,560,000\n• Liquidez Inmediata: $450,000\n\n📈 **Estado de Resultados (Este Mes):**\n• Ingresos: $385,000\n• Gastos: $245,000\n• Utilidad Neta: $140,000 (+57%)\n\n✅ **Salud Financiera: EXCELENTE**\n• Ratio de liquidez: 2.8 (saludable)\n• Margen de utilidad: 36%\n• ROI: 24% anual\n\n💡 **Recomendaciones:**\n1. Considera invertir el excedente de liquidez\n2. Tus márgenes están por encima del promedio de la industria\n3. Mantén el control de gastos operativos`
@@ -226,9 +248,7 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
         suggestions: simulatedSuggestions
       }
       setMessages(prev => [...prev, assistantMessage])
-    } finally {
       setIsLoading(false)
-    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

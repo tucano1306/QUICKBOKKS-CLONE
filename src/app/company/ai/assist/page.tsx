@@ -293,7 +293,18 @@ export default function AIAssistPage() {
         })
       })
 
-      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`)
+      }
+
+      let data
+      try {
+        const text = await response.text()
+        data = JSON.parse(text)
+      } catch (parseError) {
+        console.error('Error parsing JSON:', parseError)
+        throw new Error('Error al procesar respuesta del servidor')
+      }
 
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),

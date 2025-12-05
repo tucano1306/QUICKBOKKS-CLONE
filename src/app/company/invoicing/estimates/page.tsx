@@ -137,7 +137,7 @@ export default function EstimatesPage() {
   const totalEstimates = estimates.length
   const totalValue = estimates.reduce((sum, e) => sum + e.total, 0)
   const acceptedCount = estimates.filter(e => e.status === 'accepted').length
-  const acceptanceRate = ((acceptedCount / totalEstimates) * 100).toFixed(0)
+  const acceptanceRate = totalEstimates > 0 ? ((acceptedCount / totalEstimates) * 100).toFixed(0) : '0'
   const pendingValue = estimates
     .filter(e => e.status === 'sent')
     .reduce((sum, e) => sum + e.total, 0)

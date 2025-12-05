@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import DateRangeSelector from '@/components/ui/date-range-selector'
+import { AnimatedBarChart, AnimatedDonutChart, AnimatedProgress, Sparkline, AnimatedCounter } from '@/components/ui/animated-charts'
 import { 
   Calendar, 
   TrendingUp, 
@@ -21,7 +22,8 @@ import {
   PieChart,
   LineChart,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Activity
 } from 'lucide-react'
 
 interface DateRange {
@@ -314,68 +316,126 @@ export default function ComparativeReportsPage() {
           </CardContent>
         </Card>
 
-        {/* Summary Cards */}
+        {/* Summary Cards with Animations */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-4">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 relative">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-green-700">Total Ingresos</div>
-                <TrendingUp className="w-5 h-5 text-green-600" />
+                <div className="flex items-center gap-2">
+                  <Sparkline data={currentData.map(d => d.ingresos)} color="#22c55e" height={20} width={40} />
+                  <TrendingUp className="w-5 h-5 text-green-600 group-hover:scale-110 transition-transform" />
+                </div>
               </div>
               <div className="text-2xl font-bold text-green-900">
-                ${totalIngresos.toLocaleString()}
+                <AnimatedCounter value={totalIngresos} prefix="$" duration={1500} />
               </div>
               <p className="text-xs text-green-700 mt-1">
                 {currentData.length} periodos
               </p>
+              <AnimatedProgress value={100} color="green" height={4} showValue={false} className="mt-2" />
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-4">
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 relative">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-red-700">Total Gastos</div>
-                <TrendingDown className="w-5 h-5 text-red-600" />
+                <div className="flex items-center gap-2">
+                  <Sparkline data={currentData.map(d => d.gastos)} color="#ef4444" height={20} width={40} />
+                  <TrendingDown className="w-5 h-5 text-red-600 group-hover:scale-110 transition-transform" />
+                </div>
               </div>
               <div className="text-2xl font-bold text-red-900">
-                ${totalGastos.toLocaleString()}
+                <AnimatedCounter value={totalGastos} prefix="$" duration={1500} />
               </div>
               <p className="text-xs text-red-700 mt-1">
-                {((totalGastos / totalIngresos) * 100).toFixed(1)}% de ingresos
+                {totalIngresos > 0 ? ((totalGastos / totalIngresos) * 100).toFixed(1) : '0.0'}% de ingresos
               </p>
+              <AnimatedProgress value={totalIngresos > 0 ? Math.round((totalGastos / totalIngresos) * 100) : 0} color="red" height={4} showValue={false} className="mt-2" />
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-4">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 relative">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-blue-700">Utilidad Neta</div>
-                <DollarSign className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center gap-2">
+                  <Sparkline data={currentData.map(d => d.utilidad)} color="#3b82f6" height={20} width={40} />
+                  <DollarSign className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
+                </div>
               </div>
               <div className="text-2xl font-bold text-blue-900">
-                ${totalUtilidad.toLocaleString()}
+                <AnimatedCounter value={totalUtilidad} prefix="$" duration={1500} />
               </div>
               <p className="text-xs text-blue-700 mt-1">
                 Acumulado del periodo
               </p>
+              <AnimatedProgress value={Math.round((totalUtilidad / totalIngresos) * 100)} color="blue" height={4} showValue={false} className="mt-2" />
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-4">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 relative">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-purple-700">Margen Promedio</div>
-                <PieChart className="w-5 h-5 text-purple-600" />
+                <div className="flex items-center gap-2">
+                  <Sparkline data={currentData.map(d => d.margen)} color="#a855f7" height={20} width={40} />
+                  <PieChart className="w-5 h-5 text-purple-600 group-hover:scale-110 transition-transform" />
+                </div>
               </div>
               <div className="text-2xl font-bold text-purple-900">
-                {promedioMargen.toFixed(1)}%
+                <AnimatedCounter value={promedioMargen} suffix="%" decimals={1} duration={1500} />
               </div>
               <p className="text-xs text-purple-700 mt-1">
                 Promedio de {currentData.length} periodos
               </p>
+              <AnimatedProgress value={Math.round(promedioMargen)} color="purple" height={4} showValue={false} className="mt-2" />
             </CardContent>
           </Card>
         </div>
+
+        {/* Gráficos Visuales */}
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b bg-gradient-to-r from-indigo-50 to-purple-50">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-indigo-600" />
+              Visualización Comparativa
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Gráfico de barras - Ingresos vs Gastos */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-4">Ingresos por Período</h4>
+                <AnimatedBarChart
+                  data={currentData.slice(0, 6).map(d => ({
+                    label: d.period.substring(0, 3),
+                    value: d.ingresos,
+                    color: 'from-green-500 to-emerald-500'
+                  }))}
+                  height={150}
+                  animated={true}
+                />
+              </div>
+
+              {/* Dona - Distribución */}
+              <div className="flex flex-col items-center">
+                <h4 className="text-sm font-semibold text-gray-700 mb-4">Distribución Ingresos vs Gastos</h4>
+                <AnimatedDonutChart
+                  data={[
+                    { label: 'Utilidad', value: totalUtilidad, color: '#22c55e' },
+                    { label: 'Gastos', value: totalGastos, color: '#ef4444' },
+                  ]}
+                  size={150}
+                  thickness={25}
+                  centerLabel="Total"
+                  animated={true}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Comparative Table */}
         <Card>

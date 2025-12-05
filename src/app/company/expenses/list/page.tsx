@@ -20,7 +20,9 @@ import {
   Clock,
   DollarSign,
   Receipt,
-  AlertCircle
+  AlertCircle,
+  Square,
+  CheckSquare
 } from 'lucide-react'
 
 interface Expense {
@@ -63,6 +65,14 @@ export default function ExpensesListPage() {
     totalAmount: 0,
     deductibleAmount: 0
   })
+
+  // Estados para selección múltiple
+  const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
+
+  // Estados para filtro de fechas
+  const [dateFrom, setDateFrom] = useState<string>('')
+  const [dateTo, setDateTo] = useState<string>('')
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -153,8 +163,22 @@ export default function ExpensesListPage() {
       filtered = filtered.filter(e => e.category.id === categoryFilter)
     }
 
+    // Date from filter
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom)
+      fromDate.setHours(0, 0, 0, 0)
+      filtered = filtered.filter(e => new Date(e.date) >= fromDate)
+    }
+
+    // Date to filter
+    if (dateTo) {
+      const toDate = new Date(dateTo)
+      toDate.setHours(23, 59, 59, 999)
+      filtered = filtered.filter(e => new Date(e.date) <= toDate)
+    }
+
     setFilteredExpenses(filtered)
-  }, [searchTerm, statusFilter, categoryFilter, expenses])
+  }, [searchTerm, statusFilter, categoryFilter, dateFrom, dateTo, expenses])
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar este gasto?')) return
@@ -177,6 +201,66 @@ export default function ExpensesListPage() {
       setMessage({ type: 'error', text: 'Error al eliminar el gasto' })
       setTimeout(() => setMessage(null), 3000)
     }
+  }
+
+  // Eliminar múltiples gastos
+  const handleDeleteMultiple = async () => {
+    if (selectedExpenses.size === 0) return
+    
+    if (!confirm(`¿Estás seguro de eliminar ${selectedExpenses.size} gasto(s)? Esta acción no se puede deshacer.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/expenses', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedExpenses) })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setExpenses(expenses.filter(e => !selectedExpenses.has(e.id)))
+        setMessage({ type: 'success', text: data.message || `${selectedExpenses.size} gasto(s) eliminado(s)` })
+        setSelectedExpenses(new Set())
+        setSelectMode(false)
+        setTimeout(() => setMessage(null), 3000)
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al eliminar gastos' })
+        setTimeout(() => setMessage(null), 3000)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setMessage({ type: 'error', text: 'Error al eliminar gastos' })
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
+  // Toggle selección de gasto
+  const toggleSelectExpense = (expenseId: string) => {
+    const newSelected = new Set(selectedExpenses)
+    if (newSelected.has(expenseId)) {
+      newSelected.delete(expenseId)
+    } else {
+      newSelected.add(expenseId)
+    }
+    setSelectedExpenses(newSelected)
+  }
+
+  // Seleccionar todos los gastos filtrados
+  const selectAllExpenses = () => {
+    if (selectedExpenses.size === filteredExpenses.length) {
+      setSelectedExpenses(new Set())
+    } else {
+      setSelectedExpenses(new Set(filteredExpenses.map(e => e.id)))
+    }
+  }
+
+  // Cancelar modo selección
+  const cancelSelectMode = () => {
+    setSelectMode(false)
+    setSelectedExpenses(new Set())
   }
 
   const handleStatusChange = async (id: string, newStatus: string) => {
@@ -293,14 +377,41 @@ export default function ExpensesListPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={exportToCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-            <Button onClick={() => router.push('/company/expenses/new')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Gasto
-            </Button>
+            {/* Modo selección múltiple */}
+            {selectMode ? (
+              <>
+                <Button variant="outline" onClick={selectAllExpenses}>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  {selectedExpenses.size === filteredExpenses.length ? 'Deseleccionar' : 'Seleccionar Todo'}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDeleteMultiple}
+                  disabled={selectedExpenses.size === 0}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar ({selectedExpenses.size})
+                </Button>
+                <Button variant="outline" onClick={cancelSelectMode}>
+                  Cancelar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setSelectMode(true)}>
+                  <Square className="h-4 w-4 mr-2" />
+                  Seleccionar
+                </Button>
+                <Button variant="outline" onClick={exportToCSV}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+                <Button onClick={() => router.push('/company/expenses/new')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nuevo Gasto
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -357,9 +468,9 @@ export default function ExpensesListPage() {
 
         {/* Filters */}
         <Card className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             {/* Search */}
-            <div className="relative">
+            <div className="relative lg:col-span-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
@@ -367,6 +478,28 @@ export default function ExpensesListPage() {
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Date From */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Desde</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Date To */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={e => setDateTo(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -396,14 +529,28 @@ export default function ExpensesListPage() {
                 </option>
               ))}
             </select>
-
+          </div>
+          
+          {/* Segunda fila con botón de limpiar */}
+          <div className="mt-3 flex justify-between items-center">
+            <div className="text-sm text-gray-500">
+              {filteredExpenses.length} de {expenses.length} gastos
+              {(dateFrom || dateTo) && (
+                <span className="ml-2 text-blue-600">
+                  • Filtrando por fecha
+                </span>
+              )}
+            </div>
             {/* Clear Filters */}
             <Button
               variant="outline"
+              size="sm"
               onClick={() => {
                 setSearchTerm('')
                 setStatusFilter('ALL')
                 setCategoryFilter('ALL')
+                setDateFrom('')
+                setDateTo('')
               }}
             >
               <Filter className="h-4 w-4 mr-2" />
@@ -418,6 +565,17 @@ export default function ExpensesListPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  {/* Columna de checkbox para selección múltiple */}
+                  {selectMode && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={selectedExpenses.size === filteredExpenses.length && filteredExpenses.length > 0}
+                        onChange={selectAllExpenses}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Fecha
                   </th>
@@ -444,7 +602,7 @@ export default function ExpensesListPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {!Array.isArray(filteredExpenses) || filteredExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
+                    <td colSpan={selectMode ? 8 : 7} className="px-6 py-12 text-center">
                       <Receipt className="h-16 w-16 mx-auto mb-3 text-gray-400" />
                       <p className="text-gray-600 mb-4">
                         {searchTerm || statusFilter !== 'ALL' || categoryFilter !== 'ALL'
@@ -459,7 +617,21 @@ export default function ExpensesListPage() {
                   </tr>
                 ) : (
                   filteredExpenses.map(expense => (
-                    <tr key={expense.id} className="hover:bg-gray-50">
+                    <tr 
+                      key={expense.id} 
+                      className={`hover:bg-gray-50 ${selectedExpenses.has(expense.id) ? 'bg-blue-50' : ''}`}
+                    >
+                      {/* Checkbox para selección múltiple */}
+                      {selectMode && (
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedExpenses.has(expense.id)}
+                            onChange={() => toggleSelectExpense(expense.id)}
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(expense.date).toLocaleDateString('es-MX')}
                       </td>
@@ -489,29 +661,31 @@ export default function ExpensesListPage() {
                         {getStatusBadge(expense.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => router.push(`/expenses/${expense.id}`)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Ver detalles"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => router.push(`/company/expenses/${expense.id}/edit`)}
-                            className="text-green-600 hover:text-green-800"
-                            title="Editar"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(expense.id)}
-                            className="text-red-600 hover:text-red-800"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                        {!selectMode && (
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => router.push(`/expenses/${expense.id}`)}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Ver detalles"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => router.push(`/company/expenses/${expense.id}/edit`)}
+                              className="text-green-600 hover:text-green-800"
+                              title="Editar"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(expense.id)}
+                              className="text-red-600 hover:text-red-800"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -520,7 +694,7 @@ export default function ExpensesListPage() {
               {filteredExpenses.length > 0 && (
                 <tfoot className="bg-gray-50 border-t-2">
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-sm font-semibold text-gray-900">
+                    <td colSpan={selectMode ? 5 : 4} className="px-6 py-4 text-sm font-semibold text-gray-900">
                       Total ({filteredExpenses.length} gastos)
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-right text-gray-900">

@@ -1,27 +1,33 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { validateUserRegistrationRequest, createErrorResponse } from '@/lib/validation-middleware'
-import { validateUserRegistration, sanitizeString } from '@/lib/validation'
+import { sanitizeString } from '@/lib/validation'
 
 export async function POST(req: NextRequest) {
   try {
-    // Validate request data
-    const { data: body, error: validationError } = await validateUserRegistrationRequest(req)
-    if (validationError) return validationError
-
+    const body = await req.json()
     const { name, email, password, company } = body
 
-    // Additional validation
-    const validation = validateUserRegistration({
-      name,
-      email,
-      password,
-      confirmPassword: password, // In real app, this should come from body
-    })
+    // Validación básica
+    if (!name || name.length < 2) {
+      return NextResponse.json(
+        { error: 'El nombre debe tener al menos 2 caracteres' },
+        { status: 400 }
+      )
+    }
 
-    if (!validation.isValid) {
-      return createErrorResponse(validation.errors.join('; '), 400)
+    if (!email || !email.includes('@')) {
+      return NextResponse.json(
+        { error: 'Email inválido' },
+        { status: 400 }
+      )
+    }
+
+    if (!password || password.length < 6) {
+      return NextResponse.json(
+        { error: 'La contraseña debe tener al menos 6 caracteres' },
+        { status: 400 }
+      )
     }
 
     // Check if user already exists

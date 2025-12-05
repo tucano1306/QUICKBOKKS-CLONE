@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { AnimatedBarChart, AnimatedDonutChart, AnimatedProgress, Sparkline, AnimatedCounter } from '@/components/ui/animated-charts'
 import { 
   Plus,
   Search,
@@ -24,7 +25,8 @@ import {
   Calculator,
   FileText,
   CheckCircle,
-  Info
+  Info,
+  Activity
 } from 'lucide-react'
 
 interface CostBreakdown {
@@ -280,56 +282,116 @@ export default function ProjectCostingPage() {
           </div>
         )}
 
-        {/* Stats */}
+        {/* Stats with Animations */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-blue-600" />
+                <DollarSign className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projectCosts.slice(0, 6).map(p => p.totalBudget)} color="#3b82f6" height={25} width={50} />
               </div>
               <div className="text-2xl font-bold text-blue-900">
-                ${(totalBudget / 1000000).toFixed(2)}M
+                <AnimatedCounter value={totalBudget / 1000000} prefix="$" suffix="M" decimals={2} duration={1500} />
               </div>
               <div className="text-sm text-blue-700">Presupuesto Total</div>
+              <AnimatedProgress value={100} color="blue" height={4} showValue={false} className="mt-3" />
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
+                <TrendingUp className="w-8 h-8 text-purple-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projectCosts.slice(0, 6).map(p => p.totalActualCost)} color="#a855f7" height={25} width={50} />
               </div>
               <div className="text-2xl font-bold text-purple-900">
-                ${(totalActual / 1000000).toFixed(2)}M
+                <AnimatedCounter value={totalActual / 1000000} prefix="$" suffix="M" decimals={2} duration={1500} />
               </div>
               <div className="text-sm text-purple-700">Costo Real Actual</div>
+              <AnimatedProgress value={Math.round((totalActual / totalBudget) * 100)} color="purple" height={4} showValue={false} className="mt-3" />
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <Calculator className="w-8 h-8 text-green-600" />
+                <Calculator className="w-8 h-8 text-green-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projectCosts.slice(0, 6).map(p => p.costVariance)} color="#22c55e" height={25} width={50} />
               </div>
               <div className="text-2xl font-bold text-green-900">
-                ${(totalVariance / 1000000).toFixed(2)}M
+                <AnimatedCounter value={totalVariance / 1000000} prefix="$" suffix="M" decimals={2} duration={1500} />
               </div>
               <div className="text-sm text-green-700">Varianza Restante</div>
+              <AnimatedProgress value={Math.round((totalVariance / totalBudget) * 100)} color="green" height={4} showValue={false} className="mt-3" />
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <PieChart className="w-8 h-8 text-orange-600" />
+                <PieChart className="w-8 h-8 text-orange-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projectCosts.slice(0, 6).map(p => p.costVariancePercent)} color="#f97316" height={25} width={50} />
               </div>
               <div className="text-3xl font-bold text-orange-900">
-                {avgVariancePercent.toFixed(1)}%
+                <AnimatedCounter value={avgVariancePercent} suffix="%" decimals={1} duration={1500} />
               </div>
               <div className="text-sm text-orange-700">Varianza Promedio</div>
+              <AnimatedProgress value={Math.min(100, Math.abs(avgVariancePercent))} color="orange" height={4} showValue={false} className="mt-3" />
             </CardContent>
           </Card>
         </div>
+
+        {/* Gráfico Visual de Costos */}
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b bg-gradient-to-r from-indigo-50 to-purple-50">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-indigo-600" />
+              Análisis Visual de Costos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-4">Presupuesto vs Real por Proyecto (Top 6)</h4>
+                <AnimatedBarChart
+                  data={projectCosts.slice(0, 6).map(p => ({
+                    label: p.projectCode,
+                    value: p.totalBudget,
+                    color: 'from-blue-500 to-indigo-500'
+                  }))}
+                  height={120}
+                  animated={true}
+                />
+                <div className="mt-2" />
+                <AnimatedBarChart
+                  data={projectCosts.slice(0, 6).map(p => ({
+                    label: p.projectCode,
+                    value: p.totalActualCost,
+                    color: p.totalActualCost > p.totalBudget ? 'from-red-500 to-rose-500' : 'from-green-500 to-emerald-500'
+                  }))}
+                  height={120}
+                  animated={true}
+                />
+              </div>
+              <div className="flex flex-col items-center justify-center">
+                <h4 className="text-sm font-semibold text-gray-700 mb-4">Distribución de Costos Reales</h4>
+                <AnimatedDonutChart
+                  data={[
+                    { label: 'Mano de Obra', value: projectCosts.reduce((sum, p) => sum + p.laborActual, 0), color: '#3b82f6' },
+                    { label: 'Materiales', value: projectCosts.reduce((sum, p) => sum + p.materialsActual, 0), color: '#22c55e' },
+                    { label: 'Equipo', value: projectCosts.reduce((sum, p) => sum + p.equipmentActual, 0), color: '#f97316' },
+                    { label: 'Subcontratistas', value: projectCosts.reduce((sum, p) => sum + p.subcontractorsActual, 0), color: '#a855f7' },
+                    { label: 'Overhead', value: projectCosts.reduce((sum, p) => sum + p.overheadActual, 0), color: '#ec4899' },
+                  ]}
+                  size={160}
+                  thickness={25}
+                  centerLabel="Costos"
+                  animated={true}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Project Selector */}
         <Card>

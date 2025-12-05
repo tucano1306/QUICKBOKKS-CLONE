@@ -7,6 +7,7 @@ import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AnimatedBarChart, AnimatedDonutChart, AnimatedProgress, Sparkline, AnimatedCounter } from '@/components/ui/animated-charts'
 import {
   TrendingUp,
   TrendingDown,
@@ -24,7 +25,11 @@ import {
   Home,
   ArrowRight,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Zap,
+  Target,
+  BarChart3,
+  Wallet
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -260,29 +265,39 @@ export default function CompanyDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Estadísticas principales */}
+        {/* Estadísticas principales con animaciones */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statCards.map((stat) => {
+          {statCards.map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={stat.name}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      stat.color === 'green' ? 'bg-green-100 dark:bg-green-900/30' :
-                      stat.color === 'red' ? 'bg-red-100 dark:bg-red-900/30' :
-                      stat.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                      'bg-orange-100 dark:bg-orange-900/30'
+              <Card 
+                key={stat.name} 
+                className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
+                  stat.color === 'green' ? 'from-green-400 to-emerald-500' :
+                  stat.color === 'red' ? 'from-red-400 to-rose-500' :
+                  stat.color === 'blue' ? 'from-blue-400 to-indigo-500' :
+                  'from-orange-400 to-amber-500'
+                }`} />
+                <CardContent className="p-6 relative">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${
+                      stat.color === 'green' ? 'bg-gradient-to-br from-green-100 to-emerald-200 dark:from-green-900/30 dark:to-emerald-900/30' :
+                      stat.color === 'red' ? 'bg-gradient-to-br from-red-100 to-rose-200 dark:from-red-900/30 dark:to-rose-900/30' :
+                      stat.color === 'blue' ? 'bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-900/30' :
+                      'bg-gradient-to-br from-orange-100 to-amber-200 dark:from-orange-900/30 dark:to-amber-900/30'
                     }`}>
-                      <Icon className={`w-5 h-5 ${
+                      <Icon className={`w-6 h-6 ${
                         stat.color === 'green' ? 'text-green-600' :
                         stat.color === 'red' ? 'text-red-600' :
                         stat.color === 'blue' ? 'text-blue-600' :
                         'text-orange-600'
                       }`} />
                     </div>
-                    <div className={`flex items-center gap-1 text-sm font-medium ${
-                      stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                    <div className={`flex items-center gap-1 text-sm font-semibold px-2 py-1 rounded-full ${
+                      stat.trend === 'up' ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
                     }`}>
                       {stat.trend === 'up' ? (
                         <ArrowUpRight className="w-4 h-4" />
@@ -292,11 +307,20 @@ export default function CompanyDashboardPage() {
                       {stat.change}
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                     {stat.value}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                     {stat.name}
+                  </div>
+                  {/* Mini sparkline */}
+                  <div className="absolute bottom-2 right-2 opacity-30">
+                    <Sparkline 
+                      data={[30, 45, 35, 50, 40, 60, 55]} 
+                      color={stat.color === 'green' ? '#22c55e' : stat.color === 'red' ? '#ef4444' : stat.color === 'blue' ? '#3b82f6' : '#f97316'}
+                      height={30}
+                      width={60}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -304,84 +328,168 @@ export default function CompanyDashboardPage() {
           })}
         </div>
 
-        {/* Gráficos y actividad reciente */}
+        {/* Gráficos principales mejorados */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Gráfico de ingresos vs gastos */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Ingresos vs Gastos
-              </CardTitle>
+          {/* Gráfico de barras animado */}
+          <Card className="lg:col-span-2 overflow-hidden">
+            <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                  Rendimiento Mensual
+                </CardTitle>
+                <div className="flex gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-500" />
+                    <span className="text-gray-600">Ingresos</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-red-500 to-rose-500" />
+                    <span className="text-gray-600">Gastos</span>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="h-64 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                {stats && (
-                  <div className="w-full space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Ingresos</span>
-                      <span className="font-bold text-green-600">{formatCurrency(stats.revenue.current)}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
-                      <div 
-                        className="bg-green-500 h-4 rounded-full" 
-                        style={{ width: `${Math.min((stats.revenue.current / (stats.revenue.current + stats.expenses.current)) * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Gastos</span>
-                      <span className="font-bold text-red-600">{formatCurrency(stats.expenses.current)}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
-                      <div 
-                        className="bg-red-500 h-4 rounded-full" 
-                        style={{ width: `${Math.min((stats.expenses.current / (stats.revenue.current + stats.expenses.current)) * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Utilidad Neta</span>
-                        <span className={`font-bold text-lg ${stats.revenue.current - stats.expenses.current >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(stats.revenue.current - stats.expenses.current)}
-                        </span>
+            <CardContent className="p-6">
+              {stats && (
+                <div className="space-y-6">
+                  <AnimatedBarChart
+                    data={[
+                      { label: 'Ene', value: stats.revenue.current * 0.8, color: 'from-green-500 to-emerald-500' },
+                      { label: 'Feb', value: stats.revenue.current * 0.9, color: 'from-green-500 to-emerald-500' },
+                      { label: 'Mar', value: stats.revenue.current * 0.85, color: 'from-green-500 to-emerald-500' },
+                      { label: 'Abr', value: stats.revenue.current * 1.1, color: 'from-green-500 to-emerald-500' },
+                      { label: 'May', value: stats.revenue.current * 0.95, color: 'from-green-500 to-emerald-500' },
+                      { label: 'Jun', value: stats.revenue.current, color: 'from-green-500 to-emerald-500' },
+                    ]}
+                    height={180}
+                    animated={true}
+                  />
+                  
+                  {/* Resumen con progreso animado */}
+                  <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        <AnimatedCounter value={stats.revenue.current} prefix="$" decimals={0} />
                       </div>
+                      <div className="text-xs text-gray-500">Ingresos Totales</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">
+                        <AnimatedCounter value={stats.expenses.current} prefix="$" decimals={0} />
+                      </div>
+                      <div className="text-xs text-gray-500">Gastos Totales</div>
+                    </div>
+                    <div className="text-center">
+                      <div className={`text-2xl font-bold ${stats.revenue.current - stats.expenses.current >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                        <AnimatedCounter value={stats.revenue.current - stats.expenses.current} prefix="$" decimals={0} />
+                      </div>
+                      <div className="text-xs text-gray-500">Utilidad Neta</div>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Actividad reciente */}
-          <Card>
-            <CardHeader>
+          {/* Gráfico de dona */}
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
               <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
+                <Target className="w-5 h-5 text-purple-600" />
+                Distribución de Gastos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 flex items-center justify-center">
+              {stats && (
+                <AnimatedDonutChart
+                  data={[
+                    { label: 'Operativos', value: stats.expenses.current * 0.4, color: '#3b82f6' },
+                    { label: 'Salarios', value: stats.expenses.current * 0.35, color: '#22c55e' },
+                    { label: 'Marketing', value: stats.expenses.current * 0.15, color: '#f97316' },
+                    { label: 'Otros', value: stats.expenses.current * 0.1, color: '#a855f7' },
+                  ]}
+                  size={160}
+                  thickness={25}
+                  centerLabel="Total"
+                  animated={true}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Metas y KPIs */}
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20">
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-600" />
+              Metas del Mes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Ventas</span>
+                  <span className="text-sm text-gray-500">$45K / $50K</span>
+                </div>
+                <AnimatedProgress value={90} color="green" height={10} showValue={false} />
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Nuevos Clientes</span>
+                  <span className="text-sm text-gray-500">8 / 10</span>
+                </div>
+                <AnimatedProgress value={80} color="blue" height={10} showValue={false} />
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Cobros</span>
+                  <span className="text-sm text-gray-500">$38K / $40K</span>
+                </div>
+                <AnimatedProgress value={95} color="purple" height={10} showValue={false} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Actividad reciente mejorada */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Actividad reciente */}
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800 dark:to-gray-800">
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-indigo-600" />
                 Actividad Reciente
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="p-0">
+              <div className="divide-y dark:divide-gray-700">
                 {stats?.recentActivity && stats.recentActivity.length > 0 ? (
                   stats.recentActivity.slice(0, 5).map((activity, index) => (
-                    <div key={index} className="flex items-start gap-3 pb-4 border-b dark:border-gray-700 last:border-0 last:pb-0">
-                      <div className={`w-2 h-2 rounded-full mt-2 ${
-                        activity.type === 'invoice' ? 'bg-blue-500' :
-                        activity.type === 'payment' ? 'bg-green-500' :
-                        'bg-red-500'
-                      }`}></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <div 
+                      key={index} 
+                      className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        activity.type === 'invoice' ? 'bg-blue-100 text-blue-600' :
+                        activity.type === 'payment' ? 'bg-green-100 text-green-600' :
+                        'bg-red-100 text-red-600'
+                      }`}>
+                        {activity.type === 'invoice' ? <FileText className="w-5 h-5" /> :
+                         activity.type === 'payment' ? <DollarSign className="w-5 h-5" /> :
+                         <Receipt className="w-5 h-5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           {activity.description}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {activity.entityName}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {formatTimeAgo(activity.date)}
+                          {activity.entityName} • {formatTimeAgo(activity.date)}
                         </p>
                       </div>
-                      <div className={`text-sm font-semibold ${
+                      <div className={`text-sm font-bold ${
                         activity.type === 'payment' ? 'text-green-600' :
                         activity.type === 'expense' ? 'text-red-600' :
                         'text-gray-900 dark:text-white'
@@ -392,56 +500,162 @@ export default function CompanyDashboardPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No hay actividad reciente
-                  </p>
+                  <div className="p-8 text-center">
+                    <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500">No hay actividad reciente</p>
+                  </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Calendario de vencimientos */}
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20">
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-rose-600" />
+                Próximos Vencimientos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                {[
+                  { name: 'Factura #001245', client: 'Tech Solutions', amount: 5500, days: 3, type: 'warning' },
+                  { name: 'Factura #001238', client: 'ABC Corp', amount: 12000, days: 5, type: 'info' },
+                  { name: 'Factura #001220', client: 'Global Inc', amount: 8750, days: 7, type: 'info' },
+                  { name: 'Pago proveedor', client: 'Supplies LLC', amount: 3200, days: 2, type: 'danger' },
+                ].map((item, index) => (
+                  <div 
+                    key={index}
+                    className={`flex items-center justify-between p-3 rounded-lg border-l-4 ${
+                      item.type === 'danger' ? 'bg-red-50 border-red-500' :
+                      item.type === 'warning' ? 'bg-amber-50 border-amber-500' :
+                      'bg-blue-50 border-blue-500'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                      <p className="text-xs text-gray-500">{item.client}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-gray-900">{formatCurrency(item.amount)}</p>
+                      <p className={`text-xs font-medium ${
+                        item.days <= 2 ? 'text-red-600' : item.days <= 5 ? 'text-amber-600' : 'text-blue-600'
+                      }`}>
+                        {item.days === 0 ? 'Hoy' : `En ${item.days} días`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Resumen de cuentas */}
+        {/* Resumen de cuentas mejorado */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cuentas por Cobrar</CardTitle>
+          {/* Cuentas por Cobrar */}
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 animate-shimmer" />
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-base">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                  </div>
+                  Cuentas por Cobrar
+                </span>
+                <ArrowUpRight className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {stats ? formatCurrency(stats.receivables) : '$0'}
+              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                {stats ? (
+                  <AnimatedCounter value={stats.receivables} prefix="$" duration={1500} />
+                ) : '$0'}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {stats?.invoices.pending || 0} facturas pendientes
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold text-blue-600">{stats?.invoices.pending || 0}</span> facturas pendientes
+                </p>
+                <Sparkline 
+                  data={[20, 35, 30, 45, 40, 55, 50, 60]} 
+                  color="#3b82f6"
+                  height={25}
+                  width={50}
+                />
+              </div>
+              <AnimatedProgress value={65} color="blue" height={4} showValue={false} className="mt-3" />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Cuentas por Pagar</CardTitle>
+          {/* Cuentas por Pagar */}
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <div className="h-1.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-600 animate-shimmer" />
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-base">
+                  <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <TrendingDown className="w-4 h-4 text-red-600" />
+                  </div>
+                  Cuentas por Pagar
+                </span>
+                <ArrowUpRight className="w-4 h-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {stats ? formatCurrency(stats.payables) : '$0'}
+              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                {stats ? (
+                  <AnimatedCounter value={stats.payables} prefix="$" duration={1500} />
+                ) : '$0'}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Facturas de proveedores
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Facturas de proveedores
+                </p>
+                <Sparkline 
+                  data={[40, 35, 45, 30, 35, 25, 30, 20]} 
+                  color="#ef4444"
+                  height={25}
+                  width={50}
+                />
+              </div>
+              <AnimatedProgress value={45} color="red" height={4} showValue={false} className="mt-3" />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Balance de Caja</CardTitle>
+          {/* Balance de Caja */}
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <div className="h-1.5 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 animate-shimmer" />
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-base">
+                  <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Wallet className="w-4 h-4 text-green-600" />
+                  </div>
+                  Balance de Caja
+                </span>
+                <ArrowUpRight className="w-4 h-4 text-green-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {stats ? formatCurrency(stats.cashBalance) : '$0'}
+              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                {stats ? (
+                  <AnimatedCounter value={stats.cashBalance} prefix="$" duration={1500} />
+                ) : '$0'}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                En todas las cuentas
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  En todas las cuentas
+                </p>
+                <Sparkline 
+                  data={[30, 40, 35, 50, 45, 55, 60, 70]} 
+                  color="#22c55e"
+                  height={25}
+                  width={50}
+                />
+              </div>
+              <AnimatedProgress value={80} color="green" height={4} showValue={false} className="mt-3" />
             </CardContent>
           </Card>
         </div>

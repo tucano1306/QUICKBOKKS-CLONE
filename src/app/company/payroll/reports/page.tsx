@@ -446,7 +446,7 @@ export default function PayrollReportsPage() {
                         ${dept.totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-700">
-                        {((dept.totalCost / totalCost) * 100).toFixed(1)}%
+                        {totalCost > 0 ? ((dept.totalCost / totalCost) * 100).toFixed(1) : '0.0'}%
                       </td>
                     </tr>
                   ))}
@@ -527,19 +527,19 @@ export default function PayrollReportsPage() {
                 <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                   <span className="text-sm font-semibold text-gray-700">% Deducciones del Bruto</span>
                   <span className="text-base font-bold text-red-600">
-                    {((totalDeductions / totalGrossPay) * 100).toFixed(1)}%
+                    {totalGrossPay > 0 ? ((totalDeductions / totalGrossPay) * 100).toFixed(1) : '0.0'}%
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                   <span className="text-sm font-semibold text-gray-700">% Carga Patronal</span>
                   <span className="text-base font-bold text-purple-600">
-                    {((totalEmployerCosts / totalGrossPay) * 100).toFixed(1)}%
+                    {totalGrossPay > 0 ? ((totalEmployerCosts / totalGrossPay) * 100).toFixed(1) : '0.0'}%
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-purple-600 text-white rounded-lg mt-2">
                   <span className="text-base font-bold">Incremento sobre Nómina</span>
                   <span className="text-xl font-bold">
-                    {(((totalCost - totalGrossPay) / totalGrossPay) * 100).toFixed(1)}%
+                    {totalGrossPay > 0 ? (((totalCost - totalGrossPay) / totalGrossPay) * 100).toFixed(1) : '0.0'}%
                   </span>
                 </div>
               </div>
@@ -670,7 +670,7 @@ export default function PayrollReportsPage() {
                             <td className="px-3 py-2 font-medium">{dept.department}</td>
                             <td className="px-3 py-2 text-center">{dept.employees}</td>
                             <td className="px-3 py-2 text-right">${dept.totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                            <td className="px-3 py-2 text-right">{((dept.totalCost / totalCost) * 100).toFixed(1)}%</td>
+                            <td className="px-3 py-2 text-right">{totalCost > 0 ? ((dept.totalCost / totalCost) * 100).toFixed(1) : '0.0'}%</td>
                           </tr>
                         ))}
                       </tbody>

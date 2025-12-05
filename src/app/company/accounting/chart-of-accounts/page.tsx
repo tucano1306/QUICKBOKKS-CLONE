@@ -8,11 +8,12 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { 
   BookOpen, Plus, Search, Filter, Download, Upload, Edit, Trash2,
   ChevronRight, ChevronDown, Eye, DollarSign, Building2, FileText,
   Receipt, Calculator, LayoutDashboard, PieChart, ArrowRightLeft,
-  RefreshCw, AlertCircle, CheckCircle
+  RefreshCw, AlertCircle, CheckCircle, Square, CheckSquare
 } from 'lucide-react'
 
 interface Account {
@@ -44,6 +45,10 @@ export default function ChartOfAccountsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  
+  // Estado para selección múltiple
+  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
 
   // Formulario de nueva cuenta
   const [newAccount, setNewAccount] = useState({
@@ -216,6 +221,74 @@ export default function ChartOfAccountsPage() {
     }
   }
 
+  // Eliminar múltiples cuentas
+  const handleDeleteMultiple = async () => {
+    if (selectedAccounts.size === 0) return
+    
+    if (!confirm(`¿Estás seguro de eliminar ${selectedAccounts.size} cuenta(s)? Esta acción no se puede deshacer.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/accounting/chart-of-accounts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedAccounts) })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al eliminar cuentas')
+      }
+
+      setSuccess(data.message || `${selectedAccounts.size} cuenta(s) eliminada(s)`)
+      setSelectedAccounts(new Set())
+      setSelectMode(false)
+      fetchAccounts()
+
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar cuentas')
+    }
+  }
+
+  // Toggle selección de cuenta
+  const toggleSelectAccount = (accountId: string) => {
+    const newSelected = new Set(selectedAccounts)
+    if (newSelected.has(accountId)) {
+      newSelected.delete(accountId)
+    } else {
+      newSelected.add(accountId)
+    }
+    setSelectedAccounts(newSelected)
+  }
+
+  // Seleccionar todas las cuentas visibles
+  const selectAllAccounts = () => {
+    const flattenAccounts = (accs: Account[]): string[] => {
+      const result: string[] = []
+      accs.forEach(acc => {
+        result.push(acc.id)
+        if (acc.children) result.push(...flattenAccounts(acc.children))
+      })
+      return result
+    }
+    
+    const allIds = flattenAccounts(accounts)
+    if (selectedAccounts.size === allIds.length) {
+      setSelectedAccounts(new Set())
+    } else {
+      setSelectedAccounts(new Set(allIds))
+    }
+  }
+
+  // Cancelar modo selección
+  const cancelSelectMode = () => {
+    setSelectMode(false)
+    setSelectedAccounts(new Set())
+  }
+
   // Exportar a CSV
   const handleExport = () => {
     const flattenAccounts = (accs: Account[]): Account[] => {
@@ -309,9 +382,20 @@ export default function ChartOfAccountsPage() {
         <div 
           className={`flex items-center py-3 px-4 hover:bg-gray-50 border-b border-gray-100 ${
             depth === 0 ? 'bg-gray-50 font-bold' : ''
-          }`}
+          } ${selectedAccounts.has(account.id) ? 'bg-blue-50' : ''}`}
           style={{ paddingLeft: `${indent + 16}px` }}
         >
+          {/* Checkbox para selección múltiple */}
+          {selectMode && (
+            <div className="w-8 mr-2">
+              <input
+                type="checkbox"
+                checked={selectedAccounts.has(account.id)}
+                onChange={() => toggleSelectAccount(account.id)}
+                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+              />
+            </div>
+          )}
           <div className="w-8">
             {hasChildren && (
               <button
@@ -344,25 +428,29 @@ export default function ChartOfAccountsPage() {
               </span>
             </div>
             <div className="col-span-2 flex justify-end gap-2">
-              <button 
-                onClick={() => setEditingAccount(account)}
-                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setEditingAccount(account)}
-                className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-              {!hasChildren && (
-                <button 
-                  onClick={() => handleDeleteAccount(account.id)}
-                  className="p-1 text-red-600 hover:bg-red-50 rounded"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              {!selectMode && (
+                <>
+                  <button 
+                    onClick={() => setEditingAccount(account)}
+                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => setEditingAccount(account)}
+                    className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  {!hasChildren && (
+                    <button 
+                      onClick={() => handleDeleteAccount(account.id)}
+                      className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -449,18 +537,45 @@ export default function ChartOfAccountsPage() {
             <p className="text-gray-600 mt-1">Plan de cuentas contable conectado a la base de datos</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchAccounts}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualizar
-            </Button>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
-            </Button>
-            <Button onClick={() => setShowNewAccountModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Cuenta
-            </Button>
+            {/* Modo selección múltiple */}
+            {selectMode ? (
+              <>
+                <Button variant="outline" onClick={selectAllAccounts}>
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  {selectedAccounts.size > 0 ? 'Deseleccionar' : 'Seleccionar Todo'}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDeleteMultiple}
+                  disabled={selectedAccounts.size === 0}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar ({selectedAccounts.size})
+                </Button>
+                <Button variant="outline" onClick={cancelSelectMode}>
+                  Cancelar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setSelectMode(true)}>
+                  <Square className="w-4 h-4 mr-2" />
+                  Seleccionar
+                </Button>
+                <Button variant="outline" onClick={fetchAccounts}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Actualizar
+                </Button>
+                <Button variant="outline" onClick={handleExport}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar
+                </Button>
+                <Button onClick={() => setShowNewAccountModal(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nueva Cuenta
+                </Button>
+              </>
+            )}
           </div>
         </div>
 

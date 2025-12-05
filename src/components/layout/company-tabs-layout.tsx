@@ -37,7 +37,9 @@ import {
   Cloud,
   BarChart3,
   Home,
-  LogOut
+  LogOut,
+  Wrench,
+  FileSpreadsheet
 } from 'lucide-react'
 
 interface SubMenuItem {
@@ -253,6 +255,17 @@ const tabSections: TabSection[] = [
       { name: 'Predicciones', href: '/company/ai/predictions', description: 'Pronósticos inteligentes' },
       { name: 'Recomendaciones', href: '/company/ai/recommendations', description: 'Sugerencias de IA' },
       { name: 'Agente IA', href: '/company/ai/agent', description: 'Automatización agéntica' }
+    ]
+  },
+  {
+    id: 'tools',
+    name: 'Herramientas',
+    icon: Wrench,
+    color: 'slate',
+    submenus: [
+      { name: '📊 Gestor de Excel', href: '/company/tools/excel-manager', description: 'Cargar, analizar y gestionar archivos Excel' },
+      { name: 'Importar Datos', href: '/company/tools/import', description: 'Importar desde otros sistemas' },
+      { name: 'Exportar Datos', href: '/company/tools/export', description: 'Exportar información' }
     ]
   },
   {

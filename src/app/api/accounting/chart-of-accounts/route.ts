@@ -91,3 +91,68 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Error al crear cuenta' }, { status: 500 });
   }
 }
+
+// DELETE - Eliminar múltiples cuentas (batch delete)
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { ids } = body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: 'Se requiere un array de IDs' }, { status: 400 });
+    }
+
+    // Verificar que ninguna cuenta tenga transacciones o hijos
+    const accountsWithIssues = await prisma.chartOfAccounts.findMany({
+      where: { 
+        id: { in: ids },
+        OR: [
+          { children: { some: {} } },
+        ]
+      },
+      select: { id: true, code: true, name: true }
+    });
+
+    // Verificar transacciones
+    const accountsWithTransactions = await prisma.journalEntryLine.groupBy({
+      by: ['accountId'],
+      where: { accountId: { in: ids } },
+      _count: true
+    });
+
+    const hasTransactions = accountsWithTransactions.filter(a => a._count > 0);
+
+    if (accountsWithIssues.length > 0) {
+      return NextResponse.json({
+        error: `Las siguientes cuentas tienen subcuentas y no pueden eliminarse: ${accountsWithIssues.map(a => a.code).join(', ')}`,
+        accountsWithIssues
+      }, { status: 400 });
+    }
+
+    if (hasTransactions.length > 0) {
+      return NextResponse.json({
+        error: `${hasTransactions.length} cuenta(s) tienen transacciones y no pueden eliminarse. Desactívalas en su lugar.`,
+        accountsWithTransactions: hasTransactions.map(a => a.accountId)
+      }, { status: 400 });
+    }
+
+    // Eliminar las cuentas
+    const result = await prisma.chartOfAccounts.deleteMany({
+      where: { id: { in: ids } }
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `${result.count} cuenta(s) eliminada(s) exitosamente`,
+      deletedCount: result.count
+    });
+  } catch (error) {
+    console.error('Error batch deleting accounts:', error);
+    return NextResponse.json({ error: 'Error al eliminar cuentas' }, { status: 500 });
+  }
+}

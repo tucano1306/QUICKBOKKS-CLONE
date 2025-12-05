@@ -14,7 +14,8 @@ if (GROQ_API_KEY) {
 // Tipos de acciones
 type ActionType = 
   | 'create_invoice' | 'create_expense' | 'create_customer' 
-  | 'create_product' | 'create_chart_of_accounts' | 'clear_chart_of_accounts' | 'none';
+  | 'create_product' | 'create_chart_of_accounts' | 'clear_chart_of_accounts' 
+  | 'record_payment' | 'record_income' | 'get_report' | 'none';
 
 interface AIAction {
   type: ActionType;
@@ -80,34 +81,188 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[AI] Error:', error);
-    return NextResponse.json({
+    // SIEMPRE devolver JSON válido, incluso en errores
+    const errorResponse = {
       success: false,
-      response: `❌ Error: ${error.message}`,
+      response: `⚠️ Hubo un problema procesando tu solicitud. Por favor intenta de nuevo.`,
+      error: error.message || 'Error desconocido',
       timestamp: new Date().toISOString()
-    }, { status: 500 });
+    };
+    return new Response(JSON.stringify(errorResponse), {
+      status: 200, // Usar 200 para que el cliente pueda leer el JSON
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-// Chat con Groq
+// Chat con Groq - SISTEMA MEJORADO
 async function chatWithAI(message: string, context: string): Promise<string> {
-  const systemPrompt = `Eres "FinanceBot", un asistente contable experto para un sistema tipo QuickBooks.
+  const systemPrompt = `Eres "FinanceBot", el asistente contable inteligente de esta aplicación tipo QuickBooks. Eres EXPERTO en contabilidad y conoces TODA la aplicación.
 
-CAPACIDADES:
-- Responder preguntas sobre finanzas, contabilidad, impuestos
-- Analizar datos del negocio
-- Dar recomendaciones financieras
-- Ayudar con facturación y gastos
+═══════════════════════════════════════════════════════════════
+📱 MÓDULOS DE LA APLICACIÓN QUE CONOCES:
+═══════════════════════════════════════════════════════════════
 
-PERSONALIDAD:
-- Profesional pero amigable
-- Usa emojis: 📊 💰 📄 ✅ ⚠️ 💡 👥 🏦
-- Responde en español
-- Sé conciso pero completo
+📊 DASHBOARD (/company/dashboard)
+- Resumen financiero general
+- Gráficos de ingresos vs gastos
+- Facturas pendientes
+- Alertas importantes
 
-DATOS DEL NEGOCIO:
+💰 GASTOS (/company/expenses)
+- Registrar nuevos gastos
+- Categorizar gastos (Seguro, Combustible, Salarios, Mantenimiento, etc.)
+- Ver historial de gastos
+- Aprobar/rechazar gastos pendientes
+- Subir recibos y comprobantes
+
+📄 FACTURACIÓN (/company/invoicing)
+- Crear facturas (/company/invoicing/sales)
+- Ver facturas enviadas
+- Facturas pendientes de pago
+- Facturas vencidas
+- Enviar recordatorios de pago
+- Crear notas de crédito
+
+👥 CLIENTES (/company/customers)
+- Agregar nuevos clientes
+- Ver historial de transacciones por cliente
+- Estados de cuenta
+- Datos de contacto
+
+📦 PRODUCTOS/SERVICIOS (/company/products)
+- Catálogo de productos
+- Precios y descripciones
+- Inventario (si aplica)
+
+🏦 CONTABILIDAD (/company/accounting)
+- Plan de Cuentas (Chart of Accounts)
+- Asientos contables (Journal Entries)
+- Balance General
+- Estado de Resultados
+- Conciliación bancaria
+
+📈 REPORTES (/company/reports)
+- Reporte de ganancias y pérdidas
+- Balance general
+- Flujo de efectivo
+- Reportes por período
+- Reportes fiscales
+- Exportar a Excel/PDF
+
+💳 BANCOS (/company/banking)
+- Conectar cuentas bancarias
+- Transacciones automáticas
+- Conciliación
+
+👔 NÓMINA (/company/payroll)
+- Empleados
+- Pagos de nómina
+- Deducciones
+- Impuestos de nómina
+
+🔧 HERRAMIENTAS (/company/tools)
+- Importar desde Excel
+- Exportar datos
+- Calculadoras fiscales
+
+⚙️ CONFIGURACIÓN (/settings)
+- Datos de la empresa
+- Usuarios y permisos
+- Preferencias
+- Integraciones
+
+═══════════════════════════════════════════════════════════════
+📚 CONOCIMIENTOS CONTABLES:
+═══════════════════════════════════════════════════════════════
+
+TIPOS DE CUENTAS:
+- ACTIVOS (1xxx): Lo que tienes - Caja, Banco, Cuentas por Cobrar, Vehículos, Equipo
+- PASIVOS (2xxx): Lo que debes - Préstamos, Cuentas por Pagar, Impuestos por Pagar
+- PATRIMONIO (3xxx): Capital del negocio
+- INGRESOS (4xxx): Dinero que entra - Ventas, Servicios
+- GASTOS (5xxx-6xxx): Dinero que sale - Salarios, Renta, Servicios, Combustible
+
+PRINCIPIOS CONTABLES:
+- Partida doble: Cada transacción afecta al menos 2 cuentas
+- Débitos = Créditos siempre
+- Activos + Gastos = Pasivos + Capital + Ingresos
+
+OPERACIONES COMUNES:
+- Registrar venta: Aumenta Ingresos, Aumenta Banco/Cuentas por Cobrar
+- Registrar gasto: Aumenta Gasto, Disminuye Banco
+- Pagar deuda: Disminuye Pasivo, Disminuye Banco
+- Cobrar factura: Aumenta Banco, Disminuye Cuentas por Cobrar
+
+IMPUESTOS BÁSICOS:
+- IVA/Sales Tax: Impuesto sobre ventas
+- ISR/Income Tax: Impuesto sobre la renta
+- Retenciones: Impuestos retenidos a empleados o proveedores
+
+═══════════════════════════════════════════════════════════════
+🎯 CÓMO RESPONDER:
+═══════════════════════════════════════════════════════════════
+
+1. Si preguntan CÓMO HACER algo:
+   - Explica los pasos
+   - Indica en qué módulo/sección encontrarlo
+   - Ejemplo: "Para registrar un gasto, ve a **Gastos → Nuevo Gasto**"
+
+2. Si preguntan sobre CONCEPTOS contables:
+   - Explica de forma simple
+   - Da ejemplos prácticos
+   - Relaciona con su negocio
+
+3. Si quieren REGISTRAR algo (gasto, ingreso, etc.):
+   - Puedes hacerlo directamente si dan los datos
+   - O guíalos al módulo correcto
+
+4. Si piden REPORTES o CONSULTAS:
+   - Usa los datos del contexto para responder
+   - Indica dónde ver el reporte completo
+
+5. SIEMPRE:
+   - Usa emojis para hacer la respuesta visual: 📊 💰 📄 ✅ ⚠️ 💡 👥 🏦 📈
+   - Responde en español
+   - Sé amigable y profesional
+   - Si no sabes algo, dilo honestamente
+
+═══════════════════════════════════════════════════════════════
+📋 DATOS ACTUALES DEL NEGOCIO:
+═══════════════════════════════════════════════════════════════
 ${context}
 
-Si el usuario quiere CREAR algo, guíalo con ejemplos específicos.`;
+═══════════════════════════════════════════════════════════════
+💬 EJEMPLOS DE RESPUESTAS:
+═══════════════════════════════════════════════════════════════
+
+Usuario: "¿Cómo registro un gasto?"
+Respuesta: "📝 Para registrar un gasto tienes 2 opciones:
+
+**Opción 1 - Dímelo aquí:**
+Solo escribe algo como: "Pagué $200 de seguro del mes de noviembre"
+Y yo lo registro automáticamente ✅
+
+**Opción 2 - Desde el menú:**
+1. Ve a **Gastos** en el menú lateral
+2. Clic en **Nuevo Gasto**
+3. Llena el monto, descripción y categoría
+4. Guarda
+
+💡 ¿Tienes un gasto que registrar ahora?"
+
+Usuario: "¿Qué es una cuenta por cobrar?"
+Respuesta: "📚 **Cuentas por Cobrar** es el dinero que tus clientes te deben.
+
+Por ejemplo:
+- Hiciste un viaje por $500
+- Le diste factura al cliente
+- El cliente aún no te paga
+
+Ese $500 es una **Cuenta por Cobrar** - es tu dinero, pero aún no lo tienes en mano.
+
+📊 En tu app, puedes verlas en **Facturación → Facturas Pendientes**"
+`;
 
   const completion = await groq!.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
@@ -153,32 +308,70 @@ Empresa: ${company?.name || 'Mi Empresa'}
   }
 }
 
-// Detectar acción
+// Detectar acción - MEJORADO para lenguaje natural
 function detectAction(msg: string): AIAction {
+  const msgLower = msg.toLowerCase();
+  
+  // Detectar si hay un monto (con o sin $, con puntos o comas)
+  const hasMonto = msgLower.match(/\$?\s*[\d.,]+\s*(dolares|dólares|usd|pesos|\$)?/i) ||
+                   msgLower.match(/[\d.,]+\s*(dolares|dólares|usd|pesos)/i);
+  
+  // === REGISTRAR GASTOS (lenguaje natural) ===
+  // Palabras que indican un gasto
+  const gastoPalabras = /(pagu[eé]|gast[eé]|pago de|pago del|pago al|compr[eé]|cost[oó]|invert[ií]|desembols)/i;
+  const gastoConceptos = /(seguro|letra|chofer|gasolina|diesel|combustible|mantenimiento|permiso|sticker|peaje|llanta|repuesto|vehiculo|vehículo|suburban|camion|camión|trailer|auto|carro|reparacion|reparación)/i;
+  const registroPalabras = /(registra|anota|apunta|guarda|pon|agrega)/i;
+  
+  // Si menciona una acción de gasto + monto, o concepto de gasto + monto + "registra"
+  if ((gastoPalabras.test(msgLower) && hasMonto) ||
+      (gastoConceptos.test(msgLower) && hasMonto && registroPalabras.test(msgLower)) ||
+      (gastoConceptos.test(msgLower) && hasMonto && msgLower.includes('compra'))) {
+    return { type: 'record_payment', params: { message: msg } };
+  }
+  
+  // === REGISTRAR INGRESOS (lenguaje natural) ===
+  // "cobré", "me pagaron", "recibí", "ingreso de", "viaje de"
+  const ingresoPalabras = /(cobr[eé]|me pagaron|recib[ií]|ingreso de|entr[oó]|deposit|factur[eé]|vend[ií])/i;
+  const ingresoConceptos = /(viaje|flete|servicio|trabajo|cliente|pago del cliente)/i;
+  
+  if ((ingresoPalabras.test(msgLower) && hasMonto) ||
+      (ingresoConceptos.test(msgLower) && hasMonto && registroPalabras.test(msgLower))) {
+    return { type: 'record_income', params: { message: msg } };
+  }
+  
+  // === REPORTES Y CONSULTAS ===
+  // "cuánto gané", "ganancias de", "dame las ganancias", "reporte de"
+  if (msgLower.match(/(cuánto|cuanto|dame|ver|mostrar|cual|cuál).*(gan[eéa]|ingres|cobr|vend|factur)/i) ||
+      msgLower.match(/(ganancia|ingreso|venta|reporte|resumen).*(mes|año|semana|hoy|ayer)/i) ||
+      msgLower.match(/(mes|año|semana).*(ganancia|ingreso|venta|gast)/i)) {
+    return { type: 'get_report', params: { query: msg } };
+  }
+
+  // === COMANDOS EXPLÍCITOS ===
   const createWords = ['crea', 'crear', 'genera', 'generar', 'hazme', 'haz', 'nuevo', 'nueva', 'agrega', 'agregar', 'registra', 'registrar', 'añade', 'añadir'];
-  const hasCreate = createWords.some(w => msg.includes(w));
+  const hasCreate = createWords.some(w => msgLower.includes(w));
 
   // Limpiar catálogo
-  if ((msg.includes('limpia') || msg.includes('elimina') || msg.includes('borra') || msg.includes('resetea')) && 
-      (msg.includes('catálogo') || msg.includes('catalogo') || msg.includes('cuentas'))) {
+  if ((msgLower.includes('limpia') || msgLower.includes('elimina') || msgLower.includes('borra') || msgLower.includes('resetea')) && 
+      (msgLower.includes('catálogo') || msgLower.includes('catalogo') || msgLower.includes('cuentas'))) {
     return { type: 'clear_chart_of_accounts', params: {} };
   }
 
   if (hasCreate) {
-    if (msg.includes('catálogo') || msg.includes('catalogo') || msg.includes('plan de cuenta') || 
-        (msg.includes('cuentas') && (msg.includes('contab') || msg.includes('para')))) {
+    if (msgLower.includes('catálogo') || msgLower.includes('catalogo') || msgLower.includes('plan de cuenta') || 
+        (msgLower.includes('cuentas') && (msgLower.includes('contab') || msgLower.includes('para')))) {
       return { type: 'create_chart_of_accounts', params: { description: msg } };
     }
-    if (msg.includes('factura') || msg.includes('invoice')) {
+    if (msgLower.includes('factura') || msgLower.includes('invoice')) {
       return { type: 'create_invoice', params: {} };
     }
-    if (msg.includes('gasto') || msg.includes('expense')) {
+    if (msgLower.includes('gasto') || msgLower.includes('expense')) {
       return { type: 'create_expense', params: {} };
     }
-    if (msg.includes('cliente') || msg.includes('customer')) {
+    if (msgLower.includes('cliente') || msgLower.includes('customer')) {
       return { type: 'create_customer', params: {} };
     }
-    if (msg.includes('producto') || msg.includes('servicio')) {
+    if (msgLower.includes('producto') || msgLower.includes('servicio')) {
       return { type: 'create_product', params: {} };
     }
   }
@@ -200,8 +393,373 @@ async function executeAction(action: AIAction, msg: string, userId: string, comp
       return await createCustomer(msg, companyId);
     case 'create_product':
       return await createProduct(msg, companyId);
+    case 'record_payment':
+      return await recordPaymentNatural(msg, userId, companyId);
+    case 'record_income':
+      return await recordIncomeNatural(msg, userId, companyId);
+    case 'get_report':
+      return await getFinancialReport(msg, userId, companyId);
     default:
       return 'Acción no reconocida';
+  }
+}
+
+// ============================================
+// NUEVAS FUNCIONES PARA LENGUAJE NATURAL
+// ============================================
+
+// REGISTRAR PAGO/GASTO en lenguaje natural
+async function recordPaymentNatural(msg: string, userId: string, companyId: string): Promise<string> {
+  try {
+    // Usar IA para extraer información
+    const prompt = `Extrae datos de este mensaje sobre un gasto/pago: "${msg}"
+    
+Responde SOLO con JSON válido (sin explicaciones):
+{
+  "amount": número (el monto en dólares, convierte 14.000 a 14000),
+  "description": "descripción corta del gasto",
+  "category": "una de estas: vehiculo|seguro|chofer|letra|combustible|mantenimiento|permiso|peaje|repuesto|otro",
+  "month": "mes mencionado o null",
+  "year": "año mencionado o null"
+}
+
+Ejemplos:
+- "gasté 14.000 dolares en comprar una suburban" → amount: 14000, category: "vehiculo"
+- "pagué $500 del seguro de noviembre" → amount: 500, category: "seguro", month: "noviembre"`;
+
+    const completion = await groq!.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      max_tokens: 300
+    });
+
+    let content = completion.choices[0]?.message?.content || '{}';
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    // Buscar JSON en la respuesta
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return `⚠️ No pude entender el gasto. Intenta así:\n"Gasté $14000 en comprar el vehículo en mayo 2023"`;
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(jsonMatch[0]);
+    } catch {
+      return `⚠️ No pude procesar la información. Intenta:\n"Gasté $14000 en comprar el vehículo en mayo 2023"`;
+    }
+
+    if (!data.amount || data.amount <= 0) {
+      return `⚠️ No encontré el monto. ¿Cuánto fue? Ejemplo:\n"Gasté **$14000** en el vehículo"`;
+    }
+
+    // Mapear categoría a categoría de BD
+    const categoryMap: Record<string, string> = {
+      'vehiculo': 'Compra Vehiculo',
+      'seguro': 'Seguro',
+      'chofer': 'Salarios Choferes',
+      'letra': 'Letra Vehiculo',
+      'combustible': 'Combustible',
+      'mantenimiento': 'Mantenimiento',
+      'permiso': 'Permisos y Licencias',
+      'peaje': 'Peajes',
+      'repuesto': 'Repuestos',
+      'otro': 'General'
+    };
+
+    // Mapear tipo de categoría - DEBE ser un valor válido del enum ExpenseType
+    // Valores válidos: OPERATING, ADMINISTRATIVE, SALES, FINANCIAL, OTHER
+    const categoryTypeMap: Record<string, string> = {
+      'vehiculo': 'OTHER',
+      'seguro': 'OPERATING',
+      'chofer': 'OPERATING',
+      'letra': 'FINANCIAL',
+      'combustible': 'OPERATING',
+      'mantenimiento': 'OPERATING',
+      'permiso': 'ADMINISTRATIVE',
+      'peaje': 'OPERATING',
+      'repuesto': 'OPERATING',
+      'otro': 'OTHER'
+    };
+
+    const categoryName = categoryMap[data.category] || data.category || 'General';
+    const categoryType = categoryTypeMap[data.category] || 'OTHER';
+    
+    // Buscar categoría existente
+    let category = await prisma.expenseCategory.findFirst({ 
+      where: { companyId, name: { contains: categoryName, mode: 'insensitive' } } 
+    });
+    
+    // Si no existe la categoría específica, CREARLA automáticamente
+    if (!category) {
+      console.log(`[AI] Categoría "${categoryName}" no existe, creándola...`);
+      try {
+        category = await prisma.expenseCategory.create({
+          data: { 
+            name: categoryName, 
+            description: `Categoría para ${categoryName}`, 
+            type: categoryType, 
+            companyId 
+          }
+        });
+        console.log(`[AI] Categoría "${categoryName}" creada con ID: ${category.id}`);
+      } catch (catError) {
+        // Si falla crear, usar General
+        console.log(`[AI] Error creando categoría, buscando General...`);
+        category = await prisma.expenseCategory.findFirst({ 
+          where: { companyId, name: 'General' } 
+        });
+        if (!category) {
+          category = await prisma.expenseCategory.create({
+            data: { name: 'General', description: 'Gastos generales', type: 'OTHER', companyId }
+          });
+        }
+      }
+    }
+
+    // Determinar fecha
+    let expenseDate = new Date();
+    let fechaTexto = 'hoy';
+    
+    if (data.month) {
+      const months: Record<string, number> = {
+        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+      };
+      const monthNum = months[data.month.toLowerCase()];
+      if (monthNum !== undefined) {
+        const year = data.year ? parseInt(data.year) : new Date().getFullYear();
+        expenseDate = new Date(year, monthNum, 15);
+        fechaTexto = `${data.month} ${year}`;
+      }
+    }
+
+    // Crear el gasto
+    const expense = await prisma.expense.create({
+      data: {
+        user: { connect: { id: userId } },
+        category: { connect: { id: category.id } },
+        companyId,
+        amount: data.amount,
+        description: data.description || `Pago de ${categoryName}`,
+        date: expenseDate,
+        status: 'APPROVED',
+        paymentMethod: 'OTHER'
+      }
+    });
+
+    const monthName = expenseDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+    return `✅ **¡Gasto Registrado Exitosamente!**
+
+💰 **Monto:** $${expense.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+📝 **Concepto:** ${expense.description}
+📁 **Categoría:** ${category.name}
+📅 **Fecha:** ${monthName}
+
+📊 El gasto ya está guardado en tu sistema. 
+👉 Puedes verlo en **Menú → Gastos**
+
+💡 ¿Tienes más gastos que registrar?`;
+
+  } catch (e: any) {
+    console.error('[AI] Error registrando gasto:', e);
+    
+    // Mensaje de error más descriptivo y amigable
+    let errorMsg = '❌ **No pude registrar el gasto.**\n\n';
+    
+    if (e.message?.includes('Foreign key')) {
+      errorMsg += '⚠️ Hay un problema con la configuración de tu empresa.\n';
+      errorMsg += 'Por favor contacta al administrador.';
+    } else if (e.message?.includes('category')) {
+      errorMsg += '⚠️ No pude encontrar o crear la categoría.\n';
+      errorMsg += 'Intenta con: "Gasté $14000 en vehículo en mayo 2023"';
+    } else {
+      errorMsg += `⚠️ Error técnico: ${e.message}\n\n`;
+      errorMsg += '💡 Intenta de nuevo con este formato:\n';
+      errorMsg += '"Gasté $14000 en comprar el vehículo en mayo 2023"';
+    }
+    
+    return errorMsg;
+  }
+}
+
+// REGISTRAR INGRESO en lenguaje natural
+async function recordIncomeNatural(msg: string, userId: string, companyId: string): Promise<string> {
+  try {
+    const prompt = `Extrae datos de este mensaje sobre un ingreso/cobro: "${msg}"
+    
+Responde SOLO con JSON válido:
+{
+  "amount": número (el monto en dólares),
+  "description": "descripción del ingreso/servicio",
+  "source": "cliente o fuente del ingreso",
+  "month": "mes mencionado o null",
+  "year": "año mencionado o null"
+}`;
+
+    const completion = await groq!.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      max_tokens: 300
+    });
+
+    let content = completion.choices[0]?.message?.content || '{}';
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return `⚠️ No pude entender. Intenta:\n"Cobré $500 por un viaje a Miami"`;
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(jsonMatch[0]);
+    } catch {
+      return `⚠️ No pude procesar. Intenta:\n"Me pagaron $500 por un flete"`;
+    }
+
+    if (!data.amount || data.amount <= 0) {
+      return `⚠️ No encontré el monto. Ejemplo:\n"Cobré **$500** por un viaje"`;
+    }
+
+    // Determinar fecha
+    let incomeDate = new Date();
+    if (data.month) {
+      const months: Record<string, number> = {
+        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+      };
+      const monthNum = months[data.month.toLowerCase()];
+      if (monthNum !== undefined) {
+        const year = data.year ? parseInt(data.year) : new Date().getFullYear();
+        incomeDate = new Date(year, monthNum, 15);
+      }
+    }
+
+    // Crear transacción de ingreso
+    await prisma.transaction.create({
+      data: {
+        companyId,
+        type: 'INCOME',
+        category: 'Ingresos por Transporte',
+        description: data.description || 'Ingreso por servicio',
+        amount: data.amount,
+        date: incomeDate,
+        status: 'COMPLETED',
+        notes: data.source ? `Cliente/Fuente: ${data.source}` : undefined
+      }
+    });
+
+    const monthName = incomeDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+    return `✅ **¡Ingreso Registrado!**
+
+💵 **Monto:** $${data.amount.toFixed(2)}
+📝 **Concepto:** ${data.description || 'Servicio de transporte'}
+${data.source ? `👤 **Cliente:** ${data.source}` : ''}
+📅 **Fecha:** ${monthName}
+
+Ya está registrado en tu sistema.`;
+
+  } catch (e: any) {
+    console.error('[AI] Error registrando ingreso:', e);
+    return `❌ Hubo un error: ${e.message}. Intenta de nuevo.`;
+  }
+}
+
+// OBTENER REPORTE FINANCIERO
+async function getFinancialReport(msg: string, userId: string, companyId: string): Promise<string> {
+  try {
+    // Determinar el período
+    const msgLower = msg.toLowerCase();
+    let startDate: Date, endDate: Date;
+    const now = new Date();
+    
+    // Detectar mes específico
+    const months: Record<string, number> = {
+      'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+      'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+    };
+    
+    let targetMonth = now.getMonth();
+    let targetYear = now.getFullYear();
+    
+    for (const [monthName, monthNum] of Object.entries(months)) {
+      if (msgLower.includes(monthName)) {
+        targetMonth = monthNum;
+        break;
+      }
+    }
+    
+    // Detectar año
+    const yearMatch = msgLower.match(/20\d{2}/);
+    if (yearMatch) {
+      targetYear = parseInt(yearMatch[0]);
+    }
+    
+    startDate = new Date(targetYear, targetMonth, 1);
+    endDate = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
+    
+    // Obtener datos
+    const [expenses, incomes] = await Promise.all([
+      prisma.expense.findMany({
+        where: {
+          companyId,
+          date: { gte: startDate, lte: endDate }
+        },
+        include: { category: true }
+      }),
+      prisma.transaction.findMany({
+        where: {
+          companyId,
+          type: 'INCOME',
+          date: { gte: startDate, lte: endDate }
+        }
+      })
+    ]);
+
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
+    const profit = totalIncome - totalExpenses;
+    
+    const monthName = startDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+    // Agrupar gastos por categoría
+    const expensesByCategory: Record<string, number> = {};
+    for (const exp of expenses) {
+      const catName = exp.category?.name || 'Sin categoría';
+      expensesByCategory[catName] = (expensesByCategory[catName] || 0) + exp.amount;
+    }
+
+    let categoryBreakdown = '';
+    for (const [cat, amount] of Object.entries(expensesByCategory)) {
+      categoryBreakdown += `   • ${cat}: $${amount.toFixed(2)}\n`;
+    }
+
+    const profitEmoji = profit >= 0 ? '✅' : '⚠️';
+    const profitStatus = profit >= 0 ? 'Ganancia' : 'Pérdida';
+
+    return `📊 **Reporte de ${monthName}**
+
+💵 **Ingresos:** $${totalIncome.toFixed(2)}
+💸 **Gastos:** $${totalExpenses.toFixed(2)}
+
+${profitEmoji} **${profitStatus}:** $${Math.abs(profit).toFixed(2)}
+
+📋 **Detalle de Gastos:**
+${categoryBreakdown || '   No hay gastos registrados'}
+
+📈 **Resumen:**
+• ${incomes.length} ingresos registrados
+• ${expenses.length} gastos registrados
+${profit >= 0 ? `• ¡Buen mes! Ganaste $${profit.toFixed(2)}` : `• Gastaste más de lo que ingresaste`}`;
+
+  } catch (e: any) {
+    console.error('[AI] Error generando reporte:', e);
+    return `❌ Error generando reporte: ${e.message}`;
   }
 }
 
@@ -301,12 +859,24 @@ Genera EXACTAMENTE 50 cuentas específicas para "${businessType}".`;
       parsed = JSON.parse(content);
     } catch (parseError) {
       console.error('[AI] Error parsing JSON:', parseError);
-      return `❌ Error procesando respuesta de IA. Intenta de nuevo con: "Genera catálogo para ${businessType}"`;
+      console.error('[AI] Content was:', content.substring(0, 500));
+      
+      // Intentar extraer JSON de la respuesta si viene con texto adicional
+      const jsonMatch = content.match(/\{[\s\S]*"accounts"[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch {
+          return `⚠️ La IA no pudo generar el catálogo correctamente. Por favor intenta de nuevo con:\n\n"Crea catálogo de cuentas para ${businessType}"`;
+        }
+      } else {
+        return `⚠️ La IA no pudo generar el catálogo correctamente. Por favor intenta de nuevo con:\n\n"Crea catálogo de cuentas para ${businessType}"`;
+      }
     }
 
-    const { accounts } = parsed;
+    const { accounts } = parsed || {};
     if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
-      return `❌ No se generaron cuentas. Intenta: "Crea catálogo de cuentas para ${businessType}"`;
+      return `⚠️ No se generaron cuentas. Por favor intenta con:\n\n"Genera catálogo de cuentas contables para ${businessType}"`;
     }
 
     // Contar cuentas existentes
@@ -402,7 +972,18 @@ async function createInvoice(msg: string, userId: string, companyId: string): Pr
 
     let content = completion.choices[0]?.message?.content || '{}';
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const data = JSON.parse(content);
+    
+    let data;
+    try {
+      data = JSON.parse(content);
+    } catch {
+      // Si Groq no devuelve JSON válido, mostrar mensaje de ayuda
+      return `💡 **Para crear una factura, especifica:**
+- "Crea factura para [cliente] por $[monto]"
+- Ejemplo: "Crea factura para ABC Corp por $1,500"
+
+O ve a **Ventas → Nueva Factura**`;
+    }
 
     if (!data.customerName && !data.amount) {
       return `💡 **Para crear una factura, especifica:**
@@ -459,7 +1040,15 @@ async function createExpense(msg: string, userId: string, companyId: string): Pr
 
     let content = completion.choices[0]?.message?.content || '{}';
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const data = JSON.parse(content);
+    
+    let data;
+    try {
+      data = JSON.parse(content);
+    } catch {
+      return `💡 **Para registrar un gasto, especifica:**
+- "Registra gasto de $[monto] en [descripción]"
+- Ejemplo: "Registra gasto de $200 en suministros de oficina"`;
+    }
 
     if (!data.amount || data.amount <= 0) {
       return `💡 **Para registrar un gasto, especifica:**
@@ -520,7 +1109,15 @@ async function createCustomer(msg: string, companyId: string): Promise<string> {
 
     let content = completion.choices[0]?.message?.content || '{}';
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const data = JSON.parse(content);
+    
+    let data;
+    try {
+      data = JSON.parse(content);
+    } catch {
+      return `💡 **Para crear un cliente:**
+- "Crea cliente [nombre]"
+- "Agrega cliente Juan Pérez, email juan@email.com"`;
+    }
 
     if (!data.name) {
       return `💡 **Para crear un cliente:**
@@ -557,7 +1154,15 @@ async function createProduct(msg: string, companyId: string): Promise<string> {
 
     let content = completion.choices[0]?.message?.content || '{}';
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const data = JSON.parse(content);
+    
+    let data;
+    try {
+      data = JSON.parse(content);
+    } catch {
+      return `💡 **Para crear un producto:**
+- "Crea producto [nombre] a $[precio]"
+- Ejemplo: "Crea producto Consultoría a $150"`;
+    }
 
     if (!data.name) {
       return `💡 **Para crear un producto:**

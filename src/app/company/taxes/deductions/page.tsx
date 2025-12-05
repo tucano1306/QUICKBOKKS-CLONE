@@ -224,7 +224,7 @@ export default function TaxDeductionsPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-bold text-gray-900">${(item.amount / 1000).toFixed(1)}K</div>
-                        <div className="text-xs text-gray-500">{((item.amount / totalDeductions) * 100).toFixed(1)}%</div>
+                        <div className="text-xs text-gray-500">{totalDeductions > 0 ? ((item.amount / totalDeductions) * 100).toFixed(1) : '0.0'}%</div>
                       </div>
                     </div>
                   ))

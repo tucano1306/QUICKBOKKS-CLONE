@@ -138,3 +138,67 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// DELETE - Eliminar gastos (individual o múltiple)
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    // Verificar si viene un ID por query param (eliminación individual)
+    const { searchParams } = new URL(request.url)
+    const singleId = searchParams.get('id')
+
+    if (singleId) {
+      // Eliminación individual
+      const existing = await prisma.expense.findFirst({
+        where: { id: singleId, userId: session.user.id }
+      })
+
+      if (!existing) {
+        return NextResponse.json({ error: 'Gasto no encontrado' }, { status: 404 })
+      }
+
+      await prisma.expense.delete({ where: { id: singleId } })
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Gasto eliminado exitosamente'
+      })
+    }
+
+    // Eliminación múltiple (batch) - requiere body con ids
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Se requiere un ID o un array de IDs' }, { status: 400 })
+    }
+
+    const { ids } = body
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: 'Se requiere un array de IDs' }, { status: 400 })
+    }
+
+    // Solo eliminar gastos que pertenecen al usuario
+    const result = await prisma.expense.deleteMany({
+      where: { 
+        id: { in: ids },
+        userId: session.user.id
+      }
+    })
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `${result.count} gasto(s) eliminado(s) exitosamente`,
+      deletedCount: result.count
+    })
+  } catch (error) {
+    console.error('Error deleting expenses:', error)
+    return NextResponse.json({ error: 'Error al eliminar gastos' }, { status: 500 })
+  }
+}

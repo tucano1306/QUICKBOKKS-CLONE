@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { AnimatedBarChart, AnimatedLineChart, AnimatedProgress, Sparkline, AnimatedCounter } from '@/components/ui/animated-charts'
 import { 
   Download,
   TrendingUp,
@@ -22,7 +23,8 @@ import {
   ArrowDownRight,
   Wallet,
   Plus,
-  X
+  X,
+  Activity
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -305,68 +307,192 @@ export default function BudgetCashFlowPage() {
           </CardContent>
         </Card>
 
-        {/* Summary Stats */}
+        {/* Summary Stats with Animations */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <Wallet className="w-8 h-8 text-blue-600" />
+                <Wallet className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[40, 45, 42, 48, 45, 50]} color="#3b82f6" height={25} width={40} />
               </div>
               <div className="text-2xl font-bold text-blue-900">
-                ${(openingBalance / 1000000).toFixed(1)}M
+                <AnimatedCounter value={openingBalance / 1000000} prefix="$" suffix="M" decimals={1} duration={1500} />
               </div>
               <div className="text-sm text-blue-700">Saldo Inicial</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-green-600" />
+                <TrendingUp className="w-8 h-8 text-green-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[30, 40, 35, 55, 50, 60]} color="#22c55e" height={25} width={40} />
               </div>
               <div className="text-2xl font-bold text-green-900">
-                ${(totalInflows / 1000000).toFixed(1)}M
+                <AnimatedCounter value={totalInflows / 1000000} prefix="$" suffix="M" decimals={1} duration={1500} />
               </div>
               <div className="text-sm text-green-700">Entradas Totales</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <TrendingDown className="w-8 h-8 text-red-600" />
+                <TrendingDown className="w-8 h-8 text-red-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[50, 45, 55, 40, 45, 35]} color="#ef4444" height={25} width={40} />
               </div>
               <div className="text-2xl font-bold text-red-900">
-                ${(totalOutflows / 1000000).toFixed(1)}M
+                <AnimatedCounter value={totalOutflows / 1000000} prefix="$" suffix="M" decimals={1} duration={1500} />
               </div>
               <div className="text-sm text-red-700">Salidas Totales</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <Droplet className="w-8 h-8 text-purple-600" />
+                <Droplet className="w-8 h-8 text-purple-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[20, 35, 30, 45, 40, 50]} color="#a855f7" height={25} width={40} />
               </div>
               <div className="text-2xl font-bold text-purple-900">
-                ${(netCashFlow / 1000000).toFixed(1)}M
+                <AnimatedCounter value={netCashFlow / 1000000} prefix={netCashFlow >= 0 ? '+$' : '-$'} suffix="M" decimals={1} duration={1500} />
               </div>
               <div className="text-sm text-purple-700">Flujo Neto</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-indigo-600" />
+                <DollarSign className="w-8 h-8 text-indigo-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[45, 50, 48, 55, 60, 70]} color="#6366f1" height={25} width={40} />
               </div>
               <div className="text-2xl font-bold text-indigo-900">
-                ${(endingBalance / 1000000).toFixed(1)}M
+                <AnimatedCounter value={endingBalance / 1000000} prefix="$" suffix="M" decimals={1} duration={1500} />
               </div>
               <div className="text-sm text-indigo-700">Saldo Final</div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Gráfico de Flujo de Efectivo Visual */}
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-blue-600" />
+              Proyección Visual del Flujo de Efectivo - {selectedYear}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Gráfico de barras - Ingresos vs Egresos */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-500" />
+                  Entradas
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-red-500 to-rose-500 ml-4" />
+                  Salidas (Mensual)
+                </h4>
+                <AnimatedBarChart
+                  data={monthNames.slice(0, 6).map((month, idx) => ({
+                    label: month,
+                    value: monthlyInflows[idx],
+                    color: 'from-green-500 to-emerald-500'
+                  }))}
+                  height={150}
+                  animated={true}
+                />
+                <div className="mt-4">
+                  <AnimatedBarChart
+                    data={monthNames.slice(0, 6).map((month, idx) => ({
+                      label: month,
+                      value: monthlyOutflows[idx],
+                      color: 'from-red-500 to-rose-500'
+                    }))}
+                    height={150}
+                    animated={true}
+                  />
+                </div>
+              </div>
+
+              {/* Progreso de metas */}
+              <div className="space-y-6">
+                <h4 className="text-sm font-semibold text-gray-700 mb-4">Indicadores de Liquidez</h4>
+                
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Nivel de Liquidez</span>
+                      <span className="font-semibold text-green-600">
+                        {Math.min(100, Math.round((minCashPosition / 3000000) * 100))}%
+                      </span>
+                    </div>
+                    <AnimatedProgress 
+                      value={Math.min(100, Math.round((minCashPosition / 3000000) * 100))} 
+                      color="green" 
+                      height={10}
+                      showValue={false}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Meta: $3M mínimo de reserva</p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Eficiencia de Cobro</span>
+                      <span className="font-semibold text-blue-600">
+                        {Math.round((totalInflows / (totalInflows + totalOutflows * 0.2)) * 100)}%
+                      </span>
+                    </div>
+                    <AnimatedProgress 
+                      value={Math.round((totalInflows / (totalInflows + totalOutflows * 0.2)) * 100)} 
+                      color="blue" 
+                      height={10}
+                      showValue={false}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Ratio entradas vs compromisos</p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Crecimiento de Capital</span>
+                      <span className={`font-semibold ${endingBalance > openingBalance ? 'text-green-600' : 'text-red-600'}`}>
+                        {Math.round(((endingBalance - openingBalance) / openingBalance) * 100)}%
+                      </span>
+                    </div>
+                    <AnimatedProgress 
+                      value={Math.min(100, Math.max(0, Math.round(((endingBalance - openingBalance) / openingBalance) * 100)))} 
+                      color={endingBalance > openingBalance ? 'green' : 'red'}
+                      height={10}
+                      showValue={false}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Incremento saldo inicial vs final</p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Meses con Flujo Positivo</span>
+                      <span className="font-semibold text-purple-600">
+                        {12 - negativeMonths} de 12 meses
+                      </span>
+                    </div>
+                    <AnimatedProgress 
+                      value={Math.round(((12 - negativeMonths) / 12) * 100)} 
+                      color="purple" 
+                      height={10}
+                      showValue={false}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Meta: 100% meses positivos</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Monthly/Quarterly Cash Flow Summary */}
         <Card>
