@@ -366,9 +366,15 @@ function detectAction(msg: string): AIAction {
   console.log('[AI] Tiene monto:', hasMonto, numberMatches);
   
   // ============================================
-  // PRIORIDAD 0: VERIFICAR SI PIDE EN "TRANSACCIONES" ESPECÍFICAMENTE
+  // PRIORIDAD 0: VERIFICAR DÓNDE QUIERE GUARDAR
   // ============================================
-  const quiereEnTransacciones = msgLower.includes('transaccion') || msgLower.includes('transacciones');
+  // "en transacciones" = guardar en tabla transactions
+  // "en gastos" o sin especificar = guardar en tabla expenses (por defecto para gastos)
+  const quiereEnTransacciones = (msgLower.includes('en transaccion') || msgLower.includes('en transacciones')) && 
+                                 !msgLower.includes('en gastos');
+  const quiereEnGastos = msgLower.includes('en gastos') || msgLower.includes('en gasto');
+  
+  console.log('[AI] Destino:', quiereEnTransacciones ? 'TRANSACCIONES' : (quiereEnGastos ? 'GASTOS' : 'DEFAULT (GASTOS)'));
   
   // ============================================
   // PRIORIDAD 1: PALABRAS CLAVE EXPLÍCITAS
@@ -377,16 +383,18 @@ function detectAction(msg: string): AIAction {
   // Si dice "ingreso" o "entrada" explícitamente + hay monto = REGISTRAR INGRESO
   if ((msgLower.includes('ingreso') || msgLower.includes('entrada') || msgLower.includes('cobro')) && hasMonto) {
     console.log('[AI] Detectado: INGRESO explícito con monto');
-    return { type: 'record_income', params: { message: msg, useTransactions: quiereEnTransacciones } };
+    return { type: 'record_income', params: { message: msg } };
   }
   
   // Si dice "gasto" explícitamente + hay monto = REGISTRAR GASTO
   if ((msgLower.includes('gasto') || msgLower.includes('pago')) && hasMonto) {
-    console.log('[AI] Detectado: GASTO explícito con monto', quiereEnTransacciones ? '(en transacciones)' : '(en expenses)');
-    // Si específicamente pide en transacciones, usar record_expense_transaction
-    if (quiereEnTransacciones) {
+    // SOLO usar transacciones si explícitamente dice "en transacciones" y NO dice "en gastos"
+    if (quiereEnTransacciones && !quiereEnGastos) {
+      console.log('[AI] Detectado: GASTO explícito → TRANSACCIONES (solicitado)');
       return { type: 'record_expense_transaction', params: { message: msg } };
     }
+    // Por defecto, gastos van a la tabla expenses
+    console.log('[AI] Detectado: GASTO explícito → EXPENSES (default)');
     return { type: 'record_payment', params: { message: msg } };
   }
   

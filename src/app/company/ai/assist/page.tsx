@@ -68,28 +68,25 @@ interface QuickAction {
 const getWelcomeMessage = (): Message => ({
   id: '1',
   type: 'assistant',
-  content: `¡Hola! 👋 Soy tu asistente contable con IA. Estoy conectado a tu base de datos en tiempo real.
+  content: `¡Hola! 👋 Soy tu asistente contable con IA.
 
 📝 **Puedo registrar automáticamente:**
 
-💰 **Gastos** → Se guardan en el módulo **Gastos**
-   Ejemplo: "Gasté $500 en seguro de noviembre"
+💰 **Gastos** → Por defecto van al módulo **Gastos**
+   • "Gasté $500 en seguro de noviembre"
+   • "**En gastos** agrega $14000 compra de camioneta mayo 2023"
 
-💵 **Gastos en Transacciones** → Se guardan en **Transacciones**
-   Ejemplo: "**En transacciones** agrega gasto de $14000 compra de camioneta mayo 2023"
+💵 **Ingresos** → Van al módulo **Transacciones**
+   • "Cobré $1500 por un viaje a Miami"
+   • "Ingreso de $2000 por servicio de flete"
 
-📈 **Ingresos** → Se guardan en **Transacciones**
-   Ejemplo: "Cobré $1500 por un viaje a Miami"
+📊 **También puedo:**
+   • Consultar tu situación financiera
+   • Mostrarte facturas pendientes
+   • Analizar gastos por categoría
+   • Responder dudas contables
 
-📄 **Facturas, Clientes, Productos** → En sus módulos respectivos
-
-💡 **También puedo responder preguntas sobre:**
-• Tu situación financiera actual
-• Facturas pendientes y vencidas  
-• Análisis de gastos por categoría
-• Conceptos contables
-
-¿En qué puedo ayudarte hoy?`,
+¿En qué puedo ayudarte?`,
   timestamp: new Date().toISOString(),
   category: 'greeting'
 })
