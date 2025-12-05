@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DatePicker } from "@/components/ui/date-picker"
 import { ArrowLeft, Save, TrendingUp, TrendingDown } from 'lucide-react'
 import { useCompany } from "@/contexts/CompanyContext"
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
@@ -190,12 +191,10 @@ export default function NewTransactionPage() {
               {/* Fecha */}
               <div>
                 <Label htmlFor="date">Fecha *</Label>
-                <Input
-                  id="date"
-                  type="date"
+                <DatePicker
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
+                  onChange={(date: string) => setFormData({ ...formData, date })}
+                  placeholder="Selecciona una fecha"
                 />
               </div>
 

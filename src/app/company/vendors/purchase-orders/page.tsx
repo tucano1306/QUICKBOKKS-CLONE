@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const STATUS_VALUES = ['DRAFT', 'SENT', 'CONFIRMED', 'PARTIAL', 'RECEIVED', 'CANCELLED'] as const
@@ -694,8 +695,8 @@ export default function PurchaseOrdersPage() {
                   </option>
                 ))}
               </select>
-              <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-              <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
+              <DatePicker value={startDate} onChange={(date: string) => setStartDate(date)} placeholder="Desde" />
+              <DatePicker value={endDate} onChange={(date: string) => setEndDate(date)} placeholder="Hasta" />
               <Button
                 variant="ghost"
                 onClick={() => {
@@ -789,21 +790,23 @@ export default function PurchaseOrdersPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Fecha de pedido</label>
-                  <Input
-                    type="date"
-                    className="mt-1"
-                    value={formState.orderDate}
-                    onChange={(event) => handleFormFieldChange('orderDate', event.target.value)}
-                  />
+                  <div className="mt-1">
+                    <DatePicker
+                      value={formState.orderDate}
+                      onChange={(date: string) => handleFormFieldChange('orderDate', date)}
+                      placeholder="Fecha pedido"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Fecha esperada</label>
-                  <Input
-                    type="date"
-                    className="mt-1"
-                    value={formState.expectedDate}
-                    onChange={(event) => handleFormFieldChange('expectedDate', event.target.value)}
-                  />
+                  <div className="mt-1">
+                    <DatePicker
+                      value={formState.expectedDate}
+                      onChange={(date: string) => handleFormFieldChange('expectedDate', date)}
+                      placeholder="Fecha esperada"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Solicitada por</label>

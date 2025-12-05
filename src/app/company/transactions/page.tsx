@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { DatePicker } from "@/components/ui/date-picker"
 import { 
   DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw, 
   Trash2, Search, X, Filter, CheckSquare, Square, Eye, Edit, Plus
@@ -254,20 +255,20 @@ export default function TransactionsPage() {
               {/* Fecha desde */}
               <div>
                 <label className="text-sm font-medium mb-1 block">Desde</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
+                  onChange={(date: string) => setDateFrom(date)}
+                  placeholder="Fecha inicio"
                 />
               </div>
               
               {/* Fecha hasta */}
               <div>
                 <label className="text-sm font-medium mb-1 block">Hasta</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
+                  onChange={(date: string) => setDateTo(date)}
+                  placeholder="Fecha fin"
                 />
               </div>
               

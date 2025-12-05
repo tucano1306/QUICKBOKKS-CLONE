@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Download,
   FileSpreadsheet,
@@ -321,10 +322,10 @@ export default function ExportDataPage() {
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Desde
                 </label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
+                  onChange={(date: string) => setDateFrom(date)}
+                  placeholder="Fecha inicio"
                 />
               </div>
               <div>
@@ -332,10 +333,10 @@ export default function ExportDataPage() {
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Hasta
                 </label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
+                  onChange={(date: string) => setDateTo(date)}
+                  placeholder="Fecha fin"
                 />
               </div>
               <div>

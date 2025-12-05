@@ -8,6 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { DatePicker } from '@/components/ui/date-picker'
 import { 
   Download,
   FileDown,
@@ -348,11 +349,19 @@ export default function TaxExportPage() {
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-700 mb-2 block">Start Date</label>
-                <input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                <DatePicker 
+                  value={dateRange.start} 
+                  onChange={(date: string) => setDateRange({ ...dateRange, start: date })} 
+                  placeholder="Fecha inicio"
+                />
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-700 mb-2 block">End Date</label>
-                <input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                <DatePicker 
+                  value={dateRange.end} 
+                  onChange={(date: string) => setDateRange({ ...dateRange, end: date })} 
+                  placeholder="Fecha fin"
+                />
               </div>
             </div>
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">

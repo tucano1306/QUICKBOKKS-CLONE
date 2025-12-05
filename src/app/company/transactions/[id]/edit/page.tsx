@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   ArrowLeft,
   Save,
@@ -356,13 +357,10 @@ export default function EditTransactionPage() {
                     <Calendar className="h-4 w-4" />
                     Fecha *
                   </Label>
-                  <Input
-                    id="date"
-                    name="date"
-                    type="date"
+                  <DatePicker
                     value={formData.date}
-                    onChange={handleChange}
-                    required
+                    onChange={(date: string) => setFormData({ ...formData, date })}
+                    placeholder="Selecciona una fecha"
                   />
                 </div>
               </div>

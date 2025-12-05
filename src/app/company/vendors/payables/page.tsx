@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   AlertCircle,
   Clock,
@@ -691,18 +692,18 @@ export default function VendorPayablesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Fecha de Factura</label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={formData.issueDate}
-                      onChange={(e) => handleFormChange('issueDate', e.target.value)}
+                      onChange={(date: string) => handleFormChange('issueDate', date)}
+                      placeholder="Fecha factura"
                     />
                   </div>
                   <div>
                     <label className="text-sm font-medium">Fecha de Vencimiento</label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={formData.dueDate}
-                      onChange={(e) => handleFormChange('dueDate', e.target.value)}
+                      onChange={(date: string) => handleFormChange('dueDate', date)}
+                      placeholder="Fecha vencimiento"
                     />
                   </div>
                 </div>
