@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { 
   DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw, 
-  Trash2, Search, X, Filter, CheckSquare, Square, Eye, Edit
+  Trash2, Search, X, Filter, CheckSquare, Square, Eye, Edit, Plus
 } from 'lucide-react'
 import { useCompany } from "@/contexts/CompanyContext"
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
@@ -206,7 +206,21 @@ export default function TransactionsPage() {
             <h1 className="text-2xl font-bold text-gray-900">💰 Transacciones</h1>
             <p className="text-sm text-gray-600">Gestiona todos los movimientos financieros</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              onClick={() => router.push('/company/transactions/new?type=INCOME')} 
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Ingreso
+            </Button>
+            <Button 
+              onClick={() => router.push('/company/transactions/new?type=EXPENSE')} 
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Gasto
+            </Button>
             <Button onClick={() => setShowFilters(!showFilters)} variant="outline">
               <Filter className="h-4 w-4 mr-2" />
               Filtros {hasActiveFilters && '●'}

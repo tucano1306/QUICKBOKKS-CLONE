@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { 
-  createIncomeJournalEntry, 
-  createExpenseJournalEntry,
-  deleteTransactionWithReversal 
-} from '@/lib/accounting-service'
+import { deleteTransactionWithReversal } from '@/lib/accounting-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -76,43 +72,110 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
     }
 
-    // Usar transacción de BD para atomicidad (si falla el journal entry, revertir todo)
+    const txDate = date ? new Date(date) : new Date();
+    const txAmount = parseFloat(amount);
+    const txDescription = description || category || (type === 'INCOME' ? 'Ingreso' : 'Gasto');
+
+    // ATÓMICO: Crear transacción Y journal entry en la misma transacción de BD
+    // Si falla cualquiera, se revierte TODO
     const result = await prisma.$transaction(async (tx) => {
+      // 1. Crear la transacción
       const transaction = await tx.transaction.create({
         data: {
           companyId,
           type,
           category: category || (type === 'INCOME' ? 'Ingreso General' : 'Gasto General'),
           description,
-          amount: parseFloat(amount),
-          date: date ? new Date(date) : new Date(),
+          amount: txAmount,
+          date: txDate,
           status: 'COMPLETED',
           notes
         }
       })
 
-      return transaction;
+      // 2. Buscar cuentas necesarias
+      const cashAccount = await tx.chartOfAccounts.findFirst({
+        where: { 
+          code: '1000',
+          OR: [{ companyId }, { companyId: null }]
+        }
+      });
+
+      if (!cashAccount) {
+        throw new Error('Cuenta de Caja (1000) no encontrada. Ejecute el seed de cuentas.');
+      }
+
+      // 3. Determinar cuenta de ingreso/gasto
+      let targetAccountCode: string;
+      if (type === 'INCOME') {
+        targetAccountCode = '4900'; // Otros Ingresos
+      } else {
+        // Mapear categoría a cuenta de gasto
+        const categoryLower = (category || '').toLowerCase();
+        if (categoryLower.includes('salario') || categoryLower.includes('payroll') || categoryLower.includes('sueldo') || categoryLower.includes('chofer')) {
+          targetAccountCode = '5100'; // Salarios
+        } else if (categoryLower.includes('alquiler') || categoryLower.includes('rent')) {
+          targetAccountCode = '5200'; // Alquiler
+        } else if (categoryLower.includes('servicio') || categoryLower.includes('utility') || categoryLower.includes('luz') || categoryLower.includes('agua')) {
+          targetAccountCode = '5300'; // Servicios
+        } else {
+          targetAccountCode = '5900'; // Otros Gastos
+        }
+      }
+
+      const targetAccount = await tx.chartOfAccounts.findFirst({
+        where: { 
+          code: targetAccountCode,
+          OR: [{ companyId }, { companyId: null }]
+        }
+      });
+
+      if (!targetAccount) {
+        throw new Error(`Cuenta ${targetAccountCode} no encontrada. Ejecute el seed de cuentas.`);
+      }
+
+      // 4. Generar número de asiento
+      const jeCount = await tx.journalEntry.count({ where: { companyId } });
+      const year = new Date().getFullYear();
+      const entryNumber = `JE-${year}-${String(jeCount + 1).padStart(6, '0')}`;
+
+      // 5. Crear Journal Entry con líneas
+      const journalEntry = await tx.journalEntry.create({
+        data: {
+          entryNumber,
+          date: txDate,
+          description: `${type === 'INCOME' ? 'Ingreso' : 'Gasto'}: ${txDescription}`,
+          reference: transaction.id, // Vincular con la transacción
+          companyId,
+          createdBy: session.user.id,
+          status: 'POSTED',
+          lines: {
+            create: type === 'INCOME' 
+              ? [
+                  // Ingreso: Débito Caja, Crédito Ingresos
+                  { accountId: cashAccount.id, debit: txAmount, credit: 0, description: 'Entrada de efectivo', lineNumber: 1 },
+                  { accountId: targetAccount.id, debit: 0, credit: txAmount, description: txDescription, lineNumber: 2 }
+                ]
+              : [
+                  // Gasto: Débito Gastos, Crédito Caja
+                  { accountId: targetAccount.id, debit: txAmount, credit: 0, description: txDescription, lineNumber: 1 },
+                  { accountId: cashAccount.id, debit: 0, credit: txAmount, description: 'Pago de gasto', lineNumber: 2 }
+                ]
+          }
+        },
+        include: { lines: true }
+      });
+
+      console.log(`✅ Transacción ${transaction.id} creada con JE ${journalEntry.entryNumber}`);
+      
+      return { transaction, journalEntry };
     });
 
-    // Crear asiento contable automáticamente (Partida Doble)
-    // Nota: Esto está fuera de la transacción porque usa funciones separadas
-    // Si falla, la transacción existe pero sin journal entry - se puede crear manualmente
-    const txDate = date ? new Date(date) : new Date();
-    const txAmount = parseFloat(amount);
-    const txDescription = description || category || (type === 'INCOME' ? 'Ingreso' : 'Gasto');
-    
-    try {
-      if (type === 'INCOME') {
-        await createIncomeJournalEntry(companyId, txAmount, txDescription, txDate, result.id, session.user.id);
-      } else if (type === 'EXPENSE') {
-        await createExpenseJournalEntry(companyId, txAmount, txDescription, category || 'General', txDate, result.id, session.user.id);
-      }
-    } catch (journalError) {
-      console.error('Error creating journal entry (transaction saved):', journalError);
-      // No revertir la transacción, solo loguear
-    }
-
-    return NextResponse.json({ success: true, transaction: result })
+    return NextResponse.json({ 
+      success: true, 
+      transaction: result.transaction,
+      journalEntry: { entryNumber: result.journalEntry.entryNumber }
+    })
   } catch (error: any) {
     console.error('Error creating transaction:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

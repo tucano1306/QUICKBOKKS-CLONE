@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
     const startDateStr = searchParams.get('startDate');
     const endDateStr = searchParams.get('endDate');
     // Parámetro para elegir fuente de datos
-    const dataSource = searchParams.get('source') || 'journal'; // 'journal' | 'legacy' | 'both'
+    // Por defecto usar 'both' para incluir TODAS las fuentes (transacciones + journal entries)
+    const dataSource = searchParams.get('source') || 'both'; // 'journal' | 'legacy' | 'both'
     
     const startDate = new Date(startDateStr || new Date().toISOString());
     const endDate = new Date(endDateStr || new Date().toISOString());

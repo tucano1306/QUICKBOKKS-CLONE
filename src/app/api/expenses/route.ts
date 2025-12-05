@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { validateExpenseRequest, validatePagination } from '@/lib/validation-middleware'
-import { createExpenseJournalEntry, deleteExpenseWithReversal } from '@/lib/accounting-service'
+import { deleteExpenseWithReversal } from '@/lib/accounting-service'
 
 // GET all expenses
 export async function GET(request: NextRequest) {
@@ -100,44 +100,104 @@ export async function POST(request: NextRequest) {
       select: { companyId: true }
     });
 
-    const expense = await prisma.expense.create({
-      data: {
-        userId: session.user.id,
-        companyId: userCompany?.companyId || null,
-        categoryId,
-        amount: parseFloat(amount),
-        date: date ? new Date(date) : new Date(),
-        description,
-        vendor,
-        paymentMethod: paymentMethod || 'CASH',
-        reference,
-        taxDeductible: taxDeductible !== false,
-        taxAmount: taxAmount ? parseFloat(taxAmount) : 0,
-        notes,
-        attachments: attachments || [],
-        status: 'PENDING',
-      },
-      include: {
-        category: true,
-      },
-    })
+    // ATÓMICO: Crear gasto Y journal entry en la misma transacción de BD
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Crear el gasto
+      const expense = await tx.expense.create({
+        data: {
+          userId: session.user.id,
+          companyId: userCompany?.companyId || null,
+          categoryId,
+          amount: parseFloat(amount),
+          date: date ? new Date(date) : new Date(),
+          description,
+          vendor,
+          paymentMethod: paymentMethod || 'CASH',
+          reference,
+          taxDeductible: taxDeductible !== false,
+          taxAmount: taxAmount ? parseFloat(taxAmount) : 0,
+          notes,
+          attachments: attachments || [],
+          status: 'PENDING',
+        },
+        include: {
+          category: true,
+        },
+      });
 
-    // Crear asiento contable automáticamente (Partida Doble)
-    if (userCompany?.companyId) {
-      const expDate = date ? new Date(date) : new Date();
-      const categoryName = expense.category?.name || 'General';
-      await createExpenseJournalEntry(
-        userCompany.companyId,
-        parseFloat(amount),
-        description,
-        categoryName,
-        expDate,
-        expense.id,
-        session.user.id
-      );
-    }
+      // 2. Si hay companyId, crear Journal Entry
+      if (userCompany?.companyId) {
+        const companyId = userCompany.companyId;
+        const expDate = date ? new Date(date) : new Date();
+        const categoryName = expense.category?.name || 'General';
+        const expAmount = parseFloat(amount);
 
-    return NextResponse.json(expense, { status: 201 })
+        // Buscar cuenta de caja
+        const cashAccount = await tx.chartOfAccounts.findFirst({
+          where: { 
+            code: '1000',
+            OR: [{ companyId }, { companyId: null }]
+          }
+        });
+
+        if (!cashAccount) {
+          throw new Error('Cuenta de Caja (1000) no encontrada');
+        }
+
+        // Mapear categoría a cuenta de gasto
+        const categoryLower = categoryName.toLowerCase();
+        let expenseAccountCode = '5900'; // Otros Gastos por defecto
+        
+        if (categoryLower.includes('salario') || categoryLower.includes('chofer') || categoryLower.includes('sueldo')) {
+          expenseAccountCode = '5100';
+        } else if (categoryLower.includes('alquiler') || categoryLower.includes('rent')) {
+          expenseAccountCode = '5200';
+        } else if (categoryLower.includes('servicio') || categoryLower.includes('luz') || categoryLower.includes('agua')) {
+          expenseAccountCode = '5300';
+        }
+
+        const expenseAccount = await tx.chartOfAccounts.findFirst({
+          where: { 
+            code: expenseAccountCode,
+            OR: [{ companyId }, { companyId: null }]
+          }
+        });
+
+        if (!expenseAccount) {
+          throw new Error(`Cuenta de gastos (${expenseAccountCode}) no encontrada`);
+        }
+
+        // Generar número de asiento
+        const jeCount = await tx.journalEntry.count({ where: { companyId } });
+        const year = new Date().getFullYear();
+        const entryNumber = `JE-${year}-${String(jeCount + 1).padStart(6, '0')}`;
+
+        // Crear Journal Entry
+        await tx.journalEntry.create({
+          data: {
+            entryNumber,
+            date: expDate,
+            description: `Gasto: ${description || categoryName}`,
+            reference: expense.id,
+            companyId,
+            createdBy: session.user.id,
+            status: 'POSTED',
+            lines: {
+              create: [
+                { accountId: expenseAccount.id, debit: expAmount, credit: 0, description: description || categoryName, lineNumber: 1 },
+                { accountId: cashAccount.id, debit: 0, credit: expAmount, description: 'Pago de gasto', lineNumber: 2 }
+              ]
+            }
+          }
+        });
+
+        console.log(`✅ Gasto ${expense.id} creado con JE ${entryNumber}`);
+      }
+
+      return expense;
+    });
+
+    return NextResponse.json(result, { status: 201 })
   } catch (error) {
     console.error('Error creating expense:', error)
     return NextResponse.json(
