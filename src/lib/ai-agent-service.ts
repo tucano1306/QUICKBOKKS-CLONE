@@ -18,6 +18,7 @@
 import { prisma } from './prisma';
 import OpenAI from 'openai';
 import Groq from 'groq-sdk';
+import { createExpenseWithJE } from './accounting-service';
 
 // ============== TIPOS ==============
 
@@ -415,8 +416,22 @@ async function createInvoice(params: any, userId: string): Promise<any> {
 }
 
 async function createExpense(params: any, userId: string): Promise<any> {
+  // Buscar companyId del usuario
+  const userCompany = await prisma.companyUser.findFirst({
+    where: { userId },
+    select: { companyId: true }
+  });
+
+  if (!userCompany?.companyId) {
+    return {
+      success: false,
+      error: 'Usuario no tiene compañía asignada'
+    };
+  }
+
   // Categorizar automáticamente si no se proporciona categoría
   let categoryId = params.categoryId;
+  let categoryName = params.category;
   
   if (!categoryId && params.category) {
     // Buscar o crear categoría
@@ -426,20 +441,21 @@ async function createExpense(params: any, userId: string): Promise<any> {
     
     if (category) {
       categoryId = category.id;
+      categoryName = category.name;
     }
   }
 
-  const expense = await prisma.expense.create({
-    data: {
-      user: { connect: { id: userId } },
-      amount: params.amount,
-      category: categoryId ? { connect: { id: categoryId } } : undefined,
-      description: params.description,
-      vendor: params.vendor || '',
-      date: params.date ? new Date(params.date) : new Date(),
-      status: 'PENDING',
-      paymentMethod: 'OTHER',
-    },
+  // Crear gasto con JE de forma atómica
+  const { expense } = await createExpenseWithJE({
+    companyId: userCompany.companyId,
+    userId,
+    categoryId,
+    categoryName,
+    amount: params.amount,
+    description: params.description,
+    vendor: params.vendor || '',
+    date: params.date ? new Date(params.date) : new Date(),
+    paymentMethod: 'OTHER'
   });
 
   return {

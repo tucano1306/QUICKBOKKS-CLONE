@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createTransactionWithJE, createExpenseWithJE } from '@/lib/accounting-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -282,18 +283,16 @@ async function importExpenses(
       const paymentMethodStr = getString(row, mappings, ['payment_method', 'metodo_pago', 'forma_pago'])?.toLowerCase() || ''
       const paymentMethod = paymentMethodMap[paymentMethodStr] || 'OTHER'
 
-      await prisma.expense.create({
-        data: {
-          companyId,
-          userId,
-          categoryId,
-          vendor: vendorName,
-          description: description || 'Gasto importado',
-          amount,
-          date: expenseDate,
-          status: 'APPROVED',
-          paymentMethod
-        }
+      // Crear gasto con JE de forma atómica
+      await createExpenseWithJE({
+        companyId,
+        userId,
+        categoryId,
+        amount,
+        description: description || 'Gasto importado',
+        vendor: vendorName,
+        date: expenseDate,
+        paymentMethod
       })
       
       imported++
@@ -356,18 +355,16 @@ async function importIncome(
 
       const incomeDate = dateStr ? parseDate(dateStr) : new Date()
 
-      // Crear como transacción de tipo INCOME
-      await prisma.transaction.create({
-        data: {
-          companyId,
-          type: 'INCOME',
-          category: category || 'Ingreso General',
-          description: description || 'Ingreso importado',
-          amount,
-          date: incomeDate,
-          status: 'COMPLETED',
-          notes: customerName ? `Cliente: ${customerName}` : undefined,
-        }
+      // Crear transacción de ingreso con JE de forma atómica
+      await createTransactionWithJE({
+        companyId,
+        userId,
+        type: 'INCOME',
+        category: category || 'Ingreso General',
+        description: description || 'Ingreso importado',
+        amount,
+        date: incomeDate,
+        notes: customerName ? `Cliente: ${customerName}` : undefined
       })
       
       imported++

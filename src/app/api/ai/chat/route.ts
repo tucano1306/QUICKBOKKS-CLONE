@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import Groq from 'groq-sdk'
+import { createExpenseWithJE, createTransactionWithJE } from '@/lib/accounting-service'
 
 // Inicializar cliente Groq
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
@@ -632,18 +633,16 @@ Ejemplos:
       }
     }
 
-    // Crear el gasto
-    const expense = await prisma.expense.create({
-      data: {
-        userId,
-        categoryId: category.id,
-        companyId,
-        amount: data.amount,
-        description: data.description || `Pago de ${categoryName}`,
-        date: expenseDate,
-        status: 'APPROVED',
-        paymentMethod: 'OTHER'
-      }
+    // Crear el gasto con JE de forma atómica
+    const { expense } = await createExpenseWithJE({
+      companyId,
+      userId,
+      categoryId: category.id,
+      categoryName: category.name,
+      amount: data.amount,
+      description: data.description || `Pago de ${categoryName}`,
+      date: expenseDate,
+      paymentMethod: 'OTHER'
     });
 
     const monthName = expenseDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
@@ -748,18 +747,16 @@ Ejemplos:
       }
     }
 
-    // Crear transacción de ingreso
-    const income = await prisma.transaction.create({
-      data: {
-        companyId,
-        type: 'INCOME',
-        category: 'Ingresos por Transporte',
-        description: data.description || 'Ingreso por servicio',
-        amount: data.amount,
-        date: incomeDate,
-        status: 'COMPLETED',
-        notes: data.source ? `Cliente/Fuente: ${data.source}` : undefined
-      }
+    // Crear transacción de ingreso con JE de forma atómica
+    const { transaction: income } = await createTransactionWithJE({
+      companyId,
+      userId,
+      type: 'INCOME',
+      category: 'Ingresos por Transporte',
+      description: data.description || 'Ingreso por servicio',
+      amount: data.amount,
+      date: incomeDate,
+      notes: data.source ? `Cliente/Fuente: ${data.source}` : undefined
     });
 
     const monthName = incomeDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
@@ -1178,18 +1175,17 @@ async function createExpense(msg: string, userId: string, companyId: string): Pr
       });
     }
 
-    const expense = await prisma.expense.create({
-      data: {
-        userId,
-        categoryId: category.id,
-        companyId,
-        amount: data.amount,
-        description: data.description || 'Gasto',
-        vendor: data.vendor || '',
-        date: new Date(),
-        status: 'PENDING',
-        paymentMethod: 'OTHER'
-      }
+    // Crear gasto con JE de forma atómica
+    const { expense } = await createExpenseWithJE({
+      companyId,
+      userId,
+      categoryId: category.id,
+      categoryName: category.name,
+      amount: data.amount,
+      description: data.description || 'Gasto',
+      vendor: data.vendor || '',
+      date: new Date(),
+      paymentMethod: 'OTHER'
     });
 
     return `✅ **Gasto Registrado**

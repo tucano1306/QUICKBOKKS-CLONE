@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createExpenseWithJE } from '@/lib/accounting-service'
 
 // GET all receipts (expenses with attachments)
 export async function GET(request: NextRequest) {
@@ -152,20 +153,17 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Create expense with receipt attachment
-    const expense = await prisma.expense.create({
-      data: {
-        userId: session.user.id,
-        companyId,
-        categoryId: category.id,
-        amount: amount || 0,
-        description: description || `Recibo: ${file.name}`,
-        vendor: vendor || 'Sin especificar',
-        paymentMethod: 'CASH',
-        status: 'PENDING',
-        attachments: [filename],
-        taxDeductible: true
-      }
+    // Create expense with JE atomically
+    const { expense } = await createExpenseWithJE({
+      companyId,
+      userId: session.user.id,
+      categoryId: category.id,
+      categoryName: category.name,
+      amount: amount || 0,
+      description: description || `Recibo: ${file.name}`,
+      vendor: vendor || 'Sin especificar',
+      paymentMethod: 'CASH',
+      attachments: [filename]
     })
 
     return NextResponse.json({

@@ -329,3 +329,227 @@ export async function deleteExpenseWithReversal(
   // Eliminar el gasto
   await prisma.expense.delete({ where: { id: expenseId } });
 }
+
+// ============================================
+// FUNCIONES ATÓMICAS PARA CREAR TRANSACCIONES/GASTOS CON JE
+// Usar estas funciones en lugar de prisma.transaction.create directamente
+// ============================================
+
+interface CreateTransactionParams {
+  companyId: string;
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+  amount: number;
+  description?: string;
+  category?: string;
+  date?: Date;
+  notes?: string;
+  userId: string;
+}
+
+/**
+ * Crear transacción con Journal Entry de forma ATÓMICA
+ * Si falla el JE, se revierte la transacción
+ */
+export async function createTransactionWithJE(params: CreateTransactionParams) {
+  const { companyId, type, amount, description, category, date, notes, userId } = params;
+  const txDate = date || new Date();
+  const txDescription = description || category || (type === 'INCOME' ? 'Ingreso' : 'Gasto');
+  
+  return prisma.$transaction(async (tx) => {
+    // 1. Crear la transacción
+    const transaction = await tx.transaction.create({
+      data: {
+        companyId,
+        type,
+        category: category || (type === 'INCOME' ? 'Ingreso General' : 'Gasto General'),
+        description: txDescription,
+        amount,
+        date: txDate,
+        status: 'COMPLETED',
+        notes
+      }
+    });
+
+    // 2. Buscar cuenta de caja
+    const cashAccount = await tx.chartOfAccounts.findFirst({
+      where: { 
+        code: ACCOUNT_CODES.CASH,
+        OR: [{ companyId }, { companyId: null }]
+      }
+    });
+
+    if (!cashAccount) {
+      throw new Error('Cuenta de Caja (1000) no encontrada. Ejecute el seed de cuentas.');
+    }
+
+    // 3. Determinar cuenta de ingreso/gasto
+    let targetAccountCode: string;
+    if (type === 'INCOME') {
+      targetAccountCode = ACCOUNT_CODES.OTHER_INCOME;
+    } else {
+      const categoryLower = (category || '').toLowerCase();
+      if (categoryLower.includes('salario') || categoryLower.includes('chofer') || categoryLower.includes('sueldo')) {
+        targetAccountCode = ACCOUNT_CODES.SALARIES_EXPENSE;
+      } else if (categoryLower.includes('alquiler') || categoryLower.includes('rent')) {
+        targetAccountCode = ACCOUNT_CODES.RENT_EXPENSE;
+      } else if (categoryLower.includes('servicio') || categoryLower.includes('luz') || categoryLower.includes('agua')) {
+        targetAccountCode = ACCOUNT_CODES.UTILITIES_EXPENSE;
+      } else {
+        targetAccountCode = ACCOUNT_CODES.OTHER_EXPENSES;
+      }
+    }
+
+    const targetAccount = await tx.chartOfAccounts.findFirst({
+      where: { 
+        code: targetAccountCode,
+        OR: [{ companyId }, { companyId: null }]
+      }
+    });
+
+    if (!targetAccount) {
+      throw new Error(`Cuenta ${targetAccountCode} no encontrada. Ejecute el seed de cuentas.`);
+    }
+
+    // 4. Generar número de asiento
+    const jeCount = await tx.journalEntry.count({ where: { companyId } });
+    const year = new Date().getFullYear();
+    const entryNumber = `JE-${year}-${String(jeCount + 1).padStart(6, '0')}`;
+
+    // 5. Crear Journal Entry
+    const journalEntry = await tx.journalEntry.create({
+      data: {
+        entryNumber,
+        date: txDate,
+        description: `${type === 'INCOME' ? 'Ingreso' : 'Gasto'}: ${txDescription}`,
+        reference: transaction.id,
+        companyId,
+        createdBy: userId,
+        status: 'POSTED',
+        lines: {
+          create: type === 'INCOME' 
+            ? [
+                { accountId: cashAccount.id, debit: amount, credit: 0, description: 'Entrada de efectivo', lineNumber: 1 },
+                { accountId: targetAccount.id, debit: 0, credit: amount, description: txDescription, lineNumber: 2 }
+              ]
+            : [
+                { accountId: targetAccount.id, debit: amount, credit: 0, description: txDescription, lineNumber: 1 },
+                { accountId: cashAccount.id, debit: 0, credit: amount, description: 'Pago de gasto', lineNumber: 2 }
+              ]
+        }
+      }
+    });
+
+    console.log(`✅ Transacción ${transaction.id} creada con JE ${journalEntry.entryNumber}`);
+    return { transaction, journalEntry };
+  });
+}
+
+interface CreateExpenseParams {
+  companyId: string;
+  userId: string;
+  categoryId?: string;
+  categoryName?: string;
+  amount: number;
+  description?: string;
+  vendor?: string;
+  date?: Date;
+  paymentMethod?: string;
+  notes?: string;
+  attachments?: string[];
+}
+
+/**
+ * Crear gasto con Journal Entry de forma ATÓMICA
+ * Si falla el JE, se revierte el gasto
+ */
+export async function createExpenseWithJE(params: CreateExpenseParams) {
+  const { 
+    companyId, userId, categoryId, categoryName, amount, 
+    description, vendor, date, paymentMethod, notes, attachments 
+  } = params;
+  
+  const expDate = date || new Date();
+  
+  return prisma.$transaction(async (tx) => {
+    // 1. Crear el gasto
+    const expense = await tx.expense.create({
+      data: {
+        userId,
+        companyId,
+        categoryId,
+        amount,
+        date: expDate,
+        description: description || 'Gasto',
+        vendor: vendor || '',
+        paymentMethod: (paymentMethod as any) || 'CASH',
+        status: 'PENDING',
+        attachments: attachments || [],
+        notes
+      },
+      include: { category: true }
+    });
+
+    // 2. Buscar cuenta de caja
+    const cashAccount = await tx.chartOfAccounts.findFirst({
+      where: { 
+        code: ACCOUNT_CODES.CASH,
+        OR: [{ companyId }, { companyId: null }]
+      }
+    });
+
+    if (!cashAccount) {
+      throw new Error('Cuenta de Caja (1000) no encontrada');
+    }
+
+    // 3. Determinar cuenta de gasto
+    const catName = (categoryName || expense.category?.name || '').toLowerCase();
+    let expenseAccountCode = ACCOUNT_CODES.OTHER_EXPENSES;
+    
+    if (catName.includes('salario') || catName.includes('chofer') || catName.includes('sueldo')) {
+      expenseAccountCode = ACCOUNT_CODES.SALARIES_EXPENSE;
+    } else if (catName.includes('alquiler') || catName.includes('rent')) {
+      expenseAccountCode = ACCOUNT_CODES.RENT_EXPENSE;
+    } else if (catName.includes('servicio') || catName.includes('luz') || catName.includes('agua')) {
+      expenseAccountCode = ACCOUNT_CODES.UTILITIES_EXPENSE;
+    }
+
+    const expenseAccount = await tx.chartOfAccounts.findFirst({
+      where: { 
+        code: expenseAccountCode,
+        OR: [{ companyId }, { companyId: null }]
+      }
+    });
+
+    if (!expenseAccount) {
+      throw new Error(`Cuenta de gastos (${expenseAccountCode}) no encontrada`);
+    }
+
+    // 4. Generar número de asiento
+    const jeCount = await tx.journalEntry.count({ where: { companyId } });
+    const year = new Date().getFullYear();
+    const entryNumber = `JE-${year}-${String(jeCount + 1).padStart(6, '0')}`;
+
+    // 5. Crear Journal Entry
+    const journalEntry = await tx.journalEntry.create({
+      data: {
+        entryNumber,
+        date: expDate,
+        description: `Gasto: ${description || expense.category?.name || 'General'}`,
+        reference: expense.id,
+        companyId,
+        createdBy: userId,
+        status: 'POSTED',
+        lines: {
+          create: [
+            { accountId: expenseAccount.id, debit: amount, credit: 0, description: description || 'Gasto', lineNumber: 1 },
+            { accountId: cashAccount.id, debit: 0, credit: amount, description: 'Pago de gasto', lineNumber: 2 }
+          ]
+        }
+      }
+    });
+
+    console.log(`✅ Gasto ${expense.id} creado con JE ${journalEntry.entryNumber}`);
+    return { expense, journalEntry };
+  });
+}
+
