@@ -94,9 +94,16 @@ export async function POST(request: NextRequest) {
       attachments,
     } = body
 
+    // Buscar companyId del usuario
+    const userCompany = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id },
+      select: { companyId: true }
+    });
+
     const expense = await prisma.expense.create({
       data: {
         userId: session.user.id,
+        companyId: userCompany?.companyId || null,
         categoryId,
         amount: parseFloat(amount),
         date: date ? new Date(date) : new Date(),
@@ -116,12 +123,6 @@ export async function POST(request: NextRequest) {
     })
 
     // Crear asiento contable automáticamente (Partida Doble)
-    // Buscar companyId del usuario
-    const userCompany = await prisma.companyUser.findFirst({
-      where: { userId: session.user.id },
-      select: { companyId: true }
-    });
-    
     if (userCompany?.companyId) {
       const expDate = date ? new Date(date) : new Date();
       const categoryName = expense.category?.name || 'General';

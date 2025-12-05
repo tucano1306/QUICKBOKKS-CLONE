@@ -27,19 +27,18 @@ export async function GET(request: NextRequest) {
     // FUENTE PRINCIPAL: JOURNAL ENTRIES (Partida Doble)
     // Esta es la fuente de verdad contable
     // ============================================
-    const accounts = await prisma.chartOfAccounts.findMany({
+    
+    // Consulta directa a journal entries con filtro de fechas EXPLÍCITO
+    const journalEntriesInPeriod = await prisma.journalEntry.findMany({
       where: {
         ...(companyId && { companyId }),
-        isActive: true,
-        type: { in: ['REVENUE', 'EXPENSE'] },
+        date: { gte: startDate, lte: endDate },
+        status: 'POSTED',
       },
       include: {
-        journalEntries: {
-          where: {
-            journalEntry: {
-              date: { gte: startDate, lte: endDate },
-              status: 'POSTED',
-            },
+        lines: {
+          include: {
+            account: true,
           },
         },
       },
@@ -52,19 +51,31 @@ export async function GET(request: NextRequest) {
     let journalRevenue = 0;
     let journalExpenses = 0;
     
-    for (const account of accounts) {
-      // Revenue: balance normal es CRÉDITO (credit - debit = positivo)
-      // Expense: balance normal es DÉBITO (debit - credit = positivo)
-      const balance = account.type === 'REVENUE'
-        ? account.journalEntries.reduce((sum: number, line: any) => sum + (line.credit || 0) - (line.debit || 0), 0)
-        : account.journalEntries.reduce((sum: number, line: any) => sum + (line.debit || 0) - (line.credit || 0), 0);
-
-      if (account.type === 'REVENUE' && balance > 0) {
-        journalRevenue += balance;
-        incomeByCategory[account.name] = { name: account.name, amount: balance };
-      } else if (account.type === 'EXPENSE' && balance > 0) {
-        journalExpenses += balance;
-        expensesByCategory[account.name] = { name: account.name, amount: balance };
+    for (const entry of journalEntriesInPeriod) {
+      for (const line of entry.lines) {
+        if (!line.account) continue;
+        
+        if (line.account.type === 'REVENUE') {
+          // Revenue: balance normal es CRÉDITO
+          const amount = (line.credit || 0) - (line.debit || 0);
+          if (amount > 0) {
+            journalRevenue += amount;
+            if (!incomeByCategory[line.account.name]) {
+              incomeByCategory[line.account.name] = { name: line.account.name, amount: 0 };
+            }
+            incomeByCategory[line.account.name].amount += amount;
+          }
+        } else if (line.account.type === 'EXPENSE') {
+          // Expense: balance normal es DÉBITO
+          const amount = (line.debit || 0) - (line.credit || 0);
+          if (amount > 0) {
+            journalExpenses += amount;
+            if (!expensesByCategory[line.account.name]) {
+              expensesByCategory[line.account.name] = { name: line.account.name, amount: 0 };
+            }
+            expensesByCategory[line.account.name].amount += amount;
+          }
+        }
       }
     }
 

@@ -80,6 +80,7 @@ export default defineConfig({
       name: 'chromium',
       use: { 
         ...devices['Desktop Chrome'],
+        storageState: '.auth/user.json',
       },
       dependencies: ['setup'],
     },
@@ -87,6 +88,7 @@ export default defineConfig({
       name: 'firefox',
       use: { 
         ...devices['Desktop Firefox'],
+        storageState: '.auth/user.json',
       },
       dependencies: ['setup'],
     },
@@ -94,6 +96,7 @@ export default defineConfig({
       name: 'webkit',
       use: { 
         ...devices['Desktop Safari'],
+        storageState: '.auth/user.json',
       },
       dependencies: ['setup'],
     },
@@ -103,6 +106,7 @@ export default defineConfig({
       name: 'mobile-chrome',
       use: { 
         ...devices['Pixel 5'],
+        storageState: '.auth/user.json',
       },
       dependencies: ['setup'],
     },
@@ -110,6 +114,7 @@ export default defineConfig({
       name: 'mobile-safari',
       use: { 
         ...devices['iPhone 12'],
+        storageState: '.auth/user.json',
       },
       dependencies: ['setup'],
     },
@@ -119,6 +124,7 @@ export default defineConfig({
       name: 'tablet',
       use: {
         ...devices['iPad (gen 7)'],
+        storageState: '.auth/user.json',
       },
       dependencies: ['setup'],
     },
