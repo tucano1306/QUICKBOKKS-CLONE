@@ -664,22 +664,22 @@ export default function ExpensesListPage() {
                         {!selectMode && (
                           <div className="flex justify-center gap-2">
                             <button
-                              onClick={() => router.push(`/expenses/${expense.id}`)}
-                              className="text-blue-600 hover:text-blue-800"
+                              onClick={() => router.push(`/company/expenses/${expense.id}`)}
+                              className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
                               title="Ver detalles"
                             >
                               <Eye className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => router.push(`/company/expenses/${expense.id}/edit`)}
-                              className="text-green-600 hover:text-green-800"
+                              className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(expense.id)}
-                              className="text-red-600 hover:text-red-800"
+                              className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
                               title="Eliminar"
                             >
                               <Trash2 className="h-4 w-4" />

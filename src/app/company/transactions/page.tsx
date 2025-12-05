@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,9 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { 
   DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw, 
-  Trash2, Search, X, Filter, CheckSquare, Square
+  Trash2, Search, X, Filter, CheckSquare, Square, Eye, Edit
 } from 'lucide-react'
 import { useCompany } from "@/contexts/CompanyContext"
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 
 interface Transaction {
   id: string
@@ -24,6 +26,7 @@ interface Transaction {
 }
 
 export default function TransactionsPage() {
+  const router = useRouter()
   const { activeCompany } = useCompany()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -195,21 +198,25 @@ export default function TransactionsPage() {
   const hasActiveFilters = searchText || dateFrom || dateTo || minAmount || maxAmount
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="text-3xl font-bold">💰 Transacciones</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowFilters(!showFilters)} variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros {hasActiveFilters && '●'}
-          </Button>
-          <Button onClick={loadTransactions} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
-          </Button>
+    <CompanyTabsLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-wrap justify-between items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">💰 Transacciones</h1>
+            <p className="text-sm text-gray-600">Gestiona todos los movimientos financieros</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowFilters(!showFilters)} variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros {hasActiveFilters && '●'}
+            </Button>
+            <Button onClick={loadTransactions} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </Button>
+          </div>
         </div>
-      </div>
 
       {/* Panel de Filtros */}
       {showFilters && (
@@ -472,15 +479,36 @@ export default function TransactionsPage() {
                     {t.type === 'INCOME' ? '+' : '-'}${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </div>
                   
-                  {/* Botón eliminar individual */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteTransaction(t.id)}
-                    className="text-gray-400 hover:text-red-600 flex-shrink-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {/* Botones de acción */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push(`/company/transactions/${t.id}`)}
+                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2"
+                      title="Ver detalles"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push(`/company/transactions/${t.id}/edit`)}
+                      className="text-green-600 hover:text-green-800 hover:bg-green-50 p-2"
+                      title="Editar"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteTransaction(t.id)}
+                      className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -488,5 +516,6 @@ export default function TransactionsPage() {
         </CardContent>
       </Card>
     </div>
+  </CompanyTabsLayout>
   )
 }

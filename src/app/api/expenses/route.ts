@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { validateExpenseRequest, validatePagination, createErrorResponse } from '@/lib/validation-middleware'
-import { validateExpense } from '@/lib/validation'
+import { validateExpenseRequest, validatePagination } from '@/lib/validation-middleware'
 import { createExpenseJournalEntry, deleteExpenseWithReversal } from '@/lib/accounting-service'
 
 // GET all expenses
@@ -94,20 +93,6 @@ export async function POST(request: NextRequest) {
       notes,
       attachments,
     } = body
-
-    // Additional validation
-    const validation = validateExpense({
-      userId: session.user.id,
-      categoryId,
-      amount,
-      date: date || new Date(),
-      description,
-      paymentMethod,
-    })
-
-    if (!validation.isValid) {
-      return createErrorResponse(validation.errors.join('; '), 400)
-    }
 
     const expense = await prisma.expense.create({
       data: {

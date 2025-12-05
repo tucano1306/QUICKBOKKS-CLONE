@@ -265,12 +265,11 @@ export function validateInvoiceItem(data: any): ValidationResult {
  */
 export function validateExpense(data: any): ValidationResult {
   const validation = validateObject(data, {
-    userId: { required: true },
     categoryId: { required: true },
     amount: { required: true, min: 0.01, max: 1e10 },
     date: { required: true },
     description: { required: true, minLength: 3, maxLength: 500 },
-    paymentMethod: { required: true },
+    paymentMethod: { required: false },  // Will default to 'CASH' in API
   });
 
   const errors = [...validation.errors];
