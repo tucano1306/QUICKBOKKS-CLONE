@@ -10,13 +10,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Obtener companyId del usuario
+    const companyUser = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id },
+      select: { companyId: true }
+    });
+
+    if (!companyUser?.companyId) {
+      return NextResponse.json({ error: 'Usuario no asociado a empresa' }, { status: 400 });
+    }
+
     const { searchParams } = new URL(request.url);
     const startDate = new Date(searchParams.get('startDate') || new Date().toISOString());
     const endDate = new Date(searchParams.get('endDate') || new Date().toISOString());
 
-    // Obtener todas las cuentas con sus movimientos
+    // Obtener solo cuentas de la empresa del usuario
     const accounts = await prisma.chartOfAccounts.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        companyId: companyUser.companyId  // CRITICAL: Filter by company
+      },
       include: {
         journalEntries: {
           where: {
@@ -32,7 +45,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Calcular balances
+    // Calcular balances - IMPORTANTE: Usar balance normal correcto para cada tipo de cuenta
+    // ASSETS: balance normal = DÉBITO (debit - credit = positivo)
+    // LIABILITIES: balance normal = CRÉDITO (credit - debit = positivo)
+    // EQUITY: balance normal = CRÉDITO (credit - debit = positivo)
     const balanceSheet: any = {
       assets: { current: [], fixed: [], total: 0 },
       liabilities: { current: [], longTerm: [], total: 0 },
@@ -40,15 +56,25 @@ export async function GET(request: NextRequest) {
     };
 
     for (const account of accounts) {
-      const balance = account.journalEntries.reduce(
-        (sum, line) => sum + line.debit - line.credit,
-        0
-      );
+      // Calcular balance según el tipo de cuenta
+      let balance: number;
+      if (account.type === 'ASSET') {
+        // Assets have debit normal balance
+        balance = account.journalEntries.reduce(
+          (sum, line) => sum + line.debit - line.credit, 0
+        );
+      } else {
+        // Liabilities and Equity have credit normal balance
+        balance = account.journalEntries.reduce(
+          (sum, line) => sum + line.credit - line.debit, 0
+        );
+      }
 
       const accountData = {
         code: account.code,
         name: account.name,
-        balance,
+        balance: Math.abs(balance), // Always show positive for display
+        normalBalance: balance, // Keep original for calculations
       };
 
       if (account.type === 'ASSET') {

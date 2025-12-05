@@ -8,7 +8,8 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { Calendar, TrendingUp, Building2, Wallet, CreditCard, Package, Download, Printer, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react'
+import { Calendar, TrendingUp, Building2, Wallet, CreditCard, Package, Download, Printer, RefreshCw, AlertCircle, CheckCircle, FileText } from 'lucide-react'
+import jsPDF from 'jspdf'
 
 interface DateRange {
   startDate: string
@@ -155,6 +156,268 @@ export default function BalanceSheetPage() {
     return csv
   }
 
+  // Función para generar PDF profesional del Balance General
+  const generatePDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 14
+    let y = 0
+
+    // ===== HEADER CON FONDO AZUL =====
+    doc.setFillColor(30, 64, 175)
+    doc.rect(0, 0, pageWidth, 40, 'F')
+    
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text(activeCompany?.name || 'Mi Empresa', pageWidth / 2, 15, { align: 'center' })
+    
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'normal')
+    doc.text('BALANCE GENERAL', pageWidth / 2, 25, { align: 'center' })
+    
+    doc.setFontSize(10)
+    doc.text(`Al ${new Date(dateRange.endDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`, pageWidth / 2, 33, { align: 'center' })
+    
+    doc.setTextColor(0, 0, 0)
+    y = 50
+
+    // ===== RESUMEN EJECUTIVO =====
+    doc.setFillColor(240, 249, 255)
+    doc.rect(margin, y, pageWidth - (margin * 2), 25, 'F')
+    doc.setDrawColor(59, 130, 246)
+    doc.rect(margin, y, pageWidth - (margin * 2), 25, 'S')
+    
+    y += 8
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('RESUMEN', margin + 5, y)
+    y += 10
+
+    const col1 = margin + 5
+    const col2 = pageWidth / 3
+    const col3 = (pageWidth / 3) * 2
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    
+    doc.text('Total Activos:', col1, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(5, 150, 105)
+    doc.text(`$${totalActivos.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col1 + 35, y)
+    
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Total Pasivos:', col2, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(220, 38, 38)
+    doc.text(`$${totalPasivos.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col2 + 35, y)
+    
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Total Capital:', col3, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(59, 130, 246)
+    doc.text(`$${totalCapital.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col3 + 35, y)
+
+    doc.setTextColor(0, 0, 0)
+    y += 20
+
+    // ===== ACTIVOS =====
+    doc.setFillColor(5, 150, 105)
+    doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('ACTIVOS', margin + 5, y + 5.5)
+    y += 12
+
+    // Activos Circulantes
+    doc.setTextColor(0, 0, 0)
+    doc.setFillColor(240, 253, 244)
+    doc.rect(margin, y, pageWidth - (margin * 2), 7, 'F')
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Activos Circulantes', margin + 5, y + 5)
+    y += 10
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    activosCirculantes.forEach(item => {
+      doc.text(item.concepto, margin + 10, y)
+      doc.text(`$${item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+      y += 5
+    })
+
+    doc.setFont('helvetica', 'bold')
+    doc.text('Total Activos Circulantes', margin + 10, y)
+    doc.text(`$${totalActivosCirc.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 8
+
+    // Activos Fijos
+    doc.setFillColor(240, 253, 244)
+    doc.rect(margin, y, pageWidth - (margin * 2), 7, 'F')
+    doc.setFontSize(10)
+    doc.text('Activos Fijos', margin + 5, y + 5)
+    y += 10
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    activosFijos.forEach(item => {
+      doc.text(item.concepto, margin + 10, y)
+      doc.text(`$${item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+      y += 5
+    })
+
+    doc.setFont('helvetica', 'bold')
+    doc.text('Total Activos Fijos', margin + 10, y)
+    doc.text(`$${totalActivosFijos.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 6
+
+    // Total Activos
+    doc.setDrawColor(5, 150, 105)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 5
+    doc.setFontSize(10)
+    doc.text('TOTAL ACTIVOS', margin + 5, y)
+    doc.setTextColor(5, 150, 105)
+    doc.text(`$${totalActivos.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 12
+
+    // ===== PASIVOS =====
+    doc.setTextColor(0, 0, 0)
+    doc.setFillColor(220, 38, 38)
+    doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('PASIVOS', margin + 5, y + 5.5)
+    y += 12
+
+    // Pasivos Corto Plazo
+    doc.setTextColor(0, 0, 0)
+    doc.setFillColor(254, 242, 242)
+    doc.rect(margin, y, pageWidth - (margin * 2), 7, 'F')
+    doc.setFontSize(10)
+    doc.text('Pasivos a Corto Plazo', margin + 5, y + 5)
+    y += 10
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    pasivosCorto.forEach(item => {
+      doc.text(item.concepto, margin + 10, y)
+      doc.text(`$${item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+      y += 5
+    })
+
+    doc.setFont('helvetica', 'bold')
+    doc.text('Total Pasivos Corto Plazo', margin + 10, y)
+    doc.text(`$${totalPasivosCorto.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 8
+
+    // Pasivos Largo Plazo
+    if (pasivosLargo.length > 0) {
+      doc.setFillColor(254, 242, 242)
+      doc.rect(margin, y, pageWidth - (margin * 2), 7, 'F')
+      doc.setFontSize(10)
+      doc.text('Pasivos a Largo Plazo', margin + 5, y + 5)
+      y += 10
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      pasivosLargo.forEach(item => {
+        doc.text(item.concepto, margin + 10, y)
+        doc.text(`$${item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+        y += 5
+      })
+
+      doc.setFont('helvetica', 'bold')
+      doc.text('Total Pasivos Largo Plazo', margin + 10, y)
+      doc.text(`$${totalPasivosLargo.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+      y += 6
+    }
+
+    // Total Pasivos
+    doc.setDrawColor(220, 38, 38)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 5
+    doc.setFontSize(10)
+    doc.text('TOTAL PASIVOS', margin + 5, y)
+    doc.setTextColor(220, 38, 38)
+    doc.text(`$${totalPasivos.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 12
+
+    // ===== CAPITAL =====
+    doc.setTextColor(0, 0, 0)
+    doc.setFillColor(59, 130, 246)
+    doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('CAPITAL CONTABLE', margin + 5, y + 5.5)
+    y += 12
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    capital.forEach(item => {
+      doc.text(item.concepto, margin + 10, y)
+      doc.text(`$${item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+      y += 5
+    })
+
+    doc.setDrawColor(59, 130, 246)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 5
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('TOTAL CAPITAL', margin + 5, y)
+    doc.setTextColor(59, 130, 246)
+    doc.text(`$${totalCapital.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 12
+
+    // ===== ECUACIÓN CONTABLE =====
+    doc.setTextColor(0, 0, 0)
+    const balanceCheck = Math.abs(totalActivos - totalPasivosCapital) < 0.01
+    const bgColor = balanceCheck ? [220, 252, 231] : [254, 226, 226]
+    doc.setFillColor(bgColor[0], bgColor[1], bgColor[2])
+    doc.setDrawColor(balanceCheck ? 5 : 220, balanceCheck ? 150 : 38, balanceCheck ? 105 : 38)
+    doc.setLineWidth(1)
+    doc.rect(margin, y, pageWidth - (margin * 2), 15, 'FD')
+    
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('TOTAL PASIVOS + CAPITAL', margin + 10, y + 10)
+    doc.setTextColor(balanceCheck ? 5 : 220, balanceCheck ? 150 : 38, balanceCheck ? 105 : 38)
+    doc.setFontSize(12)
+    doc.text(`$${totalPasivosCapital.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 10, y + 10, { align: 'right' })
+    
+    if (balanceCheck) {
+      doc.setFontSize(8)
+      doc.text('✓ Ecuación Balanceada', pageWidth / 2, y + 10, { align: 'center' })
+    }
+
+    doc.setLineWidth(0.5)
+
+    // ===== FOOTER =====
+    doc.setTextColor(128, 128, 128)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    const footerY = doc.internal.pageSize.getHeight() - 15
+    doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
+    doc.text(`Generado el ${new Date().toLocaleDateString('es-ES', { 
+      day: '2-digit', 
+      month: 'long', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}`, margin, footerY)
+    doc.text('Balance General - Reporte Financiero', pageWidth / 2, footerY, { align: 'center' })
+    doc.text('Página 1 de 1', pageWidth - margin, footerY, { align: 'right' })
+
+    doc.save(`balance-general-${activeCompany?.name?.replace(/\s+/g, '-') || 'empresa'}-${dateRange.endDate}.pdf`)
+    setMessage({ type: 'success', text: 'PDF generado exitosamente' })
+  }
+
   if (status === 'loading') {
     return (
       <CompanyTabsLayout>
@@ -204,7 +467,11 @@ export default function BalanceSheetPage() {
               setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
             }}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
+              CSV
+            </Button>
+            <Button variant="outline" onClick={generatePDF} className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700">
+              <FileText className="w-4 h-4 mr-2" />
+              PDF
             </Button>
             <Button onClick={() => {
               const printWindow = window.open('', '_blank')

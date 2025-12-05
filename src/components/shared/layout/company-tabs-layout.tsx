@@ -37,7 +37,8 @@ import {
   Cloud,
   BarChart3,
   Home,
-  LogOut
+  LogOut,
+  ArrowLeftRight
 } from 'lucide-react'
 
 interface SubMenuItem {
@@ -107,6 +108,15 @@ const tabSections: TabSection[] = [
       { name: 'Categorías', href: '/company/expenses/categories', description: 'Clasificación de gastos' },
       { name: 'Gastos Deducibles', href: '/company/expenses/tax-deductible', description: 'Para declaración fiscal' },
       { name: 'Tarjetas Corporativas', href: '/company/expenses/corporate-cards', description: 'Sincronizar tarjetas empresa' }
+    ]
+  },
+  {
+    id: 'transactions',
+    name: 'Transacciones',
+    icon: ArrowLeftRight,
+    color: 'emerald',
+    submenus: [
+      { name: 'Todas las Transacciones', href: '/company/transactions', description: 'Ingresos y gastos registrados por AI' },
     ]
   },
   // {
@@ -266,7 +276,8 @@ const tabSections: TabSection[] = [
       { name: 'Integraciones', href: '/company/settings/integrations', description: 'Apps conectadas' },
       { name: 'Multimoneda', href: '/company/settings/currency', description: 'Tipos de cambio' },
       { name: 'Facturación', href: '/company/settings/invoicing', description: 'Configurar facturas' },
-      { name: 'Seguridad', href: '/company/settings/security', description: 'Protección de datos' }
+      { name: 'Seguridad', href: '/company/settings/security', description: 'Protección de datos' },
+      { name: 'Backups', href: '/company/settings/backups', description: 'Respaldos automáticos' }
     ]
   }
 ]

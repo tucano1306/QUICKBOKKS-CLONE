@@ -1,5 +1,16 @@
 import '@testing-library/jest-dom'
 
+// Polyfill for fetch in Node.js test environment (needed for groq-sdk)
+if (typeof global.fetch === 'undefined') {
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+    })
+  )
+}
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: () => ({

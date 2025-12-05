@@ -8,6 +8,32 @@
  * - Journal entry suggestions
  */
 
+// Mock groq-sdk before any imports
+jest.mock('groq-sdk', () => ({
+  default: jest.fn().mockImplementation(() => ({
+    chat: {
+      completions: {
+        create: jest.fn().mockResolvedValue({
+          choices: [{ message: { content: '{}' } }]
+        })
+      }
+    }
+  }))
+}))
+
+// Mock the groq-ai-service module
+jest.mock('@/lib/groq-ai-service', () => ({
+  analyzeDocumentWithAI: jest.fn().mockResolvedValue({
+    documentType: 'INVOICE',
+    vendor: 'Test Vendor',
+    amount: 100,
+    date: '2024-01-01',
+    items: [],
+    confidence: 0.95
+  }),
+  extractTextFromImage: jest.fn().mockResolvedValue('Sample extracted text')
+}))
+
 import { NextRequest } from 'next/server'
 import { POST, GET, PUT, DELETE } from '@/app/api/documents/process-ai/route'
 

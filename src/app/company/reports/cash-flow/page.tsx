@@ -8,7 +8,8 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { Calendar, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download, Printer, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react'
+import { Calendar, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download, Printer, RefreshCw, AlertCircle, CheckCircle, FileText } from 'lucide-react'
+import jsPDF from 'jspdf'
 
 interface DateRange {
   startDate: string
@@ -111,6 +112,217 @@ export default function CashFlowPage() {
 
   const cambioPercentage = efectivoInicial > 0 ? ((flujoNetoTotal / efectivoInicial) * 100).toFixed(1) : '0.0'
 
+  // Función para generar PDF profesional
+  const generatePDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 14
+    let y = 0
+
+    // ===== HEADER =====
+    doc.setFillColor(30, 64, 175)
+    doc.rect(0, 0, pageWidth, 40, 'F')
+    
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text(activeCompany?.name || 'Mi Empresa', pageWidth / 2, 15, { align: 'center' })
+    
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'normal')
+    doc.text('ESTADO DE FLUJO DE EFECTIVO', pageWidth / 2, 25, { align: 'center' })
+    
+    doc.setFontSize(10)
+    doc.text(`Período: ${dateRange.startDate} al ${dateRange.endDate}`, pageWidth / 2, 33, { align: 'center' })
+    
+    doc.setTextColor(0, 0, 0)
+    y = 50
+
+    // ===== RESUMEN =====
+    doc.setFillColor(240, 249, 255)
+    doc.rect(margin, y, pageWidth - (margin * 2), 30, 'F')
+    doc.setDrawColor(59, 130, 246)
+    doc.rect(margin, y, pageWidth - (margin * 2), 30, 'S')
+    
+    y += 8
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('RESUMEN DE FLUJOS', margin + 5, y)
+    y += 10
+
+    const col1 = margin + 5
+    const col2 = pageWidth / 2
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    
+    doc.text('Efectivo Inicial:', col1, y)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`$${efectivoInicial.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col1 + 40, y)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.text('Efectivo Final:', col2, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(efectivoFinal >= efectivoInicial ? 5 : 220, efectivoFinal >= efectivoInicial ? 150 : 38, efectivoFinal >= efectivoInicial ? 105 : 38)
+    doc.text(`$${efectivoFinal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col2 + 40, y)
+    
+    y += 8
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Flujo Neto:', col1, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(flujoNetoTotal >= 0 ? 5 : 220, flujoNetoTotal >= 0 ? 150 : 38, flujoNetoTotal >= 0 ? 105 : 38)
+    doc.text(`$${flujoNetoTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${cambioPercentage}%)`, col1 + 40, y)
+
+    doc.setTextColor(0, 0, 0)
+    y += 22
+
+    // ===== ACTIVIDADES DE OPERACIÓN =====
+    doc.setFillColor(5, 150, 105)
+    doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('ACTIVIDADES DE OPERACIÓN', margin + 5, y + 5.5)
+    y += 12
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    
+    doc.text('Cobros de Clientes', margin + 10, y)
+    doc.setTextColor(5, 150, 105)
+    doc.text(`$${(cashFlowData?.operating?.inflow || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 6
+    
+    doc.setTextColor(220, 38, 38)
+    doc.text('Pagos Operativos', margin + 10, y)
+    doc.text(`($${(cashFlowData?.operating?.outflow || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })})`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 6
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Flujo Neto de Operaciones', margin + 10, y)
+    doc.setTextColor(flujoOperaciones >= 0 ? 5 : 220, flujoOperaciones >= 0 ? 150 : 38, flujoOperaciones >= 0 ? 105 : 38)
+    doc.text(`$${flujoOperaciones.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 12
+
+    // ===== ACTIVIDADES DE INVERSIÓN =====
+    doc.setTextColor(0, 0, 0)
+    doc.setFillColor(234, 179, 8)
+    doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('ACTIVIDADES DE INVERSIÓN', margin + 5, y + 5.5)
+    y += 12
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    
+    doc.text('Venta de Activos', margin + 10, y)
+    doc.setTextColor(5, 150, 105)
+    doc.text(`$${(cashFlowData?.investing?.inflow || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 6
+    
+    doc.setTextColor(220, 38, 38)
+    doc.text('Compra de Activos', margin + 10, y)
+    doc.text(`($${(cashFlowData?.investing?.outflow || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })})`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 6
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Flujo Neto de Inversión', margin + 10, y)
+    doc.setTextColor(flujoInversion >= 0 ? 5 : 220, flujoInversion >= 0 ? 150 : 38, flujoInversion >= 0 ? 105 : 38)
+    doc.text(`$${flujoInversion.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 12
+
+    // ===== ACTIVIDADES DE FINANCIAMIENTO =====
+    doc.setTextColor(0, 0, 0)
+    doc.setFillColor(59, 130, 246)
+    doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('ACTIVIDADES DE FINANCIAMIENTO', margin + 5, y + 5.5)
+    y += 12
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    
+    doc.text('Préstamos Recibidos', margin + 10, y)
+    doc.setTextColor(5, 150, 105)
+    doc.text(`$${(cashFlowData?.financing?.inflow || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 6
+    
+    doc.setTextColor(220, 38, 38)
+    doc.text('Pago de Préstamos', margin + 10, y)
+    doc.text(`($${(cashFlowData?.financing?.outflow || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })})`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 6
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Flujo Neto de Financiamiento', margin + 10, y)
+    doc.setTextColor(flujoFinanciamiento >= 0 ? 5 : 220, flujoFinanciamiento >= 0 ? 150 : 38, flujoFinanciamiento >= 0 ? 105 : 38)
+    doc.text(`$${flujoFinanciamiento.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 15
+
+    // ===== FLUJO NETO TOTAL =====
+    doc.setTextColor(0, 0, 0)
+    const bgColor = flujoNetoTotal >= 0 ? [220, 252, 231] : [254, 226, 226]
+    doc.setFillColor(bgColor[0], bgColor[1], bgColor[2])
+    doc.setDrawColor(flujoNetoTotal >= 0 ? 5 : 220, flujoNetoTotal >= 0 ? 150 : 38, flujoNetoTotal >= 0 ? 105 : 38)
+    doc.setLineWidth(1)
+    doc.rect(margin, y, pageWidth - (margin * 2), 15, 'FD')
+    
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('FLUJO NETO DE EFECTIVO', margin + 10, y + 10)
+    doc.setTextColor(flujoNetoTotal >= 0 ? 5 : 220, flujoNetoTotal >= 0 ? 150 : 38, flujoNetoTotal >= 0 ? 105 : 38)
+    doc.setFontSize(13)
+    doc.text(`$${flujoNetoTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 10, y + 10, { align: 'right' })
+
+    doc.setLineWidth(0.5)
+    y += 25
+
+    // ===== CONCILIACIÓN =====
+    doc.setTextColor(0, 0, 0)
+    doc.setFillColor(243, 244, 246)
+    doc.rect(margin, y, pageWidth - (margin * 2), 25, 'F')
+    
+    y += 8
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('CONCILIACIÓN DE EFECTIVO', margin + 5, y)
+    y += 8
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Efectivo al Inicio: $${efectivoInicial.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, margin + 10, y)
+    doc.text(`+ Flujo Neto: $${flujoNetoTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth / 2 - 10, y)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`= Efectivo al Final: $${efectivoFinal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 80, y)
+
+    // ===== FOOTER =====
+    doc.setTextColor(128, 128, 128)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    const footerY = doc.internal.pageSize.getHeight() - 15
+    doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
+    doc.text(`Generado el ${new Date().toLocaleDateString('es-ES', { 
+      day: '2-digit', 
+      month: 'long', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}`, margin, footerY)
+    doc.text('Estado de Flujo de Efectivo - Reporte Financiero', pageWidth / 2, footerY, { align: 'center' })
+    doc.text('Página 1 de 1', pageWidth - margin, footerY, { align: 'right' })
+
+    doc.save(`flujo-efectivo-${activeCompany?.name?.replace(/\s+/g, '-') || 'empresa'}-${dateRange.endDate}.pdf`)
+    setMessage({ type: 'success', text: 'PDF generado exitosamente' })
+  }
+
   if (status === 'loading') {
     return (
       <CompanyTabsLayout>
@@ -160,7 +372,11 @@ export default function CashFlowPage() {
               setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
             }}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
+              CSV
+            </Button>
+            <Button variant="outline" onClick={generatePDF} className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700">
+              <FileText className="w-4 h-4 mr-2" />
+              PDF
             </Button>
             <Button onClick={() => {
               const printWindow = window.open('', '_blank')

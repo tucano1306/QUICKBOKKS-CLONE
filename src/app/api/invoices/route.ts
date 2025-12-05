@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { validateInvoiceRequest, validatePagination, createErrorResponse } from '@/lib/validation-middleware'
 import { validateInvoice } from '@/lib/validation'
+import { createInvoiceJournalEntry } from '@/lib/accounting-service'
 
 // GET all invoices
 export async function GET(request: NextRequest) {
@@ -184,6 +185,27 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+
+    // IMPORTANTE: Solo crear asiento contable si la factura NO es DRAFT
+    // Las facturas DRAFT no deben reconocer ingresos (GAAP)
+    // El asiento se crea cuando la factura se ENVÍA o cuando el status es diferente de DRAFT
+    const userCompany = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id },
+      select: { companyId: true }
+    });
+    
+    // Solo crear asiento si status != DRAFT (por defecto es DRAFT, así que normalmente no se crea aquí)
+    if (userCompany?.companyId && invoice.status !== 'DRAFT') {
+      const customerName = invoice.customer?.name || 'Cliente';
+      await createInvoiceJournalEntry(
+        userCompany.companyId,
+        total,
+        invoiceNumber,
+        customerName,
+        new Date(issueDate),
+        session.user.id
+      );
+    }
 
     return NextResponse.json(invoice, { status: 201 })
   } catch (error) {

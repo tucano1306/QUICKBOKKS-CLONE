@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Message required' }, { status: 400 })
     }
 
-    console.log('[AI] Mensaje:', message);
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('[AI] 📩 Mensaje recibido:', message);
+    console.log('[AI] 👤 Usuario:', userId, '| Compañía:', activeCompanyId);
+    console.log('═══════════════════════════════════════════════════════════════');
 
     if (!groq) {
       return NextResponse.json({
@@ -55,11 +58,14 @@ export async function POST(req: NextRequest) {
     const context = await getBusinessContext(userId, activeCompanyId);
     
     // Detectar si es una acción
-    const action = detectAction(message.toLowerCase());
+    const action = detectAction(message);
+    console.log('[AI] 🎯 Acción detectada:', action.type);
     
     // Ejecutar acción si es necesario
     if (action.type !== 'none') {
+      console.log('[AI] ⚡ Ejecutando acción:', action.type);
       const result = await executeAction(action, message, userId, activeCompanyId);
+      console.log('[AI] ✅ Resultado:', result.substring(0, 100) + '...');
       return NextResponse.json({
         success: true,
         response: result,
@@ -69,6 +75,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    console.log('[AI] 💬 Sin acción específica, usando chat general');
     // Chat normal con IA
     const response = await chatWithAI(message, context);
     
@@ -115,6 +122,12 @@ async function chatWithAI(message: string, context: string): Promise<string> {
 - Ver historial de gastos
 - Aprobar/rechazar gastos pendientes
 - Subir recibos y comprobantes
+
+💵 TRANSACCIONES (/company/transactions)
+- Ver todos los ingresos y gastos registrados por el AI
+- Esta es la página donde aparecen los registros que hago cuando me dices "agrega un ingreso" o "registra un gasto"
+- Resumen de ingresos totales y gastos totales
+- Historial completo de transacciones
 
 📄 FACTURACIÓN (/company/invoicing)
 - Crear facturas (/company/invoicing/sales)
@@ -280,101 +293,185 @@ Ese $500 es una **Cuenta por Cobrar** - es tu dinero, pero aún no lo tienes en 
 // Obtener contexto del negocio
 async function getBusinessContext(userId: string, companyId: string): Promise<string> {
   try {
-    const [company, customers, invoices, expenses, products, employees, accounts] = await Promise.all([
+    const [company, customers, invoices, expenses, products, employees, accounts, transactions] = await Promise.all([
       prisma.company.findFirst({ where: { id: companyId } }),
       prisma.customer.findMany({ where: { companyId }, take: 50 }),
       prisma.invoice.findMany({ where: { userId, companyId }, include: { customer: true }, take: 30 }),
       prisma.expense.findMany({ where: { userId, companyId }, take: 30 }),
       prisma.product.findMany({ where: { companyId }, take: 50 }),
       prisma.employee.findMany({ where: { userId, companyId } }),
-      prisma.chartOfAccounts.findMany({ where: { companyId }, take: 100 })
+      prisma.chartOfAccounts.findMany({ where: { companyId }, take: 100 }),
+      prisma.transaction.findMany({ where: { companyId }, orderBy: { date: 'desc' }, take: 50 })
     ]);
 
-    const totalRevenue = invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + (i.total || 0), 0);
-    const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+    // Ingresos = facturas pagadas + transacciones de tipo INCOME
+    const invoiceRevenue = invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + (i.total || 0), 0);
+    const transactionIncome = transactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + (t.amount || 0), 0);
+    const totalRevenue = invoiceRevenue + transactionIncome;
+    
+    // Gastos = expenses + transacciones de tipo EXPENSE
+    const expenseTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const transactionExpense = transactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + (t.amount || 0), 0);
+    const totalExpenses = expenseTotal + transactionExpense;
+    
     const pending = invoices.filter(i => i.status === 'SENT' || i.status === 'OVERDUE');
+    
+    // Últimos ingresos registrados
+    const recentIncomes = transactions
+      .filter(t => t.type === 'INCOME')
+      .slice(0, 5)
+      .map(t => `$${t.amount} - ${t.description || t.category}`)
+      .join(', ');
+    
+    // Últimos gastos registrados
+    const recentExpenses = transactions
+      .filter(t => t.type === 'EXPENSE')
+      .slice(0, 5)
+      .map(t => `$${t.amount} - ${t.description || t.category}`)
+      .join(', ');
 
     return `
 Empresa: ${company?.name || 'Mi Empresa'}
-📊 Ingresos: $${totalRevenue.toLocaleString()} | Gastos: $${totalExpenses.toLocaleString()} | Utilidad: $${(totalRevenue - totalExpenses).toLocaleString()}
+📊 Ingresos Totales: $${totalRevenue.toLocaleString()} | Gastos Totales: $${totalExpenses.toLocaleString()} | Utilidad: $${(totalRevenue - totalExpenses).toLocaleString()}
+💵 Ingresos registrados: ${transactions.filter(t => t.type === 'INCOME').length} transacciones ($${transactionIncome.toLocaleString()})
+💸 Gastos registrados: ${transactions.filter(t => t.type === 'EXPENSE').length + expenses.length} transacciones ($${totalExpenses.toLocaleString()})
 📄 Facturas pendientes: ${pending.length} por $${pending.reduce((s, i) => s + (i.total || 0), 0).toLocaleString()}
 👥 Clientes: ${customers.length} | 📦 Productos: ${products.length} | 👔 Empleados: ${employees.length}
 🏛️ Cuentas contables: ${accounts.length}
 
-Últimos clientes: ${customers.slice(0, 5).map(c => c.name).join(', ') || 'Ninguno'}
-Últimas facturas: ${invoices.slice(0, 3).map(i => `#${i.invoiceNumber} $${i.total}`).join(', ') || 'Ninguna'}`;
+Últimos ingresos: ${recentIncomes || 'Ninguno'}
+Últimos gastos: ${recentExpenses || 'Ninguno'}
+Últimos clientes: ${customers.slice(0, 5).map(c => c.name).join(', ') || 'Ninguno'}`;
   } catch (e) {
+    console.error('[AI] Error en getBusinessContext:', e);
     return 'Sin datos disponibles.';
   }
 }
 
 // Detectar acción - MEJORADO para lenguaje natural
 function detectAction(msg: string): AIAction {
-  const msgLower = msg.toLowerCase();
+  const msgLower = msg.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   
-  // Detectar si hay un monto (con o sin $, con puntos o comas)
-  const hasMonto = msgLower.match(/\$?\s*[\d.,]+\s*(dolares|dólares|usd|pesos|\$)?/i) ||
-                   msgLower.match(/[\d.,]+\s*(dolares|dólares|usd|pesos)/i);
+  console.log('[AI] Detectando acción para:', msgLower);
   
-  // === REGISTRAR GASTOS (lenguaje natural) ===
-  // Palabras que indican un gasto
-  const gastoPalabras = /(pagu[eé]|gast[eé]|pago de|pago del|pago al|compr[eé]|cost[oó]|invert[ií]|desembols)/i;
-  const gastoConceptos = /(seguro|letra|chofer|gasolina|diesel|combustible|mantenimiento|permiso|sticker|peaje|llanta|repuesto|vehiculo|vehículo|suburban|camion|camión|trailer|auto|carro|reparacion|reparación)/i;
-  const registroPalabras = /(registra|anota|apunta|guarda|pon|agrega)/i;
+  // Extraer números del mensaje (manejar formato 1.574.14 y 1,574.14)
+  const numberMatches = msgLower.match(/[\d.,]+/g) || [];
+  const hasMonto = numberMatches.some(n => {
+    const cleaned = n.replace(/,/g, '').replace(/\.(?=.*\.)/g, ''); // 1.574.14 -> 1574.14
+    const num = parseFloat(cleaned);
+    return !isNaN(num) && num > 0;
+  });
   
-  // Si menciona una acción de gasto + monto, o concepto de gasto + monto + "registra"
-  if ((gastoPalabras.test(msgLower) && hasMonto) ||
-      (gastoConceptos.test(msgLower) && hasMonto && registroPalabras.test(msgLower)) ||
-      (gastoConceptos.test(msgLower) && hasMonto && msgLower.includes('compra'))) {
-    return { type: 'record_payment', params: { message: msg } };
-  }
+  console.log('[AI] Tiene monto:', hasMonto, numberMatches);
   
-  // === REGISTRAR INGRESOS (lenguaje natural) ===
-  // "cobré", "me pagaron", "recibí", "ingreso de", "viaje de"
-  const ingresoPalabras = /(cobr[eé]|me pagaron|recib[ií]|ingreso de|entr[oó]|deposit|factur[eé]|vend[ií])/i;
-  const ingresoConceptos = /(viaje|flete|servicio|trabajo|cliente|pago del cliente)/i;
+  // ============================================
+  // PRIORIDAD 1: PALABRAS CLAVE EXPLÍCITAS
+  // ============================================
   
-  if ((ingresoPalabras.test(msgLower) && hasMonto) ||
-      (ingresoConceptos.test(msgLower) && hasMonto && registroPalabras.test(msgLower))) {
+  // Si dice "ingreso" o "entrada" explícitamente + hay monto = REGISTRAR INGRESO
+  if ((msgLower.includes('ingreso') || msgLower.includes('entrada') || msgLower.includes('cobro')) && hasMonto) {
+    console.log('[AI] Detectado: INGRESO explícito con monto');
     return { type: 'record_income', params: { message: msg } };
   }
   
-  // === REPORTES Y CONSULTAS ===
-  // "cuánto gané", "ganancias de", "dame las ganancias", "reporte de"
-  if (msgLower.match(/(cuánto|cuanto|dame|ver|mostrar|cual|cuál).*(gan[eéa]|ingres|cobr|vend|factur)/i) ||
-      msgLower.match(/(ganancia|ingreso|venta|reporte|resumen).*(mes|año|semana|hoy|ayer)/i) ||
-      msgLower.match(/(mes|año|semana).*(ganancia|ingreso|venta|gast)/i)) {
+  // Si dice "gasto" explícitamente + hay monto = REGISTRAR GASTO
+  if ((msgLower.includes('gasto') || msgLower.includes('pago')) && hasMonto) {
+    console.log('[AI] Detectado: GASTO explícito con monto');
+    return { type: 'record_payment', params: { message: msg } };
+  }
+  
+  // ============================================
+  // PRIORIDAD 2: VERBOS DE ACCIÓN + MONTO
+  // ============================================
+  
+  // Verbos que indican INGRESO
+  const verbosIngreso = /(cobre|cobré|me pagaron|recibi|recibí|me dieron|entro|entró|deposito|depositaron|vendi|vendí|facture|facturé)/;
+  if (verbosIngreso.test(msgLower) && hasMonto) {
+    console.log('[AI] Detectado: verbo de INGRESO con monto');
+    return { type: 'record_income', params: { message: msg } };
+  }
+  
+  // Verbos que indican GASTO
+  const verbosGasto = /(pague|pagué|gaste|gasté|compre|compré|inverti|invertí|desembolse|desembolsé|pago de|pago del|pago al|le pague|le pagué)/;
+  if (verbosGasto.test(msgLower) && hasMonto) {
+    console.log('[AI] Detectado: verbo de GASTO con monto');
+    return { type: 'record_payment', params: { message: msg } };
+  }
+  
+  // ============================================
+  // PRIORIDAD 3: COMANDOS "AGREGA/REGISTRA" + CONCEPTO
+  // ============================================
+  
+  const comandoRegistro = /(agrega|agregame|añade|añademe|registra|anota|pon|guarda)/;
+  
+  if (comandoRegistro.test(msgLower) && hasMonto) {
+    // Si menciona conceptos de ingreso
+    if (msgLower.includes('ingreso') || msgLower.includes('venta') || msgLower.includes('cobro') || 
+        msgLower.includes('servicio') || msgLower.includes('viaje') || msgLower.includes('flete')) {
+      console.log('[AI] Detectado: comando registro + concepto INGRESO');
+      return { type: 'record_income', params: { message: msg } };
+    }
+    
+    // Si menciona conceptos de gasto
+    const conceptosGasto = /(seguro|letra|chofer|gasolina|diesel|combustible|mantenimiento|permiso|sticker|peaje|llanta|repuesto|vehiculo|suburban|camion|trailer|auto|carro|reparacion|factura|luz|agua|telefono|internet|renta|alquiler)/;
+    if (conceptosGasto.test(msgLower)) {
+      console.log('[AI] Detectado: comando registro + concepto GASTO');
+      return { type: 'record_payment', params: { message: msg } };
+    }
+    
+    // Si no especifica, asumir que es un gasto si hay monto con "agrega"
+    console.log('[AI] Detectado: comando registro genérico con monto (asumiendo gasto)');
+    return { type: 'record_payment', params: { message: msg } };
+  }
+  
+  // ============================================
+  // PRIORIDAD 4: REPORTES Y CONSULTAS
+  // ============================================
+  
+  const preguntaReporte = /(cuanto|cuánto|cuantos|cuántos|dame|dime|ver|mostrar|cual|cuál|lista|listar|balance|reporte|resumen|total)/;
+  const conceptoReporte = /(gane|gané|ganancia|ingreso|venta|gasto|cobro|deb|perd|perdida|pérdida)/;
+  const tiempoReporte = /(mes|año|semana|hoy|ayer|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|\d{4})/;
+  
+  if (preguntaReporte.test(msgLower) && (conceptoReporte.test(msgLower) || tiempoReporte.test(msgLower))) {
+    console.log('[AI] Detectado: REPORTE');
     return { type: 'get_report', params: { query: msg } };
   }
-
-  // === COMANDOS EXPLÍCITOS ===
-  const createWords = ['crea', 'crear', 'genera', 'generar', 'hazme', 'haz', 'nuevo', 'nueva', 'agrega', 'agregar', 'registra', 'registrar', 'añade', 'añadir'];
+  
+  // ============================================
+  // PRIORIDAD 5: COMANDOS DE CREACIÓN
+  // ============================================
+  
+  const createWords = ['crea', 'crear', 'genera', 'generar', 'hazme', 'haz', 'nuevo', 'nueva'];
   const hasCreate = createWords.some(w => msgLower.includes(w));
 
   // Limpiar catálogo
   if ((msgLower.includes('limpia') || msgLower.includes('elimina') || msgLower.includes('borra') || msgLower.includes('resetea')) && 
-      (msgLower.includes('catálogo') || msgLower.includes('catalogo') || msgLower.includes('cuentas'))) {
+      (msgLower.includes('catalogo') || msgLower.includes('cuentas'))) {
+    console.log('[AI] Detectado: LIMPIAR catálogo');
     return { type: 'clear_chart_of_accounts', params: {} };
   }
 
   if (hasCreate) {
-    if (msgLower.includes('catálogo') || msgLower.includes('catalogo') || msgLower.includes('plan de cuenta') || 
+    if (msgLower.includes('catalogo') || msgLower.includes('plan de cuenta') || 
         (msgLower.includes('cuentas') && (msgLower.includes('contab') || msgLower.includes('para')))) {
+      console.log('[AI] Detectado: CREAR catálogo');
       return { type: 'create_chart_of_accounts', params: { description: msg } };
     }
     if (msgLower.includes('factura') || msgLower.includes('invoice')) {
+      console.log('[AI] Detectado: CREAR factura');
       return { type: 'create_invoice', params: {} };
     }
-    if (msgLower.includes('gasto') || msgLower.includes('expense')) {
-      return { type: 'create_expense', params: {} };
-    }
     if (msgLower.includes('cliente') || msgLower.includes('customer')) {
+      console.log('[AI] Detectado: CREAR cliente');
       return { type: 'create_customer', params: {} };
     }
     if (msgLower.includes('producto') || msgLower.includes('servicio')) {
+      console.log('[AI] Detectado: CREAR producto');
       return { type: 'create_product', params: {} };
     }
   }
+  
+  console.log('[AI] No se detectó ninguna acción específica');
   return { type: 'none', params: {} };
 }
 
@@ -470,7 +567,7 @@ Ejemplos:
 
     // Mapear tipo de categoría - DEBE ser un valor válido del enum ExpenseType
     // Valores válidos: OPERATING, ADMINISTRATIVE, SALES, FINANCIAL, OTHER
-    const categoryTypeMap: Record<string, string> = {
+    const categoryTypeMap: Record<string, 'OPERATING' | 'ADMINISTRATIVE' | 'SALES' | 'FINANCIAL' | 'OTHER'> = {
       'vehiculo': 'OTHER',
       'seguro': 'OPERATING',
       'chofer': 'OPERATING',
@@ -484,7 +581,7 @@ Ejemplos:
     };
 
     const categoryName = categoryMap[data.category] || data.category || 'General';
-    const categoryType = categoryTypeMap[data.category] || 'OTHER';
+    const categoryType: 'OPERATING' | 'ADMINISTRATIVE' | 'SALES' | 'FINANCIAL' | 'OTHER' = categoryTypeMap[data.category] || 'OTHER';
     
     // Buscar categoría existente
     let category = await prisma.expenseCategory.findFirst({ 
@@ -538,8 +635,8 @@ Ejemplos:
     // Crear el gasto
     const expense = await prisma.expense.create({
       data: {
-        user: { connect: { id: userId } },
-        category: { connect: { id: category.id } },
+        userId,
+        categoryId: category.id,
         companyId,
         amount: data.amount,
         description: data.description || `Pago de ${categoryName}`,
@@ -589,15 +686,23 @@ Ejemplos:
 async function recordIncomeNatural(msg: string, userId: string, companyId: string): Promise<string> {
   try {
     const prompt = `Extrae datos de este mensaje sobre un ingreso/cobro: "${msg}"
-    
-Responde SOLO con JSON válido:
+
+IMPORTANTE: 
+- Los montos pueden venir como "1.574.14" (mil quinientos setenta y cuatro con 14 centavos) o "1,574.14"
+- Convierte el monto a número decimal correcto
+
+Responde SOLO con JSON válido (sin explicaciones):
 {
-  "amount": número (el monto en dólares),
+  "amount": número (el monto en dólares, ej: 1574.14),
   "description": "descripción del ingreso/servicio",
-  "source": "cliente o fuente del ingreso",
+  "source": "cliente o fuente del ingreso o null",
   "month": "mes mencionado o null",
-  "year": "año mencionado o null"
-}`;
+  "year": "año mencionado como número o null"
+}
+
+Ejemplos:
+- "ingreso de 1.574.14 para mayo 2023" → amount: 1574.14, month: "mayo", year: 2023
+- "cobré $500 por viaje" → amount: 500`;
 
     const completion = await groq!.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
@@ -607,6 +712,7 @@ Responde SOLO con JSON válido:
     });
 
     let content = completion.choices[0]?.message?.content || '{}';
+    console.log('[AI] Respuesta ingreso:', content);
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -627,6 +733,8 @@ Responde SOLO con JSON válido:
 
     // Determinar fecha
     let incomeDate = new Date();
+    let fechaTexto = 'hoy';
+    
     if (data.month) {
       const months: Record<string, number> = {
         'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
@@ -636,11 +744,12 @@ Responde SOLO con JSON válido:
       if (monthNum !== undefined) {
         const year = data.year ? parseInt(data.year) : new Date().getFullYear();
         incomeDate = new Date(year, monthNum, 15);
+        fechaTexto = `${data.month} ${year}`;
       }
     }
 
     // Crear transacción de ingreso
-    await prisma.transaction.create({
+    const income = await prisma.transaction.create({
       data: {
         companyId,
         type: 'INCOME',
@@ -655,18 +764,19 @@ Responde SOLO con JSON válido:
 
     const monthName = incomeDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
-    return `✅ **¡Ingreso Registrado!**
+    return `✅ **¡Ingreso Registrado Exitosamente!**
 
-💵 **Monto:** $${data.amount.toFixed(2)}
+💵 **Monto:** $${Number(data.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
 📝 **Concepto:** ${data.description || 'Servicio de transporte'}
 ${data.source ? `👤 **Cliente:** ${data.source}` : ''}
 📅 **Fecha:** ${monthName}
 
-Ya está registrado en tu sistema.`;
+📊 El ingreso ya está guardado en tu sistema.
+💡 ¿Tienes más ingresos que registrar?`;
 
   } catch (e: any) {
     console.error('[AI] Error registrando ingreso:', e);
-    return `❌ Hubo un error: ${e.message}. Intenta de nuevo.`;
+    return `❌ **No pude registrar el ingreso.**\n\n⚠️ Error: ${e.message}\n\n💡 Intenta con este formato:\n"Agregame ingreso de $1574.14 para mayo 2023"`;
   }
 }
 
@@ -1070,8 +1180,8 @@ async function createExpense(msg: string, userId: string, companyId: string): Pr
 
     const expense = await prisma.expense.create({
       data: {
-        user: { connect: { id: userId } },
-        category: { connect: { id: category.id } },
+        userId,
+        categoryId: category.id,
         companyId,
         amount: data.amount,
         description: data.description || 'Gasto',

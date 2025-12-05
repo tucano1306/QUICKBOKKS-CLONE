@@ -8,7 +8,8 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Calendar, Download, Printer, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Calendar, Download, Printer, RefreshCw, AlertCircle, CheckCircle, FileText } from 'lucide-react'
+import jsPDF from 'jspdf'
 
 interface DateRange {
   startDate: string
@@ -56,11 +57,14 @@ export default function ProfitLossPage() {
 
   // Fetch income statement from API
   const fetchIncomeStatement = useCallback(async () => {
+    if (!activeCompany?.id) return
+    
     try {
       setLoading(true)
       const params = new URLSearchParams({
         startDate: dateRange.startDate,
-        endDate: dateRange.endDate
+        endDate: dateRange.endDate,
+        companyId: activeCompany.id
       })
       const response = await fetch(`/api/accounting/reports/income-statement?${params}`)
       if (!response.ok) throw new Error('Error al cargar estado de resultados')
@@ -74,7 +78,7 @@ export default function ProfitLossPage() {
       setLoading(false)
       setTimeout(() => setMessage(null), 3000)
     }
-  }, [dateRange.startDate, dateRange.endDate])
+  }, [dateRange.startDate, dateRange.endDate, activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -144,6 +148,225 @@ export default function ProfitLossPage() {
     return csv
   }
 
+  // Función para generar PDF profesional
+  const generatePDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 14
+    let y = 0
+
+    // ===== HEADER CON FONDO AZUL =====
+    doc.setFillColor(30, 64, 175) // Azul oscuro profesional
+    doc.rect(0, 0, pageWidth, 40, 'F')
+    
+    // Logo/Empresa
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text(activeCompany?.name || 'Mi Empresa', pageWidth / 2, 15, { align: 'center' })
+    
+    // Título del reporte
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'normal')
+    doc.text('ESTADO DE RESULTADOS (P&L)', pageWidth / 2, 25, { align: 'center' })
+    
+    // Período
+    doc.setFontSize(10)
+    doc.text(`Período: ${dateRange.startDate} al ${dateRange.endDate}`, pageWidth / 2, 33, { align: 'center' })
+    
+    // Reset color
+    doc.setTextColor(0, 0, 0)
+    y = 50
+
+    // ===== RESUMEN EJECUTIVO =====
+    doc.setFillColor(240, 249, 255) // Azul muy claro
+    doc.rect(margin, y, pageWidth - (margin * 2), 35, 'F')
+    doc.setDrawColor(59, 130, 246) // Borde azul
+    doc.rect(margin, y, pageWidth - (margin * 2), 35, 'S')
+    
+    y += 8
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('RESUMEN EJECUTIVO', margin + 5, y)
+    y += 10
+
+    // Grid de métricas
+    const col1 = margin + 5
+    const col2 = pageWidth / 2 + 10
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    
+    doc.text('Total Ingresos:', col1, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(5, 150, 105) // Verde
+    doc.text(`$${totalIngresos.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col1 + 40, y)
+    
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Total Gastos:', col2, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(220, 38, 38) // Rojo
+    doc.text(`$${(totalGastosOp + totalOtrosGastos).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col2 + 40, y)
+    
+    y += 8
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Utilidad Neta:', col1, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(utilidadNeta >= 0 ? 5 : 220, utilidadNeta >= 0 ? 150 : 38, utilidadNeta >= 0 ? 105 : 38)
+    doc.text(`$${utilidadNeta.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col1 + 40, y)
+    
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Margen Neto:', col2, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(utilidadNeta >= 0 ? 5 : 220, utilidadNeta >= 0 ? 150 : 38, utilidadNeta >= 0 ? 105 : 38)
+    doc.text(`${margenNeto.toFixed(2)}%`, col2 + 40, y)
+
+    doc.setTextColor(0, 0, 0)
+    y += 25
+
+    // ===== SECCIÓN DE INGRESOS =====
+    doc.setFillColor(5, 150, 105) // Verde
+    doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('INGRESOS', margin + 5, y + 5.5)
+    y += 12
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+
+    // Lista de ingresos
+    ingresos.forEach(item => {
+      doc.text(item.concepto, margin + 10, y)
+      doc.text(`$${item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+      y += 6
+    })
+
+    // Total Ingresos
+    doc.setDrawColor(5, 150, 105)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 5
+    doc.setFont('helvetica', 'bold')
+    doc.text('TOTAL INGRESOS', margin + 5, y)
+    doc.setTextColor(5, 150, 105)
+    doc.text(`$${totalIngresos.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 12
+
+    // ===== SECCIÓN DE GASTOS OPERATIVOS =====
+    doc.setTextColor(0, 0, 0)
+    doc.setFillColor(220, 38, 38) // Rojo
+    doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('GASTOS OPERATIVOS', margin + 5, y + 5.5)
+    y += 12
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+
+    // Lista de gastos operativos
+    gastosOperativos.forEach(item => {
+      doc.text(item.concepto, margin + 10, y)
+      doc.text(`($${item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })})`, pageWidth - margin - 5, y, { align: 'right' })
+      y += 6
+    })
+
+    // Total Gastos Operativos
+    doc.setDrawColor(220, 38, 38)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 5
+    doc.setFont('helvetica', 'bold')
+    doc.text('TOTAL GASTOS OPERATIVOS', margin + 5, y)
+    doc.setTextColor(220, 38, 38)
+    doc.text(`($${totalGastosOp.toLocaleString('en-US', { minimumFractionDigits: 2 })})`, pageWidth - margin - 5, y, { align: 'right' })
+    y += 8
+
+    // Utilidad Operativa
+    doc.setTextColor(0, 0, 0)
+    doc.setFillColor(243, 244, 246)
+    doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+    doc.setFont('helvetica', 'bold')
+    doc.text('UTILIDAD OPERATIVA', margin + 5, y + 5.5)
+    doc.setTextColor(utilidadOperativa >= 0 ? 5 : 220, utilidadOperativa >= 0 ? 150 : 38, utilidadOperativa >= 0 ? 105 : 38)
+    doc.text(`$${utilidadOperativa.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y + 5.5, { align: 'right' })
+    y += 15
+
+    // ===== OTROS GASTOS (si existen) =====
+    if (otrosGastos.length > 0) {
+      doc.setTextColor(0, 0, 0)
+      doc.setFillColor(234, 179, 8) // Amarillo/naranja
+      doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text('OTROS GASTOS', margin + 5, y + 5.5)
+      y += 12
+
+      doc.setTextColor(0, 0, 0)
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'normal')
+
+      otrosGastos.forEach(item => {
+        doc.text(item.concepto, margin + 10, y)
+        doc.text(`($${item.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })})`, pageWidth - margin - 5, y, { align: 'right' })
+        y += 6
+      })
+
+      doc.setDrawColor(234, 179, 8)
+      doc.line(margin, y, pageWidth - margin, y)
+      y += 5
+      doc.setFont('helvetica', 'bold')
+      doc.text('TOTAL OTROS GASTOS', margin + 5, y)
+      doc.setTextColor(234, 179, 8)
+      doc.text(`($${totalOtrosGastos.toLocaleString('en-US', { minimumFractionDigits: 2 })})`, pageWidth - margin - 5, y, { align: 'right' })
+      y += 12
+    }
+
+    // ===== UTILIDAD NETA (RESULTADO FINAL) =====
+    doc.setTextColor(0, 0, 0)
+    const netBgColor = utilidadNeta >= 0 ? [220, 252, 231] : [254, 226, 226] // Verde claro o rojo claro
+    doc.setFillColor(netBgColor[0], netBgColor[1], netBgColor[2])
+    doc.setDrawColor(utilidadNeta >= 0 ? 5 : 220, utilidadNeta >= 0 ? 150 : 38, utilidadNeta >= 0 ? 105 : 38)
+    doc.setLineWidth(1)
+    doc.rect(margin, y, pageWidth - (margin * 2), 15, 'FD')
+    
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('UTILIDAD NETA', margin + 10, y + 10)
+    doc.setTextColor(utilidadNeta >= 0 ? 5 : 220, utilidadNeta >= 0 ? 150 : 38, utilidadNeta >= 0 ? 105 : 38)
+    doc.setFontSize(14)
+    doc.text(`$${utilidadNeta.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 10, y + 10, { align: 'right' })
+    
+    doc.setLineWidth(0.5)
+    y += 25
+
+    // ===== FOOTER =====
+    doc.setTextColor(128, 128, 128)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    const footerY = doc.internal.pageSize.getHeight() - 15
+    doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
+    doc.text(`Generado el ${new Date().toLocaleDateString('es-ES', { 
+      day: '2-digit', 
+      month: 'long', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}`, margin, footerY)
+    doc.text('Estado de Resultados - Reporte Financiero', pageWidth / 2, footerY, { align: 'center' })
+    doc.text('Página 1 de 1', pageWidth - margin, footerY, { align: 'right' })
+
+    // Descargar PDF
+    doc.save(`estado-resultados-${activeCompany?.name?.replace(/\s+/g, '-') || 'empresa'}-${dateRange.endDate}.pdf`)
+    setMessage({ type: 'success', text: 'PDF generado exitosamente' })
+  }
+
   if (status === 'loading') {
     return (
       <CompanyTabsLayout>
@@ -193,7 +416,11 @@ export default function ProfitLossPage() {
               setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
             }}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
+              CSV
+            </Button>
+            <Button variant="outline" onClick={generatePDF} className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700">
+              <FileText className="w-4 h-4 mr-2" />
+              PDF
             </Button>
             <Button onClick={() => {
               const printWindow = window.open('', '_blank')

@@ -10,20 +10,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Obtener companyId del usuario
+    const companyUser = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id },
+      select: { companyId: true }
+    });
+
+    if (!companyUser?.companyId) {
+      return NextResponse.json({ error: 'Usuario no asociado a empresa' }, { status: 400 });
+    }
+
     const { searchParams } = new URL(request.url);
     const startDate = new Date(searchParams.get('startDate') || new Date().toISOString());
     const endDate = new Date(searchParams.get('endDate') || new Date().toISOString());
 
     // Flujo de operación
+    // IMPORTANTE: Para cash flow, usar paidDate (cuando se recibió el dinero), no issueDate
     const invoices = await prisma.invoice.findMany({
       where: {
-        issueDate: { gte: startDate, lte: endDate },
+        companyId: companyUser.companyId,
         status: 'PAID',
+        // Use paidDate for cash basis, fallback to issueDate if paidDate not available
+        OR: [
+          { paidDate: { gte: startDate, lte: endDate } },
+          { paidDate: null, issueDate: { gte: startDate, lte: endDate } }
+        ]
       },
     });
 
     const expenses = await prisma.expense.findMany({
       where: {
+        companyId: companyUser.companyId,
         date: { gte: startDate, lte: endDate },
         status: 'PAID',
       },

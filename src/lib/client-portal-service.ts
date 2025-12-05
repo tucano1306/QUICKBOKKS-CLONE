@@ -329,6 +329,7 @@ export async function generateClientStatement(
 
 /**
  * Subir documento al portal (con upload a storage)
+ * TODO: Implementar con el nuevo modelo FirmClient/ClientDocument
  */
 export async function uploadClientDocument(
   customerId: string,
@@ -340,87 +341,12 @@ export async function uploadClientDocument(
   },
   companyId: string
 ): Promise<ClientDocument> {
-  throw new Error('Client portal feature not available - missing models in schema');
-  return null as any;
-  
-  // En producción, subir a S3/CloudFlare/Azure Blob
-  // Por ahora simulamos con URL local
-  const fileId = `doc_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-  const fileUrl = `/uploads/client-documents/${customerId}/${fileId}`;
-
-  // Crear registro en base de datos
-  // @ts-expect-error - Model not in schema
-  const document = await prisma.clientDocument.create({
-    data: {
-      customerId,
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      url: fileUrl,
-      uploadedAt: new Date(),
-    },
-  });
-
-  // Si es una imagen/PDF de recibo, intentar auto-categorización
-  if (
-    file.type.includes('image') ||
-    file.type.includes('pdf') ||
-    file.name.toLowerCase().includes('receipt') ||
-    file.name.toLowerCase().includes('invoice')
-  ) {
-    try {
-      // Extraer texto con OCR (implementar con Tesseract.js o Google Vision)
-      // const extractedText = await extractTextFromImage(file.buffer);
-
-      // Simular texto extraído para ejemplo
-      const extractedText = `Receipt from ${file.name}`;
-
-      // Predecir categoría
-      const prediction = await predictExpenseCategory(companyId, {
-        description: extractedText,
-        amount: 0, // Idealmente extraer monto del recibo
-        date: new Date(),
-      });
-
-      // Actualizar documento con categoría sugerida
-      // @ts-expect-error - Model not in schema
-      await prisma.clientDocument.update({
-        where: { id: document.id },
-        data: {
-          suggestedCategory: prediction.category,
-          categorizationConfidence: prediction.confidence,
-        },
-      });
-
-      return {
-        id: document.id,
-        customerId: document.customerId,
-        name: document.name,
-        type: document.type,
-        size: document.size,
-        url: document.url,
-        uploadedAt: document.uploadedAt,
-        category: prediction.category,
-        autoCategorizationConfidence: prediction.confidence,
-      };
-    } catch (error) {
-      console.error('Error auto-categorizando documento:', error);
-    }
-  }
-
-  return {
-    id: document.id,
-    customerId: document.customerId,
-    name: document.name,
-    type: document.type,
-    size: document.size,
-    url: document.url,
-    uploadedAt: document.uploadedAt,
-  };
+  throw new Error('Client portal document upload not implemented yet - use firm client documents');
 }
 
 /**
  * Obtener documentos del cliente
+ * TODO: Implementar con el nuevo modelo FirmClient/ClientDocument
  */
 export async function getClientDocuments(
   customerId: string,
@@ -429,33 +355,8 @@ export async function getClientDocuments(
     limit?: number;
   } = {}
 ): Promise<ClientDocument[]> {
-  throw new Error('Client portal feature not available - missing models in schema');
+  // Por ahora retornamos array vacío hasta implementar con el nuevo modelo
   return [];
-  
-  const where: any = { customerId };
-
-  if (options.type) {
-    where.type = { contains: options.type };
-  }
-
-  // @ts-expect-error - Model not in schema
-  const documents = await prisma.clientDocument.findMany({
-    where,
-    orderBy: { uploadedAt: 'desc' },
-    take: options.limit || 100,
-  });
-
-  return documents.map((doc) => ({
-    id: doc.id,
-    customerId: doc.customerId,
-    name: doc.name,
-    type: doc.type,
-    size: doc.size,
-    url: doc.url,
-    uploadedAt: doc.uploadedAt,
-    category: doc.suggestedCategory || undefined,
-    autoCategorizationConfidence: doc.categorizationConfidence || undefined,
-  }));
 }
 
 /**
@@ -468,7 +369,6 @@ export async function getClientDashboardStats(customerId: string) {
     pendingInvoices,
     overdueInvoices,
     totalSpent,
-    documents,
   ] = await Promise.all([
     prisma.invoice.count({ where: { customerId } }),
     prisma.invoice.count({ where: { customerId, status: 'PAID' } }),
@@ -478,7 +378,6 @@ export async function getClientDashboardStats(customerId: string) {
       where: { customerId, status: 'PAID' },
       _sum: { total: true },
     }),
-    0, // documents count placeholder
   ]);
 
   // Calculate balance from unpaid invoices
@@ -503,7 +402,7 @@ export async function getClientDashboardStats(customerId: string) {
     overdueInvoices,
     totalSpent: parseFloat(totalSpent._sum.total?.toString() || '0'),
     currentBalance,
-    documentsCount: documents,
+    documentsCount: 0, // TODO: implement with new model
   };
 }
 

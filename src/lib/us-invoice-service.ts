@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import fs from 'fs/promises'
 import path from 'path'
 import type { Invoice, Customer, InvoiceItem, Product } from '@prisma/client'
+import { createInvoiceJournalEntry } from './accounting-service'
 
 interface InvoiceGenerationResponse {
   success: boolean
@@ -270,12 +271,26 @@ ${process.env.COMPANY_NAME || 'Your Company'}
       })
       
       // Actualizar estado de la factura
+      const wasInDraft = invoice.status === 'DRAFT';
       await prisma.invoice.update({
         where: { id: invoiceId },
         data: { 
           status: invoice.status === 'DRAFT' ? 'SENT' : invoice.status,
         }
       })
+      
+      // CREAR ASIENTO CONTABLE cuando la factura cambia de DRAFT a SENT
+      // Esto reconoce el ingreso según GAAP (cuando se entrega al cliente)
+      if (wasInDraft && invoice.companyId) {
+        await createInvoiceJournalEntry(
+          invoice.companyId,
+          invoice.total,
+          invoice.invoiceNumber,
+          invoice.customer.name,
+          new Date(),
+          'system' // Creado por el sistema al enviar
+        );
+      }
       
       // Actualizar e-invoice
       await (prisma as any).eInvoice.update({

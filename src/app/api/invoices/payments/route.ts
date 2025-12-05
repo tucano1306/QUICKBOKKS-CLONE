@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createPaymentReceivedJournalEntry, createInvoiceJournalEntry } from '@/lib/accounting-service'
 
 // GET all payments
 export async function GET(request: NextRequest) {
@@ -194,6 +195,21 @@ export async function POST(request: NextRequest) {
         where: { id: invoiceId },
         data: { status: 'PARTIAL' }
       })
+    }
+
+    // CREAR ASIENTO CONTABLE PARA EL COBRO (Partida Doble)
+    // Débito: Banco (activo aumenta)
+    // Crédito: Cuentas por Cobrar (activo disminuye)
+    if (companyId) {
+      const customerName = payment.invoice.customer?.name || 'Cliente';
+      await createPaymentReceivedJournalEntry(
+        companyId,
+        amount,
+        invoice.invoiceNumber,
+        customerName,
+        new Date(),
+        session.user.id
+      );
     }
 
     return NextResponse.json({

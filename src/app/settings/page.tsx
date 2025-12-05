@@ -5,7 +5,7 @@ import { redirect, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Settings as SettingsIcon, User, Building, Bell, LayoutDashboard, Shield, Globe, CreditCard, Database } from 'lucide-react'
+import { Settings as SettingsIcon, User, Building, Bell, LayoutDashboard, Shield, Globe, CreditCard, Database, HardDrive } from 'lucide-react'
 import QuickAccessBar from '@/components/ui/quick-access-bar'
 
 export default function SettingsPage() {
@@ -18,7 +18,8 @@ export default function SettingsPage() {
     { label: 'Empresa', href: '/company/settings/company', icon: Building, color: 'green' },
     { label: 'Seguridad', href: '/company/settings/security', icon: Shield, color: 'red' },
     { label: 'Integraciones', href: '/company/settings/integrations', icon: Globe, color: 'orange' },
-    { label: 'Facturación', href: '/company/settings/billing', icon: CreditCard, color: 'indigo' }
+    { label: 'Facturación', href: '/company/settings/billing', icon: CreditCard, color: 'indigo' },
+    { label: 'Backups', href: '/company/settings/backups', icon: HardDrive, color: 'cyan' }
   ]
 
   useEffect(() => {

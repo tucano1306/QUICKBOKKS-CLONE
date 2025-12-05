@@ -30,6 +30,7 @@ model User {
   sessions            Session[]
   taxReturns          TaxReturn[]
   uploadedDocuments   UploadedDocument[]
+  firmStaff           FirmStaff[]
 
   @@map("users")
 }
@@ -220,6 +221,7 @@ model Invoice {
   creditNotes      CreditNote[]
   eInvoice         EInvoice?
   items            InvoiceItem[]
+  company          Company?          @relation(fields: [companyId], references: [id])
   currency         Currency?         @relation(fields: [currencyId], references: [id])
   customer         Customer          @relation(fields: [customerId], references: [id])
   project          Project?          @relation(fields: [projectId], references: [id])
@@ -228,6 +230,7 @@ model Invoice {
   payments         Payment[]
   withholdings     TaxWithholding[]
 
+  @@index([companyId])
   @@map("invoices")
 }
 
@@ -287,12 +290,14 @@ model Expense {
   companyId        String?
   bankTransactions BankTransaction[]
   category         ExpenseCategory   @relation(fields: [categoryId], references: [id])
+  company          Company?          @relation(fields: [companyId], references: [id])
   costCenter       CostCenter?       @relation(fields: [costCenterId], references: [id])
   employee         Employee?         @relation(fields: [employeeId], references: [id])
   project          Project?          @relation(fields: [projectId], references: [id])
   user             User              @relation(fields: [userId], references: [id])
   withholdings     TaxWithholding[]
 
+  @@index([companyId])
   @@map("expenses")
 }
 
@@ -635,12 +640,14 @@ model JournalEntry {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   companyId    String?
+  company      Company?           @relation(fields: [companyId], references: [id])
   costCenter   CostCenter?        @relation(fields: [costCenterId], references: [id])
   reversedBy   JournalEntry?      @relation("ReversedEntries", fields: [reversedById], references: [id])
   reversals    JournalEntry[]     @relation("ReversedEntries")
   lines        JournalEntryLine[]
   documents    UploadedDocument[]
 
+  @@index([companyId])
   @@map("journal_entries")
 }
 
@@ -1736,6 +1743,10 @@ model Company {
   whiteLabel           WhiteLabel?
   uploadedDocuments    UploadedDocument[]
   categorizationRules  AiCategorizationRule[]
+  firmClients          FirmClient[]
+  journalEntries       JournalEntry[]
+  invoices             Invoice[]
+  expenses             Expense[]
 
   @@map("companies")
 }
@@ -3194,4 +3205,339 @@ model AiCategorizationRule {
 
   @@index([companyId])
   @@map("ai_categorization_rules")
+}
+
+// ============================================
+// ACCOUNTING FIRM MANAGEMENT MODELS
+// ============================================
+
+model AccountingFirm {
+  id                  String            @id @default(cuid())
+  name                String
+  legalName           String?
+  taxId               String?
+  licenseNumber       String?           // CPA License, etc.
+  address             String?
+  city                String?
+  state               String?
+  zipCode             String?
+  country             String            @default("US")
+  phone               String?
+  email               String?
+  website             String?
+  logo                String?
+  settings            Json?             // Firm-specific settings
+  subscription        FirmSubscription  @default(PROFESSIONAL)
+  maxClients          Int               @default(50)
+  isActive            Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  
+  clients             FirmClient[]
+  staff               FirmStaff[]
+  engagements         ClientEngagement[]
+  timeEntries         FirmTimeEntry[]
+  
+  @@map("accounting_firms")
+}
+
+model FirmStaff {
+  id              String           @id @default(cuid())
+  firmId          String
+  userId          String
+  role            StaffRole        @default(STAFF)
+  title           String?
+  department      String?
+  hourlyRate      Float?
+  billableRate    Float?
+  targetHours     Float?           // Monthly billable target
+  isActive        Boolean          @default(true)
+  startDate       DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  firm            AccountingFirm   @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedClients FirmClient[]     @relation("PrimaryAccountant")
+  secondaryClients FirmClient[]    @relation("SecondaryAccountant")
+  timeEntries     FirmTimeEntry[]
+  
+  @@unique([firmId, userId])
+  @@map("firm_staff")
+}
+
+model FirmClient {
+  id                    String              @id @default(cuid())
+  firmId                String
+  companyId             String
+  clientCode            String              // Client reference number
+  status                ClientStatus        @default(ACTIVE)
+  engagementType        EngagementType      @default(MONTHLY)
+  primaryAccountantId   String?
+  secondaryAccountantId String?
+  monthlyFee            Float?
+  hourlyRate            Float?
+  retainerHours         Float?
+  billingType           BillingType         @default(FIXED)
+  contractStartDate     DateTime?
+  contractEndDate       DateTime?
+  taxFilingDeadlines    Json?               // { Q1: date, Q2: date, ... }
+  notes                 String?
+  priority              ClientPriority      @default(NORMAL)
+  lastReviewDate        DateTime?
+  nextReviewDate        DateTime?
+  healthScore           Int?                // 0-100
+  alertsEnabled         Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  
+  firm                  AccountingFirm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  company               Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  primaryAccountant     FirmStaff?          @relation("PrimaryAccountant", fields: [primaryAccountantId], references: [id])
+  secondaryAccountant   FirmStaff?          @relation("SecondaryAccountant", fields: [secondaryAccountantId], references: [id])
+  engagements           ClientEngagement[]
+  timeEntries           FirmTimeEntry[]
+  alerts                ClientAlert[]
+  documents             ClientDocument[]
+  
+  @@unique([firmId, companyId])
+  @@unique([firmId, clientCode])
+  @@index([status])
+  @@index([primaryAccountantId])
+  @@map("firm_clients")
+}
+
+model ClientEngagement {
+  id              String           @id @default(cuid())
+  firmId          String
+  clientId        String
+  type            EngagementType
+  name            String
+  description     String?
+  status          EngagementStatus @default(ACTIVE)
+  startDate       DateTime
+  endDate         DateTime?
+  deadline        DateTime?
+  estimatedHours  Float?
+  actualHours     Float?           @default(0)
+  budgetAmount    Float?
+  billedAmount    Float?           @default(0)
+  progress        Int?             @default(0) // 0-100
+  priority        ClientPriority   @default(NORMAL)
+  assignedStaff   Json?            // Array of staff IDs
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  firm            AccountingFirm   @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  client          FirmClient       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  timeEntries     FirmTimeEntry[]
+  tasks           EngagementTask[]
+  
+  @@index([clientId, status])
+  @@index([deadline])
+  @@map("client_engagements")
+}
+
+model EngagementTask {
+  id            String            @id @default(cuid())
+  engagementId  String
+  name          String
+  description   String?
+  status        TaskStatus        @default(TODO)
+  priority      Int               @default(0)
+  assignedTo    String?
+  dueDate       DateTime?
+  completedAt   DateTime?
+  estimatedTime Float?
+  actualTime    Float?
+  sortOrder     Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  
+  engagement    ClientEngagement  @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  
+  @@index([engagementId, status])
+  @@map("engagement_tasks")
+}
+
+model FirmTimeEntry {
+  id            String              @id @default(cuid())
+  firmId        String
+  staffId       String
+  clientId      String?
+  engagementId  String?
+  date          DateTime
+  hours         Float
+  description   String?
+  isBillable    Boolean             @default(true)
+  billableRate  Float?
+  isBilled      Boolean             @default(false)
+  billedDate    DateTime?
+  invoiceId     String?
+  status        FirmTimeEntryStatus @default(DRAFT)
+  approvedBy    String?
+  approvedAt    DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  
+  firm          AccountingFirm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  staff         FirmStaff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  client        FirmClient?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  engagement    ClientEngagement?   @relation(fields: [engagementId], references: [id], onDelete: SetNull)
+  
+  @@index([staffId, date])
+  @@index([clientId, date])
+  @@index([isBilled])
+  @@map("firm_time_entries")
+}
+
+model ClientAlert {
+  id            String            @id @default(cuid())
+  clientId      String
+  type          ClientAlertType
+  severity      ClientAlertSeverity @default(INFO)
+  title         String
+  message       String
+  data          Json?
+  deadline      DateTime?
+  isRead        Boolean           @default(false)
+  isResolved    Boolean           @default(false)
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  createdAt     DateTime          @default(now())
+  
+  client        FirmClient        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@index([clientId, isResolved])
+  @@index([type, severity])
+  @@map("client_alerts")
+}
+
+model ClientDocument {
+  id            String              @id @default(cuid())
+  clientId      String
+  name          String
+  type          ClientDocumentType
+  category      String?
+  fileUrl       String
+  fileSize      Int?
+  mimeType      String?
+  year          Int?
+  period        String?             // Q1, Q2, Monthly, etc.
+  uploadedBy    String?
+  notes         String?
+  tags          String[]            @default([])
+  isArchived    Boolean             @default(false)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  
+  client        FirmClient          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@index([clientId, type])
+  @@index([year])
+  @@map("client_documents")
+}
+
+// Enums for Accounting Firm
+
+enum FirmSubscription {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum StaffRole {
+  OWNER
+  PARTNER
+  MANAGER
+  SENIOR
+  STAFF
+  INTERN
+}
+
+enum ClientStatus {
+  PROSPECT
+  ONBOARDING
+  ACTIVE
+  INACTIVE
+  CHURNED
+}
+
+enum EngagementType {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  TAX_RETURN
+  AUDIT
+  ADVISORY
+  PAYROLL
+  BOOKKEEPING
+  CONSULTATION
+  PROJECT
+}
+
+enum EngagementStatus {
+  DRAFT
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum BillingType {
+  FIXED
+  HOURLY
+  RETAINER
+  VALUE_BASED
+}
+
+enum ClientPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  BLOCKED
+  COMPLETED
+}
+
+enum FirmTimeEntryStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum ClientAlertType {
+  TAX_DEADLINE
+  RECONCILIATION_DUE
+  DOCUMENT_MISSING
+  BALANCE_ANOMALY
+  REVIEW_DUE
+  CONTRACT_EXPIRING
+  PAYMENT_OVERDUE
+  CUSTOM
+}
+
+enum ClientAlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum ClientDocumentType {
+  TAX_RETURN
+  FINANCIAL_STATEMENT
+  BANK_STATEMENT
+  RECEIPT
+  CONTRACT
+  CORRESPONDENCE
+  WORKING_PAPER
+  OTHER
 }

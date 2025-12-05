@@ -5,6 +5,16 @@ import { getToken } from 'next-auth/jwt'
 // Rutas que no requieren autenticación
 const publicRoutes = ['/auth/login', '/auth/register', '/api/auth']
 
+// Rutas de API que requieren autenticación pero el middleware no debe interceptar
+// (se manejan internamente con getServerSession)
+const apiRoutesWithInternalAuth = [
+  '/api/accounting/',
+  '/api/transactions',
+  '/api/expenses',
+  '/api/ai/',
+  '/api/reports/'
+]
+
 // Rutas que requieren roles específicos
 const protectedRoutes: { [key: string]: string[] } = {
   '/api/accounting/chart-of-accounts': ['ADMIN', 'ACCOUNTANT'],
@@ -28,7 +38,10 @@ export default async function middleware(request: NextRequest) {
   // Verificar si es una ruta pública
   const isPublicRoute = publicRoutes.some(route => path.startsWith(route))
   
-  if (isPublicRoute) {
+  // Verificar si es una ruta API con autenticación interna
+  const isApiWithInternalAuth = apiRoutesWithInternalAuth.some(route => path.startsWith(route))
+  
+  if (isPublicRoute || isApiWithInternalAuth) {
     return NextResponse.next()
   }
   

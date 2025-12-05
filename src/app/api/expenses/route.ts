@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { validateExpenseRequest, validatePagination, createErrorResponse } from '@/lib/validation-middleware'
 import { validateExpense } from '@/lib/validation'
+import { createExpenseJournalEntry, deleteExpenseWithReversal } from '@/lib/accounting-service'
 
 // GET all expenses
 export async function GET(request: NextRequest) {
@@ -129,6 +130,27 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Crear asiento contable automáticamente (Partida Doble)
+    // Buscar companyId del usuario
+    const userCompany = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id },
+      select: { companyId: true }
+    });
+    
+    if (userCompany?.companyId) {
+      const expDate = date ? new Date(date) : new Date();
+      const categoryName = expense.category?.name || 'General';
+      await createExpenseJournalEntry(
+        userCompany.companyId,
+        parseFloat(amount),
+        description,
+        categoryName,
+        expDate,
+        expense.id,
+        session.user.id
+      );
+    }
+
     return NextResponse.json(expense, { status: 201 })
   } catch (error) {
     console.error('Error creating expense:', error)
@@ -139,7 +161,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - Eliminar gastos (individual o múltiple)
+// DELETE - Eliminar gastos (individual o múltiple) CON REVERSIÓN DE ASIENTOS
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -153,7 +175,7 @@ export async function DELETE(request: NextRequest) {
     const singleId = searchParams.get('id')
 
     if (singleId) {
-      // Eliminación individual
+      // Eliminación individual con reversión de asiento contable
       const existing = await prisma.expense.findFirst({
         where: { id: singleId, userId: session.user.id }
       })
@@ -162,11 +184,11 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: 'Gasto no encontrado' }, { status: 404 })
       }
 
-      await prisma.expense.delete({ where: { id: singleId } })
+      await deleteExpenseWithReversal(singleId, session.user.id);
 
       return NextResponse.json({ 
         success: true, 
-        message: 'Gasto eliminado exitosamente'
+        message: 'Gasto eliminado y asiento contable revertido exitosamente'
       })
     }
 
@@ -184,18 +206,23 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Se requiere un array de IDs' }, { status: 400 })
     }
 
-    // Solo eliminar gastos que pertenecen al usuario
-    const result = await prisma.expense.deleteMany({
+    // Verificar que los gastos pertenecen al usuario
+    const expenses = await prisma.expense.findMany({
       where: { 
         id: { in: ids },
         userId: session.user.id
       }
-    })
+    });
+
+    // Eliminar cada gasto con reversión de asiento contable
+    for (const expense of expenses) {
+      await deleteExpenseWithReversal(expense.id, session.user.id);
+    }
 
     return NextResponse.json({ 
       success: true, 
-      message: `${result.count} gasto(s) eliminado(s) exitosamente`,
-      deletedCount: result.count
+      message: `${expenses.length} gasto(s) eliminado(s) y asientos revertidos exitosamente`,
+      deletedCount: expenses.length
     })
   } catch (error) {
     console.error('Error deleting expenses:', error)
