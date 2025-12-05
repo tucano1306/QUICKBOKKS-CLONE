@@ -16,7 +16,7 @@ if (GROQ_API_KEY) {
 type ActionType = 
   | 'create_invoice' | 'create_expense' | 'create_customer' 
   | 'create_product' | 'create_chart_of_accounts' | 'clear_chart_of_accounts' 
-  | 'record_payment' | 'record_income' | 'get_report' | 'none';
+  | 'record_payment' | 'record_income' | 'record_expense_transaction' | 'get_report' | 'none';
 
 interface AIAction {
   type: ActionType;
@@ -366,18 +366,27 @@ function detectAction(msg: string): AIAction {
   console.log('[AI] Tiene monto:', hasMonto, numberMatches);
   
   // ============================================
+  // PRIORIDAD 0: VERIFICAR SI PIDE EN "TRANSACCIONES" ESPECÍFICAMENTE
+  // ============================================
+  const quiereEnTransacciones = msgLower.includes('transaccion') || msgLower.includes('transacciones');
+  
+  // ============================================
   // PRIORIDAD 1: PALABRAS CLAVE EXPLÍCITAS
   // ============================================
   
   // Si dice "ingreso" o "entrada" explícitamente + hay monto = REGISTRAR INGRESO
   if ((msgLower.includes('ingreso') || msgLower.includes('entrada') || msgLower.includes('cobro')) && hasMonto) {
     console.log('[AI] Detectado: INGRESO explícito con monto');
-    return { type: 'record_income', params: { message: msg } };
+    return { type: 'record_income', params: { message: msg, useTransactions: quiereEnTransacciones } };
   }
   
   // Si dice "gasto" explícitamente + hay monto = REGISTRAR GASTO
   if ((msgLower.includes('gasto') || msgLower.includes('pago')) && hasMonto) {
-    console.log('[AI] Detectado: GASTO explícito con monto');
+    console.log('[AI] Detectado: GASTO explícito con monto', quiereEnTransacciones ? '(en transacciones)' : '(en expenses)');
+    // Si específicamente pide en transacciones, usar record_expense_transaction
+    if (quiereEnTransacciones) {
+      return { type: 'record_expense_transaction', params: { message: msg } };
+    }
     return { type: 'record_payment', params: { message: msg } };
   }
   
@@ -495,6 +504,8 @@ async function executeAction(action: AIAction, msg: string, userId: string, comp
       return await recordPaymentNatural(msg, userId, companyId);
     case 'record_income':
       return await recordIncomeNatural(msg, userId, companyId);
+    case 'record_expense_transaction':
+      return await recordExpenseAsTransaction(msg, userId, companyId);
     case 'get_report':
       return await getFinancialReport(msg, userId, companyId);
     default:
@@ -774,6 +785,97 @@ ${data.source ? `👤 **Cliente:** ${data.source}` : ''}
   } catch (e: any) {
     console.error('[AI] Error registrando ingreso:', e);
     return `❌ **No pude registrar el ingreso.**\n\n⚠️ Error: ${e.message}\n\n💡 Intenta con este formato:\n"Agregame ingreso de $1574.14 para mayo 2023"`;
+  }
+}
+
+// REGISTRAR GASTO COMO TRANSACCIÓN (cuando el usuario pide específicamente "en transacciones")
+async function recordExpenseAsTransaction(msg: string, userId: string, companyId: string): Promise<string> {
+  try {
+    const prompt = `Extrae datos de este mensaje sobre un gasto: "${msg}"
+    
+IMPORTANTE: 
+- Los montos pueden venir como "14.000" (catorce mil) o "14,000" 
+- Convierte el monto a número decimal correcto
+
+Responde SOLO con JSON válido (sin explicaciones):
+{
+  "amount": número (el monto en dólares, ej: 14000),
+  "description": "descripción corta del gasto",
+  "category": "categoría general del gasto",
+  "month": "mes mencionado o null",
+  "year": "año mencionado como número o null"
+}`;
+
+    const completion = await groq!.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      max_tokens: 300
+    });
+
+    let content = completion.choices[0]?.message?.content || '{}';
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return `⚠️ No pude entender el gasto. Intenta así:\n"En transacciones agrega gasto de $14000 por compra de camioneta mayo 2023"`;
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(jsonMatch[0]);
+    } catch {
+      return `⚠️ No pude procesar la información. Intenta de nuevo.`;
+    }
+
+    if (!data.amount || data.amount <= 0) {
+      return `⚠️ No encontré el monto. Ejemplo:\n"Gasto de **$14000** en compra de vehículo"`;
+    }
+
+    // Determinar fecha
+    let expenseDate = new Date();
+    
+    if (data.month) {
+      const months: Record<string, number> = {
+        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+      };
+      const monthNum = months[data.month.toLowerCase()];
+      if (monthNum !== undefined) {
+        const year = data.year ? parseInt(data.year) : new Date().getFullYear();
+        expenseDate = new Date(year, monthNum, 15);
+      }
+    }
+
+    // Crear transacción de GASTO (tipo EXPENSE) con JE de forma atómica
+    const { transaction } = await createTransactionWithJE({
+      companyId,
+      userId,
+      type: 'EXPENSE',
+      category: data.category || 'Gastos Generales',
+      description: data.description || 'Gasto registrado',
+      amount: data.amount,
+      date: expenseDate,
+      notes: `Registrado via AI Chat`
+    });
+
+    const monthName = expenseDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+    return `✅ **¡Gasto Registrado en Transacciones!**
+
+💸 **Monto:** $${Number(data.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+📝 **Concepto:** ${data.description || data.category}
+📁 **Categoría:** ${data.category || 'Gastos Generales'}
+📅 **Fecha:** ${monthName}
+
+📊 El gasto ya está guardado en **Transacciones**.
+👉 Puedes verlo en **Menú → Transacciones**
+
+💡 ¿Tienes más que registrar?`;
+
+  } catch (e: any) {
+    console.error('[AI] Error registrando gasto en transacciones:', e);
+    return `❌ **No pude registrar el gasto.**\n\n⚠️ Error: ${e.message}\n\n💡 Intenta con este formato:\n"En transacciones agrega gasto de $14000 compra de vehículo mayo 2023"`;
   }
 }
 
