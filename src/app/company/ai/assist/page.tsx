@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,6 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { 
   MessageSquare,
   Send,
@@ -18,7 +19,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Copy,
-  RefreshCw,
+  Check,
   Bookmark,
   TrendingUp,
   DollarSign,
@@ -27,7 +28,15 @@ import {
   HelpCircle,
   Lightbulb,
   Info,
-  Plus
+  Plus,
+  Trash2,
+  History,
+  Paperclip,
+  ArrowRight,
+  BarChart3,
+  Users,
+  Receipt,
+  PiggyBank
 } from 'lucide-react'
 
 interface Message {
@@ -47,31 +56,26 @@ interface Conversation {
   messageCount: number
 }
 
-interface QuickQuestion {
+interface QuickAction {
   id: string
-  question: string
-  category: string
+  title: string
+  description: string
+  prompt: string
   icon: React.ReactNode
-}
-
-interface AIStats {
-  totalQuestions: number
-  avgResponseTime: string
-  helpfulRate: number
-  conversationsSaved: number
+  color: string
 }
 
 const getWelcomeMessage = (): Message => ({
   id: '1',
   type: 'assistant',
-  content: `¡Hola! Soy tu asistente contable IA. Estoy conectado a tu base de datos y puedo darte información precisa sobre:
+  content: `¡Hola! 👋 Soy tu asistente contable con IA. Estoy conectado a tu base de datos en tiempo real y puedo ayudarte con:
 
-• 📊 Balance y situación financiera
-• 📄 Facturas pendientes y vencidas
-• 💰 Análisis de gastos
-• 👥 Información de clientes
-• 📈 Predicciones de flujo de caja
-• 🏛️ Información fiscal
+📊 **Análisis Financiero** - Balance, P&L, métricas clave
+📄 **Gestión de Facturas** - Pendientes, vencidas, cobros
+💰 **Control de Gastos** - Categorías, tendencias, optimización
+👥 **Clientes & Proveedores** - Rankings, comportamiento, alertas
+📈 **Proyecciones** - Flujo de caja, predicciones, escenarios
+🏛️ **Impuestos** - Deducciones, cumplimiento fiscal
 
 ¿En qué puedo ayudarte hoy?`,
   timestamp: new Date().toISOString(),
@@ -87,16 +91,81 @@ export default function AIAssistPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [messages, setMessages] = useState<Message[]>([getWelcomeMessage()])
   const [recentConversations, setRecentConversations] = useState<Conversation[]>([])
-  const [showSavedConversations, setShowSavedConversations] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [currentConversationId, setCurrentConversationId] = useState<string>(() => 
     `conv-${Date.now()}`
   )
-  const [stats, setStats] = useState<AIStats>({
-    totalQuestions: 0,
-    avgResponseTime: '0s',
-    helpfulRate: 0,
-    conversationsSaved: 0
-  })
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-scroll to bottom when messages change
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages, isTyping])
+
+  // Auto-resize textarea
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputMessage(e.target.value)
+    e.target.style.height = 'auto'
+    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px'
+  }
+
+  // Quick Actions
+  const quickActions: QuickAction[] = [
+    {
+      id: '1',
+      title: 'Estado Financiero',
+      description: 'Resumen de tu situación actual',
+      prompt: '¿Cuál es mi situación financiera actual? Dame un resumen ejecutivo.',
+      icon: <BarChart3 className="w-5 h-5" />,
+      color: 'from-blue-500 to-blue-600'
+    },
+    {
+      id: '2',
+      title: 'Facturas Vencidas',
+      description: 'Alertas de cobranza',
+      prompt: '¿Tengo facturas vencidas? ¿Cuáles son y cuánto suman?',
+      icon: <Receipt className="w-5 h-5" />,
+      color: 'from-red-500 to-rose-600'
+    },
+    {
+      id: '3',
+      title: 'Análisis de Gastos',
+      description: 'Top categorías y tendencias',
+      prompt: '¿Cuáles son mis principales gastos? Muéstrame un análisis por categoría.',
+      icon: <PiggyBank className="w-5 h-5" />,
+      color: 'from-amber-500 to-orange-600'
+    },
+    {
+      id: '4',
+      title: 'Flujo de Caja',
+      description: 'Proyección y alertas',
+      prompt: '¿Cómo está mi flujo de caja? ¿Hay alguna alerta que deba saber?',
+      icon: <TrendingUp className="w-5 h-5" />,
+      color: 'from-emerald-500 to-green-600'
+    },
+    {
+      id: '5',
+      title: 'Mejores Clientes',
+      description: 'Ranking de facturación',
+      prompt: '¿Quiénes son mis mejores clientes? Ordénalos por facturación.',
+      icon: <Users className="w-5 h-5" />,
+      color: 'from-purple-500 to-violet-600'
+    },
+    {
+      id: '6',
+      title: 'Optimizar Impuestos',
+      description: 'Deducciones disponibles',
+      prompt: '¿Qué deducciones fiscales tengo disponibles? ¿Cómo puedo optimizar mis impuestos?',
+      icon: <Calculator className="w-5 h-5" />,
+      color: 'from-cyan-500 to-teal-600'
+    }
+  ]
 
   // Load conversations from localStorage
   const loadConversationsFromStorage = useCallback(() => {
@@ -107,12 +176,7 @@ export default function AIAssistPage() {
       const saved = localStorage.getItem(storageKey)
       if (saved) {
         const parsed = JSON.parse(saved) as Conversation[]
-        setRecentConversations(parsed.slice(0, 10)) // Keep last 10
-        setStats(prev => ({
-          ...prev,
-          conversationsSaved: parsed.length,
-          totalQuestions: parsed.reduce((sum, c) => sum + c.messageCount, 0)
-        }))
+        setRecentConversations(parsed.slice(0, 10))
       }
     } catch (error) {
       console.error('Error loading conversations from storage:', error)
@@ -177,34 +241,38 @@ export default function AIAssistPage() {
         const msgs = JSON.parse(saved) as Message[]
         setMessages(msgs)
         setCurrentConversationId(conversationId)
-        setShowSavedConversations(false)
+        setShowHistory(false)
       }
     } catch (error) {
       console.error('Error loading conversation:', error)
     }
   }, [activeCompany?.id])
 
-  const loadConversations = useCallback(async () => {
+  // Delete a conversation
+  const deleteConversation = useCallback((conversationId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
     if (!activeCompany?.id) return
     
-    // First load from localStorage
-    loadConversationsFromStorage()
-    
     try {
-      const response = await fetch(`/api/company/${activeCompany.id}/ai/conversations`)
-      if (response.ok) {
-        const data = await response.json()
-        // Merge with local conversations
-        setStats(prev => ({
-          ...prev,
-          avgResponseTime: '1.2s',
-          helpfulRate: 94.5
-        }))
+      const storageKey = `ai-conversations-${activeCompany.id}`
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const existing: Conversation[] = JSON.parse(saved)
+        const filtered = existing.filter(c => c.id !== conversationId)
+        localStorage.setItem(storageKey, JSON.stringify(filtered))
+        setRecentConversations(filtered.slice(0, 10))
+      }
+      
+      const messagesKey = `ai-messages-${activeCompany.id}-${conversationId}`
+      localStorage.removeItem(messagesKey)
+      
+      if (conversationId === currentConversationId) {
+        handleNewChat()
       }
     } catch (error) {
-      console.error('Error loading conversations:', error)
+      console.error('Error deleting conversation:', error)
     }
-  }, [activeCompany?.id, loadConversationsFromStorage])
+  }, [activeCompany?.id, currentConversationId])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -214,61 +282,22 @@ export default function AIAssistPage() {
 
   useEffect(() => {
     setLoading(true)
-    loadConversations().finally(() => setLoading(false))
-  }, [loadConversations])
+    loadConversationsFromStorage()
+    setLoading(false)
+  }, [loadConversationsFromStorage])
 
   const handleNewChat = () => {
     setMessages([getWelcomeMessage()])
     setInputMessage('')
-    setShowSavedConversations(false)
+    setShowHistory(false)
     setCurrentConversationId(`conv-${Date.now()}`)
-  }
-
-  const handleShowSavedConversations = () => {
-    setShowSavedConversations(!showSavedConversations)
-  }
-
-  const quickQuestions: QuickQuestion[] = [
-    {
-      id: '1',
-      question: '¿Cuál es mi situación financiera actual?',
-      category: 'Finanzas',
-      icon: <TrendingUp className="w-4 h-4" />
-    },
-    {
-      id: '2',
-      question: '¿Tengo facturas vencidas?',
-      category: 'Cobranza',
-      icon: <FileText className="w-4 h-4" />
-    },
-    {
-      id: '3',
-      question: '¿Cuáles son mis principales gastos?',
-      category: 'Gastos',
-      icon: <DollarSign className="w-4 h-4" />
-    },
-    {
-      id: '4',
-      question: '¿Cómo va mi flujo de caja?',
-      category: 'Cash Flow',
-      icon: <TrendingUp className="w-4 h-4" />
-    },
-    {
-      id: '5',
-      question: '¿Quiénes son mis mejores clientes?',
-      category: 'Clientes',
-      icon: <RefreshCw className="w-4 h-4" />
-    },
-    {
-      id: '6',
-      question: 'Información fiscal y deducciones',
-      category: 'Impuestos',
-      icon: <Calculator className="w-4 h-4" />
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
     }
-  ]
+  }
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return
+    if (!inputMessage.trim() || isTyping) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -280,10 +309,12 @@ export default function AIAssistPage() {
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
     setInputMessage('')
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
+    }
     setIsTyping(true)
 
     try {
-      // Llamar a la API real
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -302,7 +333,6 @@ export default function AIAssistPage() {
         const text = await response.text()
         data = JSON.parse(text)
       } catch (parseError) {
-        console.error('Error parsing JSON:', parseError)
         throw new Error('Error al procesar respuesta del servidor')
       }
 
@@ -315,15 +345,13 @@ export default function AIAssistPage() {
       }
       const updatedMessages = [...newMessages, aiResponse]
       setMessages(updatedMessages)
-      
-      // Save conversation to localStorage with current conversation ID
       saveConversation(updatedMessages, currentConversationId)
     } catch (error) {
       console.error('Error calling AI API:', error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: 'Hubo un error al procesar tu consulta. Por favor, intenta de nuevo.',
+        content: '❌ Hubo un error al procesar tu consulta. Por favor, intenta de nuevo.',
         timestamp: new Date().toISOString(),
         category: 'error'
       }
@@ -333,8 +361,15 @@ export default function AIAssistPage() {
     }
   }
 
-  const handleQuickQuestion = (question: string) => {
-    setInputMessage(question)
+  const handleQuickAction = (prompt: string) => {
+    setInputMessage(prompt)
+    inputRef.current?.focus()
+  }
+
+  const handleCopyMessage = async (content: string, messageId: string) => {
+    await navigator.clipboard.writeText(content)
+    setCopiedId(messageId)
+    setTimeout(() => setCopiedId(null), 2000)
   }
 
   const handleFeedback = (messageId: string, helpful: boolean) => {
@@ -343,11 +378,24 @@ export default function AIAssistPage() {
     ))
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
   if (status === 'loading' || loading) {
     return (
       <CompanyTabsLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 animate-pulse" />
+              <Bot className="w-8 h-8 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            </div>
+            <p className="text-gray-500 animate-pulse">Iniciando asistente IA...</p>
+          </div>
         </div>
       </CompanyTabsLayout>
     )
@@ -355,318 +403,334 @@ export default function AIAssistPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Bot className="w-8 h-8 text-blue-600" />
-              AI Assistant
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Get instant answers to your accounting questions
-            </p>
-          </div>
-          <div className="flex gap-2">
+      <div className="h-[calc(100vh-140px)] flex">
+        {/* Sidebar - History */}
+        <div className={cn(
+          "w-72 bg-gray-50 border-r flex flex-col transition-all duration-300 ease-in-out",
+          showHistory ? "translate-x-0" : "-translate-x-full absolute lg:relative lg:translate-x-0"
+        )}>
+          {/* Sidebar Header */}
+          <div className="p-4 border-b bg-white">
             <Button 
-              variant={showSavedConversations ? "default" : "outline"}
-              onClick={handleShowSavedConversations}
+              onClick={handleNewChat}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
             >
-              <Bookmark className="w-4 h-4 mr-2" />
-              Saved Conversations
-            </Button>
-            <Button onClick={handleNewChat}>
               <Plus className="w-4 h-4 mr-2" />
-              New Chat
+              Nueva Conversación
             </Button>
+          </div>
+
+          {/* Conversations List */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium text-gray-500 uppercase">
+              <History className="w-3 h-3" />
+              Historial Reciente
+            </div>
+            
+            {recentConversations.length === 0 ? (
+              <div className="text-center py-8 px-4">
+                <MessageSquare className="w-10 h-10 mx-auto text-gray-300 mb-3" />
+                <p className="text-sm text-gray-500">No hay conversaciones</p>
+                <p className="text-xs text-gray-400 mt-1">Tus chats aparecerán aquí</p>
+              </div>
+            ) : (
+              recentConversations.map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => loadConversation(conv.id)}
+                  className={cn(
+                    "w-full p-3 text-left rounded-xl transition-all duration-200 group",
+                    conv.id === currentConversationId
+                      ? "bg-blue-100 border-2 border-blue-300"
+                      : "bg-white border border-gray-200 hover:border-blue-300 hover:shadow-md"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm text-gray-900 truncate">
+                        {conv.title}
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                        {conv.lastMessage}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => deleteConversation(conv.id, e)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all"
+                    >
+                      <Trash2 className="w-3 h-3 text-red-500" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                    <span>{conv.messageCount} mensajes</span>
+                    <span>•</span>
+                    <span>{new Date(conv.timestamp).toLocaleDateString('es-ES', { 
+                      day: 'numeric', 
+                      month: 'short' 
+                    })}</span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+
+          {/* Sidebar Footer */}
+          <div className="p-4 border-t bg-white">
+            <div className="flex items-center gap-3 text-sm text-gray-600">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">AI Assistant</p>
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  En línea
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <MessageSquare className="w-8 h-8 text-blue-600" />
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col bg-white">
+          {/* Chat Header */}
+          <div className="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <MessageSquare className="w-5 h-5" />
+              </button>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
-                {stats.totalQuestions}
+              <div>
+                <h1 className="font-bold text-gray-900">Asistente Contable IA</h1>
+                <p className="text-xs text-gray-500">Conectado a {activeCompany?.name || 'tu empresa'}</p>
               </div>
-              <div className="text-sm text-blue-700">Questions Answered</div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-green-100 text-green-700 border-green-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse" />
+                Activo
+              </Badge>
+              <Button variant="ghost" size="sm" onClick={handleNewChat}>
+                <Plus className="w-4 h-4 mr-1" />
+                Nuevo
+              </Button>
+            </div>
+          </div>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-green-600" />
-              </div>
-              <div className="text-2xl font-bold text-green-900">
-                {stats.avgResponseTime}
-              </div>
-              <div className="text-sm text-green-700">Avg Response Time</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <ThumbsUp className="w-8 h-8 text-purple-600" />
-              </div>
-              <div className="text-2xl font-bold text-purple-900">
-                {stats.helpfulRate}%
-              </div>
-              <div className="text-sm text-purple-700">Helpful Rate</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Bookmark className="w-8 h-8 text-orange-600" />
-              </div>
-              <div className="text-2xl font-bold text-orange-900">
-                {stats.conversationsSaved}
-              </div>
-              <div className="text-sm text-orange-700">Saved Chats</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Saved Conversations Panel */}
-        {showSavedConversations && (
-          <Card className="bg-white border-2 border-blue-200">
-            <CardHeader className="border-b bg-blue-50">
-              <CardTitle className="flex items-center gap-2 text-blue-900">
-                <Bookmark className="w-5 h-5" />
-                Conversaciones Guardadas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              {recentConversations.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No hay conversaciones guardadas aún.</p>
-                  <p className="text-sm mt-1">Tus conversaciones aparecerán aquí.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recentConversations.map((conv) => (
-                    <button
-                      key={conv.id}
-                      onClick={() => {
-                        // Cargar esta conversación
-                        setShowSavedConversations(false)
-                      }}
-                      className="p-4 text-left border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                    >
-                      <h4 className="font-semibold text-gray-900 mb-1">{conv.title}</h4>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{conv.lastMessage}</p>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>{conv.messageCount} mensajes</span>
-                        <span>{new Date(conv.timestamp).toLocaleDateString()}</span>
-                      </div>
-                    </button>
-                  ))}
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+              {/* Show Quick Actions only at start */}
+              {messages.length === 1 && (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <h2 className="text-lg font-semibold text-gray-700 mb-1">
+                      ¿Qué te gustaría saber?
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      Selecciona una acción rápida o escribe tu pregunta
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {quickActions.map((action) => (
+                      <button
+                        key={action.id}
+                        onClick={() => handleQuickAction(action.prompt)}
+                        className="group p-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-blue-300 hover:shadow-lg transition-all duration-300 text-left"
+                      >
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center mb-3 text-white shadow-md group-hover:scale-110 transition-transform",
+                          action.color
+                        )}>
+                          {action.icon}
+                        </div>
+                        <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                          {action.title}
+                        </h3>
+                        <p className="text-sm text-gray-500">{action.description}</p>
+                        <div className="flex items-center gap-1 mt-3 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span>Preguntar</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Chat Interface */}
-          <div className="lg:col-span-2">
-            <Card className="h-[600px] flex flex-col">
-              <CardHeader className="border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-blue-600" />
-                    Chat with AI Assistant
-                  </CardTitle>
-                  <Badge className="bg-green-100 text-green-700">Online</Badge>
-                </div>
-              </CardHeader>
-              
               {/* Messages */}
-              <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                  >
-                    <div className={`p-2 rounded-lg flex-shrink-0 ${
-                      message.type === 'user' ? 'bg-blue-600' : 'bg-gray-200'
-                    }`}>
-                      {message.type === 'user' ? (
-                        <User className="w-5 h-5 text-white" />
-                      ) : (
-                        <Bot className="w-5 h-5 text-gray-700" />
-                      )}
-                    </div>
-                    <div className={`flex-1 ${message.type === 'user' ? 'flex justify-end' : ''}`}>
-                      <div className={`p-4 rounded-lg max-w-[80%] ${
-                        message.type === 'user' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-100 text-gray-900'
-                      }`}>
-                        <p className="text-sm whitespace-pre-line">{message.content}</p>
-                        <div className="text-xs mt-2 opacity-70">
-                          {new Date(message.timestamp).toLocaleTimeString('en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                      </div>
-                      {message.type === 'assistant' && (
-                        <div className="flex gap-2 mt-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleFeedback(message.id, true)}
-                            className={message.helpful === true ? 'text-green-600' : ''}
-                          >
-                            <ThumbsUp className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleFeedback(message.id, false)}
-                            className={message.helpful === false ? 'text-red-600' : ''}
-                          >
-                            <ThumbsDown className="w-3 h-3" />
-                          </Button>
-                          <Button size="sm" variant="ghost">
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+              {messages.map((message, index) => (
+                <div
+                  key={message.id}
+                  className={cn(
+                    "flex gap-4",
+                    message.type === 'user' ? 'flex-row-reverse' : ''
+                  )}
+                >
+                  {/* Avatar */}
+                  <div className={cn(
+                    "flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-md",
+                    message.type === 'user' 
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
+                      : 'bg-gradient-to-br from-purple-500 to-purple-600'
+                  )}>
+                    {message.type === 'user' ? (
+                      <User className="w-4 h-4 text-white" />
+                    ) : (
+                      <Bot className="w-4 h-4 text-white" />
+                    )}
                   </div>
-                ))}
-                
-                {isTyping && (
-                  <div className="flex gap-3">
-                    <div className="p-2 bg-gray-200 rounded-lg">
-                      <Bot className="w-5 h-5 text-gray-700" />
-                    </div>
-                    <div className="p-4 bg-gray-100 rounded-lg">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
 
-              {/* Input */}
-              <div className="border-t p-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Ask me anything about accounting..."
-                    className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <Button onClick={handleSendMessage} disabled={!inputMessage.trim()}>
+                  {/* Message Content */}
+                  <div className={cn(
+                    "flex-1 max-w-[85%]",
+                    message.type === 'user' ? 'flex flex-col items-end' : ''
+                  )}>
+                    <div className={cn(
+                      "px-5 py-4 rounded-2xl shadow-sm",
+                      message.type === 'user' 
+                        ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md' 
+                        : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                    )}>
+                      <div className="prose prose-sm max-w-none">
+                        <p className="whitespace-pre-wrap text-[15px] leading-relaxed m-0">
+                          {message.content}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Message Actions */}
+                    <div className={cn(
+                      "flex items-center gap-1 mt-2 px-1",
+                      message.type === 'user' ? 'flex-row-reverse' : ''
+                    )}>
+                      <span className="text-xs text-gray-400 mx-2">
+                        {new Date(message.timestamp).toLocaleTimeString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                      
+                      {message.type === 'assistant' && index > 0 && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleFeedback(message.id, true)}
+                            className={cn(
+                              "p-1.5 rounded-lg transition-colors",
+                              message.helpful === true 
+                                ? 'bg-green-100 text-green-600' 
+                                : 'hover:bg-gray-200 text-gray-400'
+                            )}
+                          >
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleFeedback(message.id, false)}
+                            className={cn(
+                              "p-1.5 rounded-lg transition-colors",
+                              message.helpful === false 
+                                ? 'bg-red-100 text-red-600' 
+                                : 'hover:bg-gray-200 text-gray-400'
+                            )}
+                          >
+                            <ThumbsDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleCopyMessage(message.content, message.id)}
+                            className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 transition-colors"
+                          >
+                            {copiedId === message.id ? (
+                              <Check className="w-3.5 h-3.5 text-green-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Typing Indicator */}
+              {isTyping && (
+                <div className="flex gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md">
+                    <Bot className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="bg-gray-100 px-5 py-4 rounded-2xl rounded-bl-md shadow-sm">
+                    <div className="flex gap-1.5">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Input Area */}
+          <div className="border-t bg-gradient-to-t from-gray-50 to-white p-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="relative bg-white border-2 border-gray-200 rounded-2xl shadow-lg focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-100 transition-all">
+                <textarea
+                  ref={inputRef}
+                  value={inputMessage}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Escribe tu pregunta aquí... (Enter para enviar, Shift+Enter para nueva línea)"
+                  rows={1}
+                  className="w-full px-5 py-4 pr-32 bg-transparent resize-none focus:outline-none text-gray-900 placeholder-gray-400"
+                  style={{ maxHeight: '200px' }}
+                />
+                
+                {/* Input Actions */}
+                <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                  <button 
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Adjuntar archivo (próximamente)"
+                  >
+                    <Paperclip className="w-5 h-5" />
+                  </button>
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim() || isTyping}
+                    className={cn(
+                      "rounded-xl px-4 transition-all",
+                      inputMessage.trim() && !isTyping
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+                        : "bg-gray-200 text-gray-400"
+                    )}
+                  >
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Questions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <HelpCircle className="w-5 h-5" />
-                  Quick Questions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {quickQuestions.map((q) => (
+              
+              {/* Quick Suggestions */}
+              <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
+                <span className="text-xs text-gray-400">Sugerencias:</span>
+                {['Balance actual', 'Facturas pendientes', 'Gastos del mes'].map((suggestion) => (
                   <button
-                    key={q.id}
-                    onClick={() => handleQuickQuestion(q.question)}
-                    className="w-full p-3 text-left border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                    key={suggestion}
+                    onClick={() => setInputMessage(suggestion)}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-blue-100 hover:text-blue-700 rounded-full transition-colors"
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      {q.icon}
-                      <Badge variant="outline" className="text-xs">{q.category}</Badge>
-                    </div>
-                    <p className="text-sm text-gray-700">{q.question}</p>
+                    {suggestion}
                   </button>
                 ))}
-              </CardContent>
-            </Card>
-
-            {/* Recent Conversations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  Recent Chats
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {recentConversations.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No hay conversaciones guardadas aún. Tus chats aparecerán aquí.
-                  </p>
-                ) : (
-                  recentConversations.map((conv) => (
-                    <button
-                      key={conv.id}
-                      onClick={() => loadConversation(conv.id)}
-                      className={`w-full p-3 text-left border rounded-lg hover:bg-gray-50 transition-colors ${
-                        conv.id === currentConversationId ? 'border-blue-500 bg-blue-50' : ''
-                      }`}
-                    >
-                      <h4 className="font-semibold text-sm text-gray-900 mb-1 truncate">{conv.title}</h4>
-                      <p className="text-xs text-gray-600 mb-2 line-clamp-2">{conv.lastMessage}</p>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>{conv.messageCount} preguntas</span>
-                        <span>{new Date(conv.timestamp).toLocaleDateString()}</span>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Info */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <Info className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-blue-900 mb-2">About AI Assistant</h3>
-                <p className="text-blue-700 text-sm mb-2">
-                  Your AI assistant is trained on accounting principles, tax regulations, and financial best practices. It can help with:
-                </p>
-                <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• <strong>Transaction Recording:</strong> How to properly categorize and record business transactions</li>
-                  <li>• <strong>Tax Questions:</strong> Deductions, compliance, and tax planning guidance for Florida and federal taxes</li>
-                  <li>• <strong>Financial Analysis:</strong> Understanding reports, ratios, and key performance indicators</li>
-                  <li>• <strong>Process Help:</strong> Step-by-step guidance for reconciliation, closing, and other accounting tasks</li>
-                  <li>• <strong>Best Practices:</strong> Industry-standard accounting methods and compliance requirements</li>
-                  <li>• <strong>Data Privacy:</strong> Your conversations are encrypted and never used to train external models</li>
-                </ul>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </CompanyTabsLayout>
   )
