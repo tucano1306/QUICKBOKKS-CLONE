@@ -264,7 +264,7 @@ export async function reverseJournalEntry(
     const reversalEntry = await prisma.journalEntry.create({
       data: {
         entryNumber,
-        date: new Date(),
+        date: original.date, // ✅ Usar la misma fecha del asiento original para reportes por período
         description: `REVERSIÓN: ${original.description} - ${reason}`,
         reference: `REV-${original.entryNumber}`,
         companyId: original.companyId,
