@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { findJournalEntryByReference, reverseJournalEntry } from '@/lib/accounting-service'
 
 // GET single invoice
 export async function GET(
@@ -109,6 +110,24 @@ export async function DELETE(
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    // Obtener la factura antes de eliminarla para saber su invoiceNumber
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: params.id },
+      select: { invoiceNumber: true, status: true }
+    })
+
+    if (!invoice) {
+      return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 })
+    }
+
+    // Si la factura NO era DRAFT, tiene un Journal Entry que debemos revertir
+    if (invoice.status !== 'DRAFT') {
+      const journalEntry = await findJournalEntryByReference(invoice.invoiceNumber)
+      if (journalEntry) {
+        await reverseJournalEntry(journalEntry.id, 'Factura eliminada', session.user.id)
+      }
     }
 
     await prisma.invoice.delete({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { deleteTransactionWithReversal } from '@/lib/accounting-service'
 
 // GET - Obtener una transacción específica
 export async function GET(
@@ -156,9 +157,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Transacción no encontrada' }, { status: 404 })
     }
 
-    await prisma.transaction.delete({
-      where: { id: params.id }
-    })
+    // Eliminar con reversión de Journal Entry
+    await deleteTransactionWithReversal(params.id, session.user.id)
 
     return NextResponse.json({ success: true, message: 'Transacción eliminada correctamente' })
   } catch (error) {
