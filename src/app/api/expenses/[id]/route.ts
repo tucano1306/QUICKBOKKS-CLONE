@@ -81,11 +81,13 @@ export async function PUT(
       }
     }
 
+    const newAmount = amount ? parseFloat(amount) : undefined;
+
     const expense = await prisma.expense.update({
       where: { id: params.id },
       data: {
         categoryId,
-        amount: amount ? parseFloat(amount) : undefined,
+        amount: newAmount,
         date: parsedDate,
         description,
         vendor,
@@ -97,6 +99,41 @@ export async function PUT(
         category: true,
       },
     });
+
+    // =====================================================
+    // ACTUALIZAR JOURNAL ENTRY ASOCIADO
+    // El P&L usa los JE, así que DEBEMOS sincronizarlos
+    // =====================================================
+    if (newAmount !== undefined || parsedDate !== undefined) {
+      const journalEntry = await prisma.journalEntry.findFirst({
+        where: { reference: params.id },
+        include: { lines: true }
+      });
+
+      if (journalEntry) {
+        // Actualizar fecha del JE si cambió
+        if (parsedDate) {
+          await prisma.journalEntry.update({
+            where: { id: journalEntry.id },
+            data: { date: parsedDate }
+          });
+        }
+
+        // Actualizar montos de las líneas del JE
+        if (newAmount !== undefined) {
+          for (const line of journalEntry.lines) {
+            await prisma.journalEntryLine.update({
+              where: { id: line.id },
+              data: {
+                debit: line.debit > 0 ? newAmount : 0,
+                credit: line.credit > 0 ? newAmount : 0
+              }
+            });
+          }
+        }
+        console.log(`✅ Journal Entry ${journalEntry.entryNumber} sincronizado con gasto`);
+      }
+    }
 
     return NextResponse.json(expense);
   } catch (error) {
