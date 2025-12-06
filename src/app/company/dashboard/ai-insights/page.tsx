@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCompany } from '@/contexts/CompanyContext';
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout';
+import toast from 'react-hot-toast';
 import { 
   LightbulbIcon, TrendingUpIcon, AlertTriangleIcon, 
   CheckCircleIcon, ArrowRightIcon, SparklesIcon,
@@ -49,6 +51,7 @@ interface AIAnalysis {
 }
 
 export default function AIInsightsPage() {
+  const router = useRouter();
   const { activeCompany } = useCompany();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -56,6 +59,46 @@ export default function AIInsightsPage() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [expandedInsight, setExpandedInsight] = useState<string | null>(null);
+
+  // Handler para acciones de los insights
+  const handleInsightAction = (action: string, category: string) => {
+    const actionRoutes: { [key: string]: string } = {
+      'Revisar gastos': '/company/expenses',
+      'Optimizar gastos': '/company/expenses',
+      'Analizar proveedores': '/company/vendors',
+      'Dar seguimiento a facturas pendientes': '/company/invoicing/invoices',
+      'Explorar nuevos mercados': '/company/customers',
+      'Revisar y aplicar': '/company/reports',
+      'Ver productos': '/company/products',
+      'Revisar inventario': '/company/products',
+      'Ver clientes': '/company/customers',
+      'Nuevo cliente': '/company/customers/new',
+      'Nueva factura': '/company/invoicing/invoices/new',
+      'Ver reportes': '/company/reports',
+      'Ver dashboard': '/company/dashboard',
+    };
+
+    // Find the best matching route
+    let targetRoute = actionRoutes[action];
+    
+    if (!targetRoute) {
+      // Try category-based routing
+      const categoryRoutes: { [key: string]: string } = {
+        'gastos': '/company/expenses',
+        'ingresos': '/company/reports/income-statement',
+        'cobranza': '/company/invoicing/invoices',
+        'estrategia': '/company/reports',
+        'flujo': '/company/reports/cash-flow',
+        'clientes': '/company/customers',
+        'inventario': '/company/products',
+        'general': '/company/dashboard',
+      };
+      targetRoute = categoryRoutes[category] || '/company/dashboard';
+    }
+
+    toast.success(`📍 Navegando a: ${action}`);
+    router.push(targetRoute);
+  };
 
   const fetchInsights = useCallback(async () => {
     if (!activeCompany) return;
@@ -515,7 +558,10 @@ export default function AIInsightsPage() {
                             )}
                             
                             {insight.actionable && insight.action && (
-                              <button className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                              <button 
+                                onClick={() => handleInsightAction(insight.action!, insight.category)}
+                                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                              >
                                 {insight.action}
                                 <ArrowRightIcon className="w-4 h-4" />
                               </button>
