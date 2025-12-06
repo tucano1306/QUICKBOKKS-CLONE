@@ -62,12 +62,31 @@ export async function PUT(
       return NextResponse.json({ error: 'Gasto no encontrado' }, { status: 404 });
     }
 
+    // Parsear fecha correctamente
+    let parsedDate: Date | undefined;
+    if (date) {
+      // Si viene en formato YYYY-MM-DD (de input type="date")
+      if (date.includes('-')) {
+        const [year, month, day] = date.split('-').map(Number);
+        parsedDate = new Date(year, month - 1, day, 12, 0, 0); // Mediodía para evitar problemas de timezone
+      } 
+      // Si viene en formato DD/MM/YYYY
+      else if (date.includes('/')) {
+        const [day, month, year] = date.split('/').map(Number);
+        parsedDate = new Date(year, month - 1, day, 12, 0, 0);
+      }
+      // Fallback
+      else {
+        parsedDate = new Date(date);
+      }
+    }
+
     const expense = await prisma.expense.update({
       where: { id: params.id },
       data: {
         categoryId,
         amount: amount ? parseFloat(amount) : undefined,
-        date: date ? new Date(date) : undefined,
+        date: parsedDate,
         description,
         vendor,
         paymentMethod,

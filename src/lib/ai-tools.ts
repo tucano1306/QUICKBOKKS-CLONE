@@ -8,6 +8,27 @@
 import { prisma } from '@/lib/prisma';
 import { createExpenseWithJE, createTransactionWithJE } from '@/lib/accounting-service';
 
+/**
+ * Parsear fecha correctamente desde diferentes formatos
+ * YYYY-MM-DD, DD/MM/YYYY, o ISO string
+ */
+function parseDate(dateStr: string | null | undefined): Date {
+  if (!dateStr) return new Date();
+  
+  // Si viene en formato YYYY-MM-DD
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  } 
+  // Si viene en formato DD/MM/YYYY
+  else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+    const [day, month, year] = dateStr.split('/').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }
+  // Fallback - ISO o cualquier otro formato
+  return new Date(dateStr);
+}
+
 // ============================================
 // DEFINICIÓN DE HERRAMIENTAS (TOOLS)
 // ============================================
@@ -322,11 +343,8 @@ async function ejecutarCrearGasto(
   userId: string,
   companyId: string
 ) {
-  // Parsear fecha
-  let expenseDate = new Date();
-  if (args.date) {
-    expenseDate = new Date(args.date);
-  }
+  // Parsear fecha correctamente
+  const expenseDate = parseDate(args.date);
   
   // Buscar o crear categoría
   let category = await prisma.expenseCategory.findFirst({
@@ -378,10 +396,7 @@ async function ejecutarCrearIngreso(
   userId: string,
   companyId: string
 ) {
-  let incomeDate = new Date();
-  if (args.date) {
-    incomeDate = new Date(args.date);
-  }
+  const incomeDate = parseDate(args.date);
   
   const { transaction } = await createTransactionWithJE({
     companyId,

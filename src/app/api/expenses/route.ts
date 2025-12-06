@@ -5,6 +5,27 @@ import { prisma } from '@/lib/prisma'
 import { validateExpenseRequest, validatePagination } from '@/lib/validation-middleware'
 import { deleteExpenseWithReversal } from '@/lib/accounting-service'
 
+/**
+ * Parsear fecha correctamente desde diferentes formatos
+ * YYYY-MM-DD (input type="date") o DD/MM/YYYY
+ */
+function parseDate(dateStr: string | null | undefined): Date {
+  if (!dateStr) return new Date();
+  
+  // Si viene en formato YYYY-MM-DD (de input type="date")
+  if (dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0); // Mediodía para evitar problemas de timezone
+  } 
+  // Si viene en formato DD/MM/YYYY
+  else if (dateStr.includes('/')) {
+    const [day, month, year] = dateStr.split('/').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }
+  // Fallback
+  return new Date(dateStr);
+}
+
 // GET all expenses
 export async function GET(request: NextRequest) {
   try {
@@ -109,7 +130,7 @@ export async function POST(request: NextRequest) {
           companyId: userCompany?.companyId || null,
           categoryId,
           amount: parseFloat(amount),
-          date: date ? new Date(date) : new Date(),
+          date: parseDate(date),
           description,
           vendor,
           paymentMethod: paymentMethod || 'CASH',
@@ -128,7 +149,7 @@ export async function POST(request: NextRequest) {
       // 2. Si hay companyId, crear Journal Entry
       if (userCompany?.companyId) {
         const companyId = userCompany.companyId;
-        const expDate = date ? new Date(date) : new Date();
+        const expDate = parseDate(date);
         const categoryName = expense.category?.name || 'General';
         const expAmount = parseFloat(amount);
 
