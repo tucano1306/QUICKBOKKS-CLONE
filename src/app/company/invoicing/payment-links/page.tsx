@@ -64,6 +64,14 @@ export default function PaymentLinksPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showLinkGenerator, setShowLinkGenerator] = useState(false)
   const [selectedLink, setSelectedLink] = useState<PaymentLink | null>(null)
+  const [generatingLink, setGeneratingLink] = useState(false)
+  
+  // Link generator form state
+  const [invoices, setInvoices] = useState<any[]>([])
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState('')
+  const [selectedGateway, setSelectedGateway] = useState('stripe')
+  const [linkExpiry, setLinkExpiry] = useState('')
+  const [sendEmailAuto, setSendEmailAuto] = useState(true)
 
   const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>([])
 
@@ -97,6 +105,16 @@ export default function PaymentLinksPage() {
           linkClicks: 0
         }))
         setPaymentLinks(links)
+      }
+      
+      // Also load invoices without payment links for the generator
+      const invRes = await fetch(`/api/invoices?companyId=${activeCompany.id}`)
+      if (invRes.ok) {
+        const invData = await invRes.json()
+        const pendingInvoices = (invData.invoices || []).filter((inv: any) => 
+          !inv.paymentLinkId && inv.status !== 'PAID'
+        )
+        setInvoices(pendingInvoices)
       }
     } catch (error) {
       console.error('Error loading payment links:', error)
@@ -172,6 +190,63 @@ export default function PaymentLinksPage() {
 
   const regenerateLink = (invoiceNumber: string) => {
     toast.success(`Link de pago regenerado para factura ${invoiceNumber}`)
+  }
+
+  const handleGenerateLink = async () => {
+    if (!selectedInvoiceId) {
+      toast.error('Selecciona una factura')
+      return
+    }
+
+    setGeneratingLink(true)
+    try {
+      const selectedInvoice = invoices.find(inv => inv.id === selectedInvoiceId)
+      
+      const response = await fetch('/api/payment-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: selectedGateway === 'stripe' ? 'create-stripe' : 'create-manual',
+          options: {
+            invoiceId: selectedInvoiceId,
+            companyId: activeCompany?.id,
+            amount: selectedInvoice?.total || 0,
+            currency: 'USD',
+            customerEmail: selectedInvoice?.customer?.email,
+            description: `Pago de factura ${selectedInvoice?.invoiceNumber}`,
+            expiresAt: linkExpiry ? new Date(linkExpiry) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          }
+        })
+      })
+
+      if (response.ok) {
+        const newLink = await response.json()
+        toast.success('✅ Link de pago generado exitosamente')
+        
+        if (sendEmailAuto && selectedInvoice?.customer?.email) {
+          toast.success(`📧 Enviando link a ${selectedInvoice.customer.email}...`)
+        }
+        
+        // Reload links
+        await loadPaymentLinks()
+        setShowLinkGenerator(false)
+        setSelectedInvoiceId('')
+        
+        // Copy link to clipboard
+        if (newLink.paymentUrl) {
+          navigator.clipboard.writeText(newLink.paymentUrl)
+          toast.success('🔗 Link copiado al portapapeles')
+        }
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Error al generar link')
+      }
+    } catch (error) {
+      console.error('Error generating payment link:', error)
+      toast.error('Error al generar link de pago')
+    } finally {
+      setGeneratingLink(false)
+    }
   }
 
   const handleDeactivateLink = (linkId: string) => {
@@ -348,15 +423,33 @@ export default function PaymentLinksPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Número de Factura
+                    Seleccionar Factura
                   </label>
-                  <Input placeholder="INV-2025-0001" />
+                  <select 
+                    className="w-full px-4 py-2 border rounded-lg"
+                    value={selectedInvoiceId}
+                    onChange={(e) => setSelectedInvoiceId(e.target.value)}
+                  >
+                    <option value="">Seleccionar factura...</option>
+                    {invoices.map(inv => (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.invoiceNumber} - {inv.customer?.name || 'Sin cliente'} - ${inv.total?.toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                  {invoices.length === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">No hay facturas pendientes sin link de pago</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Gateway de Pago
                   </label>
-                  <select className="w-full px-4 py-2 border rounded-lg">
+                  <select 
+                    className="w-full px-4 py-2 border rounded-lg"
+                    value={selectedGateway}
+                    onChange={(e) => setSelectedGateway(e.target.value)}
+                  >
                     <option value="stripe">Stripe (Tarjetas)</option>
                     <option value="paypal">PayPal</option>
                     <option value="mercadopago">Mercado Pago</option>
@@ -366,22 +459,63 @@ export default function PaymentLinksPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Fecha de Expiración
                   </label>
-                  <Input type="date" />
+                  <Input 
+                    type="date" 
+                    value={linkExpiry}
+                    onChange={(e) => setLinkExpiry(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Enviar Email Automático
                   </label>
                   <div className="flex items-center gap-2">
-                    <input type="checkbox" defaultChecked className="w-5 h-5" />
+                    <input 
+                      type="checkbox" 
+                      checked={sendEmailAuto}
+                      onChange={(e) => setSendEmailAuto(e.target.checked)}
+                      className="w-5 h-5" 
+                    />
                     <span className="text-sm text-gray-600">Sí, enviar al cliente</span>
                   </div>
                 </div>
               </div>
+              
+              {selectedInvoiceId && (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Resumen de la Factura</h4>
+                  {(() => {
+                    const inv = invoices.find(i => i.id === selectedInvoiceId)
+                    return inv ? (
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-blue-700">Factura:</span> {inv.invoiceNumber}</div>
+                        <div><span className="text-blue-700">Cliente:</span> {inv.customer?.name || 'N/A'}</div>
+                        <div><span className="text-blue-700">Email:</span> {inv.customer?.email || 'Sin email'}</div>
+                        <div><span className="text-blue-700">Total:</span> <strong>${inv.total?.toLocaleString()}</strong></div>
+                      </div>
+                    ) : null
+                  })()}
+                </div>
+              )}
+              
               <div className="flex gap-2">
-                <Button className="flex-1">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Generar Link de Pago
+                <Button 
+                  className="flex-1"
+                  onClick={handleGenerateLink}
+                  disabled={generatingLink || !selectedInvoiceId}
+                >
+                  {generatingLink ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Generar Link de Pago
+                    </>
+                  )}
                 </Button>
                 <Button variant="outline" onClick={() => setShowLinkGenerator(false)}>
                   Cancelar

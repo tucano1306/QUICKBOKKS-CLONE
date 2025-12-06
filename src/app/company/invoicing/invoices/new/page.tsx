@@ -24,7 +24,11 @@ import {
   Calculator,
   CreditCard,
   Building2,
-  Mail
+  Mail,
+  Tag,
+  MapPin,
+  Paperclip,
+  Upload
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -55,6 +59,26 @@ interface InvoiceItem {
   total: number
 }
 
+interface TransactionClass {
+  id: string
+  name: string
+  parentId: string | null
+}
+
+interface TransactionLocation {
+  id: string
+  name: string
+  address: string | null
+}
+
+interface FileAttachment {
+  id: string
+  name: string
+  size: number
+  type: string
+  url?: string
+}
+
 export default function NewInvoicePage() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -75,6 +99,14 @@ export default function NewInvoicePage() {
   const [terms, setTerms] = useState<string>('Pago en 30 días')
   const [discount, setDiscount] = useState<number>(0)
   const [taxExempt, setTaxExempt] = useState<boolean>(false)
+  
+  // Class, Location, and Attachments
+  const [classes, setClasses] = useState<TransactionClass[]>([])
+  const [locations, setLocations] = useState<TransactionLocation[]>([])
+  const [selectedClass, setSelectedClass] = useState<string>('')
+  const [selectedLocation, setSelectedLocation] = useState<string>('')
+  const [attachments, setAttachments] = useState<FileAttachment[]>([])
+  const [uploadingFile, setUploadingFile] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -87,8 +119,22 @@ export default function NewInvoicePage() {
       fetchCustomers()
       fetchProducts()
       generateInvoiceNumber()
+      fetchClassesAndLocations()
     }
   }, [activeCompany])
+
+  const fetchClassesAndLocations = async () => {
+    try {
+      const response = await fetch(`/api/tracking?companyId=${activeCompany?.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setClasses(data.classes || [])
+        setLocations(data.locations || [])
+      }
+    } catch (error) {
+      console.error('Error fetching classes and locations:', error)
+    }
+  }
 
   const fetchCustomers = async () => {
     try {
@@ -101,6 +147,40 @@ export default function NewInvoicePage() {
       console.error('Error fetching customers:', error)
       toast.error('Error al cargar clientes')
     }
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    setUploadingFile(true)
+    
+    for (const file of Array.from(files)) {
+      const newAttachment: FileAttachment = {
+        id: `temp-${Date.now()}-${file.name}`,
+        name: file.name,
+        size: file.size,
+        type: file.type
+      }
+      setAttachments(prev => [...prev, newAttachment])
+    }
+    
+    setUploadingFile(false)
+    toast.success(`${files.length} archivo(s) agregado(s)`)
+    event.target.value = ''
+  }
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id))
+    toast.success('Archivo eliminado')
+  }
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   const fetchProducts = async () => {
@@ -221,6 +301,9 @@ export default function NewInvoicePage() {
         notes,
         terms,
         taxExempt,
+        classId: selectedClass || null,
+        locationId: selectedLocation || null,
+        attachments: attachments.map(a => ({ name: a.name, size: a.size, type: a.type })),
         items: items.map(item => ({
           productId: item.productId,
           description: item.description,
@@ -280,6 +363,9 @@ export default function NewInvoicePage() {
         notes,
         terms,
         taxExempt,
+        classId: selectedClass || null,
+        locationId: selectedLocation || null,
+        attachments: attachments.map(a => ({ name: a.name, size: a.size, type: a.type })),
         items: items.map(item => ({
           productId: item.productId,
           description: item.description,
@@ -644,6 +730,119 @@ export default function NewInvoicePage() {
                   placeholder="Notas o instrucciones especiales para el cliente..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 min-h-24"
                 />
+              </CardContent>
+            </Card>
+
+            {/* Class and Location */}
+            {(classes.length > 0 || locations.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Tag className="w-5 h-5 text-blue-600" />
+                    Clasificación
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {classes.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Clase
+                      </label>
+                      <select
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Sin clase</option>
+                        {classes.map(cls => (
+                          <option key={cls.id} value={cls.id}>
+                            {cls.parentId ? '  → ' : ''}{cls.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  
+                  {locations.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        Ubicación
+                      </label>
+                      <select
+                        value={selectedLocation}
+                        onChange={(e) => setSelectedLocation(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Sin ubicación</option>
+                        {locations.map(loc => (
+                          <option key={loc.id} value={loc.id}>
+                            {loc.name} {loc.address ? `(${loc.address})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* File Attachments */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Paperclip className="w-5 h-5 text-blue-600" />
+                  Adjuntos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload-invoice"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                  />
+                  <label htmlFor="file-upload-invoice" className="cursor-pointer">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">
+                      Haz clic o arrastra archivos aquí
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      PDF, Word, Excel, Imágenes
+                    </p>
+                  </label>
+                </div>
+
+                {uploadingFile && (
+                  <div className="flex items-center gap-2 text-sm text-blue-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                    Subiendo archivo...
+                  </div>
+                )}
+
+                {attachments.length > 0 && (
+                  <div className="space-y-2">
+                    {attachments.map(file => (
+                      <div key={file.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Paperclip className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium truncate max-w-[180px]">{file.name}</span>
+                          <span className="text-gray-400 text-xs">({formatFileSize(file.size)})</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeAttachment(file.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

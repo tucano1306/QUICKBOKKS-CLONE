@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,8 +25,12 @@ import {
   X,
   Plus,
   Trash2,
-  SplitSquareVertical
+  SplitSquareVertical,
+  Folder,
+  MapPin,
+  Paperclip
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Category {
   id: string
@@ -38,6 +43,19 @@ interface Employee {
   name: string
 }
 
+interface TrackingClass {
+  id: string
+  name: string
+  description?: string
+}
+
+interface TrackingLocation {
+  id: string
+  name: string
+  city?: string
+  state?: string
+}
+
 interface PaymentSplit {
   id: string
   method: string
@@ -45,13 +63,25 @@ interface PaymentSplit {
   reference: string
 }
 
+interface Attachment {
+  id: string
+  name: string
+  size: number
+  type: string
+  data: string // base64
+}
+
 export default function NewExpensePage() {
   const router = useRouter()
   const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [classes, setClasses] = useState<TrackingClass[]>([])
+  const [locations, setLocations] = useState<TrackingLocation[]>([])
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [useMultiplePayments, setUseMultiplePayments] = useState(false)
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([
@@ -69,7 +99,9 @@ export default function NewExpensePage() {
     reference: '',
     notes: '',
     taxDeductible: true,
-    employeeId: ''
+    employeeId: '',
+    classId: '',
+    locationId: ''
   })
 
   // Redirect if not authenticated
@@ -98,6 +130,57 @@ export default function NewExpensePage() {
 
       // Load employees
       const employeesRes = await fetch('/api/employees')
+      if (employeesRes.ok) {
+        const data = await employeesRes.json()
+        const employeesArray = Array.isArray(data) ? data : data.employees || []
+        setEmployees(employeesArray)
+      }
+
+      // Load classes and locations for tracking
+      if (activeCompany?.id) {
+        const trackingRes = await fetch(`/api/tracking?companyId=${activeCompany.id}`)
+        if (trackingRes.ok) {
+          const data = await trackingRes.json()
+          setClasses(data.classes || [])
+          setLocations(data.locations || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error loading data:', error)
+    } finally {
+      setLoadingData(false)
+    }
+  }
+
+  // Handle file attachment
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        setAttachments(prev => [...prev, {
+          id: Date.now().toString() + Math.random(),
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          data: reader.result as string
+        }])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id))
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
       if (employeesRes.ok) {
         const data = await employeesRes.json()
         const employeesArray = Array.isArray(data) ? data : data.employees || []
@@ -212,15 +295,40 @@ export default function NewExpensePage() {
           ...formData,
           ...paymentData,
           amount: parseFloat(formData.amount),
-          employeeId: formData.employeeId || null
+          employeeId: formData.employeeId || null,
+          classId: formData.classId || null,
+          locationId: formData.locationId || null
         })
       })
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Gasto creado exitosamente' })
-        setTimeout(() => {
-          router.push('/company/expenses/list')
-        }, 1500)
+        const expense = await response.json()
+        
+        // Upload attachments if any
+        if (attachments.length > 0 && activeCompany?.id) {
+          for (const att of attachments) {
+            try {
+              await fetch('/api/attachments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  companyId: activeCompany.id,
+                  transactionType: 'expense',
+                  transactionId: expense.id,
+                  fileName: att.name,
+                  fileType: att.type,
+                  fileSize: att.size,
+                  url: att.data
+                })
+              })
+            } catch (err) {
+              console.error('Error uploading attachment:', err)
+            }
+          }
+        }
+        
+        toast.success('Gasto creado exitosamente')
+        router.push('/company/expenses/list')
       } else {
         const error = await response.json()
         setMessage({ type: 'error', text: error.error || 'Error al crear el gasto' })
@@ -557,6 +665,98 @@ export default function NewExpensePage() {
                     <option key={emp.id} value={emp.id}>{emp.name}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Clase y Ubicación para Tracking */}
+              {(classes.length > 0 || locations.length > 0) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="space-y-2">
+                    <Label htmlFor="classId" className="flex items-center gap-2">
+                      <Folder className="h-4 w-4 text-blue-600" />
+                      Clase
+                    </Label>
+                    <select
+                      id="classId"
+                      name="classId"
+                      value={formData.classId}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 dark:border-gray-700"
+                    >
+                      <option value="">Sin clase</option>
+                      {classes.map(cls => (
+                        <option key={cls.id} value={cls.id}>{cls.name}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500">Asigna a una clase para tracking</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="locationId" className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-blue-600" />
+                      Ubicación
+                    </Label>
+                    <select
+                      id="locationId"
+                      name="locationId"
+                      value={formData.locationId}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 dark:border-gray-700"
+                    >
+                      <option value="">Sin ubicación</option>
+                      {locations.map(loc => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name} {loc.city && `(${loc.city})`}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500">Asigna a una ubicación para tracking</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Adjuntos */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" />
+                  Adjuntos
+                </Label>
+                
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                  <label className="flex flex-col items-center cursor-pointer">
+                    <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                    <span className="text-sm text-gray-600">Arrastra archivos o haz clic para subir</span>
+                    <span className="text-xs text-gray-400 mt-1">PDF, imágenes, Excel (max 10MB)</span>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                    />
+                  </label>
+                </div>
+
+                {attachments.length > 0 && (
+                  <div className="space-y-2">
+                    {attachments.map(att => (
+                      <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium truncate max-w-[200px]">{att.name}</span>
+                          <span className="text-xs text-gray-400">({formatFileSize(att.size)})</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeAttachment(att.id)}
+                        >
+                          <X className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Notas */}
