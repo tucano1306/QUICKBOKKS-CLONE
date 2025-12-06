@@ -70,9 +70,9 @@ export async function PUT(
         const [year, month, day] = date.split('-').map(Number);
         parsedDate = new Date(year, month - 1, day, 12, 0, 0); // Mediodía para evitar problemas de timezone
       } 
-      // Si viene en formato DD/MM/YYYY
+      // Si viene en formato MM/DD/YYYY (formato americano)
       else if (date.includes('/')) {
-        const [day, month, year] = date.split('/').map(Number);
+        const [month, day, year] = date.split('/').map(Number);
         parsedDate = new Date(year, month - 1, day, 12, 0, 0);
       }
       // Fallback

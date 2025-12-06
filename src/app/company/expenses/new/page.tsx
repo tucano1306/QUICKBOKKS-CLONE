@@ -21,7 +21,10 @@ import {
   AlertCircle,
   CheckCircle,
   Upload,
-  X
+  X,
+  Plus,
+  Trash2,
+  SplitSquareVertical
 } from 'lucide-react'
 
 interface Category {
@@ -35,6 +38,13 @@ interface Employee {
   name: string
 }
 
+interface PaymentSplit {
+  id: string
+  method: string
+  amount: string
+  reference: string
+}
+
 export default function NewExpensePage() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -43,6 +53,10 @@ export default function NewExpensePage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loadingData, setLoadingData] = useState(true)
+  const [useMultiplePayments, setUseMultiplePayments] = useState(false)
+  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([
+    { id: '1', method: 'CASH', amount: '', reference: '' }
+  ])
   
   // Form state
   const [formData, setFormData] = useState({
@@ -96,6 +110,36 @@ export default function NewExpensePage() {
     }
   }
 
+  // Funciones para manejar múltiples pagos
+  const addPaymentSplit = () => {
+    setPaymentSplits([
+      ...paymentSplits,
+      { id: Date.now().toString(), method: 'CASH', amount: '', reference: '' }
+    ])
+  }
+
+  const removePaymentSplit = (id: string) => {
+    if (paymentSplits.length > 1) {
+      setPaymentSplits(paymentSplits.filter(p => p.id !== id))
+    }
+  }
+
+  const updatePaymentSplit = (id: string, field: keyof PaymentSplit, value: string) => {
+    setPaymentSplits(paymentSplits.map(p => 
+      p.id === id ? { ...p, [field]: value } : p
+    ))
+  }
+
+  const getTotalPayments = () => {
+    return paymentSplits.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0)
+  }
+
+  const getPaymentDifference = () => {
+    const total = parseFloat(formData.amount) || 0
+    const payments = getTotalPayments()
+    return total - payments
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
     
@@ -131,12 +175,42 @@ export default function NewExpensePage() {
       return
     }
 
+    // Validar pagos múltiples si está activo
+    if (useMultiplePayments) {
+      const diff = getPaymentDifference()
+      if (Math.abs(diff) > 0.01) {
+        setMessage({ 
+          type: 'error', 
+          text: `La suma de los pagos ($${getTotalPayments().toFixed(2)}) no coincide con el monto total ($${formData.amount}). Diferencia: $${diff.toFixed(2)}` 
+        })
+        setLoading(false)
+        return
+      }
+    }
+
     try {
+      // Preparar datos para enviar
+      const paymentData = useMultiplePayments ? {
+        paymentMethod: 'MULTIPLE',
+        notes: JSON.stringify({
+          originalNotes: formData.notes,
+          paymentSplits: paymentSplits.map(p => ({
+            method: p.method,
+            amount: parseFloat(p.amount),
+            reference: p.reference
+          }))
+        })
+      } : {
+        paymentMethod: formData.paymentMethod,
+        notes: formData.notes
+      }
+
       const response = await fetch('/api/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          ...paymentData,
           amount: parseFloat(formData.amount),
           employeeId: formData.employeeId || null
         })
@@ -318,70 +392,163 @@ export default function NewExpensePage() {
                 )}
               </div>
 
-              {/* Proveedor y Método de Pago */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="vendor">Proveedor</Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="vendor"
-                      name="vendor"
-                      value={formData.vendor}
-                      onChange={handleChange}
-                      placeholder="Nombre del proveedor"
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="paymentMethod">Método de Pago</Label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <select
-                      id="paymentMethod"
-                      name="paymentMethod"
-                      value={formData.paymentMethod}
-                      onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 dark:border-gray-700"
-                    >
-                      {paymentMethods.map(pm => (
-                        <option key={pm.value} value={pm.value}>{pm.label}</option>
-                      ))}
-                    </select>
-                  </div>
+              {/* Proveedor */}
+              <div className="space-y-2">
+                <Label htmlFor="vendor">Proveedor</Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="vendor"
+                    name="vendor"
+                    value={formData.vendor}
+                    onChange={handleChange}
+                    placeholder="Nombre del proveedor"
+                    className="pl-10"
+                  />
                 </div>
               </div>
 
-              {/* Referencia y Empleado */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reference">Referencia / Número de Recibo</Label>
-                  <Input
-                    id="reference"
-                    name="reference"
-                    value={formData.reference}
-                    onChange={handleChange}
-                    placeholder="Ej: REC-001234"
-                  />
+              {/* Método de Pago - Simple o Múltiple */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Método de Pago</Label>
+                  <button
+                    type="button"
+                    onClick={() => setUseMultiplePayments(!useMultiplePayments)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      useMultiplePayments 
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <SplitSquareVertical className="h-4 w-4" />
+                    {useMultiplePayments ? 'Pago Múltiple Activo' : 'Dividir Pago'}
+                  </button>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="employeeId">Empleado Responsable</Label>
-                  <select
-                    id="employeeId"
-                    name="employeeId"
-                    value={formData.employeeId}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 dark:border-gray-700"
-                  >
-                    <option value="">Sin empleado asignado</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.name}</option>
+                {!useMultiplePayments ? (
+                  /* Pago Simple */
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="relative">
+                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <select
+                        id="paymentMethod"
+                        name="paymentMethod"
+                        value={formData.paymentMethod}
+                        onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 dark:border-gray-700"
+                      >
+                        {paymentMethods.map(pm => (
+                          <option key={pm.value} value={pm.value}>{pm.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Input
+                      name="reference"
+                      value={formData.reference}
+                      onChange={handleChange}
+                      placeholder="Referencia / Número de Recibo"
+                    />
+                  </div>
+                ) : (
+                  /* Pagos Múltiples */
+                  <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <span>Divide el pago en diferentes métodos</span>
+                      <span className={`font-medium ${Math.abs(getPaymentDifference()) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
+                        {Math.abs(getPaymentDifference()) < 0.01 
+                          ? '✓ Cuadrado' 
+                          : `Diferencia: $${getPaymentDifference().toFixed(2)}`
+                        }
+                      </span>
+                    </div>
+
+                    {paymentSplits.map((split, index) => (
+                      <div key={split.id} className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500 w-6">{index + 1}.</span>
+                        <select
+                          value={split.method}
+                          onChange={(e) => updatePaymentSplit(split.id, 'method', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-900"
+                        >
+                          {paymentMethods.map(pm => (
+                            <option key={pm.value} value={pm.value}>{pm.label}</option>
+                          ))}
+                        </select>
+                        <div className="relative flex-1">
+                          <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Monto"
+                            value={split.amount}
+                            onChange={(e) => updatePaymentSplit(split.id, 'amount', e.target.value)}
+                            className="pl-8 text-sm"
+                          />
+                        </div>
+                        <Input
+                          placeholder="Referencia"
+                          value={split.reference}
+                          onChange={(e) => updatePaymentSplit(split.id, 'reference', e.target.value)}
+                          className="flex-1 text-sm"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePaymentSplit(split.id)}
+                          disabled={paymentSplits.length === 1}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
-                  </select>
-                </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addPaymentSplit}
+                      className="w-full mt-2"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Agregar otro método de pago
+                    </Button>
+
+                    {/* Resumen de pagos */}
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Monto Total del Gasto:</span>
+                        <span className="font-medium">${parseFloat(formData.amount || '0').toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mt-1">
+                        <span className="text-gray-600">Suma de Pagos:</span>
+                        <span className={`font-medium ${Math.abs(getPaymentDifference()) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${getTotalPayments().toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Empleado */}
+              <div className="space-y-2">
+                <Label htmlFor="employeeId">Empleado Asignado</Label>
+                <select
+                  id="employeeId"
+                  name="employeeId"
+                  value={formData.employeeId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 dark:border-gray-700"
+                >
+                  <option value="">Sin empleado asignado</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Notas */}

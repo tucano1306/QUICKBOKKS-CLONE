@@ -237,6 +237,52 @@ export default function ExpensesListPage() {
     }
   }
 
+  // Cambiar estado de múltiples gastos
+  const handleBulkStatusChange = async (newStatus: string) => {
+    if (selectedExpenses.size === 0) return
+    
+    const statusLabels: Record<string, string> = {
+      PENDING: 'Pendiente',
+      APPROVED: 'Aprobado',
+      REJECTED: 'Rechazado',
+      PAID: 'Pagado'
+    }
+
+    try {
+      const response = await fetch('/api/expenses/bulk-update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          ids: Array.from(selectedExpenses),
+          status: newStatus 
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Actualizar estado local
+        setExpenses(expenses.map(e => 
+          selectedExpenses.has(e.id) ? { ...e, status: newStatus } : e
+        ))
+        setMessage({ 
+          type: 'success', 
+          text: `${selectedExpenses.size} gasto(s) cambiado(s) a "${statusLabels[newStatus]}"` 
+        })
+        setSelectedExpenses(new Set())
+        setSelectMode(false)
+        setTimeout(() => setMessage(null), 3000)
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al actualizar gastos' })
+        setTimeout(() => setMessage(null), 3000)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setMessage({ type: 'error', text: 'Error al actualizar gastos' })
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
   // Toggle selección de gasto
   const toggleSelectExpense = (expenseId: string) => {
     const newSelected = new Set(selectedExpenses)
@@ -379,23 +425,71 @@ export default function ExpensesListPage() {
           <div className="flex gap-3">
             {/* Modo selección múltiple */}
             {selectMode ? (
-              <>
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={selectAllExpenses}>
                   <CheckSquare className="h-4 w-4 mr-2" />
                   {selectedExpenses.size === filteredExpenses.length ? 'Deseleccionar' : 'Seleccionar Todo'}
                 </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={handleDeleteMultiple}
-                  disabled={selectedExpenses.size === 0}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar ({selectedExpenses.size})
-                </Button>
-                <Button variant="outline" onClick={cancelSelectMode}>
-                  Cancelar
-                </Button>
-              </>
+                
+                {/* Acciones de estado */}
+                <div className="flex gap-1 border-l pl-2 ml-1">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkStatusChange('APPROVED')}
+                    disabled={selectedExpenses.size === 0}
+                    className="text-green-600 hover:bg-green-50 hover:text-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Aprobar
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkStatusChange('REJECTED')}
+                    disabled={selectedExpenses.size === 0}
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Rechazar
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkStatusChange('PENDING')}
+                    disabled={selectedExpenses.size === 0}
+                    className="text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700"
+                  >
+                    <Clock className="h-4 w-4 mr-1" />
+                    Pendiente
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkStatusChange('PAID')}
+                    disabled={selectedExpenses.size === 0}
+                    className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                  >
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    Pagado
+                  </Button>
+                </div>
+
+                <div className="flex gap-1 border-l pl-2 ml-1">
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={handleDeleteMultiple}
+                    disabled={selectedExpenses.size === 0}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Eliminar ({selectedExpenses.size})
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={cancelSelectMode}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
             ) : (
               <>
                 <Button variant="outline" onClick={() => setSelectMode(true)}>

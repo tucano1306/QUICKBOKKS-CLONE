@@ -135,9 +135,34 @@ export default function ExpenseDetailPage() {
       CREDIT_CARD: 'Tarjeta de Crédito',
       DEBIT_CARD: 'Tarjeta de Débito',
       TRANSFER: 'Transferencia',
+      MULTIPLE: 'Múltiples Métodos',
       OTHER: 'Otro'
     }
     return labels[method] || method
+  }
+
+  // Parsear payment splits de las notas si existen
+  const getPaymentSplits = () => {
+    if (!expense?.notes) return null
+    try {
+      const data = JSON.parse(expense.notes)
+      if (data.paymentSplits && Array.isArray(data.paymentSplits)) {
+        return data.paymentSplits
+      }
+    } catch {
+      // No es JSON
+    }
+    return null
+  }
+
+  const getNotesText = () => {
+    if (!expense?.notes) return null
+    try {
+      const data = JSON.parse(expense.notes)
+      return data.text || null
+    } catch {
+      return expense.notes
+    }
   }
 
   if (status === 'loading' || loading) {
@@ -291,14 +316,39 @@ export default function ExpenseDetailPage() {
                   </div>
                 </div>
 
-                {expense.notes && (
+                {/* Desglose de pagos múltiples */}
+                {getPaymentSplits() && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 flex items-center gap-1 mb-2">
+                      <CreditCard className="h-4 w-4" />
+                      Desglose de Pagos
+                    </label>
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
+                      {getPaymentSplits()!.map((split: { method: string; amount: number; reference?: string }, index: number) => (
+                        <div key={index} className="flex justify-between items-center text-sm">
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {getPaymentMethodLabel(split.method)}
+                            {split.reference && (
+                              <span className="text-gray-500 ml-2">({split.reference})</span>
+                            )}
+                          </span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            ${split.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {getNotesText() && (
                   <div>
                     <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
                       <FileText className="h-4 w-4" />
                       Notas
                     </label>
                     <p className="text-gray-700 bg-gray-50 p-3 rounded-lg mt-1">
-                      {expense.notes}
+                      {getNotesText()}
                     </p>
                   </div>
                 )}

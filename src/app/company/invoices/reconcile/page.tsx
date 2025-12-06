@@ -300,7 +300,7 @@ export default function ReconcilePage() {
                       <div className="flex-1">
                         <p className="font-medium">{payment.reference}</p>
                         <p className="text-sm text-gray-600">
-                          {format(new Date(payment.paymentDate), 'dd/MM/yyyy')}
+                          {format(new Date(payment.paymentDate), 'MM/dd/yyyy')}
                         </p>
                       </div>
                       <div className="text-right">
@@ -372,7 +372,7 @@ export default function ReconcilePage() {
                       <p className="text-sm text-gray-600">{invoice.customerName}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <p className="text-xs text-gray-500">
-                          Vencimiento: {format(new Date(invoice.dueDate), 'dd/MM/yyyy')}
+                          Vencimiento: {format(new Date(invoice.dueDate), 'MM/dd/yyyy')}
                         </p>
                         {invoice.daysOverdue > 0 && (
                           <Badge variant="destructive" className="text-xs">
@@ -431,7 +431,7 @@ export default function ReconcilePage() {
                         {payment.paymentMethod.toLowerCase()}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {format(new Date(payment.paymentDate), 'dd/MM/yyyy')}
+                        {format(new Date(payment.paymentDate), 'MM/dd/yyyy')}
                       </p>
                       {payment.notes && (
                         <p className="text-xs text-gray-500 mt-1 italic">

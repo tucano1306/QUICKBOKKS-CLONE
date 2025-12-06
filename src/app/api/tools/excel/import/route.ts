@@ -730,24 +730,28 @@ function getNumber(
 }
 
 function parseDate(dateStr: string): Date {
-  // Intentar varios formatos
-  const formats = [
-    /^(\d{4})-(\d{2})-(\d{2})/, // YYYY-MM-DD
-    /^(\d{2})\/(\d{2})\/(\d{4})/, // MM/DD/YYYY o DD/MM/YYYY
-    /^(\d{2})-(\d{2})-(\d{4})/, // DD-MM-YYYY
-    /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/, // D/M/YY o D/M/YYYY
-  ]
+  if (!dateStr) return new Date();
   
-  for (const format of formats) {
-    const match = dateStr.match(format)
-    if (match) {
-      const date = new Date(dateStr)
-      if (!isNaN(date.getTime())) {
-        return date
-      }
-    }
+  // Si viene en formato YYYY-MM-DD
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
   }
   
-  const date = new Date(dateStr)
-  return isNaN(date.getTime()) ? new Date() : date
+  // Si viene en formato MM/DD/YYYY (formato americano)
+  if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+    const [month, day, year] = dateStr.split('/').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }
+  
+  // Si viene en formato MM/DD/YY (formato americano corto)
+  if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+    const [month, day, shortYear] = dateStr.split('/').map(Number);
+    const year = shortYear > 50 ? 1900 + shortYear : 2000 + shortYear;
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }
+  
+  // Fallback
+  const date = new Date(dateStr);
+  return isNaN(date.getTime()) ? new Date() : date;
 }

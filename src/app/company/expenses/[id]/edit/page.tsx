@@ -19,8 +19,17 @@ import {
   CreditCard,
   FileText,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Plus,
+  Trash2
 } from 'lucide-react'
+
+interface PaymentSplit {
+  id: string
+  method: string
+  amount: string
+  reference: string
+}
 
 interface Category {
   id: string
@@ -80,6 +89,43 @@ export default function EditExpensePage() {
     status: 'PENDING'
   })
 
+  // Estado para múltiples métodos de pago
+  const [useMultiplePayments, setUseMultiplePayments] = useState(false)
+  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([
+    { id: '1', method: 'CASH', amount: '', reference: '' }
+  ])
+
+  // Funciones para manejar múltiples pagos
+  const addPaymentSplit = () => {
+    setPaymentSplits([...paymentSplits, {
+      id: Date.now().toString(),
+      method: 'CASH',
+      amount: '',
+      reference: ''
+    }])
+  }
+
+  const removePaymentSplit = (id: string) => {
+    if (paymentSplits.length > 1) {
+      setPaymentSplits(paymentSplits.filter(s => s.id !== id))
+    }
+  }
+
+  const updatePaymentSplit = (id: string, field: keyof PaymentSplit, value: string) => {
+    setPaymentSplits(paymentSplits.map(s => 
+      s.id === id ? { ...s, [field]: value } : s
+    ))
+  }
+
+  const getTotalPayments = () => {
+    return paymentSplits.reduce((sum, split) => sum + (parseFloat(split.amount) || 0), 0)
+  }
+
+  const getPaymentDifference = () => {
+    const total = parseFloat(formData.amount) || 0
+    return total - getTotalPayments()
+  }
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
@@ -105,6 +151,30 @@ export default function EditExpensePage() {
 
       if (expenseRes.ok) {
         const expense: Expense = await expenseRes.json()
+        
+        // Intentar parsear paymentSplits de las notas si existen
+        let parsedNotes = expense.notes || ''
+        let loadedPaymentSplits: PaymentSplit[] | null = null
+        
+        if (expense.notes) {
+          try {
+            const notesData = JSON.parse(expense.notes)
+            if (notesData.paymentSplits && Array.isArray(notesData.paymentSplits)) {
+              loadedPaymentSplits = notesData.paymentSplits.map((s: { method: string; amount: number; reference?: string }, idx: number) => ({
+                id: (idx + 1).toString(),
+                method: s.method,
+                amount: s.amount.toString(),
+                reference: s.reference || ''
+              }))
+              parsedNotes = notesData.text || ''
+              setUseMultiplePayments(loadedPaymentSplits.length > 1)
+              setPaymentSplits(loadedPaymentSplits)
+            }
+          } catch {
+            // No es JSON, son notas normales
+          }
+        }
+        
         setFormData({
           description: expense.description,
           amount: expense.amount.toString(),
@@ -113,7 +183,7 @@ export default function EditExpensePage() {
           vendor: expense.vendor || '',
           paymentMethod: expense.paymentMethod,
           reference: expense.reference || '',
-          notes: expense.notes || '',
+          notes: parsedNotes,
           taxDeductible: expense.taxDeductible,
           taxAmount: expense.taxAmount?.toString() || '',
           employeeId: expense.employeeId || '',
@@ -176,7 +246,38 @@ export default function EditExpensePage() {
       return
     }
 
+    // Validar pagos múltiples si está activo
+    if (useMultiplePayments) {
+      const invalidSplits = paymentSplits.some(s => !s.amount || parseFloat(s.amount) <= 0)
+      if (invalidSplits) {
+        setMessage({ type: 'error', text: 'Todos los métodos de pago deben tener un monto válido' })
+        setSaving(false)
+        return
+      }
+      
+      const difference = Math.abs(getPaymentDifference())
+      if (difference > 0.01) {
+        setMessage({ type: 'error', text: `La suma de los pagos debe ser igual al monto total. Diferencia: $${difference.toFixed(2)}` })
+        setSaving(false)
+        return
+      }
+    }
+
     try {
+      // Preparar notas con paymentSplits si hay múltiples pagos
+      let notesToSave = formData.notes
+      if (useMultiplePayments && paymentSplits.length > 0) {
+        const notesData = {
+          text: formData.notes,
+          paymentSplits: paymentSplits.map(s => ({
+            method: s.method,
+            amount: parseFloat(s.amount),
+            reference: s.reference || undefined
+          }))
+        }
+        notesToSave = JSON.stringify(notesData)
+      }
+
       const response = await fetch(`/api/expenses/${expenseId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -184,7 +285,9 @@ export default function EditExpensePage() {
           ...formData,
           amount: parseFloat(formData.amount),
           taxAmount: formData.taxAmount ? parseFloat(formData.taxAmount) : 0,
-          employeeId: formData.employeeId || null
+          employeeId: formData.employeeId || null,
+          notes: notesToSave,
+          paymentMethod: useMultiplePayments ? 'MULTIPLE' : formData.paymentMethod
         })
       })
 
@@ -372,7 +475,8 @@ export default function EditExpensePage() {
               </div>
 
               {/* Vendor and Payment Method */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                {/* Proveedor */}
                 <div className="space-y-2">
                   <Label htmlFor="vendor" className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
@@ -386,25 +490,140 @@ export default function EditExpensePage() {
                     placeholder="Nombre del proveedor"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="paymentMethod" className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Método de Pago
-                  </Label>
-                  <select
-                    id="paymentMethod"
-                    name="paymentMethod"
-                    value={formData.paymentMethod}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+
+                {/* Toggle para múltiples métodos de pago */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium">Usar múltiples métodos de pago</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUseMultiplePayments(!useMultiplePayments)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      useMultiplePayments ? 'bg-green-600' : 'bg-gray-300'
+                    }`}
                   >
-                    {paymentMethods.map(pm => (
-                      <option key={pm.value} value={pm.value}>
-                        {pm.label}
-                      </option>
-                    ))}
-                  </select>
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        useMultiplePayments ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
                 </div>
+
+                {/* Método de pago único */}
+                {!useMultiplePayments && (
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentMethod" className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Método de Pago
+                    </Label>
+                    <select
+                      id="paymentMethod"
+                      name="paymentMethod"
+                      value={formData.paymentMethod}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      {paymentMethods.map(pm => (
+                        <option key={pm.value} value={pm.value}>
+                          {pm.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Múltiples métodos de pago */}
+                {useMultiplePayments && (
+                  <div className="space-y-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <Label className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Desglose de Pagos
+                    </Label>
+                    
+                    {paymentSplits.map((split, index) => (
+                      <div key={split.id} className="flex gap-2 items-start p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex-1">
+                          <Label className="text-xs text-gray-500">Método {index + 1}</Label>
+                          <select
+                            value={split.method}
+                            onChange={(e) => updatePaymentSplit(split.id, 'method', e.target.value)}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          >
+                            {paymentMethods.map(pm => (
+                              <option key={pm.value} value={pm.value}>{pm.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="w-28">
+                          <Label className="text-xs text-gray-500">Monto</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={split.amount}
+                            onChange={(e) => updatePaymentSplit(split.id, 'amount', e.target.value)}
+                            placeholder="0.00"
+                            className="text-sm"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <Label className="text-xs text-gray-500">Referencia</Label>
+                          <Input
+                            type="text"
+                            value={split.reference}
+                            onChange={(e) => updatePaymentSplit(split.id, 'reference', e.target.value)}
+                            placeholder="Núm. cheque, etc."
+                            className="text-sm"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePaymentSplit(split.id)}
+                          disabled={paymentSplits.length === 1}
+                          className="mt-5 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addPaymentSplit}
+                      className="w-full mt-2"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Agregar otro método de pago
+                    </Button>
+
+                    {/* Resumen de pagos */}
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Monto Total del Gasto:</span>
+                        <span className="font-medium">${parseFloat(formData.amount || '0').toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mt-1">
+                        <span className="text-gray-600">Suma de Pagos:</span>
+                        <span className={`font-medium ${Math.abs(getPaymentDifference()) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${getTotalPayments().toFixed(2)}
+                        </span>
+                      </div>
+                      {Math.abs(getPaymentDifference()) >= 0.01 && (
+                        <div className="flex justify-between text-sm mt-1">
+                          <span className="text-red-600 font-medium">Diferencia:</span>
+                          <span className="text-red-600 font-medium">${getPaymentDifference().toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Reference and Employee */}

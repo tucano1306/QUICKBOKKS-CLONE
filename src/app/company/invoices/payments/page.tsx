@@ -131,7 +131,7 @@ export default function PaymentsPage() {
         p.invoiceNumber,
         p.customerName,
         `$${p.amount.toFixed(2)}`,
-        format(new Date(p.paymentDate), 'dd/MM/yyyy'),
+        format(new Date(p.paymentDate), 'MM/dd/yyyy'),
         p.paymentMethod,
         p.reference,
         p.status

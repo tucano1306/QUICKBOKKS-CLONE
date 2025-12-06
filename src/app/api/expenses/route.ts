@@ -7,7 +7,7 @@ import { deleteExpenseWithReversal } from '@/lib/accounting-service'
 
 /**
  * Parsear fecha correctamente desde diferentes formatos
- * YYYY-MM-DD (input type="date") o DD/MM/YYYY
+ * YYYY-MM-DD (input type="date") o MM/DD/YYYY (formato americano)
  */
 function parseDate(dateStr: string | null | undefined): Date {
   if (!dateStr) return new Date();
@@ -17,9 +17,9 @@ function parseDate(dateStr: string | null | undefined): Date {
     const [year, month, day] = dateStr.split('-').map(Number);
     return new Date(year, month - 1, day, 12, 0, 0); // Mediodía para evitar problemas de timezone
   } 
-  // Si viene en formato DD/MM/YYYY
+  // Si viene en formato MM/DD/YYYY (formato americano)
   else if (dateStr.includes('/')) {
-    const [day, month, year] = dateStr.split('/').map(Number);
+    const [month, day, year] = dateStr.split('/').map(Number);
     return new Date(year, month - 1, day, 12, 0, 0);
   }
   // Fallback

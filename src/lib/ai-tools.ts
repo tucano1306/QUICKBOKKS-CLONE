@@ -10,7 +10,7 @@ import { createExpenseWithJE, createTransactionWithJE } from '@/lib/accounting-s
 
 /**
  * Parsear fecha correctamente desde diferentes formatos
- * YYYY-MM-DD, DD/MM/YYYY, o ISO string
+ * YYYY-MM-DD, MM/DD/YYYY (formato americano), o ISO string
  */
 function parseDate(dateStr: string | null | undefined): Date {
   if (!dateStr) return new Date();
@@ -20,9 +20,9 @@ function parseDate(dateStr: string | null | undefined): Date {
     const [year, month, day] = dateStr.split('-').map(Number);
     return new Date(year, month - 1, day, 12, 0, 0);
   } 
-  // Si viene en formato DD/MM/YYYY
-  else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-    const [day, month, year] = dateStr.split('/').map(Number);
+  // Si viene en formato MM/DD/YYYY (formato americano)
+  else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+    const [month, day, year] = dateStr.split('/').map(Number);
     return new Date(year, month - 1, day, 12, 0, 0);
   }
   // Fallback - ISO o cualquier otro formato
