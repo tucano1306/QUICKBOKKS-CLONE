@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DatePicker } from "@/components/ui/date-picker"
+import { Pagination } from "@/components/ui/pagination"
 import { 
   DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw, 
   Trash2, Search, X, Filter, CheckSquare, Square, Eye, Edit, Plus
@@ -44,6 +45,10 @@ export default function TransactionsPage() {
   const [minAmount, setMinAmount] = useState('')
   const [maxAmount, setMaxAmount] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
 
   const loadTransactions = useCallback(async () => {
     if (!activeCompany?.id) return
@@ -106,6 +111,19 @@ export default function TransactionsPage() {
       return true
     })
   }, [transactions, filter, searchText, dateFrom, dateTo, minAmount, maxAmount])
+
+  // Reset página cuando cambian filtros
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filter, searchText, dateFrom, dateTo, minAmount, maxAmount])
+
+  // Calcular datos paginados
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredTransactions.slice(start, start + pageSize)
+  }, [filteredTransactions, currentPage, pageSize])
+
+  const totalPages = Math.ceil(filteredTransactions.length / pageSize)
 
   // Totales basados en filtrados
   const totalIncome = filteredTransactions
@@ -447,7 +465,7 @@ export default function TransactionsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredTransactions.map((t) => (
+              {paginatedTransactions.map((t) => (
                 <div 
                   key={t.id} 
                   className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
@@ -528,6 +546,19 @@ export default function TransactionsPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Paginación */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredTransactions.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size)
+                  setCurrentPage(1)
+                }}
+              />
             </div>
           )}
         </CardContent>

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Pagination } from '@/components/ui/pagination'
 import {
   Plus,
   Download,
@@ -73,6 +74,10 @@ export default function ExpensesListPage() {
   // Estados para filtro de fechas
   const [dateFrom, setDateFrom] = useState<string>('')
   const [dateTo, setDateTo] = useState<string>('')
+
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -178,7 +183,16 @@ export default function ExpensesListPage() {
     }
 
     setFilteredExpenses(filtered)
+    setCurrentPage(1) // Reset a página 1 cuando cambian los filtros
   }, [searchTerm, statusFilter, categoryFilter, dateFrom, dateTo, expenses])
+
+  // Calcular datos paginados
+  const paginatedExpenses = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredExpenses.slice(start, start + pageSize)
+  }, [filteredExpenses, currentPage, pageSize])
+
+  const totalPages = Math.ceil(filteredExpenses.length / pageSize)
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar este gasto?')) return
@@ -710,7 +724,7 @@ export default function ExpensesListPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredExpenses.map(expense => (
+                  paginatedExpenses.map(expense => (
                     <tr 
                       key={expense.id} 
                       className={`hover:bg-gray-50 ${selectedExpenses.has(expense.id) ? 'bg-blue-50' : ''}`}
@@ -802,6 +816,21 @@ export default function ExpensesListPage() {
               )}
             </table>
           </div>
+
+          {/* Paginación */}
+          {filteredExpenses.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredExpenses.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size)
+                setCurrentPage(1)
+              }}
+            />
+          )}
         </Card>
       </div>
     </CompanyTabsLayout>

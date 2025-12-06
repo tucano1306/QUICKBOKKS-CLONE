@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
 import {
   Table,
   TableBody,
@@ -43,6 +44,10 @@ export default function CustomersListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
@@ -60,7 +65,16 @@ export default function CustomersListPage() {
         customer.company?.toLowerCase().includes(searchTerm.toLowerCase())
     )
     setFilteredCustomers(filtered)
+    setCurrentPage(1) // Reset página cuando cambia el filtro
   }, [searchTerm, customers])
+
+  // Datos paginados
+  const paginatedCustomers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredCustomers.slice(start, start + pageSize)
+  }, [filteredCustomers, currentPage, pageSize])
+
+  const totalPages = Math.ceil(filteredCustomers.length / pageSize)
 
   const fetchCustomers = async () => {
     if (!activeCompany) return
@@ -162,7 +176,7 @@ export default function CustomersListPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCustomers.map((customer) => (
+                  paginatedCustomers.map((customer) => (
                     <TableRow key={customer.id}>
                       <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell>
@@ -216,6 +230,21 @@ export default function CustomersListPage() {
                 )}
               </TableBody>
             </Table>
+
+            {/* Paginación */}
+            {filteredCustomers.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredCustomers.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size)
+                  setCurrentPage(1)
+                }}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

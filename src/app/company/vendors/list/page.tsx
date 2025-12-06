@@ -32,6 +32,7 @@ import {
   TrendingUp,
   Trash2,
 } from 'lucide-react'
+import { Pagination } from '@/components/ui/pagination'
 
 const DEFAULT_COMPANY_ID = 'default-company-001'
 
@@ -159,6 +160,10 @@ export default function VendorsListPage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [statementLoadingId, setStatementLoadingId] = useState<string | null>(null)
 
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+
   const userId = session?.user?.id
   const companyId = activeCompany?.id || DEFAULT_COMPANY_ID
 
@@ -211,6 +216,19 @@ export default function VendorsListPage() {
       )
     })
   }, [vendors, searchTerm, filterStatus, filterCategory])
+
+  // Reset página cuando cambian filtros
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterStatus, filterCategory])
+
+  // Datos paginados
+  const paginatedVendors = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredVendors.slice(start, start + pageSize)
+  }, [filteredVendors, currentPage, pageSize])
+
+  const totalPages = Math.ceil(filteredVendors.length / pageSize)
 
   const categories = useMemo(
     () => Array.from(new Set(vendors.map((v) => v.category).filter(Boolean))) as string[],
@@ -618,7 +636,7 @@ export default function VendorsListPage() {
         </Card>
 
         <div className="grid grid-cols-1 gap-4">
-          {filteredVendors.map((vendor) => (
+          {paginatedVendors.map((vendor) => (
             <Card key={vendor.id} className="hover:shadow-lg transition">
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -743,6 +761,21 @@ export default function VendorsListPage() {
             </Card>
           ))}
         </div>
+
+        {/* Paginación */}
+        {filteredVendors.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredVendors.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size)
+              setCurrentPage(1)
+            }}
+          />
+        )}
 
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-6">

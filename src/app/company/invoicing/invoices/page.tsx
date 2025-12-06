@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
 import {
   Table,
   TableBody,
@@ -48,6 +49,10 @@ export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
@@ -73,7 +78,16 @@ export default function InvoicesPage() {
     }
 
     setFilteredInvoices(filtered)
+    setCurrentPage(1) // Reset página cuando cambian filtros
   }, [searchTerm, statusFilter, invoices])
+
+  // Datos paginados
+  const paginatedInvoices = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredInvoices.slice(start, start + pageSize)
+  }, [filteredInvoices, currentPage, pageSize])
+
+  const totalPages = Math.ceil(filteredInvoices.length / pageSize)
 
   const fetchInvoices = async () => {
     if (!activeCompany) return
@@ -296,7 +310,7 @@ export default function InvoicesPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredInvoices.map((invoice) => (
+                  paginatedInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">
                         {invoice.invoiceNumber}
@@ -343,6 +357,21 @@ export default function InvoicesPage() {
                 )}
               </TableBody>
             </Table>
+
+            {/* Paginación */}
+            {filteredInvoices.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredInvoices.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size)
+                  setCurrentPage(1)
+                }}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
