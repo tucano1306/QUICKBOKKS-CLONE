@@ -103,18 +103,61 @@ export async function PUT(
       return NextResponse.json({ error: 'La fecha es requerida' }, { status: 400 })
     }
 
+    // Parsear fecha correctamente (formato americano MM/DD/YYYY)
+    let parsedDate: Date;
+    if (date.includes('-')) {
+      const [year, month, day] = date.split('-').map(Number);
+      parsedDate = new Date(year, month - 1, day, 12, 0, 0);
+    } else if (date.includes('/')) {
+      const [month, day, year] = date.split('/').map(Number);
+      parsedDate = new Date(year, month - 1, day, 12, 0, 0);
+    } else {
+      parsedDate = new Date(date);
+    }
+
+    const newAmount = parseFloat(amount);
+
     const updatedTransaction = await prisma.transaction.update({
       where: { id: params.id },
       data: {
         type: type || existingTransaction.type,
         category,
         description: description || null,
-        amount: parseFloat(amount),
-        date: new Date(date),
+        amount: newAmount,
+        date: parsedDate,
         status: status || existingTransaction.status,
         notes: notes || null
       }
     })
+
+    // =====================================================
+    // SINCRONIZAR JOURNAL ENTRY ASOCIADO
+    // El P&L usa los JE, así que DEBEMOS sincronizarlos
+    // =====================================================
+    const journalEntry = await prisma.journalEntry.findFirst({
+      where: { reference: params.id },
+      include: { lines: true }
+    });
+
+    if (journalEntry) {
+      // Actualizar fecha del JE
+      await prisma.journalEntry.update({
+        where: { id: journalEntry.id },
+        data: { date: parsedDate }
+      });
+
+      // Actualizar montos de las líneas del JE
+      for (const line of journalEntry.lines) {
+        await prisma.journalEntryLine.update({
+          where: { id: line.id },
+          data: {
+            debit: line.debit > 0 ? newAmount : 0,
+            credit: line.credit > 0 ? newAmount : 0
+          }
+        });
+      }
+      console.log(`✅ Journal Entry ${journalEntry.entryNumber} sincronizado con transacción`);
+    }
 
     return NextResponse.json(updatedTransaction)
   } catch (error) {
