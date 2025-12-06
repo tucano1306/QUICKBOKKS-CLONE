@@ -337,7 +337,7 @@ export async function deleteExpenseWithReversal(
 
 interface CreateTransactionParams {
   companyId: string;
-  type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+  type: 'INCOME' | 'EXPENSE';
   amount: number;
   description?: string;
   category?: string;
