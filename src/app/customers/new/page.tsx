@@ -23,8 +23,8 @@ export default function NewCustomerPage() {
     taxId: '',
     address: '',
     city: '',
-    state: '',
-    country: 'México',
+    state: 'Florida',
+    country: 'USA',
     postalCode: '',
     notes: ''
   })
@@ -163,40 +163,40 @@ export default function NewCustomerPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="country" className="text-sm font-medium">
-                    País
+                    Country
                   </label>
                   <Input
                     id="country"
                     name="country"
                     value={formData.country}
                     onChange={handleChange}
-                    placeholder="México"
+                    placeholder="USA"
                   />
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
                   <label htmlFor="address" className="text-sm font-medium">
-                    Dirección
+                    Address
                   </label>
                   <Input
                     id="address"
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    placeholder="Calle 123, Col. Centro"
+                    placeholder="123 Main Street"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label htmlFor="city" className="text-sm font-medium">
-                    Ciudad
+                    City
                   </label>
                   <Input
                     id="city"
                     name="city"
                     value={formData.city}
                     onChange={handleChange}
-                    placeholder="Ciudad de México"
+                    placeholder="Miami"
                   />
                 </div>
 

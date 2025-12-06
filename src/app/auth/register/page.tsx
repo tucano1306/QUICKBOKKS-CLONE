@@ -66,26 +66,38 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-3xl font-bold text-center">
-            Crear Cuenta
+    <div className="min-h-screen flex items-center justify-center bg-[#0D2942] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#2CA01C]/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#0077C5]/20 rounded-full blur-3xl"></div>
+      </div>
+      
+      <Card className="w-full max-w-md relative z-10 shadow-2xl border-0 qb-animate-scale-in">
+        <CardHeader className="space-y-1 text-center pb-6">
+          <div className="mb-4">
+            <h1 className="text-3xl font-extrabold">
+              <span className="text-[#0D2942]">Quick</span>
+              <span className="text-[#2CA01C]">Books</span>
+            </h1>
+          </div>
+          <CardTitle className="text-xl font-semibold text-gray-900">
+            Create Account
           </CardTitle>
-          <CardDescription className="text-center">
-            Completa el formulario para registrarte
+          <CardDescription>
+            Fill in the form to get started
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                Nombre Completo
+              <label htmlFor="name" className="text-sm font-medium text-gray-700">
+                Full Name
               </label>
               <Input
                 id="name"
                 type="text"
-                placeholder="Juan Pérez"
+                placeholder="John Smith"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
@@ -95,13 +107,13 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Correo Electrónico
+              <label htmlFor="email" className="text-sm font-medium text-gray-700">
+                Email
               </label>
               <Input
                 id="email"
                 type="email"
-                placeholder="tu@email.com"
+                placeholder="you@company.com"
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
@@ -110,39 +122,41 @@ export default function RegisterPage() {
                 disabled={isLoading}
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="company" className="text-sm font-medium">
-                Empresa (opcional)
-              </label>
-              <Input
-                id="company"
-                type="text"
-                placeholder="Mi Empresa S.A."
-                value={formData.company}
-                onChange={(e) =>
-                  setFormData({ ...formData, company: e.target.value })
-                }
-                disabled={isLoading}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="company" className="text-sm font-medium text-gray-700">
+                  Company
+                </label>
+                <Input
+                  id="company"
+                  type="text"
+                  placeholder="Acme Inc."
+                  value={formData.company}
+                  onChange={(e) =>
+                    setFormData({ ...formData, company: e.target.value })
+                  }
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                  Phone
+                </label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  disabled={isLoading}
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-medium">
-                Teléfono (opcional)
-              </label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="55 1234 5678"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Contraseña
+              <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Password
               </label>
               <Input
                 id="password"
@@ -157,8 +171,8 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirmar Contraseña
+              <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                Confirm Password
               </label>
               <Input
                 id="confirmPassword"
@@ -174,19 +188,26 @@ export default function RegisterPage() {
             </div>
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-12 text-base"
               disabled={isLoading}
             >
-              {isLoading ? 'Registrando...' : 'Registrarse'}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="qb-spinner"></span>
+                  Creating account...
+                </span>
+              ) : (
+                'Create Account'
+              )}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
-            <span className="text-gray-600">¿Ya tienes una cuenta? </span>
+          <div className="mt-6 text-center text-sm">
+            <span className="text-gray-600">Already have an account? </span>
             <Link
               href="/auth/login"
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="text-[#2CA01C] hover:text-[#108000] font-semibold"
             >
-              Inicia Sesión
+              Sign in
             </Link>
           </div>
         </CardContent>

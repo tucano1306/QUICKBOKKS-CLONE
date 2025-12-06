@@ -44,7 +44,7 @@ export default function CategoriesPage() {
     name: '',
     description: '',
     type: 'OPERATING',
-    taxRate: 16
+    taxRate: 7
   })
 
   useEffect(() => {
@@ -150,7 +150,7 @@ export default function CategoriesPage() {
       name: '',
       description: '',
       type: 'OPERATING',
-      taxRate: 16
+      taxRate: 7
     })
   }
 
@@ -285,7 +285,7 @@ export default function CategoriesPage() {
                     {category._count?.expenses || 0} gastos
                   </span>
                   <span className="font-medium text-gray-900">
-                    IVA {category.taxRate}%
+                    Tax {category.taxRate}%
                   </span>
                 </div>
               </Card>
@@ -365,7 +365,7 @@ export default function CategoriesPage() {
                   {/* Tax Rate */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tasa de IVA <span className="text-red-500">*</span>
+                      Sales Tax Rate <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -380,7 +380,7 @@ export default function CategoriesPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Tasa de IVA aplicable en México (generalmente 16% o 0%)
+                      Florida Sales Tax (6% state + up to 1.5% local, typically 7%)
                     </p>
                   </div>
 

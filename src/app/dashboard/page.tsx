@@ -70,8 +70,8 @@ export default function DashboardPage() {
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Cargando dashboard...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2CA01C] mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading dashboard...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -83,203 +83,209 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Dashboard
-          </h1>
-          <div className="text-sm text-gray-600">
-            Bienvenido, {session?.user?.name}
+          <div>
+            <h1 className="text-3xl font-bold text-[#0D2942]">
+              Dashboard
+            </h1>
+            <p className="text-gray-500 mt-1">Welcome back, {session?.user?.name}</p>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 qb-stagger">
+          <Card className="hover:shadow-xl hover:shadow-green-500/5 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Ingresos Totales
+              <CardTitle className="text-sm font-medium text-gray-500">
+                Total Revenue
               </CardTitle>
-              <DollarSign className="h-4 w-4 text-green-600" />
+              <DollarSign className="h-5 w-5 text-[#2CA01C]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
-                ${stats.totalRevenue.toLocaleString('es-MX')}
+              <div className="text-3xl font-bold text-[#0D2942]">
+                ${stats.totalRevenue.toLocaleString('en-US')}
               </div>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-sm mt-2">
                 {stats.revenueChange >= 0 ? (
-                  <span className="text-green-600 flex items-center">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    +{stats.revenueChange}% vs mes anterior
+                  <span className="text-[#2CA01C] flex items-center font-medium">
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    +{stats.revenueChange}% vs last month
                   </span>
                 ) : (
-                  <span className="text-red-600 flex items-center">
-                    <TrendingDown className="h-3 w-3 mr-1" />
-                    {stats.revenueChange}% vs mes anterior
+                  <span className="text-red-500 flex items-center font-medium">
+                    <TrendingDown className="h-4 w-4 mr-1" />
+                    {stats.revenueChange}% vs last month
                   </span>
                 )}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-xl hover:shadow-red-500/5 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Gastos Totales
+              <CardTitle className="text-sm font-medium text-gray-500">
+                Total Expenses
               </CardTitle>
-              <TrendingDown className="h-4 w-4 text-red-600" />
+              <TrendingDown className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
-                ${stats.totalExpenses.toLocaleString('es-MX')}
+              <div className="text-3xl font-bold text-[#0D2942]">
+                ${stats.totalExpenses.toLocaleString('en-US')}
               </div>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-sm mt-2">
                 {stats.expensesChange >= 0 ? (
-                  <span className="text-red-600 flex items-center">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    +{stats.expensesChange}% vs mes anterior
+                  <span className="text-red-500 flex items-center font-medium">
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    +{stats.expensesChange}% vs last month
                   </span>
                 ) : (
-                  <span className="text-green-600 flex items-center">
-                    <TrendingDown className="h-3 w-3 mr-1" />
-                    {stats.expensesChange}% vs mes anterior
+                  <span className="text-[#2CA01C] flex items-center font-medium">
+                    <TrendingDown className="h-4 w-4 mr-1" />
+                    {stats.expensesChange}% vs last month
                   </span>
                 )}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Ingreso Neto
+              <CardTitle className="text-sm font-medium text-gray-500">
+                Net Income
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-600" />
+              <TrendingUp className="h-5 w-5 text-[#0077C5]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
-                ${netIncome.toLocaleString('es-MX')}
+              <div className="text-3xl font-bold text-[#0D2942]">
+                ${netIncome.toLocaleString('en-US')}
               </div>
-              <p className="text-xs text-gray-600 mt-1">
-                Utilidad del período
+              <p className="text-sm text-gray-500 mt-2">
+                Profit this period
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-xl hover:shadow-purple-500/5 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Clientes
+              <CardTitle className="text-sm font-medium text-gray-500">
+                Customers
               </CardTitle>
-              <Users className="h-4 w-4 text-purple-600" />
+              <Users className="h-5 w-5 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-[#0D2942]">
                 {stats.totalCustomers}
               </div>
-              <p className="text-xs text-gray-600 mt-1">
-                Total de clientes activos
+              <p className="text-sm text-gray-500 mt-2">
+                Active customers
               </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Invoices Overview */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Total Facturas
+              <CardTitle className="text-sm font-medium text-gray-500">
+                Total Invoices
               </CardTitle>
-              <FileText className="h-4 w-4 text-blue-600" />
+              <FileText className="h-5 w-5 text-[#0077C5]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-[#0D2942]">
                 {stats.totalInvoices}
               </div>
-              <p className="text-xs text-gray-600 mt-1">
-                Facturas emitidas este mes
+              <p className="text-sm text-gray-500 mt-2">
+                Invoices this month
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Facturas Pendientes
+              <CardTitle className="text-sm font-medium text-gray-500">
+                Pending Invoices
               </CardTitle>
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-[#0D2942]">
                 {stats.pendingInvoices}
               </div>
-              <p className="text-xs text-gray-600 mt-1">
-                Esperando pago
+              <p className="text-sm text-gray-500 mt-2">
+                Awaiting payment
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Facturas Vencidas
+              <CardTitle className="text-sm font-medium text-gray-500">
+                Overdue Invoices
               </CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertCircle className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-[#0D2942]">
                 {stats.overdueInvoices}
               </div>
-              <p className="text-xs text-gray-600 mt-1">
-                Requieren atención
+              <p className="text-sm text-gray-500 mt-2">
+                Need attention
               </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Acciones Rápidas</span>
-              <span className="text-sm font-normal text-gray-500">
-                Usuario: {session?.user?.name || 'Usuario'}
-              </span>
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b">
+            <CardTitle className="flex items-center justify-between text-[#0D2942]">
+              <span>Quick Actions</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <div className="grid gap-4 md:grid-cols-4">
               <button 
                 onClick={() => router.push('/companies')}
-                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+                className="group p-5 bg-white border border-gray-200 rounded-xl hover:border-[#2CA01C] hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 text-left"
               >
-                <FileText className="h-8 w-8 text-blue-600 mb-2" />
-                <p className="text-sm font-medium text-gray-900">Nueva Factura</p>
-                <p className="text-xs text-gray-500 mt-1">Selecciona una empresa primero</p>
+                <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mb-3 group-hover:bg-[#2CA01C] transition-colors">
+                  <FileText className="h-6 w-6 text-[#2CA01C] group-hover:text-white transition-colors" />
+                </div>
+                <p className="font-semibold text-[#0D2942]">New Invoice</p>
+                <p className="text-sm text-gray-500 mt-1">Select a company first</p>
               </button>
               <button 
                 onClick={() => router.push('/customers/new')}
-                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-left"
+                className="group p-5 bg-white border border-gray-200 rounded-xl hover:border-[#0077C5] hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 text-left"
               >
-                <Users className="h-8 w-8 text-green-600 mb-2" />
-                <p className="text-sm font-medium text-gray-900">Nuevo Cliente</p>
-                <p className="text-xs text-gray-500 mt-1">Agregar cliente general</p>
+                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-3 group-hover:bg-[#0077C5] transition-colors">
+                  <Users className="h-6 w-6 text-[#0077C5] group-hover:text-white transition-colors" />
+                </div>
+                <p className="font-semibold text-[#0D2942]">New Customer</p>
+                <p className="text-sm text-gray-500 mt-1">Add general customer</p>
               </button>
               <button 
                 onClick={() => router.push('/companies')}
-                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
+                className="group p-5 bg-white border border-gray-200 rounded-xl hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 text-left"
               >
-                <Receipt className="h-8 w-8 text-purple-600 mb-2" />
-                <p className="text-sm font-medium text-gray-900">Registrar Gasto</p>
-                <p className="text-xs text-gray-500 mt-1">Selecciona una empresa primero</p>
+                <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center mb-3 group-hover:bg-purple-500 transition-colors">
+                  <Receipt className="h-6 w-6 text-purple-500 group-hover:text-white transition-colors" />
+                </div>
+                <p className="font-semibold text-[#0D2942]">Record Expense</p>
+                <p className="text-sm text-gray-500 mt-1">Select a company first</p>
               </button>
               <button 
                 onClick={() => router.push('/companies')}
-                className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors text-left"
+                className="group p-5 bg-white border border-gray-200 rounded-xl hover:border-orange-500 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300 text-left"
               >
-                <BarChart3 className="h-8 w-8 text-orange-600 mb-2" />
-                <p className="text-sm font-medium text-gray-900">Ver Reportes</p>
-                <p className="text-xs text-gray-500 mt-1">Selecciona una empresa primero</p>
+                <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center mb-3 group-hover:bg-orange-500 transition-colors">
+                  <BarChart3 className="h-6 w-6 text-orange-500 group-hover:text-white transition-colors" />
+                </div>
+                <p className="font-semibold text-[#0D2942]">View Reports</p>
+                <p className="text-sm text-gray-500 mt-1">Select a company first</p>
               </button>
             </div>
           </CardContent>

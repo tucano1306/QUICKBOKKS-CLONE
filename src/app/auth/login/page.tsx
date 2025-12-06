@@ -43,37 +43,50 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-3xl font-bold text-center">
-            QuickBooks Clone
+    <div className="min-h-screen flex items-center justify-center bg-[#0D2942] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#2CA01C]/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#0077C5]/20 rounded-full blur-3xl"></div>
+      </div>
+      
+      <Card className="w-full max-w-md relative z-10 shadow-2xl border-0 qb-animate-scale-in">
+        <CardHeader className="space-y-1 text-center pb-8">
+          <div className="mb-4">
+            <h1 className="text-3xl font-extrabold">
+              <span className="text-[#0D2942]">Quick</span>
+              <span className="text-[#2CA01C]">Books</span>
+            </h1>
+          </div>
+          <CardTitle className="text-xl font-semibold text-gray-900">
+            Welcome back
           </CardTitle>
-          <CardDescription className="text-center">
-            Ingresa tus credenciales para acceder
+          <CardDescription>
+            Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Correo Electrónico
+              <label htmlFor="email" className="text-sm font-medium text-gray-700">
+                Email
               </label>
               <Input
                 id="email"
                 type="email"
-                placeholder="tu@email.com"
+                placeholder="you@company.com"
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
                 required
                 disabled={isLoading}
+                className="h-12"
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Contraseña
+              <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Password
               </label>
               <Input
                 id="password"
@@ -85,23 +98,31 @@ export default function LoginPage() {
                 }
                 required
                 disabled={isLoading}
+                className="h-12"
               />
             </div>
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-12 text-base"
               disabled={isLoading}
             >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="qb-spinner"></span>
+                  Signing in...
+                </span>
+              ) : (
+                'Sign In'
+              )}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
-            <span className="text-gray-600">¿No tienes una cuenta? </span>
+          <div className="mt-6 text-center text-sm">
+            <span className="text-gray-600">Don't have an account? </span>
             <Link
               href="/auth/register"
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="text-[#2CA01C] hover:text-[#108000] font-semibold"
             >
-              Regístrate
+              Sign up
             </Link>
           </div>
         </CardContent>
