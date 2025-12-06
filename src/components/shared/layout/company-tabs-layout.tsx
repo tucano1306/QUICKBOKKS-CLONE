@@ -183,7 +183,9 @@ const tabSections: TabSection[] = [
       { name: 'Cuentas Bancarias', href: '/company/banking/accounts', description: 'Gestión de cuentas' },
       { name: 'Transacciones', href: '/company/banking/transactions', description: 'Movimientos bancarios' },
       { name: 'Transferencias', href: '/company/banking/transfers', description: 'Entre cuentas' },
-      { name: 'Conciliación', href: '/company/banking/reconciliation', description: 'Cuadrar saldos' }
+      { name: 'Conciliación', href: '/company/banking/reconciliation', description: 'Cuadrar saldos' },
+      { name: '🔄 Reglas Bancarias', href: '/company/banking/rules', description: 'Auto-categorizar transacciones' },
+      { name: '📦 Operaciones en Lote', href: '/company/banking/batch', description: 'Procesar múltiples transacciones' }
     ]
   },
   {
@@ -222,6 +224,8 @@ const tabSections: TabSection[] = [
       { name: '📖 Mayor Analítico', href: '/company/reports/advanced?type=analytical-ledger', description: 'Detalle de cuenta contable' },
       { name: '⚖️ Balance de Comprobación', href: '/company/reports/advanced?type=trial-balance', description: 'Verificación de saldos' },
       { name: '📒 Libro Diario Legal', href: '/company/reports/advanced?type=legal-journal', description: 'Asientos contables oficiales' },
+      { name: '📊 TPARS', href: '/company/reports/tpars', description: 'Reporte anual de pagos gravables' },
+      { name: '📁 Grupos de Reportes', href: '/company/reports/groups', description: 'Organizar reportes' },
       { name: 'Reportes por Impuestos', href: '/company/reports/tax-reports', description: 'Para declaraciones' },
       { name: 'Reportes Personalizados', href: '/company/reports/custom', description: 'Crear reportes a medida' },
       { name: 'Envío Automático', href: '/company/reports/scheduled', description: 'Programar reportes' }
@@ -276,6 +280,8 @@ const tabSections: TabSection[] = [
       { name: 'Integraciones', href: '/company/settings/integrations', description: 'Apps conectadas' },
       { name: 'Multimoneda', href: '/company/settings/currency', description: 'Tipos de cambio' },
       { name: 'Facturación', href: '/company/settings/invoicing', description: 'Configurar facturas' },
+      { name: '📋 Plantillas de Facturas', href: '/company/settings/invoicing/templates', description: 'Personalizar plantillas' },
+      { name: '🏷️ Seguimiento (Clases)', href: '/company/settings/tracking', description: 'Clases y ubicaciones' },
       { name: 'Seguridad', href: '/company/settings/security', description: 'Protección de datos' },
       { name: 'Backups', href: '/company/settings/backups', description: 'Respaldos automáticos' }
     ]

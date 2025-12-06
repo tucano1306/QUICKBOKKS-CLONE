@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,8 +20,24 @@ import {
   TrendingDown,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Paperclip,
+  Upload,
+  Download,
+  X,
+  Image as ImageIcon,
+  File
 } from 'lucide-react'
+import toast from 'react-hot-toast'
+
+interface Attachment {
+  id: string
+  fileName: string
+  fileType: string
+  fileSize: number
+  url: string
+  createdAt: string
+}
 
 interface Transaction {
   id: string
@@ -40,10 +57,13 @@ export default function TransactionDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { data: session, status } = useSession()
+  const { activeCompany } = useCompany()
   const [transaction, setTransaction] = useState<Transaction | null>(null)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const transactionId = params.id as string
 
@@ -56,8 +76,88 @@ export default function TransactionDetailPage() {
   useEffect(() => {
     if (status === 'authenticated' && transactionId) {
       loadTransaction()
+      loadAttachments()
     }
   }, [status, transactionId])
+
+  const loadAttachments = useCallback(async () => {
+    if (!activeCompany?.id || !transactionId) return
+    try {
+      const res = await fetch(`/api/attachments?companyId=${activeCompany.id}&transactionId=${transactionId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setAttachments(data)
+      }
+    } catch (err) {
+      console.error('Error loading attachments:', err)
+    }
+  }, [activeCompany?.id, transactionId])
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0 || !activeCompany?.id) return
+
+    setUploading(true)
+    try {
+      for (const file of Array.from(files)) {
+        // Convert file to base64
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.readAsDataURL(file)
+        })
+
+        const res = await fetch('/api/attachments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            companyId: activeCompany.id,
+            transactionId: transactionId,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            url: base64 // In production, this would be uploaded to cloud storage
+          })
+        })
+
+        if (res.ok) {
+          toast.success(`${file.name} uploaded`)
+        }
+      }
+      loadAttachments()
+    } catch (err) {
+      toast.error('Failed to upload file')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const deleteAttachment = async (attachmentId: string) => {
+    if (!confirm('Delete this attachment?')) return
+
+    try {
+      const res = await fetch(`/api/attachments?id=${attachmentId}`, {
+        method: 'DELETE'
+      })
+      if (res.ok) {
+        toast.success('Attachment deleted')
+        loadAttachments()
+      }
+    } catch (err) {
+      toast.error('Failed to delete attachment')
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) return ImageIcon
+    return File
+  }
 
   const loadTransaction = async () => {
     try {
@@ -265,6 +365,67 @@ export default function TransactionDetailPage() {
                     <p className="text-gray-700 bg-gray-50 p-3 rounded-lg mt-1">
                       {transaction.notes}
                     </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Attachments Card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Paperclip className="h-5 w-5" />
+                  Adjuntos ({attachments.length})
+                </CardTitle>
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                  />
+                  <Button variant="outline" size="sm" asChild disabled={uploading}>
+                    <span>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploading ? 'Subiendo...' : 'Subir'}
+                    </span>
+                  </Button>
+                </label>
+              </CardHeader>
+              <CardContent>
+                {attachments.length === 0 ? (
+                  <div className="text-center py-6 text-gray-500">
+                    <Paperclip className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No hay adjuntos</p>
+                    <p className="text-xs mt-1">Sube recibos, facturas u otros documentos</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {attachments.map(att => {
+                      const FileIcon = getFileIcon(att.fileType)
+                      return (
+                        <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group">
+                          <div className="flex items-center gap-2">
+                            <FileIcon className="h-5 w-5 text-gray-400" />
+                            <div>
+                              <p className="text-sm font-medium truncate max-w-[150px]">{att.fileName}</p>
+                              <p className="text-xs text-gray-400">{formatFileSize(att.fileSize)}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="sm" asChild>
+                              <a href={att.url} download={att.fileName} target="_blank" rel="noopener noreferrer">
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => deleteAttachment(att.id)}>
+                              <X className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>

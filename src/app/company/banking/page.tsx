@@ -148,6 +148,8 @@ export default function BankingManagementPage() {
     { label: 'Transferencias', href: '/company/banking/transfers', icon: ArrowRightLeft, color: 'teal' },
     { label: 'Conciliación', href: '/company/banking/reconciliation', icon: ArrowRightLeft, color: 'orange' },
     { label: 'Cuadrar Saldos', href: '/company/banking/balance-check', icon: Wallet, color: 'pink' },
+    { label: 'Reglas Bancarias', href: '/company/banking/rules', icon: Receipt, color: 'cyan' },
+    { label: 'Operaciones en Lote', href: '/company/banking/batch', icon: Receipt, color: 'amber' },
     { label: 'Reportes', href: '/reports', icon: PieChart, color: 'indigo' }
   ]
 

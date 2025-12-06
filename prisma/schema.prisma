@@ -1747,6 +1747,19 @@ model Company {
   journalEntries       JournalEntry[]
   invoices             Invoice[]
   expenses             Expense[]
+  
+  // New relations for full functionality
+  bankRules            BankRule[]
+  importJobs           ImportJob[]
+  transactionAttachments TransactionAttachment[]
+  invoiceTemplates     InvoiceTemplate[]
+  reportGroups         ReportGroup[]
+  savedReports         SavedReport[]
+  transactionClasses   TransactionClass[]
+  transactionLocations TransactionLocation[]
+  paymentLinks         PaymentLink[]
+  batchOperations      BatchOperation[]
+  tparsReports         TPARSReport[]
 
   @@map("companies")
 }
@@ -3540,4 +3553,363 @@ enum ClientDocumentType {
   CORRESPONDENCE
   WORKING_PAPER
   OTHER
+}
+
+// ============================================
+// NEW MODELS FOR FULL FUNCTIONALITY
+// ============================================
+
+// Bank Rules for automatic transaction categorization
+model BankRule {
+  id              String       @id @default(cuid())
+  companyId       String
+  name            String
+  description     String?
+  priority        Int          @default(0)
+  isActive        Boolean      @default(true)
+  
+  // Conditions (all must match)
+  conditionField  String       // description, amount, payee
+  conditionType   String       // contains, equals, starts_with, ends_with, greater_than, less_than
+  conditionValue  String
+  
+  // Actions
+  actionType      String       // categorize, split, tag, rename
+  categoryId      String?      // For categorize action
+  accountId       String?      // Chart of accounts ID
+  taxCode         String?
+  memo            String?
+  tags            String[]     @default([])
+  
+  matchCount      Int          @default(0)
+  lastMatchedAt   DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId])
+  @@map("bank_rules")
+}
+
+// Import jobs for tracking CSV/Excel imports
+model ImportJob {
+  id              String       @id @default(cuid())
+  companyId       String
+  userId          String
+  type            ImportType   // CUSTOMERS, VENDORS, PRODUCTS, TRANSACTIONS, CHART_OF_ACCOUNTS
+  fileName        String
+  fileSize        Int
+  status          ImportStatus @default(PENDING)
+  
+  totalRows       Int          @default(0)
+  processedRows   Int          @default(0)
+  successRows     Int          @default(0)
+  errorRows       Int          @default(0)
+  
+  errors          Json?        // Array of error messages with row numbers
+  mapping         Json?        // Column mapping configuration
+  
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId])
+  @@map("import_jobs")
+}
+
+// Transaction attachments
+model TransactionAttachment {
+  id              String       @id @default(cuid())
+  companyId       String
+  transactionType String       // expense, invoice, payment, bill, journal_entry
+  transactionId   String       // ID of the related transaction
+  
+  fileName        String
+  fileType        String       // pdf, jpg, png, etc
+  fileSize        Int
+  fileUrl         String
+  thumbnailUrl    String?
+  
+  uploadedBy      String
+  description     String?
+  
+  createdAt       DateTime     @default(now())
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, transactionType, transactionId])
+  @@map("transaction_attachments")
+}
+
+// Invoice templates for customization
+model InvoiceTemplate {
+  id              String       @id @default(cuid())
+  companyId       String
+  name            String
+  isDefault       Boolean      @default(false)
+  
+  // Header customization
+  logoUrl         String?
+  headerColor     String       @default("#2CA01C")
+  accentColor     String       @default("#0077C5")
+  fontFamily      String       @default("Inter")
+  
+  // Content sections
+  showLogo        Boolean      @default(true)
+  showCompanyAddress Boolean   @default(true)
+  showCustomerAddress Boolean  @default(true)
+  showDueDate     Boolean      @default(true)
+  showPaymentTerms Boolean     @default(true)
+  showNotes       Boolean      @default(true)
+  showTaxBreakdown Boolean     @default(true)
+  showPaymentInfo Boolean      @default(true)
+  
+  // Footer customization
+  footerText      String?
+  termsText       String?
+  
+  // Custom fields
+  customFields    Json?        // Array of custom fields
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId])
+  @@map("invoice_templates")
+}
+
+// Report groups for organizing reports
+model ReportGroup {
+  id              String       @id @default(cuid())
+  companyId       String
+  name            String
+  description     String?
+  color           String       @default("#0077C5")
+  icon            String       @default("folder")
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  reports         SavedReport[]
+  
+  @@index([companyId])
+  @@map("report_groups")
+}
+
+// Saved/Custom reports
+model SavedReport {
+  id              String       @id @default(cuid())
+  companyId       String
+  groupId         String?
+  
+  name            String
+  description     String?
+  reportType      String       // profit_loss, balance_sheet, cash_flow, custom, etc
+  
+  // Report configuration
+  filters         Json?        // Date range, accounts, etc
+  columns         Json?        // Which columns to show
+  groupBy         String?
+  sortBy          String?
+  
+  // Scheduling
+  isScheduled     Boolean      @default(false)
+  scheduleFreq    String?      // daily, weekly, monthly
+  scheduleDay     Int?
+  scheduleTime    String?
+  emailRecipients String[]     @default([])
+  lastRunAt       DateTime?
+  nextRunAt       DateTime?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  group           ReportGroup? @relation(fields: [groupId], references: [id])
+  
+  @@index([companyId])
+  @@map("saved_reports")
+}
+
+// Class tracking for transactions
+model TransactionClass {
+  id              String       @id @default(cuid())
+  companyId       String
+  name            String
+  description     String?
+  parentId        String?
+  isActive        Boolean      @default(true)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent          TransactionClass?  @relation("ClassHierarchy", fields: [parentId], references: [id])
+  children        TransactionClass[] @relation("ClassHierarchy")
+  
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("transaction_classes")
+}
+
+// Location tracking for transactions
+model TransactionLocation {
+  id              String       @id @default(cuid())
+  companyId       String
+  name            String
+  address         String?
+  city            String?
+  state           String?
+  country         String?
+  isActive        Boolean      @default(true)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("transaction_locations")
+}
+
+// Payment links for online payments
+model PaymentLink {
+  id              String       @id @default(cuid())
+  companyId       String
+  invoiceId       String?
+  
+  linkCode        String       @unique
+  amount          Float
+  currency        String       @default("USD")
+  description     String?
+  customerEmail   String?
+  customerName    String?
+  
+  status          PaymentLinkStatus @default(ACTIVE)
+  expiresAt       DateTime?
+  
+  // Payment info when paid
+  paidAt          DateTime?
+  paidAmount      Float?
+  paymentMethod   String?
+  stripePaymentId String?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId])
+  @@index([linkCode])
+  @@map("payment_links")
+}
+
+// Batch operations tracking
+model BatchOperation {
+  id              String       @id @default(cuid())
+  companyId       String
+  userId          String
+  type            BatchOperationType // CATEGORIZE, APPROVE, DELETE, EXPORT
+  status          BatchStatus  @default(PENDING)
+  
+  totalItems      Int          @default(0)
+  processedItems  Int          @default(0)
+  successItems    Int          @default(0)
+  errorItems      Int          @default(0)
+  
+  itemIds         String[]     @default([])
+  actionData      Json?        // What action to perform
+  results         Json?        // Results of each item
+  
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId])
+  @@map("batch_operations")
+}
+
+// TPARS (Taxable Payments Annual Report)
+model TPARSReport {
+  id              String       @id @default(cuid())
+  companyId       String
+  fiscalYear      Int
+  status          TPARSStatus  @default(DRAFT)
+  
+  // Totals
+  totalPayments   Float        @default(0)
+  totalGST        Float        @default(0)
+  totalWithheld   Float        @default(0)
+  vendorCount     Int          @default(0)
+  
+  // Report data
+  reportData      Json?        // Detailed vendor payments
+  
+  generatedAt     DateTime?
+  submittedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@unique([companyId, fiscalYear])
+  @@index([companyId])
+  @@map("tpars_reports")
+}
+
+// Enums for new models
+enum ImportType {
+  CUSTOMERS
+  VENDORS
+  PRODUCTS
+  TRANSACTIONS
+  CHART_OF_ACCOUNTS
+  BANK_TRANSACTIONS
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentLinkStatus {
+  ACTIVE
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
+enum BatchOperationType {
+  CATEGORIZE
+  APPROVE
+  DELETE
+  EXPORT
+  RECONCILE
+}
+
+enum BatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum TPARSStatus {
+  DRAFT
+  GENERATED
+  REVIEWED
+  SUBMITTED
+  AMENDED
 }
