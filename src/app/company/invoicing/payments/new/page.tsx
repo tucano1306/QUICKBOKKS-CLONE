@@ -249,13 +249,11 @@ export default function NewPaymentPage() {
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
-                  type="number"
+                  type="text"
                   value={amount}
-                  onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                  className="pl-10 text-lg font-semibold"
+                  onChange={(e) => setAmount(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                  className="pl-10 text-lg font-semibold amount-input"
                   placeholder="0.00"
-                  min="0"
-                  step="0.01"
                 />
               </div>
             </div>

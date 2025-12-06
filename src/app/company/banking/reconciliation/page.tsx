@@ -852,12 +852,11 @@ export default function BankReconciliationPage() {
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input 
-                        type="number" 
-                        step="0.01"
+                        type="text" 
                         placeholder="0.00"
-                        className="pl-10"
+                        className="amount-input pl-10"
                         value={newReconciliationForm.statementBalance}
-                        onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, statementBalance: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, statementBalance: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
                       />
                     </div>
                   </div>

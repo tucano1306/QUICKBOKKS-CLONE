@@ -65,11 +65,11 @@ export default function TaxDeductibleExpensesPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // Load deductible expenses
-      const response = await fetch('/api/expenses?deductible=true')
+      // Load deductible expenses - usar limit=500 para cargar todos
+      const response = await fetch('/api/expenses?deductible=true&limit=500')
       if (response.ok) {
         const data = await response.json()
-        const dataArray = Array.isArray(data) ? data : []
+        const dataArray = Array.isArray(data) ? data : (data.data || [])
         const deductible = dataArray.filter((e: any) => e.taxDeductible)
         setExpenses(deductible)
         setFilteredExpenses(deductible)

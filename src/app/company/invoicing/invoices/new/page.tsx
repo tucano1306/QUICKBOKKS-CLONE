@@ -584,12 +584,10 @@ export default function NewInvoicePage() {
                               Cantidad
                             </label>
                             <Input
-                              type="number"
+                              type="text"
+                              className="text-sm amount-input"
                               value={item.quantity}
-                              onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                              min="0"
-                              step="0.01"
-                              className="text-sm"
+                              onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
                             />
                           </div>
 
@@ -598,12 +596,10 @@ export default function NewInvoicePage() {
                               Precio Unitario
                             </label>
                             <Input
-                              type="number"
+                              type="text"
+                              className="text-sm amount-input"
                               value={item.unitPrice}
-                              onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                              min="0"
-                              step="0.01"
-                              className="text-sm"
+                              onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
                             />
                           </div>
 
@@ -612,13 +608,11 @@ export default function NewInvoicePage() {
                               IVA (%)
                             </label>
                             <Input
-                              type="number"
+                              type="text"
+                              className="text-sm amount-input"
                               value={item.taxRate}
-                              onChange={(e) => updateItem(item.id, 'taxRate', parseFloat(e.target.value) || 0)}
-                              min="0"
-                              max="100"
+                              onChange={(e) => updateItem(item.id, 'taxRate', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
                               disabled={taxExempt}
-                              className="text-sm"
                             />
                           </div>
 
@@ -684,13 +678,10 @@ export default function NewInvoicePage() {
                         <span className="text-gray-600">Descuento:</span>
                         <div className="flex items-center gap-2">
                           <Input
-                            type="number"
+                            type="text"
+                            className="w-16 h-8 text-sm text-right amount-input"
                             value={discount}
-                            onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                            min="0"
-                            max="100"
-                            step="1"
-                            className="w-16 h-8 text-sm text-right"
+                            onChange={(e) => setDiscount(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
                           />
                           <span className="text-xs">%</span>
                         </div>

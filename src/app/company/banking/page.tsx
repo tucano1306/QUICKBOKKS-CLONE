@@ -980,9 +980,9 @@ export default function BankingManagementPage() {
                     <div className="flex items-center justify-between mb-4">
                       <span>Saldo en Estado de Cuenta:</span>
                       <Input
-                        type="number"
+                        type="text"
                         placeholder="Ingrese saldo bancario"
-                        className="w-40 text-right"
+                        className="amount-input w-40 text-right"
                       />
                     </div>
                     <hr className="my-4" />
@@ -1069,10 +1069,10 @@ export default function BankingManagementPage() {
                   <div>
                     <label className="block text-sm font-medium mb-1">Balance Inicial</label>
                     <Input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      className="amount-input"
                       value={accountForm.balance}
-                      onChange={(e) => setAccountForm({ ...accountForm, balance: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setAccountForm({ ...accountForm, balance: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
                     />
                   </div>
                 </div>
@@ -1142,11 +1142,10 @@ export default function BankingManagementPage() {
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
-                        type="number"
-                        step="0.01"
+                        type="text"
                         value={transactionForm.amount}
-                        onChange={(e) => setTransactionForm({ ...transactionForm, amount: parseFloat(e.target.value) || 0 })}
-                        className="pl-10"
+                        onChange={(e) => setTransactionForm({ ...transactionForm, amount: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                        className="amount-input pl-10"
                       />
                     </div>
                   </div>
@@ -1272,11 +1271,10 @@ export default function BankingManagementPage() {
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
-                        type="number"
-                        step="0.01"
+                        type="text"
                         value={transferForm.amount}
-                        onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value) || 0 })}
-                        className="pl-10"
+                        onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                        className="amount-input pl-10"
                       />
                     </div>
                   </div>

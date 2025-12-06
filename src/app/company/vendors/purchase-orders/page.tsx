@@ -859,13 +859,15 @@ export default function PurchaseOrdersPage() {
                         className="md:col-span-2"
                       />
                       <Input
-                        type="number"
+                        type="text"
+                        className="amount-input"
                         placeholder="Cantidad"
                         value={item.quantity}
                         onChange={(event) => handleItemChange(index, 'quantity', event.target.value)}
                       />
                       <Input
-                        type="number"
+                        type="text"
+                        className="amount-input"
                         placeholder="Costo unitario"
                         value={item.unitCost}
                         onChange={(event) => handleItemChange(index, 'unitCost', event.target.value)}
@@ -887,19 +889,19 @@ export default function PurchaseOrdersPage() {
                   <div>
                     <label className="text-sm font-medium text-gray-700">Impuestos</label>
                     <Input
-                      type="number"
-                      className="mt-1"
+                      type="text"
+                      className="mt-1 amount-input"
                       value={formState.tax}
-                      onChange={(event) => handleFormFieldChange('tax', Number(event.target.value) || 0)}
+                      onChange={(event) => handleFormFieldChange('tax', Number(event.target.value.replace(/,/g, '')) || 0)}
                     />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Envío</label>
                     <Input
-                      type="number"
-                      className="mt-1"
+                      type="text"
+                      className="mt-1 amount-input"
                       value={formState.shipping}
-                      onChange={(event) => handleFormFieldChange('shipping', Number(event.target.value) || 0)}
+                      onChange={(event) => handleFormFieldChange('shipping', Number(event.target.value.replace(/,/g, '')) || 0)}
                     />
                   </div>
                   <div>

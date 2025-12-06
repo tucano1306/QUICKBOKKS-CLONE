@@ -343,11 +343,15 @@ export default function EditTransactionPage() {
                   <Input
                     id="amount"
                     name="amount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.amount}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/,/g, '.');
+                      if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                        setFormData(prev => ({ ...prev, amount: val }));
+                      }
+                    }}
                     placeholder="0.00"
                     required
                   />

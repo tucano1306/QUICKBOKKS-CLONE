@@ -757,9 +757,9 @@ export default function BankSyncPage() {
                       <div>
                         <label className="block text-sm font-medium mb-1">Saldo Inicial</label>
                         <Input 
-                          type="number" 
+                          type="text" 
                           placeholder="0.00"
-                          step="0.01"
+                          className="amount-input"
                           value={formData.initialBalance}
                           onChange={(e) => setFormData(prev => ({ ...prev, initialBalance: e.target.value }))}
                         />

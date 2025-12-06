@@ -464,30 +464,32 @@ export default function TaxReportsPage() {
                   <Label htmlFor="taxBase">Base Gravable</Label>
                   <Input
                     id="taxBase"
-                    type="number"
+                    type="text"
+                    className="amount-input"
                     placeholder="0.00"
                     value={newDeclaration.taxBase || ''}
-                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxBase: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxBase: parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="taxRate">Tasa (%)</Label>
                   <Input
                     id="taxRate"
-                    type="number"
-                    step="0.1"
+                    type="text"
+                    className="amount-input"
                     value={newDeclaration.taxRate || ''}
-                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxRate: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxRate: parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="withheld">Retenciones</Label>
                   <Input
                     id="withheld"
-                    type="number"
+                    type="text"
+                    className="amount-input"
                     placeholder="0.00"
                     value={newDeclaration.withheld || ''}
-                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, withheld: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, withheld: parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
                   />
                 </div>
               </div>

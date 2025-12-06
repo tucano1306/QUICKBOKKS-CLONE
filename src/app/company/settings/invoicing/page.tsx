@@ -230,7 +230,8 @@ export default function InvoicingSettingsPage() {
                   Starting Number
                 </label>
                 <Input
-                  type="number"
+                  type="text"
+                  className="amount-input"
                   value={invoiceSettings.startingNumber}
                   onChange={(e) => setInvoiceSettings({...invoiceSettings, startingNumber: e.target.value})}
                   placeholder="1001"
@@ -382,8 +383,8 @@ export default function InvoicingSettingsPage() {
                       {invoiceSettings.lateFeeType === 'Percentage' ? 'Percentage (%)' : 'Amount ($)'}
                     </label>
                     <Input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      className="amount-input"
                       value={invoiceSettings.lateFeeAmount}
                       onChange={(e) => setInvoiceSettings({...invoiceSettings, lateFeeAmount: e.target.value})}
                       placeholder={invoiceSettings.lateFeeType === 'Percentage' ? '1.5' : '25.00'}
@@ -395,7 +396,8 @@ export default function InvoicingSettingsPage() {
                       Grace Period (Days)
                     </label>
                     <Input
-                      type="number"
+                      type="text"
+                      className="amount-input"
                       value={invoiceSettings.gracePeriodDays}
                       onChange={(e) => setInvoiceSettings({...invoiceSettings, gracePeriodDays: e.target.value})}
                       placeholder="5"
@@ -411,8 +413,8 @@ export default function InvoicingSettingsPage() {
                         Maximum Late Fee ($)
                       </label>
                       <Input
-                        type="number"
-                        step="0.01"
+                        type="text"
+                        className="amount-input"
                         value={invoiceSettings.maxLateFee}
                         onChange={(e) => setInvoiceSettings({...invoiceSettings, maxLateFee: e.target.value})}
                         placeholder="100.00"
@@ -452,8 +454,8 @@ export default function InvoicingSettingsPage() {
                       Discount Percentage (%)
                     </label>
                     <Input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      className="amount-input"
                       value={invoiceSettings.discountPercentage}
                       onChange={(e) => setInvoiceSettings({...invoiceSettings, discountPercentage: e.target.value})}
                       placeholder="2"
@@ -465,7 +467,8 @@ export default function InvoicingSettingsPage() {
                       Discount Days
                     </label>
                     <Input
-                      type="number"
+                      type="text"
+                      className="amount-input"
                       value={invoiceSettings.discountDays}
                       onChange={(e) => setInvoiceSettings({...invoiceSettings, discountDays: e.target.value})}
                       placeholder="10"

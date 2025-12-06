@@ -208,3 +208,33 @@
 .skeleton {
   @apply bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer;
 }
+
+/* =====================================================
+   OCULTAR FLECHAS DE INPUT NUMBER (Spinners)
+   Aplica globalmente a todos los inputs de tipo number
+   ===================================================== */
+
+/* Chrome, Safari, Edge, Opera */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Clase específica para inputs de montos */
+.amount-input::-webkit-outer-spin-button,
+.amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.amount-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

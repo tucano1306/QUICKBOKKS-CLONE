@@ -662,12 +662,10 @@ export default function AIAgentPage() {
                     <div className="ml-4">
                       <label className="text-sm text-gray-600">Umbral de confianza mínimo (%)</label>
                       <Input 
-                        type="number" 
-                        min="50" 
-                        max="100"
+                        type="text" 
                         value={agentConfig.autoCategorizeThreshold}
-                        onChange={(e) => setAgentConfig({...agentConfig, autoCategorizeThreshold: parseInt(e.target.value)})}
-                        className="w-24 mt-1"
+                        onChange={(e) => setAgentConfig({...agentConfig, autoCategorizeThreshold: parseInt(e.target.value.replace(/,/g, ''))})}
+                        className="amount-input w-24 mt-1"
                       />
                     </div>
                   )}
@@ -730,11 +728,10 @@ export default function AIAgentPage() {
                     <div className="ml-4">
                       <label className="text-sm text-gray-600">Límite de aprobación ($)</label>
                       <Input 
-                        type="number" 
-                        min="0"
+                        type="text" 
                         value={agentConfig.expenseApprovalLimit}
-                        onChange={(e) => setAgentConfig({...agentConfig, expenseApprovalLimit: parseInt(e.target.value)})}
-                        className="w-32 mt-1"
+                        onChange={(e) => setAgentConfig({...agentConfig, expenseApprovalLimit: parseInt(e.target.value.replace(/,/g, ''))})}
+                        className="amount-input w-32 mt-1"
                       />
                     </div>
                   )}

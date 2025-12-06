@@ -748,7 +748,8 @@ export default function VendorPayablesPage() {
                   <div>
                     <label className="text-sm font-medium">Subtotal</label>
                     <Input
-                      type="number"
+                      type="text"
+                      className="amount-input"
                       placeholder="10000"
                       value={formData.subtotal}
                       onChange={(e) => handleFormChange('subtotal', e.target.value)}
@@ -757,7 +758,8 @@ export default function VendorPayablesPage() {
                   <div>
                     <label className="text-sm font-medium">IVA</label>
                     <Input
-                      type="number"
+                      type="text"
+                      className="amount-input"
                       placeholder="1600"
                       value={formData.taxAmount}
                       onChange={(e) => handleFormChange('taxAmount', e.target.value)}
@@ -766,7 +768,8 @@ export default function VendorPayablesPage() {
                   <div>
                     <label className="text-sm font-medium">Total</label>
                     <Input
-                      type="number"
+                      type="text"
+                      className="amount-input"
                       placeholder="11600"
                       value={formData.total}
                       onChange={(e) => handleFormChange('total', e.target.value)}
@@ -775,7 +778,8 @@ export default function VendorPayablesPage() {
                   <div>
                     <label className="text-sm font-medium">Pagado</label>
                     <Input
-                      type="number"
+                      type="text"
+                      className="amount-input"
                       placeholder="0"
                       value={formData.paidAmount}
                       onChange={(e) => handleFormChange('paidAmount', e.target.value)}

@@ -576,11 +576,11 @@ export default function PayrollChecksPage() {
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
-                      type="number"
+                      type="text"
                       placeholder="0.00"
                       value={checkAmount}
                       onChange={(e) => setCheckAmount(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 amount-input"
                     />
                   </div>
                 </div>

@@ -708,11 +708,10 @@ export default function CurrencySettingsPage() {
               <Label htmlFor="exchange-rate">Exchange Rate (1 {baseCurrency} = X)</Label>
               <Input
                 id="exchange-rate"
-                type="number"
-                step="0.0001"
-                min="0.0001"
+                type="text"
+                className="amount-input"
                 value={newCurrency.exchangeRate}
-                onChange={(e) => setNewCurrency({ ...newCurrency, exchangeRate: parseFloat(e.target.value) || 1 })}
+                onChange={(e) => setNewCurrency({ ...newCurrency, exchangeRate: parseFloat(e.target.value.replace(/,/g, '')) || 1 })}
                 placeholder="Enter exchange rate"
               />
               <p className="text-xs text-gray-500">
@@ -748,9 +747,8 @@ export default function CurrencySettingsPage() {
               </Label>
               <Input
                 id="edit-rate"
-                type="number"
-                step="0.0001"
-                min="0.0001"
+                type="text"
+                className="amount-input"
                 value={editingRate}
                 onChange={(e) => setEditingRate(e.target.value)}
                 placeholder="Enter new exchange rate"

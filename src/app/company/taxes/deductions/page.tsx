@@ -413,7 +413,7 @@ export default function TaxDeductionsPage() {
               </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Subcategoría</label><Input value={newDeduction.subcategory} onChange={(e) => setNewDeduction({ ...newDeduction, subcategory: e.target.value })} placeholder="Ej: Office Supplies" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label><Input value={newDeduction.description} onChange={(e) => setNewDeduction({ ...newDeduction, description: e.target.value })} placeholder="Descripción del gasto" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Monto</label><Input type="number" value={newDeduction.amount} onChange={(e) => setNewDeduction({ ...newDeduction, amount: parseFloat(e.target.value) })} /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Monto</label><Input type="text" className="amount-input" value={newDeduction.amount} onChange={(e) => setNewDeduction({ ...newDeduction, amount: parseFloat(e.target.value.replace(/,/g, '')) })} /></div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancelar</Button>

@@ -667,12 +667,10 @@ export default function WorkflowsPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700">Number of Steps</label>
                   <Input
-                    type="number"
-                    min="1"
-                    max="20"
+                    type="text"
                     value={newWorkflow.steps}
-                    onChange={(e) => setNewWorkflow({ ...newWorkflow, steps: parseInt(e.target.value) || 3 })}
-                    className="mt-1"
+                    onChange={(e) => setNewWorkflow({ ...newWorkflow, steps: parseInt(e.target.value.replace(/,/g, '')) || 3 })}
+                    className="amount-input mt-1"
                   />
                 </div>
                 <div className="flex gap-2 pt-4">

@@ -618,8 +618,8 @@ export default function BillableTimePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa por Hora</label>
                 <Input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  className="amount-input"
                   value={formData.hourlyRate}
                   onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
                   placeholder="75.00"

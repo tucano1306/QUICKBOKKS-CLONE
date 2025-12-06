@@ -158,12 +158,16 @@ export default function NewTransactionPage() {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                   <Input
                     id="amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0.00"
                     value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/,/g, '.');
+                      if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                        setFormData({ ...formData, amount: val });
+                      }
+                    }}
                     className="pl-8"
                     required
                   />

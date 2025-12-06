@@ -702,8 +702,8 @@ export default function ProjectsListPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto</label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    className="amount-input"
                     value={formData.budget}
                     onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
                     placeholder="0.00"

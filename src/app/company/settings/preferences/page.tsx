@@ -567,11 +567,10 @@ export default function PreferencesSettingsPage() {
                   Default Tax Rate (%)
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
                   value={preferences.defaultTaxRate}
                   onChange={(e) => setPreferences({...preferences, defaultTaxRate: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 amount-input"
                   placeholder="7.0"
                 />
               </div>

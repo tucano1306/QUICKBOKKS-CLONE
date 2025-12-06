@@ -327,15 +327,17 @@ export default function NewEstimatePage() {
 
                       <div className="grid grid-cols-3 gap-2">
                         <Input
-                          type="number"
+                          type="text"
+                          className="amount-input"
                           value={item.quantity}
-                          onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
                           placeholder="Cant."
                         />
                         <Input
-                          type="number"
+                          type="text"
+                          className="amount-input"
                           value={item.unitPrice}
-                          onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
                           placeholder="Precio"
                         />
                         <div className="px-3 py-2 bg-gray-50 rounded font-semibold text-sm">

@@ -804,7 +804,7 @@ export default function ReconciliationPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Saldo Final del Estado de Cuenta</label>
-                    <Input type="number" name="statementBalance" placeholder="0.00" step="0.01" required />
+                    <Input type="text" className="amount-input" name="statementBalance" placeholder="0.00" required />
                   </div>
                   {message?.type === 'error' && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">

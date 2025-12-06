@@ -331,11 +331,15 @@ export default function NewExpensePage() {
                     <Input
                       id="amount"
                       name="amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
+                      type="text"
+                      inputMode="decimal"
                       value={formData.amount}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/,/g, '.');
+                        if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                          handleChange({ target: { name: 'amount', value: val } } as React.ChangeEvent<HTMLInputElement>);
+                        }
+                      }}
                       placeholder="0.00"
                       className="pl-10"
                       required
@@ -478,12 +482,16 @@ export default function NewExpensePage() {
                         <div className="relative flex-1">
                           <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="Monto"
                             value={split.amount}
-                            onChange={(e) => updatePaymentSplit(split.id, 'amount', e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/,/g, '.');
+                              if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                                updatePaymentSplit(split.id, 'amount', val);
+                              }
+                            }}
                             className="pl-8 text-sm"
                           />
                         </div>

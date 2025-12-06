@@ -534,13 +534,11 @@ export default function CorporateCardsPage() {
                       $
                     </span>
                     <input
-                      type="number"
+                      type="text"
                       name="limit"
                       required
-                      step="0.01"
-                      min="0"
                       placeholder="0.00"
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="amount-input w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">

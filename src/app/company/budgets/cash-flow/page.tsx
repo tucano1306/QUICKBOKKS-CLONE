@@ -859,14 +859,15 @@ export default function BudgetCashFlowPage() {
                       <div key={months[idx]}>
                         <label className="text-xs font-medium text-gray-600">{month}</label>
                         <Input 
-                          type="number"
+                          type="text"
                           placeholder="0"
+                          className="amount-input"
                           value={newPeriodData.amounts[months[idx] as keyof typeof newPeriodData.amounts] || ''}
                           onChange={(e) => setNewPeriodData({
                             ...newPeriodData,
                             amounts: {
                               ...newPeriodData.amounts,
-                              [months[idx]]: Number(e.target.value) || 0
+                              [months[idx]]: Number(e.target.value.replace(/,/g, '')) || 0
                             }
                           })}
                         />

@@ -1016,10 +1016,11 @@ File via EFTPS (federal) and FloridaRevenue.com (state).
                 <div>
                   <label className="text-sm font-medium">Amount to Pay</label>
                   <Input 
-                    type="number"
+                    type="text"
+                    className="amount-input"
                     placeholder="0.00"
                     value={paymentData.amount || ''}
-                    onChange={(e) => setPaymentData({...paymentData, amount: Number(e.target.value)})}
+                    onChange={(e) => setPaymentData({...paymentData, amount: Number(e.target.value.replace(/,/g, ''))})}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {paymentData.type === 'federal' && `Pending: $${(taxSummary.totalFederalWithholding + taxSummary.totalSocialSecurityEmployee + taxSummary.totalSocialSecurityEmployer + taxSummary.totalMedicareEmployee + taxSummary.totalMedicareEmployer).toLocaleString('en-US')}`}

@@ -431,8 +431,8 @@ export default function CompanySettingsPage() {
                   Default Sales Tax Rate (%)
                 </label>
                 <Input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  className="amount-input"
                   value={taxSettings.salesTaxRate}
                   onChange={(e) => setTaxSettings({...taxSettings, salesTaxRate: e.target.value})}
                   placeholder="7.0"

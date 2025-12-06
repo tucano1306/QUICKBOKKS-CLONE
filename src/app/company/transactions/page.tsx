@@ -277,7 +277,8 @@ export default function TransactionsPage() {
                 <div className="flex-1">
                   <label className="text-sm font-medium mb-1 block">Monto mín</label>
                   <Input
-                    type="number"
+                    type="text"
+                    className="amount-input"
                     placeholder="0"
                     value={minAmount}
                     onChange={(e) => setMinAmount(e.target.value)}
@@ -286,7 +287,8 @@ export default function TransactionsPage() {
                 <div className="flex-1">
                   <label className="text-sm font-medium mb-1 block">Monto máx</label>
                   <Input
-                    type="number"
+                    type="text"
+                    className="amount-input"
                     placeholder="∞"
                     value={maxAmount}
                     onChange={(e) => setMaxAmount(e.target.value)}

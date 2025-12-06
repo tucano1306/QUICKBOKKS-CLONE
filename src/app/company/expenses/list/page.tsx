@@ -91,8 +91,8 @@ export default function ExpensesListPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // Load expenses
-      const expensesRes = await fetch('/api/expenses')
+      // Load expenses - usar limit=500 para cargar todos los gastos
+      const expensesRes = await fetch('/api/expenses?limit=500')
       if (expensesRes.ok) {
         const expensesData = await expensesRes.json()
         // La API puede devolver { data: [...] } o un array directo

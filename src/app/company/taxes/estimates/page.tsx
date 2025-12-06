@@ -236,7 +236,7 @@ export default function TaxEstimatesPage() {
                   <label className="text-sm font-semibold text-gray-700 mb-2 block">Estimated Annual Taxable Income</label>
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">$</span>
-                    <input type="number" value={estimatedAnnualIncome} onChange={(e) => setEstimatedAnnualIncome(Number(e.target.value))} className="flex-1 px-4 py-2 border rounded-lg" />
+                    <input type="text" value={estimatedAnnualIncome} onChange={(e) => setEstimatedAnnualIncome(Number(e.target.value.replace(/,/g, '')))} className="amount-input flex-1 px-4 py-2 border rounded-lg" />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Projected taxable income for {selectedYear}</p>
                 </div>
@@ -245,7 +245,7 @@ export default function TaxEstimatesPage() {
                   <label className="text-sm font-semibold text-gray-700 mb-2 block">Prior Year Tax Liability</label>
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">$</span>
-                    <input type="number" value={priorYearTax} onChange={(e) => setPriorYearTax(Number(e.target.value))} className="flex-1 px-4 py-2 border rounded-lg" />
+                    <input type="text" value={priorYearTax} onChange={(e) => setPriorYearTax(Number(e.target.value.replace(/,/g, '')))} className="amount-input flex-1 px-4 py-2 border rounded-lg" />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Total tax liability from prior year return</p>
                 </div>

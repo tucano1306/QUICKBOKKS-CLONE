@@ -242,13 +242,11 @@ export default function NewRecurringInvoicePage() {
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  type="number"
+                  type="text"
                   value={amount}
-                  onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                  className="pl-10"
+                  onChange={(e) => setAmount(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                  className="pl-10 amount-input"
                   placeholder="0.00"
-                  min="0"
-                  step="0.01"
                 />
               </div>
             </div>

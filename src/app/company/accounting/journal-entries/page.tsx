@@ -838,20 +838,18 @@ export default function JournalEntriesPage() {
                           onChange={(e) => updateLine(line.id, 'description', e.target.value)}
                         />
                         <Input 
-                          className="col-span-2 text-sm text-right" 
-                          type="number"
-                          step="0.01"
+                          className="amount-input col-span-2 text-sm text-right" 
+                          type="text"
                           placeholder="0.00"
                           value={line.debit || ''}
-                          onChange={(e) => updateLine(line.id, 'debit', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => updateLine(line.id, 'debit', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
                         />
                         <Input 
-                          className="col-span-2 text-sm text-right" 
-                          type="number"
-                          step="0.01"
+                          className="amount-input col-span-2 text-sm text-right" 
+                          type="text"
                           placeholder="0.00"
                           value={line.credit || ''}
-                          onChange={(e) => updateLine(line.id, 'credit', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => updateLine(line.id, 'credit', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
                         />
                         <div className="col-span-2 flex gap-1 justify-end">
                           <Button 

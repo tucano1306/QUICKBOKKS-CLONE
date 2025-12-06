@@ -770,12 +770,11 @@ export default function BankAccountsPage() {
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                       <Input
-                        type="number"
-                        step="0.01"
+                        type="text"
                         placeholder="0.00"
-                        className="pl-8"
+                        className="amount-input pl-8"
                         value={newAccount.currentBalance || ''}
-                        onChange={(e) => setNewAccount({ ...newAccount, currentBalance: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => setNewAccount({ ...newAccount, currentBalance: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
                       />
                     </div>
                     <p className="text-xs text-gray-500">

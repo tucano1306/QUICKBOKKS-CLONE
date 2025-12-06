@@ -474,8 +474,8 @@ export default function CustomerCRMPage() {
                     <label className="block text-sm font-medium mb-1">Duración (minutos)</label>
                     <Input
                       name="duration"
-                      type="number"
-                      min="0"
+                      type="text"
+                      className="amount-input"
                       defaultValue="0"
                       placeholder="0"
                     />

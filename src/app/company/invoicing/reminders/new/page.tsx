@@ -245,11 +245,10 @@ export default function NewReminderPage() {
                   Días {schedule === 'before_due' ? 'antes' : 'después'}
                 </label>
                 <Input
-                  type="number"
+                  type="text"
+                  className="amount-input"
                   value={days}
                   onChange={(e) => setDays(parseInt(e.target.value) || 0)}
-                  min="1"
-                  max="90"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Se enviará {days} {days === 1 ? 'día' : 'días'} {schedule === 'before_due' ? 'antes' : 'después'} del vencimiento

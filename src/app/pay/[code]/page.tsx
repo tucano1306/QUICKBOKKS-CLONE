@@ -183,8 +183,8 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
                 <div>
                   <label className="block text-sm font-medium mb-2">Monto a Pagar</label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    className="amount-input"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"

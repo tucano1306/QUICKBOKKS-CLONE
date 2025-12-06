@@ -436,9 +436,10 @@ export default function EmployeesPage() {
                   <div>
                     <label className="text-sm font-medium">Salario Anual</label>
                     <Input 
-                      type="number" 
+                      type="text"
+                      className="amount-input"
                       value={editFormData.salary}
-                      onChange={(e) => setEditFormData({...editFormData, salary: Number(e.target.value)})}
+                      onChange={(e) => setEditFormData({...editFormData, salary: Number(e.target.value.replace(/,/g, ''))})}
                     />
                   </div>
                   <div>
@@ -567,7 +568,7 @@ export default function EmployeesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Salario Anual</label>
-                    <Input type="number" placeholder="75000" />
+                    <Input type="text" className="amount-input" placeholder="75000" />
                   </div>
                   <div>
                     <label className="text-sm font-medium">Fecha de Inicio</label>
@@ -631,7 +632,7 @@ export default function EmployeesPage() {
                     </div>
                     <div>
                       <label className="text-sm font-medium">Allowances</label>
-                      <Input type="number" placeholder="1" defaultValue="1" />
+                      <Input type="text" className="amount-input" placeholder="1" defaultValue="1" />
                     </div>
                   </div>
                 </div>

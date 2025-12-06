@@ -408,11 +408,15 @@ export default function EditExpensePage() {
                   <Input
                     id="amount"
                     name="amount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.amount}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/,/g, '.');
+                      if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                        handleChange({ target: { name: 'amount', value: val } } as React.ChangeEvent<HTMLInputElement>);
+                      }
+                    }}
                     placeholder="0.00"
                     required
                   />
@@ -560,11 +564,15 @@ export default function EditExpensePage() {
                         <div className="w-28">
                           <Label className="text-xs text-gray-500">Monto</Label>
                           <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             value={split.amount}
-                            onChange={(e) => updatePaymentSplit(split.id, 'amount', e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/,/g, '.');
+                              if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                                updatePaymentSplit(split.id, 'amount', val);
+                              }
+                            }}
                             placeholder="0.00"
                             className="text-sm"
                           />
@@ -664,11 +672,15 @@ export default function EditExpensePage() {
                   <Input
                     id="taxAmount"
                     name="taxAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.taxAmount}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/,/g, '.');
+                      if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                        handleChange({ target: { name: 'taxAmount', value: val } } as React.ChangeEvent<HTMLInputElement>);
+                      }
+                    }}
                     placeholder="0.00"
                   />
                 </div>
