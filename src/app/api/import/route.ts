@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
                 companyId,
                 name: row.name || row.nombre || `Product ${i + 1}`,
                 description: row.description || row.descripcion || null,
-                type: row.type === 'INVENTORY' ? 'INVENTORY' : 'SERVICE',
+                type: row.type === 'SERVICE' ? 'SERVICE' : 'PRODUCT',
                 sku,
                 price: parseFloat(row.price || row.precio || '0'),
                 cost: row.cost || row.costo ? parseFloat(row.cost || row.costo) : null,
@@ -167,10 +167,9 @@ export async function POST(request: NextRequest) {
             await prisma.chartOfAccounts.create({
               data: {
                 companyId,
-                accountNumber: row.accountNumber || row.numero || `${1000 + i}`,
+                code: row.code || row.accountNumber || row.numero || `${1000 + i}`,
                 name: row.name || row.nombre || `Account ${i + 1}`,
                 type: row.type || row.tipo || 'EXPENSE',
-                subType: row.subType || null,
                 description: row.description || row.descripcion || null,
                 balance: parseFloat(row.balance || row.saldo || '0'),
                 isActive: true

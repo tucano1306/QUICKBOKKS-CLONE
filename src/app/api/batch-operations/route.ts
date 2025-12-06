@@ -75,8 +75,7 @@ export async function POST(request: NextRequest) {
             await prisma.bankTransaction.update({
               where: { id },
               data: {
-                category: actionData?.category || null,
-                status: 'CATEGORIZED'
+                categoryId: actionData?.categoryId || null
               }
             })
             successItems++
@@ -112,7 +111,7 @@ export async function POST(request: NextRequest) {
             await prisma.bankTransaction.update({
               where: { id },
               data: { 
-                isReconciled: true,
+                reconciled: true,
                 reconciledAt: new Date()
               }
             })
