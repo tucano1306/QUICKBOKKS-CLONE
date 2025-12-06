@@ -144,7 +144,10 @@ export default function CompanyDashboardPage() {
     return (
       <CompanyTabsLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-[#2CA01C] border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-600 font-medium">Cargando dashboard...</span>
+          </div>
         </div>
       </CompanyTabsLayout>
     )
@@ -187,15 +190,15 @@ export default function CompanyDashboardPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-blue-600" />
+            <h1 className="text-2xl font-bold text-[#0D2942] flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-[#2CA01C]" />
               Dashboard - {activeCompany.name}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-gray-500 mt-1">
               Resumen general de tu negocio en tiempo real
             </p>
           </div>
@@ -222,27 +225,27 @@ export default function CompanyDashboardPage() {
         </div>
 
         {/* Acceso Rápido */}
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-800">
+        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200 shadow-md">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4">
-              <ArrowRight className="w-4 h-4 text-blue-600" />
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Acceso Rápido</h3>
+              <ArrowRight className="w-4 h-4 text-[#2CA01C]" />
+              <h3 className="text-sm font-semibold text-[#0D2942]">Acceso Rápido</h3>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Button
                 onClick={() => router.push('/company/accounting/chart-of-accounts')}
                 variant="outline"
-                className="h-auto py-3 px-4 flex-col gap-2 hover:bg-white dark:hover:bg-gray-800 hover:border-green-400 hover:shadow-md transition-all"
+                className="h-auto py-3 px-4 flex-col gap-2 bg-white hover:bg-green-50 hover:border-[#2CA01C] hover:shadow-md transition-all"
               >
-                <Calculator className="w-5 h-5 text-green-600" />
+                <Calculator className="w-5 h-5 text-[#2CA01C]" />
                 <span className="text-xs font-semibold">Contabilidad</span>
               </Button>
               <Button
                 onClick={() => router.push('/company/reports/balance-sheet')}
                 variant="outline"
-                className="h-auto py-3 px-4 flex-col gap-2 hover:bg-white dark:hover:bg-gray-800 hover:border-purple-400 hover:shadow-md transition-all"
+                className="h-auto py-3 px-4 flex-col gap-2 bg-white hover:bg-blue-50 hover:border-[#0077C5] hover:shadow-md transition-all"
               >
-                <PieChart className="w-5 h-5 text-purple-600" />
+                <PieChart className="w-5 h-5 text-[#0077C5]" />
                 <span className="text-xs font-semibold">Reportes</span>
               </Button>
               <Button
@@ -276,28 +279,28 @@ export default function CompanyDashboardPage() {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
-                  stat.color === 'green' ? 'from-green-400 to-emerald-500' :
+                  stat.color === 'green' ? 'from-[#2CA01C] to-[#108000]' :
                   stat.color === 'red' ? 'from-red-400 to-rose-500' :
-                  stat.color === 'blue' ? 'from-blue-400 to-indigo-500' :
-                  'from-orange-400 to-amber-500'
+                  stat.color === 'blue' ? 'from-[#0077C5] to-blue-600' :
+                  'from-amber-400 to-orange-500'
                 }`} />
                 <CardContent className="p-6 relative">
                   <div className="flex items-center justify-between mb-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${
-                      stat.color === 'green' ? 'bg-gradient-to-br from-green-100 to-emerald-200 dark:from-green-900/30 dark:to-emerald-900/30' :
-                      stat.color === 'red' ? 'bg-gradient-to-br from-red-100 to-rose-200 dark:from-red-900/30 dark:to-rose-900/30' :
-                      stat.color === 'blue' ? 'bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-900/30' :
-                      'bg-gradient-to-br from-orange-100 to-amber-200 dark:from-orange-900/30 dark:to-amber-900/30'
+                      stat.color === 'green' ? 'bg-green-100' :
+                      stat.color === 'red' ? 'bg-red-100' :
+                      stat.color === 'blue' ? 'bg-blue-100' :
+                      'bg-amber-100'
                     }`}>
                       <Icon className={`w-6 h-6 ${
-                        stat.color === 'green' ? 'text-green-600' :
+                        stat.color === 'green' ? 'text-[#2CA01C]' :
                         stat.color === 'red' ? 'text-red-600' :
-                        stat.color === 'blue' ? 'text-blue-600' :
-                        'text-orange-600'
+                        stat.color === 'blue' ? 'text-[#0077C5]' :
+                        'text-amber-600'
                       }`} />
                     </div>
-                    <div className={`flex items-center gap-1 text-sm font-semibold px-2 py-1 rounded-full ${
-                      stat.trend === 'up' ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
+                    <div className={`flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full ${
+                      stat.trend === 'up' ? 'text-[#108000] bg-green-100' : 'text-red-700 bg-red-100'
                     }`}>
                       {stat.trend === 'up' ? (
                         <ArrowUpRight className="w-4 h-4" />
@@ -307,17 +310,17 @@ export default function CompanyDashboardPage() {
                       {stat.change}
                     </div>
                   </div>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                  <div className="text-3xl font-bold text-[#0D2942] mb-1">
                     {stat.value}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                  <div className="text-sm text-gray-500 font-medium">
                     {stat.name}
                   </div>
                   {/* Mini sparkline */}
                   <div className="absolute bottom-2 right-2 opacity-30">
                     <Sparkline 
                       data={[30, 45, 35, 50, 40, 60, 55]} 
-                      color={stat.color === 'green' ? '#22c55e' : stat.color === 'red' ? '#ef4444' : stat.color === 'blue' ? '#3b82f6' : '#f97316'}
+                      color={stat.color === 'green' ? '#2CA01C' : stat.color === 'red' ? '#ef4444' : stat.color === 'blue' ? '#0077C5' : '#f59e0b'}
                       height={30}
                       width={60}
                     />
@@ -331,20 +334,20 @@ export default function CompanyDashboardPage() {
         {/* Gráficos principales mejorados */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Gráfico de barras animado */}
-          <Card className="lg:col-span-2 overflow-hidden">
-            <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800">
+          <Card className="lg:col-span-2 overflow-hidden shadow-md">
+            <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-white">
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                <CardTitle className="flex items-center gap-2 text-[#0D2942]">
+                  <BarChart3 className="w-5 h-5 text-[#2CA01C]" />
                   Rendimiento Mensual
                 </CardTitle>
                 <div className="flex gap-4 text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-500" />
+                    <div className="w-3 h-3 rounded-full bg-[#2CA01C]" />
                     <span className="text-gray-600">Ingresos</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-red-500 to-rose-500" />
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
                     <span className="text-gray-600">Gastos</span>
                   </div>
                 </div>
@@ -353,38 +356,53 @@ export default function CompanyDashboardPage() {
             <CardContent className="p-6">
               {stats && (
                 <div className="space-y-6">
-                  <AnimatedBarChart
-                    data={[
-                      { label: 'Ene', value: stats.revenue.current * 0.8, color: 'from-green-500 to-emerald-500' },
-                      { label: 'Feb', value: stats.revenue.current * 0.9, color: 'from-green-500 to-emerald-500' },
-                      { label: 'Mar', value: stats.revenue.current * 0.85, color: 'from-green-500 to-emerald-500' },
-                      { label: 'Abr', value: stats.revenue.current * 1.1, color: 'from-green-500 to-emerald-500' },
-                      { label: 'May', value: stats.revenue.current * 0.95, color: 'from-green-500 to-emerald-500' },
-                      { label: 'Jun', value: stats.revenue.current, color: 'from-green-500 to-emerald-500' },
-                    ]}
-                    height={180}
-                    animated={true}
-                  />
-                  
-                  {/* Resumen con progreso animado */}
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
+                  {/* Resumen financiero real */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-green-50 rounded-xl">
+                      <div className="text-2xl font-bold text-[#2CA01C]">
                         <AnimatedCounter value={stats.revenue.current} prefix="$" decimals={0} />
                       </div>
-                      <div className="text-xs text-gray-500">Ingresos Totales</div>
+                      <div className="text-xs text-gray-500 mt-1">Ingresos Totales</div>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center p-4 bg-red-50 rounded-xl">
                       <div className="text-2xl font-bold text-red-600">
                         <AnimatedCounter value={stats.expenses.current} prefix="$" decimals={0} />
                       </div>
-                      <div className="text-xs text-gray-500">Gastos Totales</div>
+                      <div className="text-xs text-gray-500 mt-1">Gastos Totales</div>
                     </div>
-                    <div className="text-center">
+                    <div className={`text-center p-4 rounded-xl ${stats.revenue.current - stats.expenses.current >= 0 ? 'bg-blue-50' : 'bg-red-50'}`}>
                       <div className={`text-2xl font-bold ${stats.revenue.current - stats.expenses.current >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                         <AnimatedCounter value={stats.revenue.current - stats.expenses.current} prefix="$" decimals={0} />
                       </div>
-                      <div className="text-xs text-gray-500">Utilidad Neta</div>
+                      <div className="text-xs text-gray-500 mt-1">Utilidad Neta</div>
+                    </div>
+                  </div>
+                  
+                  {/* Barra de comparación visual */}
+                  <div className="space-y-3 pt-4 border-t">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">Ingresos</span>
+                        <span className="font-medium text-[#2CA01C]">${stats.revenue.current.toLocaleString()}</span>
+                      </div>
+                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#2CA01C] to-[#108000] rounded-full transition-all duration-1000"
+                          style={{ width: stats.revenue.current > 0 ? '100%' : '0%' }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">Gastos</span>
+                        <span className="font-medium text-red-600">${stats.expenses.current.toLocaleString()}</span>
+                      </div>
+                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full transition-all duration-1000"
+                          style={{ width: stats.revenue.current > 0 ? `${Math.min((stats.expenses.current / stats.revenue.current) * 100, 100)}%` : '0%' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -392,64 +410,105 @@ export default function CompanyDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Gráfico de dona */}
+          {/* Resumen de cuentas */}
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
               <CardTitle className="flex items-center gap-2">
                 <Target className="w-5 h-5 text-purple-600" />
-                Distribución de Gastos
+                Resumen de Cuentas
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 flex items-center justify-center">
+            <CardContent className="p-6">
               {stats && (
-                <AnimatedDonutChart
-                  data={[
-                    { label: 'Operativos', value: stats.expenses.current * 0.4, color: '#3b82f6' },
-                    { label: 'Salarios', value: stats.expenses.current * 0.35, color: '#22c55e' },
-                    { label: 'Marketing', value: stats.expenses.current * 0.15, color: '#f97316' },
-                    { label: 'Otros', value: stats.expenses.current * 0.1, color: '#a855f7' },
-                  ]}
-                  size={160}
-                  thickness={25}
-                  centerLabel="Total"
-                  animated={true}
-                />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Cuentas por Cobrar</p>
+                        <p className="text-xs text-gray-500">{stats.invoices.pending} facturas pendientes</p>
+                      </div>
+                    </div>
+                    <p className="text-lg font-bold text-blue-600">${stats.receivables.toLocaleString()}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <TrendingDown className="w-5 h-5 text-red-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Cuentas por Pagar</p>
+                        <p className="text-xs text-gray-500">Total de gastos registrados</p>
+                      </div>
+                    </div>
+                    <p className="text-lg font-bold text-red-600">${stats.payables.toLocaleString()}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <Wallet className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Balance de Caja</p>
+                        <p className="text-xs text-gray-500">Ingresos - Gastos</p>
+                      </div>
+                    </div>
+                    <p className={`text-lg font-bold ${stats.cashBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ${stats.cashBalance.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Metas y KPIs */}
+        {/* Acciones rápidas */}
         <Card className="overflow-hidden">
           <CardHeader className="border-b bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20">
             <CardTitle className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-amber-600" />
-              Metas del Mes
+              Acciones Rápidas
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">Ventas</span>
-                  <span className="text-sm text-gray-500">$45K / $50K</span>
-                </div>
-                <AnimatedProgress value={90} color="green" height={10} showValue={false} />
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">Nuevos Clientes</span>
-                  <span className="text-sm text-gray-500">8 / 10</span>
-                </div>
-                <AnimatedProgress value={80} color="blue" height={10} showValue={false} />
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">Cobros</span>
-                  <span className="text-sm text-gray-500">$38K / $40K</span>
-                </div>
-                <AnimatedProgress value={95} color="purple" height={10} showValue={false} />
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Button
+                onClick={() => router.push('/company/invoicing/invoices')}
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2 hover:bg-blue-50 hover:border-blue-300"
+              >
+                <FileText className="w-6 h-6 text-blue-600" />
+                <span className="text-sm font-medium">Nueva Factura</span>
+              </Button>
+              <Button
+                onClick={() => router.push('/company/expenses/list')}
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2 hover:bg-red-50 hover:border-red-300"
+              >
+                <Receipt className="w-6 h-6 text-red-600" />
+                <span className="text-sm font-medium">Nuevo Gasto</span>
+              </Button>
+              <Button
+                onClick={() => router.push('/company/customers')}
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2 hover:bg-green-50 hover:border-green-300"
+              >
+                <Users className="w-6 h-6 text-green-600" />
+                <span className="text-sm font-medium">Nuevo Cliente</span>
+              </Button>
+              <Button
+                onClick={() => router.push('/company/reports/profit-loss')}
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2 hover:bg-purple-50 hover:border-purple-300"
+              >
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+                <span className="text-sm font-medium">Ver Reportes</span>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -509,7 +568,7 @@ export default function CompanyDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Calendario de vencimientos */}
+          {/* Calendario de vencimientos - Datos reales */}
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20">
               <CardTitle className="flex items-center gap-2">
@@ -518,36 +577,47 @@ export default function CompanyDashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              <div className="space-y-3">
-                {[
-                  { name: 'Factura #001245', client: 'Tech Solutions', amount: 5500, days: 3, type: 'warning' },
-                  { name: 'Factura #001238', client: 'ABC Corp', amount: 12000, days: 5, type: 'info' },
-                  { name: 'Factura #001220', client: 'Global Inc', amount: 8750, days: 7, type: 'info' },
-                  { name: 'Pago proveedor', client: 'Supplies LLC', amount: 3200, days: 2, type: 'danger' },
-                ].map((item, index) => (
-                  <div 
-                    key={index}
-                    className={`flex items-center justify-between p-3 rounded-lg border-l-4 ${
-                      item.type === 'danger' ? 'bg-red-50 border-red-500' :
-                      item.type === 'warning' ? 'bg-amber-50 border-amber-500' :
-                      'bg-blue-50 border-blue-500'
-                    }`}
+              {stats && (stats.invoices.pending > 0 || stats.invoices.overdue > 0) ? (
+                <div className="space-y-3">
+                  {stats.invoices.overdue > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg border-l-4 bg-red-50 border-red-500">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Facturas Vencidas</p>
+                        <p className="text-xs text-gray-500">{stats.invoices.overdue} facturas requieren atención</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-red-600">{stats.invoices.overdue}</p>
+                        <p className="text-xs font-medium text-red-600">Vencidas</p>
+                      </div>
+                    </div>
+                  )}
+                  {stats.invoices.pending > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg border-l-4 bg-amber-50 border-amber-500">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Facturas Pendientes</p>
+                        <p className="text-xs text-gray-500">{stats.invoices.pending} facturas por cobrar</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-amber-600">{stats.invoices.pending}</p>
+                        <p className="text-xs font-medium text-amber-600">Pendientes</p>
+                      </div>
+                    </div>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-2"
+                    onClick={() => router.push('/company/invoicing/invoices')}
                   >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{item.name}</p>
-                      <p className="text-xs text-gray-500">{item.client}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-gray-900">{formatCurrency(item.amount)}</p>
-                      <p className={`text-xs font-medium ${
-                        item.days <= 2 ? 'text-red-600' : item.days <= 5 ? 'text-amber-600' : 'text-blue-600'
-                      }`}>
-                        {item.days === 0 ? 'Hoy' : `En ${item.days} días`}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    Ver todas las facturas
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <Calendar className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No hay vencimientos próximos</p>
+                  <p className="text-xs mt-1">¡Todo está al día!</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

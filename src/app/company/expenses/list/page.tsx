@@ -370,22 +370,22 @@ export default function ExpensesListPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
+        return <CheckCircle className="h-4 w-4 text-[#2CA01C]" />
       case 'REJECTED':
         return <XCircle className="h-4 w-4 text-red-600" />
       case 'PAID':
-        return <DollarSign className="h-4 w-4 text-blue-600" />
+        return <DollarSign className="h-4 w-4 text-[#0077C5]" />
       default:
-        return <Clock className="h-4 w-4 text-yellow-600" />
+        return <Clock className="h-4 w-4 text-amber-600" />
     }
   }
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      APPROVED: 'bg-green-100 text-green-800',
-      REJECTED: 'bg-red-100 text-red-800',
-      PAID: 'bg-blue-100 text-blue-800'
+      PENDING: 'bg-amber-50 text-amber-700 border border-amber-200',
+      APPROVED: 'bg-green-50 text-[#108000] border border-green-200',
+      REJECTED: 'bg-red-50 text-red-700 border border-red-200',
+      PAID: 'bg-blue-50 text-[#0077C5] border border-blue-200'
     }
     const labels = {
       PENDING: 'Pendiente',
@@ -394,7 +394,7 @@ export default function ExpensesListPage() {
       PAID: 'Pagado'
     }
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status as keyof typeof styles]}`}>
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${styles[status as keyof typeof styles]}`}>
         {getStatusIcon(status)}
         {labels[status as keyof typeof labels]}
       </span>
@@ -405,7 +405,10 @@ export default function ExpensesListPage() {
     return (
       <CompanyTabsLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="text-gray-600">Cargando gastos...</div>
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-[#2CA01C] border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-600 font-medium">Cargando gastos...</span>
+          </div>
         </div>
       </CompanyTabsLayout>
     )
@@ -416,23 +419,23 @@ export default function ExpensesListPage() {
       <div className="space-y-6">
         {/* Message Feedback */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+          <div className={`p-4 rounded-xl flex items-center gap-2 shadow-sm ${
             message.type === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
+              ? 'bg-green-50 text-[#108000] border border-green-200' 
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}>
             {message.type === 'success' 
               ? <CheckCircle className="h-5 w-5" /> 
               : <AlertCircle className="h-5 w-5" />}
-            <span>{message.text}</span>
+            <span className="font-medium">{message.text}</span>
           </div>
         )}
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lista de Gastos</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-[#0D2942]">Lista de Gastos</h1>
+            <p className="text-sm text-gray-500 mt-1">
               Gestiona y controla todos los gastos de tu empresa
             </p>
           </div>

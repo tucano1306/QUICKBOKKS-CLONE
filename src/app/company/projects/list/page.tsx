@@ -604,92 +604,93 @@ export default function ProjectsListPage() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">
+        <div className="qb-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="qb-modal max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="qb-modal-header">
+              <h2 className="qb-modal-title">
                 {selectedProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+              <button onClick={() => setShowModal(false)} className="qb-modal-close">
+                <X className="w-5 h-5" />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre del Proyecto <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Nombre del proyecto"
-                    required
+            <form onSubmit={handleSubmit}>
+              <div className="qb-modal-body space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="qb-form-group">
+                    <label className="qb-label">
+                      Nombre del Proyecto <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Nombre del proyecto"
+                      required
+                    />
+                  </div>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Código</label>
+                    <Input
+                      value={formData.code}
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                      placeholder="PRJ-001"
+                    />
+                  </div>
+                </div>
+
+                <div className="qb-form-group">
+                  <label className="qb-label">Descripción</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Descripción del proyecto"
+                    rows={3}
+                    className="qb-select min-h-[80px] resize-none"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Código</label>
-                  <Input
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    placeholder="PRJ-001"
-                  />
-                </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Descripción del proyecto"
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="PLANNING">Planificación</option>
-                    <option value="IN_PROGRESS">En Progreso</option>
-                    <option value="ON_HOLD">En Espera</option>
-                    <option value="COMPLETED">Completado</option>
-                    <option value="CANCELLED">Cancelado</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="qb-form-group">
+                    <label className="qb-label">Estado</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="qb-select"
+                    >
+                      <option value="PLANNING">Planificación</option>
+                      <option value="IN_PROGRESS">En Progreso</option>
+                      <option value="ON_HOLD">En Espera</option>
+                      <option value="COMPLETED">Completado</option>
+                      <option value="CANCELLED">Cancelado</option>
+                    </select>
+                  </div>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Prioridad</label>
+                    <select
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                      className="qb-select"
+                    >
+                      <option value="LOW">Baja</option>
+                      <option value="MEDIUM">Media</option>
+                      <option value="HIGH">Alta</option>
+                      <option value="URGENT">Urgente</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="LOW">Baja</option>
-                    <option value="MEDIUM">Media</option>
-                    <option value="HIGH">Alta</option>
-                    <option value="URGENT">Urgente</option>
-                  </select>
-                </div>
-              </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Inicio</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Fecha de Inicio</label>
                   <Input
                     type="date"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Fin</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Fecha de Fin</label>
                   <Input
                     type="date"
                     value={formData.endDate}
@@ -699,8 +700,8 @@ export default function ProjectsListPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Presupuesto</label>
                   <Input
                     type="text"
                     className="amount-input"
@@ -709,12 +710,12 @@ export default function ProjectsListPage() {
                     placeholder="0.00"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Centro de Costo</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Centro de Costo</label>
                   <select
                     value={formData.costCenterId}
                     onChange={(e) => setFormData({ ...formData, costCenterId: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="qb-select"
                   >
                     <option value="">Sin centro de costo</option>
                     {costCenters.map(cc => (
@@ -724,12 +725,12 @@ export default function ProjectsListPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cliente Asociado</label>
+              <div className="qb-form-group">
+                <label className="qb-label">Cliente Asociado</label>
                 <select
                   value={formData.customerId}
                   onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="qb-select"
                 >
                   <option value="">Sin cliente asociado</option>
                   {customers.map(c => (
@@ -737,12 +738,13 @@ export default function ProjectsListPage() {
                   ))}
                 </select>
               </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              </div>
+              
+              <div className="qb-modal-footer">
                 <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={saving}>
+                <Button type="submit" variant="success" disabled={saving}>
                   {saving ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                   ) : (
@@ -758,21 +760,21 @@ export default function ProjectsListPage() {
 
       {/* View Modal */}
       {showViewModal && selectedProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">Detalles del Proyecto</h2>
-              <button onClick={() => setShowViewModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+        <div className="qb-modal-overlay" onClick={() => setShowViewModal(false)}>
+          <div className="qb-modal max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="qb-modal-header">
+              <h2 className="qb-modal-title">Detalles del Proyecto</h2>
+              <button onClick={() => setShowViewModal(false)} className="qb-modal-close">
+                <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="p-6 space-y-6">
+            <div className="qb-modal-body space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900">{selectedProject.name}</h3>
+                  <h3 className="text-2xl font-bold text-[#0D2942]">{selectedProject.name}</h3>
                   {selectedProject.code && (
-                    <span className="font-mono text-blue-600">{selectedProject.code}</span>
+                    <span className="font-mono text-[#0077C5]">{selectedProject.code}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -786,54 +788,54 @@ export default function ProjectsListPage() {
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500">Presupuesto</div>
-                  <div className="text-xl font-bold text-gray-900">${selectedProject.budget.toLocaleString()}</div>
+                <div className="qb-info-box">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Presupuesto</div>
+                  <div className="text-xl font-bold text-[#0D2942] mt-1">${selectedProject.budget.toLocaleString()}</div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500">Costo Real</div>
-                  <div className={`text-xl font-bold ${selectedProject.actualCost > selectedProject.budget ? 'text-red-600' : 'text-green-600'}`}>
+                <div className="qb-info-box">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Costo Real</div>
+                  <div className={`text-xl font-bold mt-1 ${selectedProject.actualCost > selectedProject.budget ? 'text-red-600' : 'text-[#2CA01C]'}`}>
                     ${selectedProject.actualCost.toLocaleString()}
                   </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500">Ingresos</div>
-                  <div className="text-xl font-bold text-green-600">${selectedProject.revenue.toLocaleString()}</div>
+                <div className="qb-info-box">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Ingresos</div>
+                  <div className="text-xl font-bold text-[#2CA01C] mt-1">${selectedProject.revenue.toLocaleString()}</div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500">Progreso</div>
-                  <div className="text-xl font-bold text-blue-600">{selectedProject.progress}%</div>
+                <div className="qb-info-box">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Progreso</div>
+                  <div className="text-xl font-bold text-[#0077C5] mt-1">{selectedProject.progress}%</div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
+                <div className="qb-info-box">
                   <span className="text-gray-500">Fecha de Inicio:</span>
-                  <span className="ml-2 text-gray-900">
-                    {selectedProject.startDate ? new Date(selectedProject.startDate).toLocaleDateString('es-MX') : 'No definida'}
+                  <span className="ml-2 font-semibold text-[#0D2942]">
+                    {selectedProject.startDate ? new Date(selectedProject.startDate).toLocaleDateString('en-US') : 'No definida'}
                   </span>
                 </div>
-                <div>
+                <div className="qb-info-box">
                   <span className="text-gray-500">Fecha de Fin:</span>
-                  <span className="ml-2 text-gray-900">
-                    {selectedProject.endDate ? new Date(selectedProject.endDate).toLocaleDateString('es-MX') : 'No definida'}
+                  <span className="ml-2 font-semibold text-[#0D2942]">
+                    {selectedProject.endDate ? new Date(selectedProject.endDate).toLocaleDateString('en-US') : 'No definida'}
                   </span>
                 </div>
-                <div>
+                <div className="qb-info-box col-span-2">
                   <span className="text-gray-500">Centro de Costo:</span>
-                  <span className="ml-2 text-gray-900">{selectedProject.costCenter?.name || 'No asignado'}</span>
+                  <span className="ml-2 font-semibold text-[#0D2942]">{selectedProject.costCenter?.name || 'No asignado'}</span>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowViewModal(false)}>
-                  Cerrar
-                </Button>
-                <Button onClick={() => { setShowViewModal(false); openEditModal(selectedProject); }}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar Proyecto
-                </Button>
-              </div>
+            </div>
+            
+            <div className="qb-modal-footer">
+              <Button variant="outline" onClick={() => setShowViewModal(false)}>
+                Cerrar
+              </Button>
+              <Button variant="success" onClick={() => { setShowViewModal(false); openEditModal(selectedProject); }}>
+                <Edit className="w-4 h-4 mr-2" />
+                Editar Proyecto
+              </Button>
             </div>
           </div>
         </div>
@@ -841,41 +843,47 @@ export default function ProjectsListPage() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-            <div className="p-6">
+        <div className="qb-modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="qb-modal max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="qb-modal-header !bg-gradient-to-r !from-red-600 !to-red-500">
+              <h3 className="qb-modal-title">⚠️ Eliminar Proyecto</h3>
+              <button onClick={() => setShowDeleteModal(false)} className="qb-modal-close">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="qb-modal-body">
               <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-red-100 rounded-full">
+                <div className="p-3 bg-red-100 rounded-xl">
                   <AlertCircle className="w-6 h-6 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Eliminar Proyecto</h3>
-                  <p className="text-gray-600">Esta acción no se puede deshacer</p>
+                  <p className="text-[#0D2942] font-semibold">Esta acción no se puede deshacer</p>
                 </div>
               </div>
               
-              <p className="text-gray-600 mb-6">
-                ¿Estás seguro de que deseas eliminar el proyecto <strong>{selectedProject.name}</strong>?
+              <p className="text-gray-600">
+                ¿Estás seguro de que deseas eliminar el proyecto <strong className="text-[#0D2942]">{selectedProject.name}</strong>?
                 Se eliminarán todos los datos asociados.
               </p>
+            </div>
 
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleDelete}
-                  disabled={saving}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  {saving ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  ) : (
-                    <Trash2 className="w-4 h-4 mr-2" />
-                  )}
-                  Eliminar
-                </Button>
-              </div>
+            <div className="qb-modal-footer">
+              <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleDelete}
+                disabled={saving}
+                variant="destructive"
+              >
+                {saving ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Eliminar
+              </Button>
             </div>
           </div>
         </div>

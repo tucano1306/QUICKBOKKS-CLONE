@@ -280,7 +280,11 @@ export default function EmployeesPage() {
                       <div className="flex flex-col items-center gap-2">
                         <UserCheck className="w-12 h-12 text-gray-300" />
                         <p className="text-gray-500">No hay empleados registrados</p>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowNewEmployeeModal(true)}
+                        >
                           <Plus className="w-4 h-4 mr-2" />
                           Agregar primer empleado
                         </Button>

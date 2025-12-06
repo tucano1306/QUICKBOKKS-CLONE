@@ -126,10 +126,10 @@ export default function DragDropUpload({
         onDragOver={handleDrag}
         onDrop={handleDrop}
         className={`
-          relative border-2 border-dashed rounded-lg p-12 text-center transition-all
+          relative border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300
           ${isDragging 
-            ? 'border-blue-600 bg-blue-50 scale-105' 
-            : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/50'
+            ? 'border-[#2CA01C] bg-green-50 scale-[1.02] shadow-lg shadow-green-500/10' 
+            : 'border-gray-300 bg-gray-50/50 hover:border-[#2CA01C] hover:bg-green-50/30'
           }
         `}
       >
@@ -145,22 +145,22 @@ export default function DragDropUpload({
         <div className="space-y-4">
           <div className="flex justify-center">
             <div className={`
-              p-4 rounded-full transition-all
-              ${isDragging ? 'bg-blue-600 scale-110' : 'bg-blue-100'}
+              p-4 rounded-full transition-all duration-300
+              ${isDragging ? 'bg-[#2CA01C] scale-110' : 'bg-green-100'}
             `}>
-              <Upload className={`w-12 h-12 ${isDragging ? 'text-white' : 'text-blue-600'}`} />
+              <Upload className={`w-12 h-12 ${isDragging ? 'text-white' : 'text-[#2CA01C]'}`} />
             </div>
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-[#0D2942] mb-2">
               {isDragging ? '¡Suelta los archivos aquí!' : 'Arrastra y suelta archivos'}
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               o haz clic para seleccionar archivos
             </p>
             <label htmlFor="file-input">
-              <Button type="button" onClick={() => document.getElementById('file-input')?.click()}>
+              <Button type="button" variant="success" onClick={() => document.getElementById('file-input')?.click()}>
                 <Upload className="w-4 h-4 mr-2" />
                 Seleccionar Archivos
               </Button>
@@ -177,7 +177,7 @@ export default function DragDropUpload({
       {/* Files List */}
       {files.length > 0 && (
         <div className="space-y-2">
-          <h3 className="font-semibold text-gray-900">
+          <h3 className="font-semibold text-[#0D2942]">
             Archivos seleccionados ({files.length})
           </h3>
           {files.map((uploadedFile, index) => (

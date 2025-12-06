@@ -702,65 +702,67 @@ export default function CustomersPage() {
         </Card>
 
         {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">Agregar Nuevo Cliente</h3>
-                <button onClick={() => { setShowAddModal(false); resetForm(); }} className="text-gray-400 hover:text-gray-600">
+          <div className="qb-modal-overlay" onClick={() => { setShowAddModal(false); resetForm(); }}>
+            <div className="qb-modal max-w-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="qb-modal-header">
+                <h3 className="qb-modal-title">Agregar Nuevo Cliente</h3>
+                <button onClick={() => { setShowAddModal(false); resetForm(); }} className="qb-modal-close">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleAddCustomer} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre Completo <span className="text-red-500">*</span>
-                    </label>
-                    <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Juan Pérez" />
+              <form onSubmit={handleAddCustomer}>
+                <div className="qb-modal-body space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="qb-form-group">
+                      <label className="qb-label">
+                        Nombre Completo <span className="text-red-500">*</span>
+                      </label>
+                      <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="John Smith" />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">
+                        Email <span className="text-red-500">*</span>
+                      </label>
+                      <Input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="john@company.com" />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">Teléfono</label>
+                      <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+1 305 555 1234" />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">EIN / Tax ID</label>
+                      <Input value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} placeholder="12-3456789" />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">Empresa</label>
+                      <Input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} placeholder="Acme Corp LLC" />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">Estado</label>
+                      <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="qb-select">
+                        <option value="ACTIVE">Activo</option>
+                        <option value="INACTIVE">Inactivo</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <Input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="juan@empresa.com" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                    <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+52 123 456 7890" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">RFC / Tax ID</label>
-                    <Input value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} placeholder="XAXX010101000" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
-                    <Input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} placeholder="Empresa SA de CV" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                    <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                      <option value="ACTIVE">Activo</option>
-                      <option value="INACTIVE">Inactivo</option>
-                    </select>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Dirección</label>
+                    <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="123 Main Street, Miami, FL 33101" />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Calle, Número, Colonia, Ciudad, CP" />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowAddModal(false); resetForm(); }}>
+                <div className="qb-modal-footer">
+                  <Button type="button" variant="outline" onClick={() => { setShowAddModal(false); resetForm(); }}>
                     Cancelar
                   </Button>
-                  <Button type="submit" className="flex-1">
+                  <Button type="submit" variant="success">
                     <Plus className="h-4 w-4 mr-2" />
                     Agregar Cliente
                   </Button>
@@ -771,65 +773,67 @@ export default function CustomersPage() {
         )}
 
         {showEditModal && selectedCustomer && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">Editar Cliente</h3>
-                <button onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }} className="text-gray-400 hover:text-gray-600">
+          <div className="qb-modal-overlay" onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }}>
+            <div className="qb-modal max-w-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="qb-modal-header">
+                <h3 className="qb-modal-title">Editar Cliente</h3>
+                <button onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }} className="qb-modal-close">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleEditCustomer} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre Completo <span className="text-red-500">*</span>
-                    </label>
-                    <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+              <form onSubmit={handleEditCustomer}>
+                <div className="qb-modal-body space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="qb-form-group">
+                      <label className="qb-label">
+                        Nombre Completo <span className="text-red-500">*</span>
+                      </label>
+                      <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">
+                        Email <span className="text-red-500">*</span>
+                      </label>
+                      <Input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">Teléfono</label>
+                      <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">EIN / Tax ID</label>
+                      <Input value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">Empresa</label>
+                      <Input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
+                    </div>
+
+                    <div className="qb-form-group">
+                      <label className="qb-label">Estado</label>
+                      <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="qb-select">
+                        <option value="ACTIVE">Activo</option>
+                        <option value="INACTIVE">Inactivo</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <Input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                    <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">RFC / Tax ID</label>
-                    <Input value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
-                    <Input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                    <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                      <option value="ACTIVE">Activo</option>
-                      <option value="INACTIVE">Inactivo</option>
-                    </select>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Dirección</label>
+                    <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }}>
+                <div className="qb-modal-footer">
+                  <Button type="button" variant="outline" onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }}>
                     Cancelar
                   </Button>
-                  <Button type="submit" className="flex-1">
+                  <Button type="submit" variant="success">
                     <Edit className="h-4 w-4 mr-2" />
                     Actualizar Cliente
                   </Button>
@@ -840,11 +844,11 @@ export default function CustomersPage() {
         )}
 
         {showPermissionsModal && selectedCustomer && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Configurar Permisos - {selectedCustomer.name}</h3>
-                <button onClick={() => { setShowPermissionsModal(false); setSelectedCustomer(null); }} className="text-gray-400 hover:text-gray-600">
+          <div className="qb-modal-overlay" onClick={() => { setShowPermissionsModal(false); setSelectedCustomer(null); }}>
+            <div className="qb-modal max-w-md" onClick={(e) => e.stopPropagation()}>
+              <div className="qb-modal-header">
+                <h3 className="qb-modal-title">Configurar Permisos - {selectedCustomer.name}</h3>
+                <button onClick={() => { setShowPermissionsModal(false); setSelectedCustomer(null); }} className="qb-modal-close">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -864,7 +868,7 @@ export default function CustomersPage() {
                 setShowPermissionsModal(false)
                 setSelectedCustomer(null)
               }}>
-                <div className="space-y-4 mb-6">
+                <div className="qb-modal-body space-y-3">
                   {[
                     { name: 'viewInvoices', label: 'Ver Facturas', desc: 'Permite ver todas sus facturas', checked: true },
                     { name: 'downloadDocs', label: 'Descargar Documentos', desc: 'Descargar PDFs y XMLs', checked: true },
@@ -872,21 +876,21 @@ export default function CustomersPage() {
                     { name: 'makePayments', label: 'Realizar Pagos', desc: 'Pagar facturas en línea', checked: false },
                     { name: 'requestInvoices', label: 'Solicitar Facturas', desc: 'Pedir nuevas facturas', checked: false }
                   ].map((perm) => (
-                    <div key={perm.name} className="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                    <div key={perm.name} className="flex items-center justify-between p-3 qb-info-box hover:border-[#2CA01C]/30 transition-colors">
                       <div>
-                        <p className="font-medium text-sm">{perm.label}</p>
+                        <p className="font-semibold text-sm text-[#0D2942]">{perm.label}</p>
                         <p className="text-xs text-gray-500">{perm.desc}</p>
                       </div>
-                      <input type="checkbox" name={perm.name} defaultChecked={perm.checked} className="h-4 w-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500" />
+                      <input type="checkbox" name={perm.name} defaultChecked={perm.checked} className="qb-checkbox" />
                     </div>
                   ))}
                 </div>
 
-                <div className="flex gap-3">
-                  <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowPermissionsModal(false); setSelectedCustomer(null); }}>
+                <div className="qb-modal-footer">
+                  <Button type="button" variant="outline" onClick={() => { setShowPermissionsModal(false); setSelectedCustomer(null); }}>
                     Cancelar
                   </Button>
-                  <Button type="submit" className="flex-1">
+                  <Button type="submit" variant="success">
                     <Settings className="h-4 w-4 mr-2" />
                     Guardar Permisos
                   </Button>

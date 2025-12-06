@@ -802,30 +802,35 @@ export default function VendorsListPage() {
 
         {showVendorModal && (
           <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            className="qb-modal-overlay"
             onClick={() => setShowVendorModal(false)}
           >
-            <Card
-              className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto"
+            <div
+              className="qb-modal max-w-3xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <CardHeader>
-                <CardTitle>
+              <div className="qb-modal-header">
+                <h2 className="qb-modal-title">
                   {modalMode === 'create' ? 'Nuevo Proveedor' : 'Editar Proveedor'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h2>
+                <button className="qb-modal-close" onClick={() => setShowVendorModal(false)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="qb-modal-body space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Nombre del Proveedor</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Nombre del Proveedor</label>
                     <Input
                       placeholder="Acme Corp"
                       value={formData.name}
                       onChange={(e) => handleFormChange('name', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Nombre de Contacto</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Nombre de Contacto</label>
                     <Input
                       placeholder="Juan Pérez"
                       value={formData.contactName}
@@ -835,8 +840,8 @@ export default function VendorsListPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Email</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Email</label>
                     <Input
                       type="email"
                       placeholder="contacto@proveedor.com"
@@ -844,46 +849,46 @@ export default function VendorsListPage() {
                       onChange={(e) => handleFormChange('email', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Teléfono</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Teléfono</label>
                     <Input
-                      placeholder="+52 55 1234-5678"
+                      placeholder="+1 305 555-1234"
                       value={formData.phone}
                       onChange={(e) => handleFormChange('phone', e.target.value)}
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium">Dirección</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Dirección</label>
                   <Input
-                    placeholder="Calle Principal 123"
+                    placeholder="123 Main Street"
                     value={formData.address}
                     onChange={(e) => handleFormChange('address', e.target.value)}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Ciudad</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Ciudad</label>
                     <Input
-                      placeholder="Ciudad de México"
+                      placeholder="Miami"
                       value={formData.city}
                       onChange={(e) => handleFormChange('city', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">País</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">País</label>
                     <Input
-                      placeholder="México"
+                      placeholder="United States"
                       value={formData.country}
                       onChange={(e) => handleFormChange('country', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">RFC / Tax ID</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">EIN / Tax ID</label>
                     <Input
-                      placeholder="ABC123456XYZ"
+                      placeholder="12-3456789"
                       value={formData.taxId}
                       onChange={(e) => handleFormChange('taxId', e.target.value)}
                     />
@@ -891,10 +896,10 @@ export default function VendorsListPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Categoría</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Categoría</label>
                     <select
-                      className="w-full border rounded-md p-2"
+                      className="qb-select"
                       value={formData.category}
                       onChange={(e) => handleFormChange('category', e.target.value)}
                     >
@@ -905,10 +910,10 @@ export default function VendorsListPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Términos de Pago</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Términos de Pago</label>
                     <select
-                      className="w-full border rounded-md p-2"
+                      className="qb-select"
                       value={formData.paymentTerms}
                       onChange={(e) => handleFormChange('paymentTerms', e.target.value)}
                     >
@@ -919,10 +924,10 @@ export default function VendorsListPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Estado</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Estado</label>
                     <select
-                      className="w-full border rounded-md p-2"
+                      className="qb-select"
                       value={formData.status}
                       onChange={(e) =>
                         handleFormChange('status', e.target.value as VendorForm['status'])
@@ -935,44 +940,48 @@ export default function VendorsListPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium">Notas Internas</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Notas Internas</label>
                   <textarea
-                    className="w-full border rounded-md p-2 text-sm"
+                    className="qb-select min-h-[80px] resize-none"
                     rows={3}
                     placeholder="Condiciones especiales, observaciones, etc."
                     value={formData.notes}
                     onChange={(e) => handleFormChange('notes', e.target.value)}
                   />
                 </div>
-
-                <div className="flex gap-2 justify-end pt-4">
-                  <Button variant="outline" onClick={() => setShowVendorModal(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSubmitVendor} disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    {modalMode === 'create' ? 'Crear Proveedor' : 'Guardar Cambios'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="qb-modal-footer">
+                <Button variant="outline" onClick={() => setShowVendorModal(false)}>
+                  Cancelar
+                </Button>
+                <Button variant="success" onClick={handleSubmitVendor} disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {modalMode === 'create' ? 'Crear Proveedor' : 'Guardar Cambios'}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
         {showDetailModal && (
           <div
-            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+            className="qb-modal-overlay"
             onClick={() => setShowDetailModal(false)}
           >
-            <Card
-              className="w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto"
+            <div
+              className="qb-modal max-w-4xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <CardHeader>
-                <CardTitle>Detalle del Proveedor</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <div className="qb-modal-header">
+                <h2 className="qb-modal-title">Detalle del Proveedor</h2>
+                <button className="qb-modal-close" onClick={() => setShowDetailModal(false)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="qb-modal-body space-y-4">
                 {detailLoading ? (
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
@@ -980,22 +989,22 @@ export default function VendorsListPage() {
                 ) : detailVendor ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500">Proveedor</p>
-                        <p className="font-semibold text-gray-900">{detailVendor.name}</p>
+                      <div className="qb-info-box">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Proveedor</p>
+                        <p className="font-semibold text-[#0D2942] mt-1">{detailVendor.name}</p>
                         <p className="text-sm text-gray-600">{detailVendor.vendorNumber}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Contacto</p>
-                        <p className="font-semibold text-gray-900">
+                      <div className="qb-info-box">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Contacto</p>
+                        <p className="font-semibold text-[#0D2942] mt-1">
                           {detailVendor.contactName || 'Sin asignar'}
                         </p>
                         <p className="text-sm text-gray-600">{detailVendor.email || '—'}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Finanzas</p>
-                        <p className="font-semibold text-green-700">
-                          Total Comprado: ${detailVendor.totalPurchases.toLocaleString()}
+                      <div className="qb-info-box">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Finanzas</p>
+                        <p className="font-semibold text-[#2CA01C] mt-1">
+                          Total: ${detailVendor.totalPurchases.toLocaleString()}
                         </p>
                         <p className="font-semibold text-orange-600">
                           Saldo: ${detailVendor.currentBalance.toLocaleString()}
@@ -1004,13 +1013,13 @@ export default function VendorsListPage() {
                     </div>
 
                     <div>
-                      <p className="text-sm font-semibold text-gray-900 mb-2">Facturas recientes</p>
+                      <p className="qb-label mb-3">Facturas recientes</p>
                       {detailVendor.payables?.length ? (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
+                        <div className="overflow-x-auto rounded-xl border border-gray-200">
+                          <table className="qb-table w-full">
                             <thead>
-                              <tr className="text-left text-gray-500 border-b">
-                                <th className="py-2">Factura</th>
+                              <tr>
+                                <th className="py-3 px-4">Factura</th>
                                 <th>Descripción</th>
                                 <th>Vencimiento</th>
                                 <th>Monto</th>
@@ -1020,12 +1029,12 @@ export default function VendorsListPage() {
                             </thead>
                             <tbody>
                               {detailVendor.payables.slice(0, 5).map((payable) => (
-                                <tr key={payable.id} className="border-b last:border-0">
-                                  <td className="py-2 font-mono text-blue-600">
+                                <tr key={payable.id}>
+                                  <td className="py-3 px-4 font-mono text-[#0077C5]">
                                     {payable.billNumber}
                                   </td>
                                   <td>{payable.description || '—'}</td>
-                                  <td>{new Date(payable.dueDate).toLocaleDateString('es-MX')}</td>
+                                  <td>{new Date(payable.dueDate).toLocaleDateString('en-US')}</td>
                                   <td>${payable.total.toLocaleString()}</td>
                                   <td>${payable.balance.toLocaleString()}</td>
                                   <td>{getPayableBadge(payable.status)}</td>
@@ -1035,50 +1044,54 @@ export default function VendorsListPage() {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-sm text-gray-500">Sin facturas registradas</p>
+                        <p className="text-sm text-gray-500 text-center py-4">Sin facturas registradas</p>
                       )}
                     </div>
                   </>
                 ) : (
-                  <p className="text-center text-gray-500">No se encontró información</p>
+                  <p className="text-center text-gray-500 py-8">No se encontró información</p>
                 )}
-
-                <div className="flex justify-end">
-                  <Button variant="outline" onClick={() => setShowDetailModal(false)}>
-                    Cerrar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="qb-modal-footer">
+                <Button variant="outline" onClick={() => setShowDetailModal(false)}>
+                  Cerrar
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
         {vendorToDelete && (
           <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            className="qb-modal-overlay"
             onClick={() => setVendorToDelete(null)}
           >
-            <Card className="w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <CardTitle>Eliminar Proveedor</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-700">
+            <div className="qb-modal max-w-md" onClick={(e) => e.stopPropagation()}>
+              <div className="qb-modal-header !bg-gradient-to-r !from-red-600 !to-red-500">
+                <h2 className="qb-modal-title">⚠️ Eliminar Proveedor</h2>
+                <button className="qb-modal-close" onClick={() => setVendorToDelete(null)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="qb-modal-body">
+                <p className="text-gray-700">
                   ¿Seguro que deseas eliminar a{' '}
-                  <span className="font-semibold">{vendorToDelete.name}</span>? Esta acción se
+                  <span className="font-semibold text-[#0D2942]">{vendorToDelete.name}</span>? Esta acción se
                   realizará sólo si no tiene facturas vinculadas.
                 </p>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setVendorToDelete(null)}>
-                    Cancelar
-                  </Button>
-                  <Button variant="destructive" onClick={handleDeleteVendor} disabled={deleteLoading}>
-                    {deleteLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Eliminar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="qb-modal-footer">
+                <Button variant="outline" onClick={() => setVendorToDelete(null)}>
+                  Cancelar
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteVendor} disabled={deleteLoading}>
+                  {deleteLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Eliminar
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

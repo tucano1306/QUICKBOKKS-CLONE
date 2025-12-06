@@ -394,15 +394,18 @@ export default function TaxDeductionsPage() {
       </div>
 
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Nueva Deducción</h2>
-              <Button variant="outline" size="sm" onClick={() => setShowAddModal(false)}><X className="w-4 h-4" /></Button>
+        <div className="qb-modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="qb-modal max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="qb-modal-header">
+              <h2 className="qb-modal-title">Nueva Deducción</h2>
+              <button className="qb-modal-close" onClick={() => setShowAddModal(false)}>
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-4 space-y-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                <select className="w-full px-3 py-2 border rounded-lg" value={newDeduction.category} onChange={(e) => setNewDeduction({ ...newDeduction, category: e.target.value })}>
+            <div className="qb-modal-body space-y-4">
+              <div className="qb-form-group">
+                <label className="qb-label">Categoría</label>
+                <select className="qb-select" value={newDeduction.category} onChange={(e) => setNewDeduction({ ...newDeduction, category: e.target.value })}>
                   <option value="">Seleccionar categoría...</option>
                   <option value="Operating Expenses">Operating Expenses</option>
                   <option value="Professional Services">Professional Services</option>
@@ -411,13 +414,22 @@ export default function TaxDeductionsPage() {
                   <option value="Marketing & Advertising">Marketing & Advertising</option>
                 </select>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Subcategoría</label><Input value={newDeduction.subcategory} onChange={(e) => setNewDeduction({ ...newDeduction, subcategory: e.target.value })} placeholder="Ej: Office Supplies" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label><Input value={newDeduction.description} onChange={(e) => setNewDeduction({ ...newDeduction, description: e.target.value })} placeholder="Descripción del gasto" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Monto</label><Input type="text" className="amount-input" value={newDeduction.amount} onChange={(e) => setNewDeduction({ ...newDeduction, amount: parseFloat(e.target.value.replace(/,/g, '')) })} /></div>
+              <div className="qb-form-group">
+                <label className="qb-label">Subcategoría</label>
+                <Input value={newDeduction.subcategory} onChange={(e) => setNewDeduction({ ...newDeduction, subcategory: e.target.value })} placeholder="Ej: Office Supplies" />
+              </div>
+              <div className="qb-form-group">
+                <label className="qb-label">Descripción</label>
+                <Input value={newDeduction.description} onChange={(e) => setNewDeduction({ ...newDeduction, description: e.target.value })} placeholder="Descripción del gasto" />
+              </div>
+              <div className="qb-form-group">
+                <label className="qb-label">Monto</label>
+                <Input type="text" className="amount-input" value={newDeduction.amount} onChange={(e) => setNewDeduction({ ...newDeduction, amount: parseFloat(e.target.value.replace(/,/g, '')) })} />
+              </div>
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t">
+            <div className="qb-modal-footer">
               <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancelar</Button>
-              <Button onClick={() => { setShowAddModal(false); fetchDeductions() }}><Save className="w-4 h-4 mr-2" />Guardar</Button>
+              <Button variant="success" onClick={() => { setShowAddModal(false); fetchDeductions() }}><Save className="w-4 h-4 mr-2" />Guardar</Button>
             </div>
           </div>
         </div>

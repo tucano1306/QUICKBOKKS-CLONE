@@ -73,17 +73,17 @@ export function Pagination(props: {
   if (totalItems === 0) return null
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-4 bg-gray-50/50 rounded-xl border border-gray-100">
       {/* Info de items */}
-      <div className="text-sm text-gray-600 dark:text-gray-400">
-        Mostrando {startItem} a {endItem} de {totalItems} registros
+      <div className="text-sm text-gray-600 font-medium">
+        Mostrando <span className="text-[#0D2942] font-semibold">{startItem}</span> a <span className="text-[#0D2942] font-semibold">{endItem}</span> de <span className="text-[#2CA01C] font-semibold">{totalItems}</span> registros
       </div>
 
       <div className="flex items-center gap-4">
         {/* Selector de tamaño de página */}
         {showPageSize && onPageSizeChange && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Por página:</span>
+            <span className="text-sm text-gray-600">Por página:</span>
             <Select
               value={pageSize.toString()}
               onValueChange={(value) => onPageSizeChange(parseInt(value))}
@@ -110,7 +110,7 @@ export function Pagination(props: {
             size="sm"
             onClick={() => onPageChange(1)}
             disabled={!canGoPrev}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 rounded-lg"
           >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
@@ -121,7 +121,7 @@ export function Pagination(props: {
             size="sm"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={!canGoPrev}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 rounded-lg"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -135,7 +135,7 @@ export function Pagination(props: {
                   variant={page === currentPage ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => onPageChange(page)}
-                  className="h-8 w-8 p-0"
+                  className={`h-8 w-8 p-0 rounded-lg ${page === currentPage ? 'bg-[#2CA01C] hover:bg-[#108000] shadow-md' : ''}`}
                 >
                   {page}
                 </Button>
@@ -153,7 +153,7 @@ export function Pagination(props: {
             size="sm"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={!canGoNext}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 rounded-lg"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -164,7 +164,7 @@ export function Pagination(props: {
             size="sm"
             onClick={() => onPageChange(totalPages)}
             disabled={!canGoNext}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 rounded-lg"
           >
             <ChevronsRight className="h-4 w-4" />
           </Button>

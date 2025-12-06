@@ -655,19 +655,24 @@ export default function VendorPayablesPage() {
         </Card>
 
         {showModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-            <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <CardTitle>
+          <div className="qb-modal-overlay" onClick={() => setShowModal(false)}>
+            <div className="qb-modal max-w-3xl" onClick={(e) => e.stopPropagation()}>
+              <div className="qb-modal-header">
+                <h2 className="qb-modal-title">
                   {modalMode === 'create' ? 'Registrar factura de proveedor' : 'Editar factura'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h2>
+                <button className="qb-modal-close" onClick={() => setShowModal(false)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="qb-modal-body space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Proveedor</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Proveedor</label>
                     <select
-                      className="w-full border rounded-md p-2"
+                      className="qb-select"
                       value={formData.vendorId}
                       onChange={(e) => handleFormChange('vendorId', e.target.value)}
                     >
@@ -679,8 +684,8 @@ export default function VendorPayablesPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Número de Factura</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Número de Factura</label>
                     <Input
                       placeholder="BILL-001"
                       value={formData.billNumber}
@@ -690,16 +695,16 @@ export default function VendorPayablesPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Fecha de Factura</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Fecha de Factura</label>
                     <DatePicker
                       value={formData.issueDate}
                       onChange={(date: string) => handleFormChange('issueDate', date)}
                       placeholder="Fecha factura"
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Fecha de Vencimiento</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Fecha de Vencimiento</label>
                     <DatePicker
                       value={formData.dueDate}
                       onChange={(date: string) => handleFormChange('dueDate', date)}
@@ -708,34 +713,34 @@ export default function VendorPayablesPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium">Descripción</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Descripción</label>
                   <Input
-                    placeholder="Suministros de oficina - Noviembre"
+                    placeholder="Office supplies - November"
                     value={formData.description}
                     onChange={(e) => handleFormChange('description', e.target.value)}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Categoría</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Categoría</label>
                     <Input
-                      placeholder="Servicios"
+                      placeholder="Services"
                       value={formData.category}
                       onChange={(e) => handleFormChange('category', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Términos</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Términos</label>
                     <Input
                       placeholder="Net 30"
                       value={formData.terms}
                       onChange={(e) => handleFormChange('terms', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Referencia</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Referencia</label>
                     <Input
                       placeholder="PO-12345"
                       value={formData.reference}
@@ -745,8 +750,8 @@ export default function VendorPayablesPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Subtotal</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Subtotal</label>
                     <Input
                       type="text"
                       className="amount-input"
@@ -755,28 +760,28 @@ export default function VendorPayablesPage() {
                       onChange={(e) => handleFormChange('subtotal', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">IVA</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Sales Tax</label>
                     <Input
                       type="text"
                       className="amount-input"
-                      placeholder="1600"
+                      placeholder="700"
                       value={formData.taxAmount}
                       onChange={(e) => handleFormChange('taxAmount', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Total</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Total</label>
                     <Input
                       type="text"
                       className="amount-input"
-                      placeholder="11600"
+                      placeholder="10700"
                       value={formData.total}
                       onChange={(e) => handleFormChange('total', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Pagado</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Pagado</label>
                     <Input
                       type="text"
                       className="amount-input"
@@ -786,91 +791,101 @@ export default function VendorPayablesPage() {
                     />
                   </div>
                 </div>
+              </div>
 
-                <div className="flex gap-2 justify-end pt-4">
-                  <Button variant="outline" onClick={() => setShowModal(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSubmitPayable} disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    {modalMode === 'create' ? 'Registrar Factura' : 'Guardar Cambios'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              <div className="qb-modal-footer">
+                <Button variant="outline" onClick={() => setShowModal(false)}>
+                  Cancelar
+                </Button>
+                <Button variant="success" onClick={handleSubmitPayable} disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {modalMode === 'create' ? 'Registrar Factura' : 'Guardar Cambios'}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
         {showDetailModal && detailPayable && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowDetailModal(false)}>
-            <Card className="w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <CardTitle>Detalle de {detailPayable.billNumber}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          <div className="qb-modal-overlay" onClick={() => setShowDetailModal(false)}>
+            <div className="qb-modal max-w-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="qb-modal-header">
+                <h2 className="qb-modal-title">Detalle de {detailPayable.billNumber}</h2>
+                <button className="qb-modal-close" onClick={() => setShowDetailModal(false)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="qb-modal-body space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500">Proveedor</p>
-                    <p className="font-semibold text-gray-900">{detailPayable.vendor?.name}</p>
+                  <div className="qb-info-box">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Proveedor</p>
+                    <p className="font-semibold text-[#0D2942] mt-1">{detailPayable.vendor?.name}</p>
                     <p className="text-sm text-gray-600">{detailPayable.vendor?.vendorNumber}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Estado</p>
-                    {getStatusBadge(detailPayable.status)}
+                  <div className="qb-info-box">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Estado</p>
+                    <div className="mt-1">{getStatusBadge(detailPayable.status)}</div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-xs text-gray-500">Emisión</p>
-                    <p>{new Date(detailPayable.issueDate).toLocaleDateString('es-MX')}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="qb-info-box">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Emisión</p>
+                    <p className="font-medium text-[#0D2942] mt-1">{new Date(detailPayable.issueDate).toLocaleDateString('en-US')}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Vencimiento</p>
-                    <p>{new Date(detailPayable.dueDate).toLocaleDateString('es-MX')}</p>
+                  <div className="qb-info-box">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Vencimiento</p>
+                    <p className="font-medium text-[#0D2942] mt-1">{new Date(detailPayable.dueDate).toLocaleDateString('en-US')}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Saldo</p>
-                    <p className="font-semibold text-orange-600">
+                  <div className="qb-info-box">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Saldo</p>
+                    <p className="font-bold text-orange-600 mt-1">
                       ${detailPayable.balance.toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500">Descripción</p>
-                  <p className="text-sm text-gray-700">{detailPayable.description || 'Sin descripción'}</p>
+                <div className="qb-info-box">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Descripción</p>
+                  <p className="text-sm text-gray-700 mt-1">{detailPayable.description || 'Sin descripción'}</p>
                 </div>
-                <div className="flex justify-end">
-                  <Button variant="outline" onClick={() => setShowDetailModal(false)}>
-                    Cerrar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="qb-modal-footer">
+                <Button variant="outline" onClick={() => setShowDetailModal(false)}>
+                  Cerrar
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
         {deleteTarget && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setDeleteTarget(null)}>
-            <Card className="w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <CardTitle>Eliminar Factura</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-700">
-                  ¿Seguro que deseas eliminar la factura {deleteTarget.billNumber}? Esta acción es
+          <div className="qb-modal-overlay" onClick={() => setDeleteTarget(null)}>
+            <div className="qb-modal max-w-md" onClick={(e) => e.stopPropagation()}>
+              <div className="qb-modal-header !bg-gradient-to-r !from-red-600 !to-red-500">
+                <h2 className="qb-modal-title">⚠️ Eliminar Factura</h2>
+                <button className="qb-modal-close" onClick={() => setDeleteTarget(null)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="qb-modal-body">
+                <p className="text-gray-700">
+                  ¿Seguro que deseas eliminar la factura <strong className="text-[#0D2942]">{deleteTarget.billNumber}</strong>? Esta acción es
                   irreversible.
                 </p>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-                    Cancelar
-                  </Button>
-                  <Button variant="destructive" onClick={handleDeletePayable} disabled={deleteLoading}>
-                    {deleteLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Eliminar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="qb-modal-footer">
+                <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+                  Cancelar
+                </Button>
+                <Button variant="destructive" onClick={handleDeletePayable} disabled={deleteLoading}>
+                  {deleteLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Eliminar
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

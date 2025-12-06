@@ -119,7 +119,10 @@ export default function CustomersListPage() {
     return (
       <CompanyTabsLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-[#2CA01C] border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-600 font-medium">Cargando clientes...</span>
+          </div>
         </div>
       </CompanyTabsLayout>
     )
@@ -127,24 +130,24 @@ export default function CustomersListPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-[#0D2942]">Clientes</h1>
+            <p className="text-gray-500 mt-1">
               Gestiona tu directorio de clientes
             </p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2 bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25">
             <Plus className="w-4 h-4" />
             Nuevo Cliente
           </Button>
         </div>
 
-        <Card>
+        <Card className="shadow-md">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Lista de Clientes</CardTitle>
+              <CardTitle className="text-[#0D2942]">Lista de Clientes</CardTitle>
               <div className="flex items-center gap-2 max-w-sm">
                 <Search className="w-4 h-4 text-gray-400" />
                 <Input
@@ -159,13 +162,13 @@ export default function CustomersListPage() {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Contacto</TableHead>
-                  <TableHead>Facturas</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                <TableRow className="bg-gray-50 hover:bg-gray-50">
+                  <TableHead className="font-semibold text-[#0D2942]">Nombre</TableHead>
+                  <TableHead className="font-semibold text-[#0D2942]">Empresa</TableHead>
+                  <TableHead className="font-semibold text-[#0D2942]">Contacto</TableHead>
+                  <TableHead className="font-semibold text-[#0D2942]">Facturas</TableHead>
+                  <TableHead className="font-semibold text-[#0D2942]">Estado</TableHead>
+                  <TableHead className="text-right font-semibold text-[#0D2942]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -177,12 +180,12 @@ export default function CustomersListPage() {
                   </TableRow>
                 ) : (
                   paginatedCustomers.map((customer) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
+                    <TableRow key={customer.id} className="hover:bg-green-50/50 transition-colors">
+                      <TableCell className="font-medium text-[#0D2942]">{customer.name}</TableCell>
                       <TableCell>
                         {customer.company && (
                           <div className="flex items-center gap-2">
-                            <Building className="w-4 h-4 text-gray-400" />
+                            <Building className="w-4 h-4 text-[#2CA01C]" />
                             {customer.company}
                           </div>
                         )}

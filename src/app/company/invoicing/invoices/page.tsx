@@ -109,15 +109,15 @@ export default function InvoicesPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string; color: string }> = {
-      DRAFT: { variant: 'secondary', label: 'Borrador', color: 'gray' },
-      SENT: { variant: 'default', label: 'Enviada', color: 'blue' },
-      PAID: { variant: 'default', label: 'Pagada', color: 'green' },
-      OVERDUE: { variant: 'destructive', label: 'Vencida', color: 'red' },
-      CANCELLED: { variant: 'secondary', label: 'Cancelada', color: 'gray' }
+    const variants: Record<string, { variant: any; label: string; className: string }> = {
+      DRAFT: { variant: 'secondary', label: 'Borrador', className: 'bg-gray-100 text-gray-700 border border-gray-300' },
+      SENT: { variant: 'default', label: 'Enviada', className: 'bg-blue-50 text-[#0077C5] border border-blue-200' },
+      PAID: { variant: 'default', label: 'Pagada', className: 'bg-green-50 text-[#108000] border border-green-200' },
+      OVERDUE: { variant: 'destructive', label: 'Vencida', className: 'bg-red-50 text-red-700 border border-red-200' },
+      CANCELLED: { variant: 'secondary', label: 'Cancelada', className: 'bg-gray-100 text-gray-500 border border-gray-300' }
     }
     const config = variants[status] || variants.DRAFT
-    return <Badge variant={config.variant}>{config.label}</Badge>
+    return <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${config.className}`}>{config.label}</span>
   }
 
   const stats = [
@@ -147,7 +147,10 @@ export default function InvoicesPage() {
     return (
       <CompanyTabsLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-[#2CA01C] border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-600 font-medium">Cargando facturas...</span>
+          </div>
         </div>
       </CompanyTabsLayout>
     )
@@ -208,28 +211,31 @@ export default function InvoicesPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="w-8 h-8 text-blue-600" />
+            <h1 className="text-2xl font-bold text-[#0D2942] flex items-center gap-2">
+              <FileText className="w-8 h-8 text-[#2CA01C]" />
               Facturas
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-500 mt-1">
               Gestiona y crea facturas profesionales
             </p>
           </div>
-          <Button className="flex items-center gap-2" onClick={() => router.push('/company/invoicing/invoices/new')}>
+          <Button 
+            className="flex items-center gap-2 bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25" 
+            onClick={() => router.push('/company/invoicing/invoices/new')}
+          >
             <Plus className="w-4 h-4" />
             Nueva Factura
           </Button>
         </div>
 
         {/* Action Buttons */}
-        <Card className="border-blue-200 bg-blue-50/30">
+        <Card className="border-green-200 bg-green-50/30">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-blue-900 flex items-center">
+            <CardTitle className="text-sm font-medium text-[#108000] flex items-center">
               <FileText className="w-4 h-4 mr-2" />
               Acciones de Facturas
             </CardTitle>
@@ -241,28 +247,38 @@ export default function InvoicesPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {stats.map((stat, index) => (
-            <Card key={index}>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600 mb-1">{stat.label}</div>
-                <div className={`text-2xl font-bold text-${stat.color}-600`}>
-                  {stat.value}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {stats.map((stat, index) => {
+            const colorClasses = {
+              blue: { bg: 'from-blue-50 to-white', text: 'text-[#0077C5]', icon: 'bg-[#0077C5]' },
+              green: { bg: 'from-green-50 to-white', text: 'text-[#108000]', icon: 'bg-[#2CA01C]' },
+              orange: { bg: 'from-amber-50 to-white', text: 'text-amber-700', icon: 'bg-amber-500' },
+              red: { bg: 'from-red-50 to-white', text: 'text-red-700', icon: 'bg-red-500' }
+            }
+            const colors = colorClasses[stat.color as keyof typeof colorClasses] || colorClasses.blue
+            
+            return (
+              <Card key={index} className={`bg-gradient-to-br ${colors.bg} shadow-md hover:shadow-lg transition-shadow`}>
+                <CardContent className="p-4">
+                  <div className="text-sm text-gray-600 font-medium mb-2">{stat.label}</div>
+                  <div className={`text-2xl font-bold ${colors.text}`}>
+                    {stat.value}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
 
         {/* Filters */}
-        <Card>
+        <Card className="shadow-md">
           <CardHeader>
             <div className="flex items-center justify-between gap-4">
-              <CardTitle>Lista de Facturas</CardTitle>
+              <CardTitle className="text-[#0D2942]">Lista de Facturas</CardTitle>
               <div className="flex items-center gap-2">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#2CA01C] focus:border-[#2CA01C] transition-all"
                 >
                   <option value="all">Todos los estados</option>
                   <option value="DRAFT">Borradores</option>
@@ -302,7 +318,11 @@ export default function InvoicesPage() {
                       <div className="flex flex-col items-center gap-2">
                         <DollarSign className="w-12 h-12 text-gray-300" />
                         <p className="text-gray-500">No hay facturas</p>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => router.push('/company/invoicing/invoices/new')}
+                        >
                           <Plus className="w-4 h-4 mr-2" />
                           Crear primera factura
                         </Button>

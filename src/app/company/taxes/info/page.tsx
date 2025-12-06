@@ -353,21 +353,101 @@ export default function TaxInfoPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {taxObligations.length === 0 ? (
-                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No tax obligations found</td></tr>
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No tax obligations found. Add expenses and invoices to calculate tax obligations.</td></tr>
                   ) : (
                     taxObligations.sort((a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime()).map((obligation) => {
                       const dueDate = new Date(obligation.nextDueDate)
                       const daysUntil = Math.ceil((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
                       const isUrgent = daysUntil >= 0 && daysUntil <= 30
+                      
+                      // Determinar la acción según el tipo de obligación
+                      const getActionForObligation = (obl: TaxObligation) => {
+                        switch (obl.type) {
+                          case 'Federal Income Tax':
+                          case 'State Corporate Income Tax':
+                            return () => router.push('/company/reports/profit-loss')
+                          case 'Quarterly Estimated Tax':
+                            return () => router.push('/company/taxes/estimates')
+                          case 'Sales & Use Tax':
+                            return () => router.push('/company/reports/tax-reports')
+                          case 'Payroll Tax (Form 941)':
+                            return () => router.push('/company/payroll/taxes')
+                          case 'Form W-2':
+                            return () => router.push('/company/payroll/tax-forms')
+                          case 'Form 1099-NEC':
+                            return () => router.push('/company/vendors/list')
+                          default:
+                            return () => router.push('/company/taxes/deductions')
+                        }
+                      }
+                      
+                      const getActionLabel = (obl: TaxObligation) => {
+                        switch (obl.type) {
+                          case 'Federal Income Tax':
+                          case 'State Corporate Income Tax':
+                            return 'View P&L'
+                          case 'Quarterly Estimated Tax':
+                            return 'Pay Now'
+                          case 'Sales & Use Tax':
+                            return 'File Return'
+                          case 'Payroll Tax (Form 941)':
+                            return 'View Form'
+                          case 'Form W-2':
+                            return 'Generate'
+                          case 'Form 1099-NEC':
+                            return 'Review'
+                          default:
+                            return 'View'
+                        }
+                      }
+                      
                       return (
                         <tr key={obligation.id} className={`hover:bg-gray-50 ${isUrgent ? 'bg-yellow-50' : ''}`}>
-                          <td className="px-4 py-3"><div className="text-sm font-semibold text-gray-900">{obligation.type}</div><div className="text-xs text-gray-500">{obligation.filingMethod}</div></td>
-                          <td className="px-4 py-3"><div className="text-sm text-gray-700">{obligation.description}</div></td>
-                          <td className="px-4 py-3 text-center"><Badge variant="outline" className="text-xs">{obligation.frequency}</Badge></td>
-                          <td className="px-4 py-3 text-right">{obligation.amount ? <div className="text-sm font-semibold">${obligation.amount.toLocaleString()}</div> : <span className="text-gray-500">-</span>}</td>
-                          <td className="px-4 py-3 text-center"><div className={`text-sm ${isUrgent ? 'font-bold text-orange-600' : ''}`}>{dueDate.toLocaleDateString()}</div>{isUrgent && <div className="text-xs text-orange-600">{daysUntil} days</div>}</td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm font-semibold text-gray-900">{obligation.type}</div>
+                            <div className="text-xs text-gray-500">{obligation.filingMethod}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm text-gray-700">{obligation.description}</div>
+                            {obligation.employeeCount !== undefined && (
+                              <div className="text-xs text-blue-600">{obligation.employeeCount} employees</div>
+                            )}
+                            {obligation.vendorCount !== undefined && (
+                              <div className="text-xs text-purple-600">{obligation.vendorCount} vendors</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Badge variant="outline" className="text-xs">{obligation.frequency}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {obligation.amount ? (
+                              <div className="text-sm font-semibold text-gray-900">${obligation.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">Calculated</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className={`text-sm ${isUrgent ? 'font-bold text-orange-600' : ''}`}>
+                              {dueDate.toLocaleDateString()}
+                            </div>
+                            {daysUntil > 0 && daysUntil <= 60 && (
+                              <div className={`text-xs ${daysUntil <= 14 ? 'text-red-600 font-medium' : daysUntil <= 30 ? 'text-orange-600' : 'text-gray-500'}`}>
+                                {daysUntil} days left
+                              </div>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-center">{getStatusBadge(obligation.status)}</td>
-                          <td className="px-4 py-3 text-center"><Button size="sm" variant="outline"><ArrowRight className="w-4 h-4" /></Button></td>
+                          <td className="px-4 py-3 text-center">
+                            <Button 
+                              size="sm" 
+                              variant={isUrgent ? "default" : "outline"}
+                              className={isUrgent ? "bg-[#2CA01C] hover:bg-[#108000]" : ""}
+                              onClick={getActionForObligation(obligation)}
+                            >
+                              {getActionLabel(obligation)}
+                              <ArrowRight className="w-3 h-3 ml-1" />
+                            </Button>
+                          </td>
                         </tr>
                       )
                     })
@@ -442,32 +522,51 @@ export default function TaxInfoPage() {
       </div>
 
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Tax Settings</h2>
-              <Button variant="outline" size="sm" onClick={() => setShowSettingsModal(false)}><X className="w-4 h-4" /></Button>
+        <div className="qb-modal-overlay" onClick={() => setShowSettingsModal(false)}>
+          <div className="qb-modal max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="qb-modal-header">
+              <h2 className="qb-modal-title">Tax Settings</h2>
+              <button className="qb-modal-close" onClick={() => setShowSettingsModal(false)}>
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">EIN (Federal Tax ID)</label><Input value={editingSettings.ein || ''} onChange={(e) => setEditingSettings({ ...editingSettings, ein: e.target.value })} placeholder="XX-XXXXXXX" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Filing Status</label>
-                <select className="w-full px-3 py-2 border rounded-lg" value={editingSettings.filingStatus || ''} onChange={(e) => setEditingSettings({ ...editingSettings, filingStatus: e.target.value })}>
+            <div className="qb-modal-body space-y-4 max-h-96 overflow-y-auto">
+              <div className="qb-form-group">
+                <label className="qb-label">EIN (Federal Tax ID)</label>
+                <Input value={editingSettings.ein || ''} onChange={(e) => setEditingSettings({ ...editingSettings, ein: e.target.value })} placeholder="XX-XXXXXXX" />
+              </div>
+              <div className="qb-form-group">
+                <label className="qb-label">Filing Status</label>
+                <select className="qb-select" value={editingSettings.filingStatus || ''} onChange={(e) => setEditingSettings({ ...editingSettings, filingStatus: e.target.value })}>
                   <option value="Corporation (C-Corp)">Corporation (C-Corp)</option><option value="S Corporation">S Corporation</option><option value="LLC">LLC</option><option value="Partnership">Partnership</option>
                 </select>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Accounting Method</label>
-                <select className="w-full px-3 py-2 border rounded-lg" value={editingSettings.accountingMethod || ''} onChange={(e) => setEditingSettings({ ...editingSettings, accountingMethod: e.target.value })}>
+              <div className="qb-form-group">
+                <label className="qb-label">Accounting Method</label>
+                <select className="qb-select" value={editingSettings.accountingMethod || ''} onChange={(e) => setEditingSettings({ ...editingSettings, accountingMethod: e.target.value })}>
                   <option value="Accrual">Accrual</option><option value="Cash">Cash</option>
                 </select>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fiscal Year End</label><Input value={editingSettings.fiscalYearEnd || ''} onChange={(e) => setEditingSettings({ ...editingSettings, fiscalYearEnd: e.target.value })} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">State</label><Input value={editingSettings.state || ''} onChange={(e) => setEditingSettings({ ...editingSettings, state: e.target.value })} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Industry</label><Input value={editingSettings.industry || ''} onChange={(e) => setEditingSettings({ ...editingSettings, industry: e.target.value })} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">NAICS Code</label><Input value={editingSettings.naicsCode || ''} onChange={(e) => setEditingSettings({ ...editingSettings, naicsCode: e.target.value })} /></div>
+              <div className="qb-form-group">
+                <label className="qb-label">Fiscal Year End</label>
+                <Input value={editingSettings.fiscalYearEnd || ''} onChange={(e) => setEditingSettings({ ...editingSettings, fiscalYearEnd: e.target.value })} />
+              </div>
+              <div className="qb-form-group">
+                <label className="qb-label">State</label>
+                <Input value={editingSettings.state || ''} onChange={(e) => setEditingSettings({ ...editingSettings, state: e.target.value })} />
+              </div>
+              <div className="qb-form-group">
+                <label className="qb-label">Industry</label>
+                <Input value={editingSettings.industry || ''} onChange={(e) => setEditingSettings({ ...editingSettings, industry: e.target.value })} />
+              </div>
+              <div className="qb-form-group">
+                <label className="qb-label">NAICS Code</label>
+                <Input value={editingSettings.naicsCode || ''} onChange={(e) => setEditingSettings({ ...editingSettings, naicsCode: e.target.value })} />
+              </div>
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t">
+            <div className="qb-modal-footer">
               <Button variant="outline" onClick={() => setShowSettingsModal(false)}>Cancel</Button>
-              <Button onClick={handleSaveSettings} disabled={saving}>{saving ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Saving...</> : <><Save className="w-4 h-4 mr-2" />Save Settings</>}</Button>
+              <Button variant="success" onClick={handleSaveSettings} disabled={saving}>{saving ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Saving...</> : <><Save className="w-4 h-4 mr-2" />Save Settings</>}</Button>
             </div>
           </div>
         </div>

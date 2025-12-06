@@ -128,6 +128,8 @@ export default function PayrollTaxesPage() {
   const [viewMode, setViewMode] = useState<'individual' | 'summary'>('summary')
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showDeclarationModal, setShowDeclarationModal] = useState(false)
+  const [selectedTax, setSelectedTax] = useState<TaxRecord | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
   const [paymentData, setPaymentData] = useState({
     type: 'federal',
     amount: 0,
@@ -881,9 +883,17 @@ File via EFTPS (federal) and FloridaRevenue.com (state).
                             {getStatusBadge(tax.status)}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <button className="p-1 text-blue-600 hover:bg-blue-50 rounded">
-                              <Eye className="w-4 h-4" />
-                            </button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedTax(tax)
+                                setShowDetailModal(true)
+                              }}
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -1070,6 +1080,149 @@ File via EFTPS (federal) and FloridaRevenue.com (state).
                   <Button onClick={handleRegisterPayment}>
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Record Payment
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Employee Tax Details Modal */}
+        {showDetailModal && selectedTax && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDetailModal(false)}>
+            <Card className="w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <CardHeader className="flex flex-row items-center justify-between border-b">
+                <div>
+                  <CardTitle className="text-lg">Tax Details - {selectedTax.employee}</CardTitle>
+                  <p className="text-sm text-gray-500">{selectedTax.employeeId} • Period: {selectedTax.period}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowDetailModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                {/* Gross Pay */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Gross Pay for Period</span>
+                    <span className="text-2xl font-bold text-gray-900">${selectedTax.grossPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+
+                {/* Employee Withholdings */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Employee Withholdings
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Federal Income Tax Withholding</span>
+                      <span className="font-semibold text-blue-600">${selectedTax.federalWithholding.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Social Security (6.2%)</span>
+                      <span className="font-semibold text-green-600">${selectedTax.socialSecurity.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Medicare (1.45%)</span>
+                      <span className="font-semibold text-purple-600">${selectedTax.medicare.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between py-2 bg-gray-100 px-2 rounded font-semibold">
+                      <span>Total Employee Withholdings</span>
+                      <span className="text-gray-900">${selectedTax.totalWithholdings.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Employer Contributions */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Employer Contributions
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Social Security Match (6.2%)</span>
+                      <span className="font-semibold text-green-600">${selectedTax.socialSecurity.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Medicare Match (1.45%)</span>
+                      <span className="font-semibold text-purple-600">${selectedTax.medicare.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">FUTA (0.6% on first $7,000)</span>
+                      <span className="font-semibold text-indigo-600">${selectedTax.futaEmployer.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Florida SUTA (2.75% on first $7,000)</span>
+                      <span className="font-semibold text-orange-600">${selectedTax.sutaEmployer.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between py-2 bg-gray-100 px-2 rounded font-semibold">
+                      <span>Total Employer Contributions</span>
+                      <span className="text-gray-900">${selectedTax.employerContributions.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net Pay Calculation */}
+                <div className="p-4 bg-[#E6F4EA] rounded-lg border border-[#2CA01C]">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-700">Gross Pay</span>
+                    <span className="font-semibold">${selectedTax.grossPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-700">Less: Employee Withholdings</span>
+                    <span className="font-semibold text-red-600">-${selectedTax.totalWithholdings.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="border-t border-[#2CA01C] pt-2 mt-2 flex justify-between items-center">
+                    <span className="font-bold text-[#108000]">Net Pay (Take Home)</span>
+                    <span className="text-xl font-bold text-[#2CA01C]">${(selectedTax.grossPay - selectedTax.totalWithholdings).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+
+                {/* Status and Period Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-gray-50 rounded">
+                    <div className="text-xs text-gray-500 uppercase">Status</div>
+                    <div className="mt-1">
+                      {selectedTax.status === 'paid' && <Badge className="bg-green-100 text-green-800">Paid</Badge>}
+                      {selectedTax.status === 'filed' && <Badge className="bg-blue-100 text-blue-800">Filed</Badge>}
+                      {selectedTax.status === 'calculated' && <Badge className="bg-yellow-100 text-yellow-800">Calculated</Badge>}
+                      {selectedTax.status === 'pending' && <Badge className="bg-gray-100 text-gray-800">Pending</Badge>}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded">
+                    <div className="text-xs text-gray-500 uppercase">Period Dates</div>
+                    <div className="mt-1 font-semibold text-sm">
+                      {new Date(selectedTax.periodStart).toLocaleDateString()} - {new Date(selectedTax.periodEnd).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Tax Liability */}
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-blue-900">Total Tax Liability (Employee + Employer)</span>
+                    <span className="text-xl font-bold text-blue-600">
+                      ${(selectedTax.totalWithholdings + selectedTax.employerContributions).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button variant="outline" onClick={() => setShowDetailModal(false)}>
+                    Close
+                  </Button>
+                  <Button 
+                    className="bg-[#2CA01C] hover:bg-[#108000]"
+                    onClick={() => {
+                      toast.success(`Downloading pay stub for ${selectedTax.employee}`)
+                      setShowDetailModal(false)
+                    }}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Pay Stub
                   </Button>
                 </div>
               </CardContent>

@@ -337,13 +337,13 @@ export default function ChartOfAccountsPage() {
 
   const getTypeBadge = (type: string) => {
     const badges: Record<string, string> = {
-      'ASSET': 'bg-blue-100 text-blue-700',
-      'LIABILITY': 'bg-red-100 text-red-700',
-      'EQUITY': 'bg-purple-100 text-purple-700',
-      'REVENUE': 'bg-green-100 text-green-700',
-      'EXPENSE': 'bg-orange-100 text-orange-700'
+      'ASSET': 'bg-blue-50 text-[#0077C5] border border-blue-200',
+      'LIABILITY': 'bg-red-50 text-red-700 border border-red-200',
+      'EQUITY': 'bg-purple-50 text-purple-700 border border-purple-200',
+      'REVENUE': 'bg-green-50 text-[#108000] border border-green-200',
+      'EXPENSE': 'bg-amber-50 text-amber-700 border border-amber-200'
     }
-    return badges[type] || 'bg-gray-100 text-gray-700'
+    return badges[type] || 'bg-gray-100 text-gray-700 border border-gray-200'
   }
 
   const getTypeLabel = (type: string) => {
@@ -380,9 +380,9 @@ export default function ChartOfAccountsPage() {
     return (
       <div key={account.id}>
         <div 
-          className={`flex items-center py-3 px-4 hover:bg-gray-50 border-b border-gray-100 ${
-            depth === 0 ? 'bg-gray-50 font-bold' : ''
-          } ${selectedAccounts.has(account.id) ? 'bg-blue-50' : ''}`}
+          className={`flex items-center py-3 px-4 hover:bg-green-50/50 border-b border-gray-100 transition-colors ${
+            depth === 0 ? 'bg-gray-50/80 font-bold' : ''
+          } ${selectedAccounts.has(account.id) ? 'bg-green-50 border-l-4 border-l-[#2CA01C]' : ''}`}
           style={{ paddingLeft: `${indent + 16}px` }}
         >
           {/* Checkbox para selección múltiple */}
@@ -392,7 +392,7 @@ export default function ChartOfAccountsPage() {
                 type="checkbox"
                 checked={selectedAccounts.has(account.id)}
                 onChange={() => toggleSelectAccount(account.id)}
-                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                className="w-4 h-4 text-[#2CA01C] rounded border-gray-300 focus:ring-[#2CA01C] cursor-pointer"
               />
             </div>
           )}
@@ -400,7 +400,7 @@ export default function ChartOfAccountsPage() {
             {hasChildren && (
               <button
                 onClick={() => toggleExpand(account.id)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-[#2CA01C] transition-colors"
               >
                 {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
@@ -413,17 +413,17 @@ export default function ChartOfAccountsPage() {
               </span>
             </div>
             <div className="col-span-4">
-              <span className={depth === 0 ? 'font-bold text-gray-900' : 'text-gray-700'}>
+              <span className={depth === 0 ? 'font-bold text-[#0D2942]' : 'text-gray-700'}>
                 {account.name}
               </span>
             </div>
             <div className="col-span-2">
-              <span className={`text-xs px-2 py-1 rounded ${getTypeBadge(account.type)}`}>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${getTypeBadge(account.type)}`}>
                 {getTypeLabel(account.type)}
               </span>
             </div>
             <div className="col-span-2 text-right">
-              <span className={`font-semibold ${account.balance >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+              <span className={`font-semibold ${account.balance >= 0 ? 'text-[#0D2942]' : 'text-red-600'}`}>
                 ${Math.abs(account.balance || 0).toLocaleString()}
               </span>
             </div>
@@ -432,20 +432,20 @@ export default function ChartOfAccountsPage() {
                 <>
                   <button 
                     onClick={() => setEditingAccount(account)}
-                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-1.5 text-[#0077C5] hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => setEditingAccount(account)}
-                    className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                    className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   {!hasChildren && (
                     <button 
                       onClick={() => handleDeleteAccount(account.id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded"
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -503,7 +503,10 @@ export default function ChartOfAccountsPage() {
     return (
       <CompanyTabsLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-[#2CA01C] border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-600 font-medium">Cargando catálogo...</span>
+          </div>
         </div>
       </CompanyTabsLayout>
     )
@@ -513,28 +516,28 @@ export default function ChartOfAccountsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         {/* Alerts */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 text-red-600" />
-            <span className="text-red-700">{error}</span>
-            <button onClick={() => setError(null)} className="ml-auto text-red-600">×</button>
+            <span className="text-red-700 font-medium">{error}</span>
+            <button onClick={() => setError(null)} className="ml-auto text-red-600 hover:text-red-800">×</button>
           </div>
         )}
         
         {success && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-green-700">{success}</span>
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+            <CheckCircle className="w-5 h-5 text-[#2CA01C]" />
+            <span className="text-[#108000] font-medium">{success}</span>
           </div>
         )}
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Catálogo de Cuentas</h1>
-            <p className="text-gray-600 mt-1">Plan de cuentas contable conectado a la base de datos</p>
+            <h1 className="text-2xl font-bold text-[#0D2942]">Catálogo de Cuentas</h1>
+            <p className="text-gray-500 mt-1">Plan de cuentas contable conectado a la base de datos</p>
           </div>
           <div className="flex gap-2">
             {/* Modo selección múltiple */}
@@ -570,7 +573,7 @@ export default function ChartOfAccountsPage() {
                   <Download className="w-4 h-4 mr-2" />
                   Exportar
                 </Button>
-                <Button onClick={() => setShowNewAccountModal(true)}>
+                <Button onClick={() => setShowNewAccountModal(true)} className="bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25">
                   <Plus className="w-4 h-4 mr-2" />
                   Nueva Cuenta
                 </Button>
@@ -581,54 +584,54 @@ export default function ChartOfAccountsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+                <div className="p-3 rounded-xl bg-[#0077C5]">
                   <Building2 className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">${stats.totalAssets.toLocaleString()}</div>
-                  <div className="text-sm text-gray-600">Total Activos</div>
+                  <div className="text-2xl font-bold text-[#0D2942]">${stats.totalAssets.toLocaleString()}</div>
+                  <div className="text-sm text-gray-500">Total Activos</div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-red-500 to-red-600">
+                <div className="p-3 rounded-xl bg-red-500">
                   <FileText className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">${stats.totalLiabilities.toLocaleString()}</div>
-                  <div className="text-sm text-gray-600">Total Pasivos</div>
+                  <div className="text-2xl font-bold text-[#0D2942]">${stats.totalLiabilities.toLocaleString()}</div>
+                  <div className="text-sm text-gray-500">Total Pasivos</div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <div className="p-3 rounded-xl bg-purple-500">
                   <DollarSign className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">${stats.totalEquity.toLocaleString()}</div>
-                  <div className="text-sm text-gray-600">Capital Contable</div>
+                  <div className="text-2xl font-bold text-[#0D2942]">${stats.totalEquity.toLocaleString()}</div>
+                  <div className="text-sm text-gray-500">Capital Contable</div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-green-500 to-green-600">
+                <div className="p-3 rounded-xl bg-[#2CA01C]">
                   <BookOpen className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{stats.totalAccounts}</div>
-                  <div className="text-sm text-gray-600">Total Cuentas</div>
+                  <div className="text-2xl font-bold text-[#0D2942]">{stats.totalAccounts}</div>
+                  <div className="text-sm text-gray-500">Total Cuentas</div>
                 </div>
               </div>
             </CardContent>
@@ -636,7 +639,7 @@ export default function ChartOfAccountsPage() {
         </div>
 
         {/* Filters */}
-        <Card>
+        <Card className="shadow-md">
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
               <div className="flex-1 relative">
@@ -650,7 +653,7 @@ export default function ChartOfAccountsPage() {
                 />
               </div>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#2CA01C] focus:border-[#2CA01C] transition-all"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
@@ -666,14 +669,14 @@ export default function ChartOfAccountsPage() {
         </Card>
 
         {/* Accounts Table */}
-        <Card>
+        <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Plan de Cuentas</CardTitle>
+            <CardTitle className="text-[#0D2942]">Plan de Cuentas</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <div className="min-w-full">
-                <div className="flex items-center py-3 px-4 bg-gray-100 border-b font-semibold text-sm text-gray-700">
+                <div className="flex items-center py-3 px-4 bg-gray-50 border-b font-semibold text-sm text-[#0D2942]">
                   <div className="w-8"></div>
                   <div className="flex-1 grid grid-cols-12 gap-4">
                     <div className="col-span-2">Código</div>
@@ -699,25 +702,30 @@ export default function ChartOfAccountsPage() {
 
         {/* Modal Nueva Cuenta */}
         {showNewAccountModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewAccountModal(false)}>
-            <Card className="w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <CardTitle>Nueva Cuenta Contable</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          <div className="qb-modal-overlay" onClick={() => setShowNewAccountModal(false)}>
+            <div className="qb-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="qb-modal-header">
+                <h2 className="qb-modal-title">Nueva Cuenta Contable</h2>
+                <button className="qb-modal-close" onClick={() => setShowNewAccountModal(false)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="qb-modal-body space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Código *</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Código *</label>
                     <Input 
                       placeholder="1001" 
                       value={newAccount.code}
                       onChange={(e) => setNewAccount({...newAccount, code: e.target.value})}
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Tipo *</label>
+                  <div className="qb-form-group">
+                    <label className="qb-label">Tipo *</label>
                     <select 
-                      className="w-full border rounded-md p-2"
+                      className="qb-select"
                       value={newAccount.type}
                       onChange={(e) => setNewAccount({...newAccount, type: e.target.value as Account['type']})}
                     >
@@ -729,108 +737,114 @@ export default function ChartOfAccountsPage() {
                     </select>
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Nombre de la Cuenta *</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Nombre de la Cuenta *</label>
                   <Input 
                     placeholder="Caja General"
                     value={newAccount.name}
                     onChange={(e) => setNewAccount({...newAccount, name: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Categoría</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Categoría</label>
                   <Input 
                     placeholder="CASH, BANK, RECEIVABLES, etc."
                     value={newAccount.category}
                     onChange={(e) => setNewAccount({...newAccount, category: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Descripción</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Descripción</label>
                   <Input 
                     placeholder="Efectivo disponible en caja"
                     value={newAccount.description}
                     onChange={(e) => setNewAccount({...newAccount, description: e.target.value})}
                   />
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setShowNewAccountModal(false)}>Cancelar</Button>
-                  <Button onClick={handleCreateAccount} disabled={saving || !newAccount.code || !newAccount.name}>
-                    {saving ? 'Guardando...' : 'Crear Cuenta'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="qb-modal-footer">
+                <Button variant="outline" onClick={() => setShowNewAccountModal(false)}>Cancelar</Button>
+                <Button variant="success" onClick={handleCreateAccount} disabled={saving || !newAccount.code || !newAccount.name}>
+                  {saving ? 'Guardando...' : 'Crear Cuenta'}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Modal Editar Cuenta */}
         {editingAccount && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditingAccount(null)}>
-            <Card className="w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <CardTitle>Editar Cuenta: {editingAccount.code}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          <div className="qb-modal-overlay" onClick={() => setEditingAccount(null)}>
+            <div className="qb-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="qb-modal-header">
+                <h2 className="qb-modal-title">Editar Cuenta: {editingAccount.code}</h2>
+                <button className="qb-modal-close" onClick={() => setEditingAccount(null)}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="qb-modal-body space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Código</label>
-                    <Input value={editingAccount.code} disabled className="bg-gray-100" />
+                  <div className="qb-form-group">
+                    <label className="qb-label">Código</label>
+                    <Input value={editingAccount.code} disabled className="bg-gray-100 opacity-60" />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Tipo</label>
-                    <Input value={getTypeLabel(editingAccount.type)} disabled className="bg-gray-100" />
+                  <div className="qb-form-group">
+                    <label className="qb-label">Tipo</label>
+                    <Input value={getTypeLabel(editingAccount.type)} disabled className="bg-gray-100 opacity-60" />
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Nombre de la Cuenta</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Nombre de la Cuenta</label>
                   <Input 
                     value={editingAccount.name}
                     onChange={(e) => setEditingAccount({...editingAccount, name: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Categoría</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Categoría</label>
                   <Input 
                     value={editingAccount.category || ''}
                     onChange={(e) => setEditingAccount({...editingAccount, category: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Descripción</label>
+                <div className="qb-form-group">
+                  <label className="qb-label">Descripción</label>
                   <Input 
                     value={editingAccount.description || ''}
                     onChange={(e) => setEditingAccount({...editingAccount, description: e.target.value})}
                   />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <input 
                     type="checkbox" 
+                    className="qb-checkbox"
                     checked={editingAccount.isActive}
                     onChange={(e) => setEditingAccount({...editingAccount, isActive: e.target.checked})}
                   />
-                  <label className="text-sm">Cuenta activa</label>
+                  <label className="text-sm font-medium text-gray-700">Cuenta activa</label>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">
-                    <p>Saldo actual: <strong>${(editingAccount.balance || 0).toLocaleString()}</strong></p>
-                    <p>Nivel: {editingAccount.level}</p>
+                <div className="qb-info-box">
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <p>Saldo actual: <strong className="text-[#0D2942]">${(editingAccount.balance || 0).toLocaleString()}</strong></p>
+                    <p>Nivel: <span className="font-medium">{editingAccount.level}</span></p>
                     {editingAccount._count && (
                       <>
-                        <p>Asientos asociados: {editingAccount._count.journalEntries}</p>
-                        <p>Presupuestos asociados: {editingAccount._count.budgets}</p>
+                        <p>Asientos asociados: <span className="font-medium">{editingAccount._count.journalEntries}</span></p>
+                        <p>Presupuestos asociados: <span className="font-medium">{editingAccount._count.budgets}</span></p>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setEditingAccount(null)}>Cancelar</Button>
-                  <Button onClick={handleUpdateAccount} disabled={saving}>
-                    {saving ? 'Guardando...' : 'Guardar Cambios'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="qb-modal-footer">
+                <Button variant="outline" onClick={() => setEditingAccount(null)}>Cancelar</Button>
+                <Button variant="success" onClick={handleUpdateAccount} disabled={saving}>
+                  {saving ? 'Guardando...' : 'Guardar Cambios'}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

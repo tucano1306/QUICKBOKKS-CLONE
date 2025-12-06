@@ -40,7 +40,17 @@ import {
   LogOut,
   Wrench,
   FileSpreadsheet,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Plus,
+  Search,
+  Bell,
+  HelpCircle,
+  X,
+  Sparkles,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  ExternalLink
 } from 'lucide-react'
 
 interface SubMenuItem {
@@ -332,6 +342,34 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
   
   const [activeTab, setActiveTab] = useState<string>(currentTabId)
   const [showSubmenu, setShowSubmenu] = useState<{[key: string]: boolean}>({ [currentTabId]: true })
+  const [showCreateMenu, setShowCreateMenu] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showSearch, setShowSearch] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
+
+  // Quick Create menu items (como QuickBooks + New)
+  const quickCreateItems = [
+    { name: 'Invoice', href: '/company/invoicing/invoices?action=new', icon: FileText, color: 'text-blue-600' },
+    { name: 'Expense', href: '/company/expenses/list?action=new', icon: Receipt, color: 'text-red-600' },
+    { name: 'Customer', href: '/company/customers?action=new', icon: Users, color: 'text-green-600' },
+    { name: 'Vendor', href: '/company/vendors/list?action=new', icon: ShoppingCart, color: 'text-purple-600' },
+    { name: 'Bill', href: '/company/vendors/payables?action=new', icon: FileCheck, color: 'text-orange-600' },
+    { name: 'Journal Entry', href: '/company/accounting/journal-entries?action=new', icon: Calculator, color: 'text-indigo-600' },
+  ]
+
+  // Notifications data - Mensaje informativo (sin datos mock)
+  const notifications: { id: number; title: string; description: string; time: string; type: 'warning' | 'success' | 'info'; read: boolean }[] = []
+
+  // Help menu items
+  const helpItems = [
+    { name: 'Help Center', description: 'Browse help articles', href: '#', icon: HelpCircle },
+    { name: 'Video Tutorials', description: 'Watch how-to videos', href: '#', icon: Activity },
+    { name: 'Keyboard Shortcuts', description: 'Work faster with shortcuts', href: '#', icon: Zap },
+    { name: 'Contact Support', description: 'Get help from our team', href: '#', icon: Users },
+    { name: 'What\'s New', description: 'See latest features', href: '#', icon: Sparkles },
+  ]
+
 
   const activeSection = tabSections.find(tab => tab.id === activeTab) || currentTab || tabSections[0]
 
@@ -364,14 +402,16 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
   // Return condicional DESPUÉS de todos los hooks
   if (!activeCompany) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Selecciona una empresa
+      <div className="min-h-screen bg-[#F4F5F8] flex items-center justify-center">
+        <div className="text-center qb-animate-fade-in">
+          <div className="w-20 h-20 rounded-2xl bg-[#0D2942] flex items-center justify-center mx-auto mb-6">
+            <Building2 className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#0D2942] mb-2">
+            Select a Company
           </h2>
-          <p className="text-gray-600">
-            Usa el selector en la barra lateral para elegir una empresa
+          <p className="text-gray-500">
+            Use the selector in the sidebar to choose a company
           </p>
         </div>
       </div>
@@ -379,99 +419,285 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Barra superior con información de la empresa */}
+    <div className="min-h-screen bg-[#F4F5F8]">
+      {/* Barra superior estilo QuickBooks */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-full px-6 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="max-w-full px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left: Company info */}
+            <div className="flex items-center gap-3 min-w-0">
               {activeCompany.logo ? (
                 <img
                   src={activeCompany.logo}
                   alt={activeCompany.name}
-                  className="w-10 h-10 rounded-lg object-cover"
+                  className="w-10 h-10 rounded-lg object-cover shadow-sm flex-shrink-0"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2CA01C] to-[#108000] flex items-center justify-center text-white font-bold text-sm shadow-lg flex-shrink-0">
                   {activeCompany.name.slice(0, 2).toUpperCase()}
                 </div>
               )}
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-[#0D2942] truncate">
                   {activeCompany.name}
                 </h2>
-                <p className="text-xs text-gray-500">
-                  {activeCompany.legalName || 'Empresa activa'}
-                </p>
               </div>
             </div>
-            
-            {/* Botón para salir al menú principal */}
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors font-medium"
-            >
-              <Home className="w-4 h-4" />
-              <span>Menú Principal</span>
-            </button>
+
+            {/* Center: + New Button (QuickBooks style) */}
+            <div className="relative">
+              <button
+                onClick={() => setShowCreateMenu(!showCreateMenu)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#2CA01C] hover:bg-[#108000] text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.98]"
+              >
+                <Plus className="w-5 h-5" />
+                <span>New</span>
+                <ChevronDown className={cn('w-4 h-4 transition-transform', showCreateMenu && 'rotate-180')} />
+              </button>
+              
+              {/* Quick Create Dropdown */}
+              {showCreateMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-xs font-semibold text-gray-500 uppercase">Create New</p>
+                    </div>
+                    {quickCreateItems.map((item) => (
+                      <button
+                        key={item.name}
+                        onClick={() => {
+                          router.push(item.href)
+                          setShowCreateMenu(false)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors"
+                      >
+                        <item.icon className={cn('w-5 h-5', item.color)} />
+                        <span className="text-sm font-medium text-gray-700">{item.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Right: Search, Help, Notifications, Settings, Main Menu */}
+            <div className="flex items-center gap-2">
+              {/* Search Bar */}
+              <div className="relative">
+                {showSearch ? (
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search transactions, reports..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#2CA01C] focus:border-transparent"
+                        autoFocus
+                      />
+                    </div>
+                    <button
+                      onClick={() => { setShowSearch(false); setSearchQuery('') }}
+                      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <X className="w-4 h-4 text-gray-500" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowSearch(true)}
+                    className="p-2.5 hover:bg-gray-100 rounded-full transition-colors"
+                    title="Search"
+                  >
+                    <Search className="w-5 h-5 text-gray-600" />
+                  </button>
+                )}
+              </div>
+
+              {/* Help */}
+              <div className="relative">
+                <button
+                  onClick={() => { setShowHelp(!showHelp); setShowNotifications(false) }}
+                  className={cn(
+                    "p-2.5 rounded-full transition-colors",
+                    showHelp ? "bg-gray-200" : "hover:bg-gray-100"
+                  )}
+                  title="Help"
+                >
+                  <HelpCircle className="w-5 h-5 text-gray-600" />
+                </button>
+
+                {/* Help Dropdown */}
+                {showHelp && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowHelp(false)} />
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-bold text-[#0D2942]">Help & Support</p>
+                        <p className="text-xs text-gray-500">Get help using QuickBooks</p>
+                      </div>
+                      {helpItems.map((item) => (
+                        <button
+                          key={item.name}
+                          onClick={() => setShowHelp(false)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                            <item.icon className="w-4 h-4 text-[#0077C5]" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-800">{item.name}</p>
+                            <p className="text-xs text-gray-500">{item.description}</p>
+                          </div>
+                        </button>
+                      ))}
+                      <div className="border-t border-gray-100 mt-2 pt-2 px-4 pb-2">
+                        <a 
+                          href="https://quickbooks.intuit.com/learn-support/" 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-[#0077C5] hover:underline"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Visit QuickBooks Community
+                        </a>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Notifications */}
+              <div className="relative">
+                <button
+                  onClick={() => { setShowNotifications(!showNotifications); setShowHelp(false) }}
+                  className={cn(
+                    "p-2.5 rounded-full transition-colors relative",
+                    showNotifications ? "bg-gray-200" : "hover:bg-gray-100"
+                  )}
+                  title="Notifications"
+                >
+                  <Bell className="w-5 h-5 text-gray-600" />
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  )}
+                </button>
+
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                    <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-[#0D2942]">Notifications</p>
+                          <p className="text-xs text-gray-500">{notifications.length} notifications</p>
+                        </div>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length > 0 ? (
+                          notifications.map((notif) => (
+                            <button
+                              key={notif.id}
+                              onClick={() => setShowNotifications(false)}
+                              className={cn(
+                                "w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50",
+                                !notif.read && "bg-blue-50/50"
+                              )}
+                            >
+                              <div className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
+                                notif.type === 'warning' && "bg-amber-100",
+                                notif.type === 'success' && "bg-green-100",
+                                notif.type === 'info' && "bg-blue-100"
+                              )}>
+                                {notif.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-600" />}
+                                {notif.type === 'success' && <CheckCircle className="w-4 h-4 text-green-600" />}
+                                {notif.type === 'info' && <Info className="w-4 h-4 text-blue-600" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={cn(
+                                  "text-sm text-gray-800 truncate",
+                                  !notif.read && "font-medium"
+                                )}>{notif.title}</p>
+                                <p className="text-xs text-gray-500 truncate">{notif.description}</p>
+                                <p className="text-xs text-gray-400 mt-1">{notif.time}</p>
+                              </div>
+                              {!notif.read && (
+                                <div className="w-2 h-2 bg-[#0077C5] rounded-full mt-2"></div>
+                              )}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="py-8 text-center">
+                            <Bell className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+                            <p className="text-sm text-gray-500">No notifications</p>
+                            <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+
+              {/* Settings */}
+              <button
+                onClick={() => router.push('/company/settings/company')}
+                className="p-2.5 hover:bg-gray-100 rounded-full transition-colors"
+                title="Settings"
+              >
+                <Settings className="w-5 h-5 text-gray-600" />
+              </button>
+
+              {/* Divider */}
+              <div className="w-px h-8 bg-gray-200 mx-1"></div>
+
+              {/* Main Menu Button */}
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="flex items-center gap-2 px-4 py-2 bg-[#0D2942] hover:bg-[#1a3a5c] text-white rounded-lg transition-all duration-200 font-medium text-sm"
+              >
+                <Home className="w-4 h-4" />
+                <span className="hidden sm:inline">Main Menu</span>
+              </button>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Barra de pestañas horizontal */}
-        <div className="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
-            <nav className="flex space-x-1 px-4 py-1" aria-label="Tabs">
+      {/* Barra de pestañas horizontal */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
+          <nav className="flex space-x-1 px-4 py-2" aria-label="Tabs">
               {tabSections.map((tab) => {
                 const Icon = tab.icon
                 const isActive = currentTab.id === tab.id
                 const isSubmenuOpen = showSubmenu[tab.id] || false
-                
-                // Colores específicos por categoría
-                const colorClasses: Record<string, { active: string; hover: string; icon: string; bg: string }> = {
-                  blue: { active: 'border-blue-500 text-blue-700 bg-blue-50', hover: 'hover:bg-blue-50 hover:text-blue-600', icon: 'text-blue-500', bg: 'bg-blue-500' },
-                  green: { active: 'border-green-500 text-green-700 bg-green-50', hover: 'hover:bg-green-50 hover:text-green-600', icon: 'text-green-500', bg: 'bg-green-500' },
-                  purple: { active: 'border-purple-500 text-purple-700 bg-purple-50', hover: 'hover:bg-purple-50 hover:text-purple-600', icon: 'text-purple-500', bg: 'bg-purple-500' },
-                  red: { active: 'border-red-500 text-red-700 bg-red-50', hover: 'hover:bg-red-50 hover:text-red-600', icon: 'text-red-500', bg: 'bg-red-500' },
-                  orange: { active: 'border-orange-500 text-orange-700 bg-orange-50', hover: 'hover:bg-orange-50 hover:text-orange-600', icon: 'text-orange-500', bg: 'bg-orange-500' },
-                  cyan: { active: 'border-cyan-500 text-cyan-700 bg-cyan-50', hover: 'hover:bg-cyan-50 hover:text-cyan-600', icon: 'text-cyan-500', bg: 'bg-cyan-500' },
-                  indigo: { active: 'border-indigo-500 text-indigo-700 bg-indigo-50', hover: 'hover:bg-indigo-50 hover:text-indigo-600', icon: 'text-indigo-500', bg: 'bg-indigo-500' },
-                  emerald: { active: 'border-emerald-500 text-emerald-700 bg-emerald-50', hover: 'hover:bg-emerald-50 hover:text-emerald-600', icon: 'text-emerald-500', bg: 'bg-emerald-500' },
-                  violet: { active: 'border-violet-500 text-violet-700 bg-violet-50', hover: 'hover:bg-violet-50 hover:text-violet-600', icon: 'text-violet-500', bg: 'bg-violet-500' },
-                  pink: { active: 'border-pink-500 text-pink-700 bg-pink-50', hover: 'hover:bg-pink-50 hover:text-pink-600', icon: 'text-pink-500', bg: 'bg-pink-500' },
-                  teal: { active: 'border-teal-500 text-teal-700 bg-teal-50', hover: 'hover:bg-teal-50 hover:text-teal-600', icon: 'text-teal-500', bg: 'bg-teal-500' },
-                  yellow: { active: 'border-yellow-500 text-yellow-700 bg-yellow-50', hover: 'hover:bg-yellow-50 hover:text-yellow-600', icon: 'text-yellow-600', bg: 'bg-yellow-500' },
-                  amber: { active: 'border-amber-500 text-amber-700 bg-amber-50', hover: 'hover:bg-amber-50 hover:text-amber-600', icon: 'text-amber-500', bg: 'bg-amber-500' },
-                  fuchsia: { active: 'border-fuchsia-500 text-fuchsia-700 bg-fuchsia-50', hover: 'hover:bg-fuchsia-50 hover:text-fuchsia-600', icon: 'text-fuchsia-500', bg: 'bg-fuchsia-500' },
-                  gray: { active: 'border-gray-500 text-gray-700 bg-gray-100', hover: 'hover:bg-gray-100 hover:text-gray-600', icon: 'text-gray-500', bg: 'bg-gray-500' },
-                }
-                
-                const colors = colorClasses[tab.color] || colorClasses.blue
                 
                 return (
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab)}
                     className={cn(
-                      'group relative flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap border-b-3',
+                      'group relative flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl transition-all duration-200 whitespace-nowrap',
                       isActive
-                        ? `${colors.active} border-b-4 shadow-sm`
-                        : `border-transparent text-gray-500 ${colors.hover}`
+                        ? 'bg-[#2CA01C] text-white shadow-lg shadow-green-500/25'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-[#0D2942]'
                     )}
                   >
-                    {/* Indicador de pestaña activa */}
-                    {isActive && (
-                      <span className={`absolute -bottom-0.5 left-0 right-0 h-1 ${colors.bg} rounded-t-full`} />
-                    )}
-                    
                     <Icon className={cn(
                       'w-5 h-5 transition-transform duration-200',
-                      isActive ? colors.icon : 'text-gray-400 group-hover:scale-110'
+                      isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#2CA01C] group-hover:scale-110'
                     )} />
-                    <span className="font-semibold">{tab.name}</span>
+                    <span>{tab.name}</span>
                     <ChevronDown className={cn(
                       'w-4 h-4 transition-transform duration-200',
                       isSubmenuOpen ? 'rotate-180' : '',
-                      isActive ? colors.icon : 'text-gray-400'
+                      isActive ? 'text-white/80' : 'text-gray-400'
                     )} />
                   </button>
                 )
@@ -482,45 +708,12 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
 
         {/* Submenú desplegable con diseño mejorado */}
         {showSubmenu[activeTab] && (
-          <div className={cn(
-            'border-t-2 shadow-lg transition-all duration-300',
-            activeSection.color === 'blue' ? 'bg-gradient-to-r from-blue-50 to-white border-blue-200' :
-            activeSection.color === 'green' ? 'bg-gradient-to-r from-green-50 to-white border-green-200' :
-            activeSection.color === 'purple' ? 'bg-gradient-to-r from-purple-50 to-white border-purple-200' :
-            activeSection.color === 'red' ? 'bg-gradient-to-r from-red-50 to-white border-red-200' :
-            activeSection.color === 'cyan' ? 'bg-gradient-to-r from-cyan-50 to-white border-cyan-200' :
-            activeSection.color === 'indigo' ? 'bg-gradient-to-r from-indigo-50 to-white border-indigo-200' :
-            activeSection.color === 'emerald' ? 'bg-gradient-to-r from-emerald-50 to-white border-emerald-200' :
-            activeSection.color === 'violet' ? 'bg-gradient-to-r from-violet-50 to-white border-violet-200' :
-            activeSection.color === 'pink' ? 'bg-gradient-to-r from-pink-50 to-white border-pink-200' :
-            activeSection.color === 'teal' ? 'bg-gradient-to-r from-teal-50 to-white border-teal-200' :
-            activeSection.color === 'yellow' ? 'bg-gradient-to-r from-yellow-50 to-white border-yellow-200' :
-            activeSection.color === 'amber' ? 'bg-gradient-to-r from-amber-50 to-white border-amber-200' :
-            activeSection.color === 'fuchsia' ? 'bg-gradient-to-r from-fuchsia-50 to-white border-fuchsia-200' :
-            activeSection.color === 'gray' ? 'bg-gradient-to-r from-gray-50 to-white border-gray-200' :
-            'bg-gradient-to-r from-blue-50 to-white border-blue-200'
-          )}>
+          <div className="border-t border-gray-100 bg-white shadow-lg">
             {/* Título de la sección actual */}
             <div className="px-6 pt-4 pb-2 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <activeSection.icon className={cn(
-                  'w-5 h-5',
-                  activeSection.color === 'blue' ? 'text-blue-600' :
-                  activeSection.color === 'green' ? 'text-green-600' :
-                  activeSection.color === 'purple' ? 'text-purple-600' :
-                  activeSection.color === 'red' ? 'text-red-600' :
-                  activeSection.color === 'cyan' ? 'text-cyan-600' :
-                  activeSection.color === 'indigo' ? 'text-indigo-600' :
-                  activeSection.color === 'emerald' ? 'text-emerald-600' :
-                  activeSection.color === 'violet' ? 'text-violet-600' :
-                  activeSection.color === 'pink' ? 'text-pink-600' :
-                  activeSection.color === 'teal' ? 'text-teal-600' :
-                  activeSection.color === 'yellow' ? 'text-yellow-600' :
-                  activeSection.color === 'amber' ? 'text-amber-600' :
-                  activeSection.color === 'fuchsia' ? 'text-fuchsia-600' :
-                  'text-gray-600'
-                )} />
-                <span className="text-sm font-bold text-gray-700">{activeSection.name}</span>
+                <activeSection.icon className="w-5 h-5 text-[#2CA01C]" />
+                <span className="text-sm font-bold text-[#0D2942]">{activeSection.name}</span>
                 <span className="text-xs text-gray-400">•</span>
                 <span className="text-xs text-gray-500">{activeSection.submenus.length} opciones</span>
               </div>
@@ -531,41 +724,6 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                 {activeSection.submenus.map((submenu, index) => {
                   const isCurrentPage = currentUrl === submenu.href || pathname === submenu.href
                   
-                  // Colores para el submenú activo
-                  const submenuActiveClasses: Record<string, string> = {
-                    blue: 'bg-blue-100 border-blue-400 ring-2 ring-blue-200',
-                    green: 'bg-green-100 border-green-400 ring-2 ring-green-200',
-                    purple: 'bg-purple-100 border-purple-400 ring-2 ring-purple-200',
-                    red: 'bg-red-100 border-red-400 ring-2 ring-red-200',
-                    cyan: 'bg-cyan-100 border-cyan-400 ring-2 ring-cyan-200',
-                    indigo: 'bg-indigo-100 border-indigo-400 ring-2 ring-indigo-200',
-                    emerald: 'bg-emerald-100 border-emerald-400 ring-2 ring-emerald-200',
-                    violet: 'bg-violet-100 border-violet-400 ring-2 ring-violet-200',
-                    pink: 'bg-pink-100 border-pink-400 ring-2 ring-pink-200',
-                    teal: 'bg-teal-100 border-teal-400 ring-2 ring-teal-200',
-                    yellow: 'bg-yellow-100 border-yellow-400 ring-2 ring-yellow-200',
-                    amber: 'bg-amber-100 border-amber-400 ring-2 ring-amber-200',
-                    fuchsia: 'bg-fuchsia-100 border-fuchsia-400 ring-2 ring-fuchsia-200',
-                    gray: 'bg-gray-100 border-gray-400 ring-2 ring-gray-200',
-                  }
-
-                  const submenuTextClasses: Record<string, string> = {
-                    blue: 'text-blue-700',
-                    green: 'text-green-700',
-                    purple: 'text-purple-700',
-                    red: 'text-red-700',
-                    cyan: 'text-cyan-700',
-                    indigo: 'text-indigo-700',
-                    emerald: 'text-emerald-700',
-                    violet: 'text-violet-700',
-                    pink: 'text-pink-700',
-                    teal: 'text-teal-700',
-                    yellow: 'text-yellow-700',
-                    amber: 'text-amber-700',
-                    fuchsia: 'text-fuchsia-700',
-                    gray: 'text-gray-700',
-                  }
-                  
                   return (
                     <Link
                       key={submenu.href}
@@ -573,29 +731,13 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                       className={cn(
                         'group relative p-3 rounded-xl border-2 transition-all duration-200',
                         isCurrentPage
-                          ? `${submenuActiveClasses[activeSection.color] || submenuActiveClasses.blue} shadow-md transform scale-[1.02]`
-                          : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md hover:scale-[1.01]'
+                          ? 'bg-green-50 border-[#2CA01C] ring-2 ring-green-200 shadow-md transform scale-[1.02]'
+                          : 'bg-white border-gray-200 hover:border-[#2CA01C] hover:shadow-md hover:scale-[1.01]'
                       )}
                     >
                       {/* Indicador de página actual */}
                       {isCurrentPage && (
-                        <div className={cn(
-                          'absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center',
-                          activeSection.color === 'blue' ? 'bg-blue-500' :
-                          activeSection.color === 'green' ? 'bg-green-500' :
-                          activeSection.color === 'purple' ? 'bg-purple-500' :
-                          activeSection.color === 'red' ? 'bg-red-500' :
-                          activeSection.color === 'cyan' ? 'bg-cyan-500' :
-                          activeSection.color === 'indigo' ? 'bg-indigo-500' :
-                          activeSection.color === 'emerald' ? 'bg-emerald-500' :
-                          activeSection.color === 'violet' ? 'bg-violet-500' :
-                          activeSection.color === 'pink' ? 'bg-pink-500' :
-                          activeSection.color === 'teal' ? 'bg-teal-500' :
-                          activeSection.color === 'yellow' ? 'bg-yellow-500' :
-                          activeSection.color === 'amber' ? 'bg-amber-500' :
-                          activeSection.color === 'fuchsia' ? 'bg-fuchsia-500' :
-                          'bg-gray-500'
-                        )}>
+                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center bg-[#2CA01C]">
                           <span className="text-white text-[10px] font-bold">✓</span>
                         </div>
                       )}
@@ -604,8 +746,8 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                       <span className={cn(
                         'absolute top-2 left-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
                         isCurrentPage 
-                          ? `${submenuTextClasses[activeSection.color] || 'text-blue-700'} bg-white/60`
-                          : 'text-gray-400 bg-gray-100'
+                          ? 'text-[#108000] bg-white/60'
+                          : 'text-gray-400 bg-gray-100 group-hover:bg-green-100 group-hover:text-[#2CA01C]'
                       )}>
                         {index + 1}
                       </span>
@@ -613,8 +755,8 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                       <div className={cn(
                         'text-sm font-semibold mb-1 mt-3',
                         isCurrentPage 
-                          ? submenuTextClasses[activeSection.color] || 'text-blue-700'
-                          : 'text-gray-800 group-hover:text-gray-900'
+                          ? 'text-[#108000]'
+                          : 'text-gray-800 group-hover:text-[#2CA01C]'
                       )}>
                         {submenu.name}
                       </div>
@@ -633,11 +775,12 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
             </div>
           </div>
         )}
-      </div>
 
       {/* Contenido principal */}
-      <main className="max-w-full">
-        {children}
+      <main className="max-w-full bg-gray-50 min-h-[calc(100vh-200px)]">
+        <div className="p-6">
+          {children}
+        </div>
       </main>
 
       {/* AI Assistant flotante disponible en todas las páginas de company */}

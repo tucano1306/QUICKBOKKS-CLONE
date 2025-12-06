@@ -222,20 +222,20 @@ export default function TransactionsPage() {
         {/* Header */}
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">💰 Transacciones</h1>
-            <p className="text-sm text-gray-600">Gestiona todos los movimientos financieros</p>
+            <h1 className="text-2xl font-bold text-[#0D2942]">💰 Transacciones</h1>
+            <p className="text-sm text-gray-500">Gestiona todos los movimientos financieros</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button 
               onClick={() => router.push('/company/transactions/new?type=INCOME')} 
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25"
             >
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Ingreso
             </Button>
             <Button 
               onClick={() => router.push('/company/transactions/new?type=EXPENSE')} 
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/25"
             >
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Gasto
@@ -253,7 +253,7 @@ export default function TransactionsPage() {
 
       {/* Panel de Filtros */}
       {showFilters && (
-        <Card className="bg-gray-50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Búsqueda por texto */}
@@ -329,31 +329,35 @@ export default function TransactionsPage() {
 
       {/* Resumen */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-gradient-to-br from-green-50 to-white border-green-200 shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-green-700">
+            <CardTitle className="text-sm text-[#108000] font-semibold">
               Ingresos {hasActiveFilters ? '(Filtrados)' : 'Totales'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-6 w-6 text-green-600" />
-              <span className="text-2xl font-bold text-green-700">
+              <div className="w-10 h-10 rounded-xl bg-[#2CA01C] flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-2xl font-bold text-[#108000]">
                 ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-red-50 border-red-200">
+        <Card className="bg-gradient-to-br from-red-50 to-white border-red-200 shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-red-700">
+            <CardTitle className="text-sm text-red-700 font-semibold">
               Gastos {hasActiveFilters ? '(Filtrados)' : 'Totales'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <TrendingDown className="h-6 w-6 text-red-600" />
+              <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center">
+                <TrendingDown className="h-5 w-5 text-white" />
+              </div>
               <span className="text-2xl font-bold text-red-700">
                 ${totalExpense.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
@@ -361,14 +365,16 @@ export default function TransactionsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200 shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-blue-700">Balance Neto</CardTitle>
+            <CardTitle className="text-sm text-[#0077C5] font-semibold">Balance Neto</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <DollarSign className="h-6 w-6 text-blue-600" />
-              <span className={`text-2xl font-bold ${totalIncome - totalExpense >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+              <div className="w-10 h-10 rounded-xl bg-[#0077C5] flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+              <span className={`text-2xl font-bold ${totalIncome - totalExpense >= 0 ? 'text-[#0077C5]' : 'text-red-700'}`}>
                 ${(totalIncome - totalExpense).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -383,6 +389,7 @@ export default function TransactionsPage() {
             variant={filter === 'ALL' ? 'default' : 'outline'}
             onClick={() => setFilter('ALL')}
             size="sm"
+            className={filter === 'ALL' ? 'bg-[#0D2942] hover:bg-[#1a3a5c]' : ''}
           >
             Todas ({transactions.length})
           </Button>
@@ -390,7 +397,7 @@ export default function TransactionsPage() {
             variant={filter === 'INCOME' ? 'default' : 'outline'}
             onClick={() => setFilter('INCOME')}
             size="sm"
-            className={filter === 'INCOME' ? 'bg-green-600 hover:bg-green-700' : ''}
+            className={filter === 'INCOME' ? 'bg-[#2CA01C] hover:bg-[#108000]' : ''}
           >
             💵 Ingresos ({transactions.filter(t => t.type === 'INCOME').length})
           </Button>
