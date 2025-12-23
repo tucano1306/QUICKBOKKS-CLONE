@@ -2,7 +2,186 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { ImportType, ImportStatus } from '@prisma/client'
+import { ImportType, ImportStatus, AccountType } from '@prisma/client'
+
+// Helper types
+type ImportRow = Record<string, unknown>
+type ImportError = { row: number; message: string }
+type ImportResult = { successRows: number; errorRows: number; errors: ImportError[] }
+
+// Safe number parsing helpers - handles primitives only
+function safeParseFloat(value: unknown, defaultValue = 0): number {
+  if (value === null || value === undefined) return defaultValue
+  if (typeof value === 'number') return value
+  if (typeof value !== 'string') return defaultValue
+  const num = Number.parseFloat(value)
+  return Number.isNaN(num) ? defaultValue : num
+}
+
+function safeParseInt(value: unknown, defaultValue = 0): number {
+  if (value === null || value === undefined) return defaultValue
+  if (typeof value === 'number') return Math.floor(value)
+  if (typeof value !== 'string') return defaultValue
+  const num = Number.parseInt(value, 10)
+  return Number.isNaN(num) ? defaultValue : num
+}
+
+// Valid account types
+const validAccountTypes = new Set<AccountType>(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'])
+
+function parseAccountType(value: unknown): AccountType {
+  if (value === null || value === undefined) return 'EXPENSE'
+  if (typeof value !== 'string') return 'EXPENSE'
+  const strValue = value.toUpperCase()
+  return validAccountTypes.has(strValue as AccountType) ? strValue as AccountType : 'EXPENSE'
+}
+
+// Helper function to process customers import
+async function processCustomersImport(companyId: string, data: ImportRow[]): Promise<ImportResult> {
+  let successRows = 0
+  let errorRows = 0
+  const errors: ImportError[] = []
+
+  for (let i = 0; i < data.length; i++) {
+    try {
+      const row = data[i]
+      await prisma.customer.create({
+        data: {
+          companyId,
+          name: (row.name || row.nombre || `Customer ${i + 1}`) as string,
+          email: (row.email || row.correo || null) as string | null,
+          phone: (row.phone || row.telefono || null) as string | null,
+          company: (row.company || row.empresa || null) as string | null,
+          taxId: (row.taxId || row.rfc || null) as string | null,
+          address: (row.address || row.direccion || null) as string | null,
+          city: (row.city || row.ciudad || null) as string | null,
+          state: (row.state || row.estado || null) as string | null,
+          zipCode: (row.zipCode || row.codigoPostal || null) as string | null,
+          country: (row.country || row.pais || 'US') as string,
+          notes: (row.notes || row.notas || null) as string | null,
+          status: 'ACTIVE'
+        }
+      })
+      successRows++
+    } catch (err: unknown) {
+      errorRows++
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      errors.push({ row: i + 1, message })
+    }
+  }
+
+  return { successRows, errorRows, errors }
+}
+
+// Helper function to process vendors import
+async function processVendorsImport(companyId: string, data: ImportRow[]): Promise<ImportResult> {
+  let successRows = 0
+  let errorRows = 0
+  const errors: ImportError[] = []
+
+  for (let i = 0; i < data.length; i++) {
+    try {
+      const row = data[i]
+      const vendorNumber = `VND-${Date.now()}-${i}`
+      await prisma.vendor.create({
+        data: {
+          companyId,
+          vendorNumber,
+          name: (row.name || row.nombre || `Vendor ${i + 1}`) as string,
+          contactName: (row.contactName || row.contacto || null) as string | null,
+          email: (row.email || row.correo || null) as string | null,
+          phone: (row.phone || row.telefono || null) as string | null,
+          address: (row.address || row.direccion || null) as string | null,
+          city: (row.city || row.ciudad || null) as string | null,
+          state: (row.state || row.estado || null) as string | null,
+          country: (row.country || row.pais || 'US') as string,
+          taxId: (row.taxId || row.rfc || null) as string | null,
+          paymentTerms: (row.paymentTerms || 'Net 30') as string,
+          category: (row.category || row.categoria || null) as string | null,
+          notes: (row.notes || row.notas || null) as string | null,
+          status: 'ACTIVE'
+        }
+      })
+      successRows++
+    } catch (err: unknown) {
+      errorRows++
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      errors.push({ row: i + 1, message })
+    }
+  }
+
+  return { successRows, errorRows, errors }
+}
+
+// Helper function to process products import
+async function processProductsImport(companyId: string, data: ImportRow[]): Promise<ImportResult> {
+  let successRows = 0
+  let errorRows = 0
+  const errors: ImportError[] = []
+
+  for (let i = 0; i < data.length; i++) {
+    try {
+      const row = data[i]
+      const sku = (row.sku || `SKU-${Date.now()}-${i}`) as string
+      await prisma.product.create({
+        data: {
+          companyId,
+          name: (row.name || row.nombre || `Product ${i + 1}`) as string,
+          description: (row.description || row.descripcion || null) as string | null,
+          type: row.type === 'SERVICE' ? 'SERVICE' : 'PRODUCT',
+          sku,
+          price: safeParseFloat(row.price ?? row.precio),
+          cost: row.cost ?? row.costo ? safeParseFloat(row.cost ?? row.costo) : null,
+          taxable: row.taxable !== false,
+          taxRate: safeParseFloat(row.taxRate ?? row.impuesto),
+          category: (row.category || row.categoria || null) as string | null,
+          unit: (row.unit || row.unidad || null) as string | null,
+          stock: safeParseInt(row.stock ?? row.inventario),
+          reorderLevel: row.reorderLevel ? safeParseInt(row.reorderLevel) : null,
+          status: 'ACTIVE'
+        }
+      })
+      successRows++
+    } catch (err: unknown) {
+      errorRows++
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      errors.push({ row: i + 1, message })
+    }
+  }
+
+  return { successRows, errorRows, errors }
+}
+
+// Helper function to process chart of accounts import
+async function processChartOfAccountsImport(companyId: string, data: ImportRow[]): Promise<ImportResult> {
+  let successRows = 0
+  let errorRows = 0
+  const errors: ImportError[] = []
+
+  for (let i = 0; i < data.length; i++) {
+    try {
+      const row = data[i]
+      await prisma.chartOfAccounts.create({
+        data: {
+          companyId,
+          code: (row.code || row.accountNumber || row.numero || `${1000 + i}`) as string,
+          name: (row.name || row.nombre || `Account ${i + 1}`) as string,
+          type: parseAccountType(row.type ?? row.tipo),
+          description: (row.description || row.descripcion || null) as string | null,
+          balance: safeParseFloat(row.balance ?? row.saldo),
+          isActive: true
+        }
+      })
+      successRows++
+    } catch (err: unknown) {
+      errorRows++
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      errors.push({ row: i + 1, message })
+    }
+  }
+
+  return { successRows, errorRows, errors }
+}
 
 // GET - List import jobs
 export async function GET(request: NextRequest) {
@@ -62,130 +241,27 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    let successRows = 0
-    let errorRows = 0
-    const errors: { row: number; message: string }[] = []
+    // Process based on type using helper functions
+    let result: ImportResult
 
-    // Process based on type
     switch (type) {
       case 'CUSTOMERS':
-        for (let i = 0; i < data.length; i++) {
-          try {
-            const row = data[i]
-            await prisma.customer.create({
-              data: {
-                companyId,
-                name: row.name || row.nombre || `Customer ${i + 1}`,
-                email: row.email || row.correo || null,
-                phone: row.phone || row.telefono || null,
-                company: row.company || row.empresa || null,
-                taxId: row.taxId || row.rfc || null,
-                address: row.address || row.direccion || null,
-                city: row.city || row.ciudad || null,
-                state: row.state || row.estado || null,
-                zipCode: row.zipCode || row.codigoPostal || null,
-                country: row.country || row.pais || 'US',
-                notes: row.notes || row.notas || null,
-                status: 'ACTIVE'
-              }
-            })
-            successRows++
-          } catch (err: any) {
-            errorRows++
-            errors.push({ row: i + 1, message: err.message || 'Unknown error' })
-          }
-        }
+        result = await processCustomersImport(companyId, data)
         break
-
       case 'VENDORS':
-        for (let i = 0; i < data.length; i++) {
-          try {
-            const row = data[i]
-            const vendorNumber = `VND-${Date.now()}-${i}`
-            await prisma.vendor.create({
-              data: {
-                companyId,
-                vendorNumber,
-                name: row.name || row.nombre || `Vendor ${i + 1}`,
-                contactName: row.contactName || row.contacto || null,
-                email: row.email || row.correo || null,
-                phone: row.phone || row.telefono || null,
-                address: row.address || row.direccion || null,
-                city: row.city || row.ciudad || null,
-                state: row.state || row.estado || null,
-                country: row.country || row.pais || 'US',
-                taxId: row.taxId || row.rfc || null,
-                paymentTerms: row.paymentTerms || 'Net 30',
-                category: row.category || row.categoria || null,
-                notes: row.notes || row.notas || null,
-                status: 'ACTIVE'
-              }
-            })
-            successRows++
-          } catch (err: any) {
-            errorRows++
-            errors.push({ row: i + 1, message: err.message || 'Unknown error' })
-          }
-        }
+        result = await processVendorsImport(companyId, data)
         break
-
       case 'PRODUCTS':
-        for (let i = 0; i < data.length; i++) {
-          try {
-            const row = data[i]
-            const sku = row.sku || `SKU-${Date.now()}-${i}`
-            await prisma.product.create({
-              data: {
-                companyId,
-                name: row.name || row.nombre || `Product ${i + 1}`,
-                description: row.description || row.descripcion || null,
-                type: row.type === 'SERVICE' ? 'SERVICE' : 'PRODUCT',
-                sku,
-                price: parseFloat(row.price || row.precio || '0'),
-                cost: row.cost || row.costo ? parseFloat(row.cost || row.costo) : null,
-                taxable: row.taxable !== false,
-                taxRate: parseFloat(row.taxRate || row.impuesto || '0'),
-                category: row.category || row.categoria || null,
-                unit: row.unit || row.unidad || null,
-                stock: parseInt(row.stock || row.inventario || '0'),
-                reorderLevel: row.reorderLevel ? parseInt(row.reorderLevel) : null,
-                status: 'ACTIVE'
-              }
-            })
-            successRows++
-          } catch (err: any) {
-            errorRows++
-            errors.push({ row: i + 1, message: err.message || 'Unknown error' })
-          }
-        }
+        result = await processProductsImport(companyId, data)
         break
-
       case 'CHART_OF_ACCOUNTS':
-        for (let i = 0; i < data.length; i++) {
-          try {
-            const row = data[i]
-            await prisma.chartOfAccounts.create({
-              data: {
-                companyId,
-                code: row.code || row.accountNumber || row.numero || `${1000 + i}`,
-                name: row.name || row.nombre || `Account ${i + 1}`,
-                type: row.type || row.tipo || 'EXPENSE',
-                description: row.description || row.descripcion || null,
-                balance: parseFloat(row.balance || row.saldo || '0'),
-                isActive: true
-              }
-            })
-            successRows++
-          } catch (err: any) {
-            errorRows++
-            errors.push({ row: i + 1, message: err.message || 'Unknown error' })
-          }
-        }
+        result = await processChartOfAccountsImport(companyId, data)
         break
-
       default:
         return NextResponse.json({ error: 'Unsupported import type' }, { status: 400 })
     }
+
+    const { successRows, errorRows, errors } = result
 
     // Update import job with results
     const updatedJob = await prisma.importJob.update({

@@ -410,10 +410,24 @@ export async function createTransactionWithJE(params: CreateTransactionParams) {
       throw new Error(`Cuenta ${targetAccountCode} no encontrada. Ejecute el seed de cuentas.`);
     }
 
-    // 4. Generar número de asiento
-    const jeCount = await tx.journalEntry.count({ where: { companyId } });
+    // 4. Generar número de asiento único
     const year = new Date().getFullYear();
-    const entryNumber = `JE-${year}-${String(jeCount + 1).padStart(6, '0')}`;
+    const lastJE = await tx.journalEntry.findFirst({
+      where: { 
+        companyId,
+        entryNumber: { startsWith: `JE-${year}-` }
+      },
+      orderBy: { entryNumber: 'desc' }
+    });
+    
+    let nextNumber = 1;
+    if (lastJE?.entryNumber) {
+      const lastNum = Number.parseInt(lastJE.entryNumber.split('-')[2], 10);
+      if (!Number.isNaN(lastNum)) {
+        nextNumber = lastNum + 1;
+      }
+    }
+    const entryNumber = `JE-${year}-${String(nextNumber).padStart(6, '0')}`;
 
     // 5. Crear Journal Entry
     const journalEntry = await tx.journalEntry.create({
@@ -524,10 +538,24 @@ export async function createExpenseWithJE(params: CreateExpenseParams) {
       throw new Error(`Cuenta de gastos (${expenseAccountCode}) no encontrada`);
     }
 
-    // 4. Generar número de asiento
-    const jeCount = await tx.journalEntry.count({ where: { companyId } });
+    // 4. Generar número de asiento único
     const year = new Date().getFullYear();
-    const entryNumber = `JE-${year}-${String(jeCount + 1).padStart(6, '0')}`;
+    const lastJE = await tx.journalEntry.findFirst({
+      where: { 
+        companyId,
+        entryNumber: { startsWith: `JE-${year}-` }
+      },
+      orderBy: { entryNumber: 'desc' }
+    });
+    
+    let nextNumber = 1;
+    if (lastJE?.entryNumber) {
+      const lastNum = Number.parseInt(lastJE.entryNumber.split('-')[2], 10);
+      if (!Number.isNaN(lastNum)) {
+        nextNumber = lastNum + 1;
+      }
+    }
+    const entryNumber = `JE-${year}-${String(nextNumber).padStart(6, '0')}`;
 
     // 5. Crear Journal Entry
     const journalEntry = await tx.journalEntry.create({

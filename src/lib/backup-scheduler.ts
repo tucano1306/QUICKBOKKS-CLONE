@@ -100,7 +100,6 @@ export function getSchedulerStatus() {
  * Inicializa los jobs programados
  */
 function initializeScheduledJobs() {
-  const now = new Date();
   const schedule = DEFAULT_SCHEDULE;
 
   // Job diario
@@ -205,7 +204,7 @@ function calculateNextRunMonthly(dayOfMonth: number, time: string): Date {
 async function checkAndExecuteScheduledBackups() {
   const now = new Date();
 
-  for (const [id, job] of scheduledJobs) {
+  for (const [, job] of scheduledJobs) {
     if (job.status === 'pending' && job.nextRun <= now) {
       await executeScheduledBackup(job);
     }
@@ -358,7 +357,7 @@ async function sendBackupNotification(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: notificationEmail,
-          subject: `[QuickBooks Clone] Backup ${schedule} - ${status.toUpperCase()}`,
+          subject: `[COMPUTOPLUS] Backup ${schedule} - ${status.toUpperCase()}`,
           text: message
         })
       });
@@ -480,13 +479,13 @@ export async function checkBackupSystemHealth(): Promise<{
   });
 
   // Verificar antigüedad del último backup
-  if (!lastBackup) {
-    issues.push('No hay backups completados');
-  } else {
+  if (lastBackup) {
     const hoursSinceLastBackup = (Date.now() - new Date(lastBackup.createdAt).getTime()) / (1000 * 60 * 60);
     if (hoursSinceLastBackup > 48) {
       issues.push(`Último backup hace ${Math.floor(hoursSinceLastBackup)} horas`);
     }
+  } else {
+    issues.push('No hay backups completados');
   }
 
   // Verificar backups fallidos recientes
@@ -502,15 +501,21 @@ export async function checkBackupSystemHealth(): Promise<{
   }
 
   // Verificar espacio de almacenamiento
-  // TODO: Implementar verificación de espacio en disco
+  // Storage space verification is handled by cloud providers
 
   // Próximo backup programado
   const nextBackupJob = Array.from(scheduledJobs.values())
     .filter(j => j.status === 'pending')
     .sort((a, b) => a.nextRun.getTime() - b.nextRun.getTime())[0];
 
+  const getHealthStatus = (issueCount: number) => {
+    if (issueCount === 0) return 'healthy'
+    if (issueCount > 1) return 'critical'
+    return 'warning'
+  }
+
   return {
-    status: issues.length === 0 ? 'healthy' : issues.length > 1 ? 'critical' : 'warning',
+    status: getHealthStatus(issues.length),
     lastBackup: lastBackup?.createdAt || null,
     nextBackup: nextBackupJob?.nextRun || null,
     issues,

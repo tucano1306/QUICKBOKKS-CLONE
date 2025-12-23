@@ -5,14 +5,13 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { 
   Upload,
   FileText,
-  Image,
   File,
   Download,
   Eye,
@@ -22,18 +21,21 @@ import {
   XCircle,
   Folder,
   Search,
-  Filter,
-  Calendar,
-  User,
   DollarSign,
   AlertCircle,
   Send,
-  Link as LinkIcon,
   Copy,
   Zap,
   Bot,
   Edit
 } from 'lucide-react'
+
+// Helper function to get AI category label
+const getAiCategoryLabel = (category: string) => {
+  if (category === 'invoice') return 'Compras - Suministros'
+  if (category === 'receipt') return 'Gastos Operativos'
+  return 'Conciliación Bancaria'
+}
 
 interface ClientDocument {
   id: string
@@ -66,7 +68,7 @@ export default function DocumentUploadPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [processingStage, setProcessingStage] = useState<string>('')
   const [uploadedFiles, setUploadedFiles] = useState<ClientDocument[]>([])
-  const [portalLink] = useState('https://portal.quickbooks.com/client/ABC123XYZ')
+  const [portalLink] = useState('https://portal.computoplus.com/client/ABC123XYZ')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null)
   const [documents, setDocuments] = useState<ClientDocument[]>([])
 
@@ -147,6 +149,21 @@ export default function DocumentUploadPage() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
+  // Handler para descargar documento
+  const handleDownload = (filename: string) => {
+    setMessage({ type: 'success', text: `Descargando: ${filename}` })
+    setTimeout(() => setMessage(null), 3000)
+  }
+
+  // Handler para eliminar documento
+  const handleDeleteDocument = (docId: string, filename: string) => {
+    if (confirm(`¿Eliminar ${filename}?\n\nEsta acción no se puede deshacer.`)) {
+      setUploadedFiles(prev => prev.filter(d => d.id !== docId))
+      setMessage({ type: 'success', text: 'Documento eliminado' })
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files || files.length === 0) return
@@ -183,7 +200,7 @@ export default function DocumentUploadPage() {
           const category = categories[Math.floor(Math.random() * categories.length)]
           const amount = Math.random() * 5000 + 100
           const confidence = Math.random() * 15 + 85 // 85-100%
-          
+
           return {
             id: `DOC-NEW-${Date.now()}-${index}`,
             filename: file.name,
@@ -193,7 +210,7 @@ export default function DocumentUploadPage() {
             uploadedBy: session?.user?.name || 'Usuario',
             fileSize: file.size,
             status: confidence > 95 ? 'categorized' : 'processing',
-            aiCategory: category === 'invoice' ? 'Compras - Suministros' : category === 'receipt' ? 'Gastos Operativos' : 'Conciliación Bancaria',
+            aiCategory: getAiCategoryLabel(category),
             aiConfidence: Math.round(confidence),
             amount: Math.round(amount * 100) / 100,
             vendor: 'Proveedor Auto-Detectado',
@@ -238,16 +255,18 @@ export default function DocumentUploadPage() {
     )
   }
 
+  const getMessageStyle = (type: string) => {
+    if (type === 'success') return 'bg-green-50 text-green-800 border border-green-200'
+    if (type === 'error') return 'bg-red-50 text-red-800 border border-red-200'
+    return 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+  }
+
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Message Display */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-            'bg-yellow-50 text-yellow-800 border border-yellow-200'
-          }`}>
+          <div className={`p-4 rounded-lg flex items-center gap-2 ${getMessageStyle(message.type)}`}>
             {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
             {message.text}
           </div>
@@ -473,7 +492,7 @@ export default function DocumentUploadPage() {
                           <span className="text-sm text-gray-700">
                             <strong>Categoría IA:</strong> {doc.aiCategory}
                           </span>
-                          {doc.aiConfidence && (
+                          {doc.aiConfidence !== undefined && doc.aiConfidence > 0 && (
                             <Badge className="bg-purple-100 text-purple-700 text-xs">
                               {doc.aiConfidence}% confianza
                             </Badge>
@@ -497,7 +516,7 @@ export default function DocumentUploadPage() {
                           <span className="text-xs text-gray-500">Subido:</span>
                           <div className="font-medium">{doc.uploadDate}</div>
                         </div>
-                        {doc.amount && (
+                        {doc.amount !== undefined && doc.amount > 0 && (
                           <div>
                             <span className="text-xs text-gray-500">Monto Detectado:</span>
                             <div className="font-semibold text-green-600">${doc.amount.toLocaleString()}</div>
@@ -556,10 +575,7 @@ export default function DocumentUploadPage() {
                       size="sm" 
                       variant="outline" 
                       title="Descargar"
-                      onClick={() => {
-                        setMessage({ type: 'success', text: `Descargando: ${doc.filename}` })
-                        setTimeout(() => setMessage(null), 3000)
-                      }}
+                      onClick={() => handleDownload(doc.filename)}
                     >
                       <Download className="w-4 h-4" />
                     </Button>
@@ -568,13 +584,7 @@ export default function DocumentUploadPage() {
                       variant="outline" 
                       className="text-red-600" 
                       title="Eliminar"
-                      onClick={() => {
-                        if (confirm(`¿Eliminar ${doc.filename}?\n\nEsta acción no se puede deshacer.`)) {
-                          setUploadedFiles(prev => prev.filter(d => d.id !== doc.id))
-                          setMessage({ type: 'success', text: 'Documento eliminado' })
-                          setTimeout(() => setMessage(null), 3000)
-                        }
-                      }}
+                      onClick={() => handleDeleteDocument(doc.id, doc.filename)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

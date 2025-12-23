@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
-  FileText,
   Plus,
   Edit,
   Trash2,
@@ -22,9 +21,7 @@ import {
   Save,
   Palette,
   Type,
-  Image,
-  Layout,
-  Check
+  Layout
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -58,7 +55,7 @@ const fontOptions = [
 ]
 
 const colorPresets = [
-  { name: 'QuickBooks Green', primary: '#2CA01C', accent: '#0077C5' },
+  { name: 'COMPUTOPLUS Green', primary: '#2CA01C', accent: '#0077C5' },
   { name: 'Professional Blue', primary: '#0077C5', accent: '#2CA01C' },
   { name: 'Corporate Gray', primary: '#374151', accent: '#6B7280' },
   { name: 'Elegant Navy', primary: '#0D2942', accent: '#0077C5' },
@@ -67,7 +64,7 @@ const colorPresets = [
 
 export default function InvoiceTemplatesPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   
   const [templates, setTemplates] = useState<InvoiceTemplate[]>([])
@@ -150,6 +147,7 @@ export default function InvoiceTemplatesPage() {
         toast.error('Failed to save template')
       }
     } catch (error) {
+      console.error('Error saving template:', error)
       toast.error('Failed to save template')
     }
   }
@@ -170,6 +168,7 @@ export default function InvoiceTemplatesPage() {
         toast.error(data.error || 'Failed to delete template')
       }
     } catch (error) {
+      console.error('Error deleting template:', error)
       toast.error('Failed to delete template')
     }
   }
@@ -187,6 +186,7 @@ export default function InvoiceTemplatesPage() {
         fetchTemplates()
       }
     } catch (error) {
+      console.error('Error updating default:', error)
       toast.error('Failed to update default')
     }
   }
@@ -373,7 +373,11 @@ export default function InvoiceTemplatesPage() {
 
         {/* Create/Edit Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto" onClick={() => setShowModal(false)}>
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto" 
+            onClick={() => setShowModal(false)}
+            aria-hidden="true"
+          >
             <Card className="w-full max-w-2xl mx-4 my-8" onClick={(e) => e.stopPropagation()}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{editingTemplate ? 'Edit Template' : 'Create New Template'}</CardTitle>
@@ -386,8 +390,9 @@ export default function InvoiceTemplatesPage() {
                   {/* Basic Info */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                      <label className="text-sm font-medium">Template Name *</label>
+                      <label htmlFor="template-name" className="text-sm font-medium">Template Name *</label>
                       <Input
+                        id="template-name"
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
                         placeholder="e.g., Professional Blue"
@@ -420,9 +425,10 @@ export default function InvoiceTemplatesPage() {
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs text-gray-500">Header Color</label>
+                        <label htmlFor="header-color" className="text-xs text-gray-500">Header Color</label>
                         <div className="flex gap-2 mt-1">
                           <input
+                            id="header-color"
                             type="color"
                             value={formData.headerColor}
                             onChange={(e) => setFormData({...formData, headerColor: e.target.value})}
@@ -436,9 +442,10 @@ export default function InvoiceTemplatesPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs text-gray-500">Accent Color</label>
+                        <label htmlFor="accent-color" className="text-xs text-gray-500">Accent Color</label>
                         <div className="flex gap-2 mt-1">
                           <input
+                            id="accent-color"
                             type="color"
                             value={formData.accentColor}
                             onChange={(e) => setFormData({...formData, accentColor: e.target.value})}
@@ -502,8 +509,9 @@ export default function InvoiceTemplatesPage() {
                   {/* Footer Text */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium">Footer Text</label>
+                      <label htmlFor="footer-text" className="text-sm font-medium">Footer Text</label>
                       <Input
+                        id="footer-text"
                         value={formData.footerText}
                         onChange={(e) => setFormData({...formData, footerText: e.target.value})}
                         placeholder="Thank you for your business!"
@@ -511,8 +519,9 @@ export default function InvoiceTemplatesPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Terms Text</label>
+                      <label htmlFor="terms-text" className="text-sm font-medium">Terms Text</label>
                       <Input
+                        id="terms-text"
                         value={formData.termsText}
                         onChange={(e) => setFormData({...formData, termsText: e.target.value})}
                         placeholder="Payment terms..."
@@ -547,7 +556,11 @@ export default function InvoiceTemplatesPage() {
 
         {/* Preview Modal */}
         {previewTemplate && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setPreviewTemplate(null)}>
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" 
+            onClick={() => setPreviewTemplate(null)}
+            aria-hidden="true"
+          >
             <Card className="w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Preview: {previewTemplate.name}</CardTitle>

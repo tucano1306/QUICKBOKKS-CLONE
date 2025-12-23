@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright E2E Testing Configuration
  * 
- * QuickBooks Clone - Florida/Miami USA
+ * COMPUTOPLUS - Florida/Miami USA
  * 
  * Run all tests: npx playwright test
  * Run in UI mode: npx playwright test --ui

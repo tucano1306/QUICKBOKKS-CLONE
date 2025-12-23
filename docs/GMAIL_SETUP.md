@@ -45,7 +45,7 @@ Esta guía te ayuda a configurar la integración con Gmail para recibir document
 1. Haz clic en el selector de proyecto (arriba a la izquierda)
 2. Clic en **"NUEVO PROYECTO"**
 3. Completa:
-   - **Nombre del proyecto**: `QuickBooks Clone Email` (o el nombre que prefieras)
+   - **Nombre del proyecto**: `COMPUTOPLUS Email` (o el nombre que prefieras)
    - **Organización**: Déjalo vacío si no tienes organización
 4. Clic en **"CREAR"**
 5. Espera ~30 segundos a que se cree
@@ -87,7 +87,7 @@ Completa los campos:
 
 | Campo | Valor |
 |-------|-------|
-| Nombre de la app | `QuickBooks Clone` |
+| Nombre de la app | `COMPUTOPLUS` |
 | Correo de asistencia | Tu email |
 | Logo | (opcional) |
 | Página principal | `http://localhost:3000` (o tu dominio) |
@@ -139,7 +139,7 @@ Clic en **"GUARDAR Y CONTINUAR"**
 | Campo | Valor |
 |-------|-------|
 | Tipo de aplicación | **Aplicación web** |
-| Nombre | `QuickBooks Clone Web` |
+| Nombre | `COMPUTOPLUS Web` |
 
 ### Paso 4.4: Agregar URIs de redirección
 

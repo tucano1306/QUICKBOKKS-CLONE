@@ -73,7 +73,7 @@ interface Attachment {
 
 export default function NewExpensePage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -152,24 +152,26 @@ export default function NewExpensePage() {
     }
   }
 
-  // Handle file attachment
+  // Handle file attachment - Process a single file
+  const processFile = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const attachment: Attachment = {
+        id: Date.now().toString() + Math.random(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        data: reader.result as string
+      }
+      setAttachments(prev => [...prev, attachment])
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
-
-    Array.from(files).forEach(file => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        setAttachments(prev => [...prev, {
-          id: Date.now().toString() + Math.random(),
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          data: reader.result as string
-        }])
-      }
-      reader.readAsDataURL(file)
-    })
+    Array.from(files).forEach(processFile)
   }
 
   const removeAttachment = (id: string) => {
@@ -180,17 +182,6 @@ export default function NewExpensePage() {
     if (bytes < 1024) return bytes + ' B'
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
-      if (employeesRes.ok) {
-        const data = await employeesRes.json()
-        const employeesArray = Array.isArray(data) ? data : data.employees || []
-        setEmployees(employeesArray)
-      }
-    } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setLoadingData(false)
-    }
   }
 
   // Funciones para manejar múltiples pagos
@@ -214,11 +205,11 @@ export default function NewExpensePage() {
   }
 
   const getTotalPayments = () => {
-    return paymentSplits.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0)
+    return paymentSplits.reduce((sum, p) => sum + (Number.parseFloat(p.amount) || 0), 0)
   }
 
   const getPaymentDifference = () => {
-    const total = parseFloat(formData.amount) || 0
+    const total = Number.parseFloat(formData.amount) || 0
     const payments = getTotalPayments()
     return total - payments
   }
@@ -234,52 +225,71 @@ export default function NewExpensePage() {
     }
   }
 
+  // Validation helper function
+  const validateForm = (): string | null => {
+    if (!formData.description.trim()) {
+      return 'La descripción es requerida'
+    }
+    if (!formData.amount || Number.parseFloat(formData.amount) <= 0) {
+      return 'El monto debe ser mayor a 0'
+    }
+    if (!formData.categoryId) {
+      return 'Selecciona una categoría'
+    }
+    if (useMultiplePayments) {
+      const diff = getPaymentDifference()
+      if (Math.abs(diff) > 0.01) {
+        return `La suma de los pagos ($${getTotalPayments().toFixed(2)}) no coincide con el monto total ($${formData.amount}). Diferencia: $${diff.toFixed(2)}`
+      }
+    }
+    return null
+  }
+
+  // Upload attachments helper
+  const uploadAttachments = async (expenseId: string) => {
+    if (attachments.length === 0 || !activeCompany?.id) return
+    
+    for (const att of attachments) {
+      try {
+        await fetch('/api/attachments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            companyId: activeCompany.id,
+            transactionType: 'expense',
+            transactionId: expenseId,
+            fileName: att.name,
+            fileType: att.type,
+            fileSize: att.size,
+            url: att.data
+          })
+        })
+      } catch (err) {
+        console.error('Error uploading attachment:', err)
+      }
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage(null)
 
-    // Validaciones
-    if (!formData.description.trim()) {
-      setMessage({ type: 'error', text: 'La descripción es requerida' })
+    const validationError = validateForm()
+    if (validationError) {
+      setMessage({ type: 'error', text: validationError })
       setLoading(false)
       return
-    }
-
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      setMessage({ type: 'error', text: 'El monto debe ser mayor a 0' })
-      setLoading(false)
-      return
-    }
-
-    if (!formData.categoryId) {
-      setMessage({ type: 'error', text: 'Selecciona una categoría' })
-      setLoading(false)
-      return
-    }
-
-    // Validar pagos múltiples si está activo
-    if (useMultiplePayments) {
-      const diff = getPaymentDifference()
-      if (Math.abs(diff) > 0.01) {
-        setMessage({ 
-          type: 'error', 
-          text: `La suma de los pagos ($${getTotalPayments().toFixed(2)}) no coincide con el monto total ($${formData.amount}). Diferencia: $${diff.toFixed(2)}` 
-        })
-        setLoading(false)
-        return
-      }
     }
 
     try {
-      // Preparar datos para enviar
       const paymentData = useMultiplePayments ? {
         paymentMethod: 'MULTIPLE',
         notes: JSON.stringify({
           originalNotes: formData.notes,
           paymentSplits: paymentSplits.map(p => ({
             method: p.method,
-            amount: parseFloat(p.amount),
+            amount: Number.parseFloat(p.amount),
             reference: p.reference
           }))
         })
@@ -294,7 +304,7 @@ export default function NewExpensePage() {
         body: JSON.stringify({
           ...formData,
           ...paymentData,
-          amount: parseFloat(formData.amount),
+          amount: Number.parseFloat(formData.amount),
           employeeId: formData.employeeId || null,
           classId: formData.classId || null,
           locationId: formData.locationId || null
@@ -303,30 +313,7 @@ export default function NewExpensePage() {
 
       if (response.ok) {
         const expense = await response.json()
-        
-        // Upload attachments if any
-        if (attachments.length > 0 && activeCompany?.id) {
-          for (const att of attachments) {
-            try {
-              await fetch('/api/attachments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  companyId: activeCompany.id,
-                  transactionType: 'expense',
-                  transactionId: expense.id,
-                  fileName: att.name,
-                  fileType: att.type,
-                  fileSize: att.size,
-                  url: att.data
-                })
-              })
-            } catch (err) {
-              console.error('Error uploading attachment:', err)
-            }
-          }
-        }
-        
+        await uploadAttachments(expense.id)
         toast.success('Gasto creado exitosamente')
         router.push('/company/expenses/list')
       } else {
@@ -334,6 +321,7 @@ export default function NewExpensePage() {
         setMessage({ type: 'error', text: error.error || 'Error al crear el gasto' })
       }
     } catch (error) {
+      console.error('Error creating expense:', error)
       setMessage({ type: 'error', text: 'Error de conexión' })
     } finally {
       setLoading(false)
@@ -443,7 +431,7 @@ export default function NewExpensePage() {
                       inputMode="decimal"
                       value={formData.amount}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/,/g, '.');
+                        const val = e.target.value.replaceAll(',', '.');
                         if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
                           handleChange({ target: { name: 'amount', value: val } } as React.ChangeEvent<HTMLInputElement>);
                         }
@@ -538,31 +526,7 @@ export default function NewExpensePage() {
                   </button>
                 </div>
 
-                {!useMultiplePayments ? (
-                  /* Pago Simple */
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <select
-                        id="paymentMethod"
-                        name="paymentMethod"
-                        value={formData.paymentMethod}
-                        onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 dark:border-gray-700"
-                      >
-                        {paymentMethods.map(pm => (
-                          <option key={pm.value} value={pm.value}>{pm.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <Input
-                      name="reference"
-                      value={formData.reference}
-                      onChange={handleChange}
-                      placeholder="Referencia / Número de Recibo"
-                    />
-                  </div>
-                ) : (
+                {useMultiplePayments ? (
                   /* Pagos Múltiples */
                   <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
                     <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -595,7 +559,7 @@ export default function NewExpensePage() {
                             placeholder="Monto"
                             value={split.amount}
                             onChange={(e) => {
-                              const val = e.target.value.replace(/,/g, '.');
+                              const val = e.target.value.replaceAll(',', '.');
                               if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
                                 updatePaymentSplit(split.id, 'amount', val);
                               }
@@ -637,7 +601,7 @@ export default function NewExpensePage() {
                     <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Monto Total del Gasto:</span>
-                        <span className="font-medium">${parseFloat(formData.amount || '0').toFixed(2)}</span>
+                        <span className="font-medium">${Number.parseFloat(formData.amount || '0').toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm mt-1">
                         <span className="text-gray-600">Suma de Pagos:</span>
@@ -646,6 +610,30 @@ export default function NewExpensePage() {
                         </span>
                       </div>
                     </div>
+                  </div>
+                ) : (
+                  /* Pago Simple */
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="relative">
+                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <select
+                        id="paymentMethod"
+                        name="paymentMethod"
+                        value={formData.paymentMethod}
+                        onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 dark:border-gray-700"
+                      >
+                        {paymentMethods.map(pm => (
+                          <option key={pm.value} value={pm.value}>{pm.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Input
+                      name="reference"
+                      value={formData.reference}
+                      onChange={handleChange}
+                      placeholder="Referencia / Número de Recibo"
+                    />
                   </div>
                 )}
               </div>

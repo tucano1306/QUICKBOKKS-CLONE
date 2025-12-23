@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,11 +12,9 @@ import {
   BookOpen,
   Plus,
   Search,
-  Filter,
   Download,
   Calendar,
   Eye,
-  Edit,
   Trash2,
   FileText,
   CheckCircle2,
@@ -52,11 +50,11 @@ interface JournalLine {
 
 export default function JournalEntriesPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   // Evitar destructuring directo que puede causar problemas
   const sessionHook = useSession()
   const companyHook = useCompany()
   
-  const session = sessionHook?.data
   const authStatus = sessionHook?.status || 'loading'
   const activeCompany = companyHook?.activeCompany
 
@@ -69,7 +67,6 @@ export default function JournalEntriesPage() {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([])
   const [processing, setProcessing] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [accounts, setAccounts] = useState<any[]>([])
   
   // Estados para nuevo asiento
   const [newEntryDate, setNewEntryDate] = useState(new Date().toISOString().split('T')[0])
@@ -79,6 +76,14 @@ export default function JournalEntriesPage() {
     { id: '1', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 },
     { id: '2', accountCode: '', accountName: '', description: '', debit: 0, credit: 0 }
   ])
+
+  // Abrir modal si viene de /new
+  useEffect(() => {
+    if (searchParams.get('openModal') === 'add') {
+      setShowNewModal(true)
+      router.replace('/company/accounting/journal-entries', { scroll: false })
+    }
+  }, [searchParams, router])
 
   // Fetch journal entries from API
   const fetchJournalEntries = useCallback(async () => {
@@ -286,7 +291,9 @@ export default function JournalEntriesPage() {
       })
 
       if (response.ok) {
-        const statusText = newStatus === 'POSTED' ? 'registrado' : newStatus === 'REVERSED' ? 'revertido' : 'actualizado'
+        let statusText = 'actualizado'
+        if (newStatus === 'POSTED') statusText = 'registrado'
+        else if (newStatus === 'REVERSED') statusText = 'revertido'
         setMessage({ type: 'success', text: `Asiento ${statusText} exitosamente` })
         setSelectedEntry(null)
         fetchJournalEntries()
@@ -509,10 +516,10 @@ export default function JournalEntriesPage() {
                 onClick={() => {
                   if (selectedEntry) {
                     const status = (selectedEntry.status || '').toLowerCase()
-                    if (status !== 'posted') {
-                      setMessage({ type: 'error', text: 'Solo se pueden revertir asientos registrados' })
-                    } else {
+                    if (status === 'posted') {
                       updateJournalEntryStatus(selectedEntry, 'REVERSED')
+                    } else {
+                      setMessage({ type: 'error', text: 'Solo se pueden revertir asientos registrados' })
                     }
                   } else {
                     setMessage({ type: 'error', text: 'Selecciona un asiento de la tabla para revertir' })
@@ -638,7 +645,7 @@ export default function JournalEntriesPage() {
                         <td className="px-4 py-3">
                           <div className="text-sm text-gray-900 max-w-md truncate">{entry.description}</div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {(entry.lines || []).length} línea{(entry.lines || []).length !== 1 ? 's' : ''}
+                            {(entry.lines || []).length} línea{(entry.lines || []).length === 1 ? '' : 's'}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -699,16 +706,16 @@ export default function JournalEntriesPage() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-semibold text-gray-700">Descripción</label>
+                      <span className="text-sm font-semibold text-gray-700">Descripción</span>
                       <p className="text-gray-900">{selectedEntry.description}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-semibold text-gray-700">Estado</label>
+                      <span className="text-sm font-semibold text-gray-700">Estado</span>
                       <div className="mt-1">{getStatusBadge(selectedEntry.status)}</div>
                     </div>
                     {selectedEntry.reference && (
                       <div>
-                        <label className="text-sm font-semibold text-gray-700">Referencia</label>
+                        <span className="text-sm font-semibold text-gray-700">Referencia</span>
                         <p className="text-gray-900">{selectedEntry.reference}</p>
                       </div>
                     )}
@@ -782,16 +789,18 @@ export default function JournalEntriesPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Fecha *</label>
+                      <label htmlFor="je-date" className="block text-sm font-medium mb-1">Fecha *</label>
                       <Input 
+                        id="je-date"
                         type="date" 
                         value={newEntryDate}
                         onChange={(e) => setNewEntryDate(e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Referencia</label>
+                      <label htmlFor="je-ref" className="block text-sm font-medium mb-1">Referencia</label>
                       <Input 
+                        id="je-ref"
                         placeholder="REF-001, FAC-123, etc." 
                         value={newEntryRef}
                         onChange={(e) => setNewEntryRef(e.target.value)}
@@ -799,8 +808,9 @@ export default function JournalEntriesPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Descripción *</label>
+                    <label htmlFor="je-desc" className="block text-sm font-medium mb-1">Descripción *</label>
                     <Input 
+                      id="je-desc"
                       placeholder="Descripción del asiento contable" 
                       value={newEntryDesc}
                       onChange={(e) => setNewEntryDesc(e.target.value)}
@@ -842,14 +852,14 @@ export default function JournalEntriesPage() {
                           type="text"
                           placeholder="0.00"
                           value={line.debit || ''}
-                          onChange={(e) => updateLine(line.id, 'debit', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                          onChange={(e) => updateLine(line.id, 'debit', Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                         />
                         <Input 
                           className="amount-input col-span-2 text-sm text-right" 
                           type="text"
                           placeholder="0.00"
                           value={line.credit || ''}
-                          onChange={(e) => updateLine(line.id, 'credit', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                          onChange={(e) => updateLine(line.id, 'credit', Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                         />
                         <div className="col-span-2 flex gap-1 justify-end">
                           <Button 

@@ -5,41 +5,26 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
-import FloatingAssistant from '@/components/ai-assistant/floating-assistant'
-import RealTimeUpdates from '@/components/ui/real-time-updates'
 import {
   LayoutDashboard,
   FileText,
   DollarSign,
   Users,
-  Package,
   TrendingUp,
   Settings,
   Building2,
   Receipt,
-  Wallet,
-  CreditCard,
   ChevronDown,
   Calculator,
-  PieChart,
   FolderKanban,
-  UserCheck,
   ShoppingCart,
-  Briefcase,
   FileCheck,
   Activity,
   Target,
   Zap,
   Brain,
-  Shield,
-  Smartphone,
-  Globe,
-  Cloud,
-  BarChart3,
   Home,
-  LogOut,
   Wrench,
-  FileSpreadsheet,
   ArrowLeftRight,
   Plus,
   Search,
@@ -312,7 +297,7 @@ const tabSections: TabSection[] = [
   }
 ]
 
-export default function CompanyTabsLayout({ children }: { children: React.ReactNode }) {
+export default function CompanyTabsLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { activeCompany } = useCompany()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -356,12 +341,12 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
 
   // Quick Create menu items (como QuickBooks + New)
   const quickCreateItems = [
-    { name: 'Invoice', href: '/company/invoicing/invoices?action=new', icon: FileText, color: 'text-blue-600' },
-    { name: 'Expense', href: '/company/expenses/list?action=new', icon: Receipt, color: 'text-red-600' },
-    { name: 'Customer', href: '/company/customers?action=new', icon: Users, color: 'text-green-600' },
-    { name: 'Vendor', href: '/company/vendors/list?action=new', icon: ShoppingCart, color: 'text-purple-600' },
-    { name: 'Bill', href: '/company/vendors/payables?action=new', icon: FileCheck, color: 'text-orange-600' },
-    { name: 'Journal Entry', href: '/company/accounting/journal-entries?action=new', icon: Calculator, color: 'text-indigo-600' },
+    { name: 'Invoice', href: '/company/invoicing/invoices/new', icon: FileText, color: 'text-blue-600' },
+    { name: 'Expense', href: '/company/expenses/new', icon: Receipt, color: 'text-red-600' },
+    { name: 'Customer', href: '/company/customers/new', icon: Users, color: 'text-green-600' },
+    { name: 'Vendor', href: '/company/vendors/new', icon: ShoppingCart, color: 'text-purple-600' },
+    { name: 'Bill', href: '/company/vendors/payables/new', icon: FileCheck, color: 'text-orange-600' },
+    { name: 'Journal Entry', href: '/company/accounting/journal-entries/new', icon: Calculator, color: 'text-indigo-600' },
   ]
 
   // Notifications data - Mensaje informativo (sin datos mock)
@@ -464,7 +449,7 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
               {/* Quick Create Dropdown */}
               {showCreateMenu && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)} />
+                  <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)} aria-hidden="true" />
                   <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="px-4 py-2 border-b border-gray-100">
                       <p className="text-xs font-semibold text-gray-500 uppercase">Create New</p>
@@ -538,11 +523,11 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                 {/* Help Dropdown */}
                 {showHelp && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowHelp(false)} />
+                    <div className="fixed inset-0 z-40" onClick={() => setShowHelp(false)} aria-hidden="true" />
                     <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="px-4 py-3 border-b border-gray-100">
                         <p className="text-sm font-bold text-[#0D2942]">Help & Support</p>
-                        <p className="text-xs text-gray-500">Get help using QuickBooks</p>
+                        <p className="text-xs text-gray-500">Get help using COMPUTOPLUS</p>
                       </div>
                       {helpItems.map((item) => (
                         <button
@@ -586,7 +571,7 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                   title="Notifications"
                 >
                   <Bell className="w-5 h-5 text-gray-600" />
-                  {notifications.filter(n => !n.read).length > 0 && (
+                  {notifications.some(n => !n.read) && (
                     <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                   )}
                 </button>
@@ -594,7 +579,7 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
                 {/* Notifications Dropdown */}
                 {showNotifications && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} aria-hidden="true" />
                     <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <div>

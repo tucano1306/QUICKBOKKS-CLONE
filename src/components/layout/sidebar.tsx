@@ -75,11 +75,11 @@ export default function Sidebar() {
             className="flex items-center justify-center h-16 bg-[#0D2942] border-b border-white/10 hover:bg-white/5 transition-all duration-200 cursor-pointer"
           >
             {isCollapsed ? (
-              <span className="text-2xl font-extrabold text-[#2CA01C]">QB</span>
+              <span className="text-2xl font-extrabold text-[#2CA01C]">CP</span>
             ) : (
               <h1 className="text-lg sm:text-xl font-extrabold tracking-wide">
-                <span className="text-white">Quick</span>
-                <span className="text-[#2CA01C]">Books</span>
+                <span className="text-white">COMPUTO</span>
+                <span className="text-[#2CA01C]">PLUS</span>
               </h1>
             )}
           </Link>
@@ -192,6 +192,7 @@ export default function Sidebar() {
         <div
           className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
+          aria-hidden="true"
         />
       )}
     </>

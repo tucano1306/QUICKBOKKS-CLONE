@@ -129,14 +129,14 @@ export async function POST(request: NextRequest) {
           userId: session.user.id,
           companyId: userCompany?.companyId || null,
           categoryId,
-          amount: parseFloat(amount),
+          amount: Number.parseFloat(amount),
           date: parseDate(date),
           description,
           vendor,
           paymentMethod: paymentMethod || 'CASH',
           reference,
           taxDeductible: taxDeductible !== false,
-          taxAmount: taxAmount ? parseFloat(taxAmount) : 0,
+          taxAmount: taxAmount ? Number.parseFloat(taxAmount) : 0,
           notes,
           attachments: attachments || [],
           status: 'PENDING',
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
         const companyId = userCompany.companyId;
         const expDate = parseDate(date);
         const categoryName = expense.category?.name || 'General';
-        const expAmount = parseFloat(amount);
+        const expAmount = Number.parseFloat(amount);
 
         // Buscar cuenta de caja
         const cashAccount = await tx.chartOfAccounts.findFirst({
@@ -188,10 +188,24 @@ export async function POST(request: NextRequest) {
           throw new Error(`Cuenta de gastos (${expenseAccountCode}) no encontrada`);
         }
 
-        // Generar número de asiento
-        const jeCount = await tx.journalEntry.count({ where: { companyId } });
+        // Generar número de asiento único
         const year = new Date().getFullYear();
-        const entryNumber = `JE-${year}-${String(jeCount + 1).padStart(6, '0')}`;
+        const lastJE = await tx.journalEntry.findFirst({
+          where: { 
+            companyId,
+            entryNumber: { startsWith: `JE-${year}-` }
+          },
+          orderBy: { entryNumber: 'desc' }
+        });
+        
+        let nextNumber = 1;
+        if (lastJE?.entryNumber) {
+          const lastNum = Number.parseInt(lastJE.entryNumber.split('-')[2], 10);
+          if (!Number.isNaN(lastNum)) {
+            nextNumber = lastNum + 1;
+          }
+        }
+        const entryNumber = `JE-${year}-${String(nextNumber).padStart(6, '0')}`;
 
         // Crear Journal Entry
         await tx.journalEntry.create({

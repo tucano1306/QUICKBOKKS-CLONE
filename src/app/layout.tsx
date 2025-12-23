@@ -6,15 +6,15 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'QuickBooks Clone - Sistema de Gestión Financiera',
+  title: 'COMPUTOPLUS - Sistema de Gestión Financiera',
   description: 'Sistema completo de gestión financiera, contabilidad, facturación, nómina y reportes',
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="es">
       <body className={inter.className}>

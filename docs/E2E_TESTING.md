@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the End-to-End (E2E) testing setup for the QuickBooks Clone application using Playwright.
+This document describes the End-to-End (E2E) testing setup for the COMPUTOPLUS application using Playwright.
 
 ## Installation
 

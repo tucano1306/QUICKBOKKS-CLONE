@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { 
@@ -26,7 +26,6 @@ import {
   Download,
   Key,
   UserCheck,
-  AlertCircle,
   X,
   Loader2
 } from 'lucide-react'
@@ -72,7 +71,6 @@ export default function CustomerPortalPage() {
   const sessionHook = useSession()
   const companyHook = useCompany()
   
-  const session = sessionHook?.data
   const authStatus = sessionHook?.status || 'loading'
   const activeCompany = companyHook?.activeCompany
 
@@ -113,7 +111,7 @@ export default function CustomerPortalPage() {
           customerId: customer.id,
           customerName: customer.name || 'Sin nombre',
           email: customer.email || '',
-          portalUrl: `https://portal.quickbooks.com/cliente/${customer.id}`,
+          portalUrl: `https://portal.computoplus.com/cliente/${customer.id}`,
           status: customer.portalActive ? 'active' : 'inactive',
           lastAccess: customer.portalLastLogin || undefined,
           accessCount: customer.portalAccessCount || 0,
@@ -150,9 +148,9 @@ export default function CustomerPortalPage() {
     value
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
+      .replaceAll(/[\u0300-\u036f]/g, '')
+      .replaceAll(/[^a-z0-9]+/g, '-')
+      .replaceAll(/(?:^-+|-+$)/g, '')
 
   const handleInviteSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -185,7 +183,7 @@ export default function CustomerPortalPage() {
           customerId: newCustomer.id || `CUST-${Date.now()}`,
           customerName: inviteForm.customerName.trim(),
           email: inviteForm.email.trim(),
-          portalUrl: `https://portal.quickbooks.com/cliente/${slug}`,
+          portalUrl: `https://portal.computoplus.com/cliente/${slug}`,
           status: 'pending',
           accessCount: 0,
           features: { ...inviteForm.permissions },
@@ -418,26 +416,26 @@ export default function CustomerPortalPage() {
                       {/* Info Grid */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div>
-                          <label className="text-xs text-gray-600">Creado</label>
+                          <span className="text-xs text-gray-600">Creado</span>
                           <p className="text-sm font-medium">
                             {new Date(portal.createdDate).toLocaleDateString('es-MX')}
                           </p>
                         </div>
                         {portal.lastAccess && (
                           <div>
-                            <label className="text-xs text-gray-600">Último Acceso</label>
+                            <span className="text-xs text-gray-600">Último Acceso</span>
                             <p className="text-sm font-medium text-green-600">
                               {new Date(portal.lastAccess).toLocaleDateString('es-MX')}
                             </p>
                           </div>
                         )}
                         <div>
-                          <label className="text-xs text-gray-600">Accesos</label>
+                          <span className="text-xs text-gray-600">Accesos</span>
                           <p className="text-sm font-semibold text-blue-600">{portal.accessCount}</p>
                         </div>
                         {portal.invitationSent && (
                           <div>
-                            <label className="text-xs text-gray-600">Invitación</label>
+                            <span className="text-xs text-gray-600">Invitación</span>
                             <p className="text-sm text-gray-700">
                               {new Date(portal.invitationSent).toLocaleDateString('es-MX')}
                             </p>
@@ -542,8 +540,9 @@ export default function CustomerPortalPage() {
             <form onSubmit={handleInviteSubmit} className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Nombre completo *</label>
+                  <label htmlFor="customer-name" className="mb-1 block text-sm font-medium text-gray-700">Nombre completo *</label>
                   <Input
+                    id="customer-name"
                     value={inviteForm.customerName}
                     onChange={(e) => setInviteForm(prev => ({ ...prev, customerName: e.target.value }))}
                     placeholder="Ej. Carlos Rodríguez"
@@ -551,8 +550,9 @@ export default function CustomerPortalPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Correo electrónico *</label>
+                  <label htmlFor="customer-email" className="mb-1 block text-sm font-medium text-gray-700">Correo electrónico *</label>
                   <Input
+                    id="customer-email"
                     type="email"
                     value={inviteForm.email}
                     onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
@@ -571,7 +571,7 @@ export default function CustomerPortalPage() {
                     { key: 'makePayments', label: 'Realizar pagos', desc: 'Pagar en línea' },
                     { key: 'updateInfo', label: 'Actualizar información', desc: 'Modificar datos' }
                   ].map((perm) => (
-                    <label key={perm.key} className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50">
+                    <label key={perm.key} className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50" aria-label={perm.label}>
                       <input
                         type="checkbox"
                         className="mt-1 h-4 w-4"
@@ -632,11 +632,11 @@ export default function CustomerPortalPage() {
                   { key: 'notifyOnLogin', label: 'Notificar accesos', desc: 'Email al detectar inicio de sesión' },
                   { key: 'allowPayments', label: 'Permitir pagos', desc: 'Habilitar pagos en línea' }
                 ].map((setting) => (
-                  <label key={setting.key} className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50">
+                  <label key={setting.key} className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50" aria-label={setting.label}>
                     <input
                       type="checkbox"
                       className="mt-1 h-4 w-4"
-                      checked={portalSettings[setting.key as keyof Omit<PortalSettings, 'defaultPermissions'>] as boolean}
+                      checked={portalSettings[setting.key as keyof Omit<PortalSettings, 'defaultPermissions'>]}
                       onChange={(e) =>
                         setPortalSettings(prev => ({
                           ...prev,

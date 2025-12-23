@@ -4,12 +4,58 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { deleteTransactionWithReversal } from '@/lib/accounting-service'
 
+/**
+ * Parsea una fecha en formato ISO (YYYY-MM-DD) o americano (MM/DD/YYYY)
+ */
+function parseTransactionDate(dateStr: string): Date {
+  if (dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }
+  if (dateStr.includes('/')) {
+    const [month, day, year] = dateStr.split('/').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }
+  return new Date(dateStr);
+}
+
+/**
+ * Sincroniza el Journal Entry asociado a una transacción
+ */
+async function syncJournalEntry(transactionId: string, parsedDate: Date, newAmount: number): Promise<void> {
+  const journalEntry = await prisma.journalEntry.findFirst({
+    where: { reference: transactionId },
+    include: { lines: true }
+  });
+
+  if (!journalEntry) {
+    return;
+  }
+
+  await prisma.journalEntry.update({
+    where: { id: journalEntry.id },
+    data: { date: parsedDate }
+  });
+
+  for (const line of journalEntry.lines) {
+    await prisma.journalEntryLine.update({
+      where: { id: line.id },
+      data: {
+        debit: line.debit > 0 ? newAmount : 0,
+        credit: line.credit > 0 ? newAmount : 0
+      }
+    });
+  }
+  console.log(`✅ Journal Entry ${journalEntry.entryNumber} sincronizado con transacción`);
+}
+
 // GET - Obtener una transacción específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
@@ -28,7 +74,7 @@ export async function GET(
 
     const transaction = await prisma.transaction.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: userCompany.companyId
       }
     })
@@ -47,9 +93,10 @@ export async function GET(
 // PUT - Actualizar una transacción
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: transactionId } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
@@ -69,7 +116,7 @@ export async function PUT(
     // Verificar que la transacción existe y pertenece a la empresa
     const existingTransaction = await prisma.transaction.findFirst({
       where: {
-        id: params.id,
+        id: transactionId,
         companyId: userCompany.companyId
       }
     })
@@ -86,8 +133,7 @@ export async function PUT(
       amount,
       date,
       status,
-      notes,
-      reference
+      notes
     } = body
 
     // Validaciones básicas
@@ -95,7 +141,7 @@ export async function PUT(
       return NextResponse.json({ error: 'La categoría es requerida' }, { status: 400 })
     }
 
-    if (!amount || parseFloat(amount) <= 0) {
+    if (!amount || Number.parseFloat(amount) <= 0) {
       return NextResponse.json({ error: 'El monto debe ser mayor a 0' }, { status: 400 })
     }
 
@@ -103,22 +149,11 @@ export async function PUT(
       return NextResponse.json({ error: 'La fecha es requerida' }, { status: 400 })
     }
 
-    // Parsear fecha correctamente (formato americano MM/DD/YYYY)
-    let parsedDate: Date;
-    if (date.includes('-')) {
-      const [year, month, day] = date.split('-').map(Number);
-      parsedDate = new Date(year, month - 1, day, 12, 0, 0);
-    } else if (date.includes('/')) {
-      const [month, day, year] = date.split('/').map(Number);
-      parsedDate = new Date(year, month - 1, day, 12, 0, 0);
-    } else {
-      parsedDate = new Date(date);
-    }
-
-    const newAmount = parseFloat(amount);
+    const parsedDate = parseTransactionDate(date);
+    const newAmount = Number.parseFloat(amount);
 
     const updatedTransaction = await prisma.transaction.update({
-      where: { id: params.id },
+      where: { id: transactionId },
       data: {
         type: type || existingTransaction.type,
         category,
@@ -130,34 +165,8 @@ export async function PUT(
       }
     })
 
-    // =====================================================
-    // SINCRONIZAR JOURNAL ENTRY ASOCIADO
-    // El P&L usa los JE, así que DEBEMOS sincronizarlos
-    // =====================================================
-    const journalEntry = await prisma.journalEntry.findFirst({
-      where: { reference: params.id },
-      include: { lines: true }
-    });
-
-    if (journalEntry) {
-      // Actualizar fecha del JE
-      await prisma.journalEntry.update({
-        where: { id: journalEntry.id },
-        data: { date: parsedDate }
-      });
-
-      // Actualizar montos de las líneas del JE
-      for (const line of journalEntry.lines) {
-        await prisma.journalEntryLine.update({
-          where: { id: line.id },
-          data: {
-            debit: line.debit > 0 ? newAmount : 0,
-            credit: line.credit > 0 ? newAmount : 0
-          }
-        });
-      }
-      console.log(`✅ Journal Entry ${journalEntry.entryNumber} sincronizado con transacción`);
-    }
+    // Sincronizar Journal Entry asociado (el P&L usa los JE)
+    await syncJournalEntry(transactionId, parsedDate, newAmount);
 
     return NextResponse.json(updatedTransaction)
   } catch (error) {
@@ -169,9 +178,10 @@ export async function PUT(
 // DELETE - Eliminar una transacción
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: transactionId } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
@@ -191,7 +201,7 @@ export async function DELETE(
     // Verificar que la transacción existe y pertenece a la empresa
     const existingTransaction = await prisma.transaction.findFirst({
       where: {
-        id: params.id,
+        id: transactionId,
         companyId: userCompany.companyId
       }
     })
@@ -201,7 +211,7 @@ export async function DELETE(
     }
 
     // Eliminar con reversión de Journal Entry
-    await deleteTransactionWithReversal(params.id, session.user.id)
+    await deleteTransactionWithReversal(transactionId, session.user.id)
 
     return NextResponse.json({ success: true, message: 'Transacción eliminada correctamente' })
   } catch (error) {

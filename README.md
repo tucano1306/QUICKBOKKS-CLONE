@@ -1,4 +1,4 @@
-﻿#  QuickBooks Clone - Sistema Contable Empresarial Completo
+﻿#  COMPUTOPLUS - Sistema Contable Empresarial Completo
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { redirect, useRouter } from 'next/navigation'
+import { redirect, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,7 +26,6 @@ import {
   Phone, 
   Building, 
   Users,
-  Download,
   Eye,
   Send,
   FileSpreadsheet,
@@ -74,9 +73,10 @@ interface CustomerFormData {
 }
 
 export default function CustomersPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const router = useRouter()
+  const searchParams = useSearchParams()
   
   const [customers, setCustomers] = useState<Customer[]>([])
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
@@ -97,6 +97,15 @@ export default function CustomersPage() {
     taxId: '',
     status: 'ACTIVE'
   })
+
+  // Abrir modal si viene de /new
+  useEffect(() => {
+    if (searchParams.get('openModal') === 'add') {
+      setShowAddModal(true)
+      // Limpiar el parámetro de la URL
+      router.replace('/company/customers', { scroll: false })
+    }
+  }, [searchParams, router])
 
   const stats = {
     total: customers.length,
@@ -177,6 +186,7 @@ export default function CustomersPage() {
         throw new Error('Error al agregar cliente')
       }
     } catch (error) {
+      console.error('Error adding customer:', error)
       toast.error('Error al agregar cliente')
     }
   }
@@ -202,6 +212,7 @@ export default function CustomersPage() {
         throw new Error('Error al actualizar cliente')
       }
     } catch (error) {
+      console.error('Error updating customer:', error)
       toast.error('Error al actualizar cliente')
     }
   }
@@ -223,6 +234,7 @@ export default function CustomersPage() {
         throw new Error('Error al eliminar cliente')
       }
     } catch (error) {
+      console.error('Error deleting customer:', error)
       toast.error('Error al eliminar cliente')
     }
   }
@@ -247,6 +259,7 @@ export default function CustomersPage() {
         throw new Error('Error al enviar invitación')
       }
     } catch (error) {
+      console.error('Error sending portal invite:', error)
       toast.error('Error al enviar invitación')
     }
   }
@@ -295,7 +308,7 @@ export default function CustomersPage() {
     ].join('\n')
 
     const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
+    const url = globalThis.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `clientes-${format(new Date(), 'yyyy-MM-dd')}.csv`
@@ -527,7 +540,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/customers/${customer.id}`); }}
                               className="bg-blue-50 hover:bg-blue-100 border-blue-300"
                             >
                               <Eye className="h-4 w-4 mr-1 text-blue-600" />
@@ -583,7 +596,7 @@ export default function CustomersPage() {
                                 type="button"
                                 variant="outline" 
                                 size="sm" 
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}/activity`; }}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/customers/${customer.id}/activity`); }}
                                 className="bg-green-50 hover:bg-green-100 border-green-300"
                               >
                                 <Activity className="h-4 w-4 mr-1 text-green-600" />
@@ -596,7 +609,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/company/documents/upload?customerId=${customer.id}`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/company/documents/upload?customerId=${customer.id}`); }}
                               className="bg-orange-50 hover:bg-orange-100 border-orange-300"
                             >
                               <Upload className="h-4 w-4 mr-1 text-orange-600" />
@@ -608,7 +621,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/company/customers/transactions?customerId=${customer.id}`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/company/customers/transactions?customerId=${customer.id}`); }}
                               className="bg-indigo-50 hover:bg-indigo-100 border-indigo-300"
                             >
                               <DollarSign className="h-4 w-4 mr-1 text-indigo-600" />
@@ -620,7 +633,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/invoices?customerId=${customer.id}`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/invoices?customerId=${customer.id}`); }}
                               className="bg-teal-50 hover:bg-teal-100 border-teal-300"
                             >
                               <Receipt className="h-4 w-4 mr-1 text-teal-600" />
@@ -632,7 +645,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}/notes`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/customers/${customer.id}/notes`); }}
                               className="bg-yellow-50 hover:bg-yellow-100 border-yellow-300"
                             >
                               <StickyNote className="h-4 w-4 mr-1 text-yellow-600" />
@@ -644,7 +657,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}/crm`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/customers/${customer.id}/crm`); }}
                               className="bg-pink-50 hover:bg-pink-100 border-pink-300"
                             >
                               <UserCircle className="h-4 w-4 mr-1 text-pink-600" />
@@ -687,37 +700,37 @@ export default function CustomersPage() {
               <form onSubmit={handleAddCustomer} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="add-name" className="block text-sm font-medium text-gray-700 mb-1">
                       Nombre Completo <span className="text-red-500">*</span>
                     </label>
-                    <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Juan Pérez" />
+                    <Input id="add-name" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Juan Pérez" />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="add-email" className="block text-sm font-medium text-gray-700 mb-1">
                       Email <span className="text-red-500">*</span>
                     </label>
-                    <Input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="juan@empresa.com" />
+                    <Input id="add-email" type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="juan@empresa.com" />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                    <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+52 123 456 7890" />
+                    <label htmlFor="add-phone" className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                    <Input id="add-phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+52 123 456 7890" />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">RFC / Tax ID</label>
-                    <Input value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} placeholder="XAXX010101000" />
+                    <label htmlFor="add-taxId" className="block text-sm font-medium text-gray-700 mb-1">RFC / Tax ID</label>
+                    <Input id="add-taxId" value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} placeholder="XAXX010101000" />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
-                    <Input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} placeholder="Empresa SA de CV" />
+                    <label htmlFor="add-company" className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <Input id="add-company" value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} placeholder="Empresa SA de CV" />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                    <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label htmlFor="add-status" className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                    <select id="add-status" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                       <option value="ACTIVE">Activo</option>
                       <option value="INACTIVE">Inactivo</option>
                     </select>
@@ -725,8 +738,8 @@ export default function CustomersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Calle, Número, Colonia, Ciudad, CP" />
+                  <label htmlFor="add-address" className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                  <Input id="add-address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Calle, Número, Colonia, Ciudad, CP" />
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -757,37 +770,37 @@ export default function CustomersPage() {
               <form onSubmit={handleEditCustomer} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="edit-name" className="block text-sm font-medium text-gray-700 mb-1">
                       Nombre Completo <span className="text-red-500">*</span>
                     </label>
-                    <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                    <Input id="edit-name" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="edit-email" className="block text-sm font-medium text-gray-700 mb-1">
                       Email <span className="text-red-500">*</span>
                     </label>
-                    <Input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                    <Input id="edit-email" type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                    <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                    <label htmlFor="edit-phone" className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                    <Input id="edit-phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">RFC / Tax ID</label>
-                    <Input value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} />
+                    <label htmlFor="edit-taxId" className="block text-sm font-medium text-gray-700 mb-1">RFC / Tax ID</label>
+                    <Input id="edit-taxId" value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
-                    <Input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
+                    <label htmlFor="edit-company" className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <Input id="edit-company" value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                    <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label htmlFor="edit-status" className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                    <select id="edit-status" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                       <option value="ACTIVE">Activo</option>
                       <option value="INACTIVE">Inactivo</option>
                     </select>
@@ -795,8 +808,8 @@ export default function CustomersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                  <label htmlFor="edit-address" className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                  <Input id="edit-address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -826,14 +839,6 @@ export default function CustomersPage() {
 
               <form onSubmit={(e) => {
                 e.preventDefault()
-                const formData = new FormData(e.currentTarget)
-                const permissions = {
-                  viewInvoices: formData.get('viewInvoices') === 'on',
-                  downloadDocs: formData.get('downloadDocs') === 'on',
-                  viewStatement: formData.get('viewStatement') === 'on',
-                  makePayments: formData.get('makePayments') === 'on',
-                  requestInvoices: formData.get('requestInvoices') === 'on'
-                }
                 toast.success('Permisos actualizados correctamente')
                 setShowPermissionsModal(false)
                 setSelectedCustomer(null)

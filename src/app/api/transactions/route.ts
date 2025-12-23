@@ -73,11 +73,11 @@ export async function POST(request: NextRequest) {
     }
 
     const txDate = date ? new Date(date) : new Date();
-    const txAmount = parseFloat(amount);
+    const txAmount = Number.parseFloat(amount);
     const txDescription = description || category || (type === 'INCOME' ? 'Ingreso' : 'Gasto');
 
     // ATÓMICO: Crear transacción Y journal entry en la misma transacción de BD
-    // Si falla cualquiera, se revierte TODO
+    // Si falla cualquiera, se revierte completamente
     const result = await prisma.$transaction(async (tx) => {
       // 1. Crear la transacción
       const transaction = await tx.transaction.create({
@@ -134,10 +134,24 @@ export async function POST(request: NextRequest) {
         throw new Error(`Cuenta ${targetAccountCode} no encontrada. Ejecute el seed de cuentas.`);
       }
 
-      // 4. Generar número de asiento
-      const jeCount = await tx.journalEntry.count({ where: { companyId } });
+      // 4. Generar número de asiento único
       const year = new Date().getFullYear();
-      const entryNumber = `JE-${year}-${String(jeCount + 1).padStart(6, '0')}`;
+      const lastJE = await tx.journalEntry.findFirst({
+        where: { 
+          companyId,
+          entryNumber: { startsWith: `JE-${year}-` }
+        },
+        orderBy: { entryNumber: 'desc' }
+      });
+      
+      let nextNumber = 1;
+      if (lastJE?.entryNumber) {
+        const lastNum = Number.parseInt(lastJE.entryNumber.split('-')[2], 10);
+        if (!Number.isNaN(lastNum)) {
+          nextNumber = lastNum + 1;
+        }
+      }
+      const entryNumber = `JE-${year}-${String(nextNumber).padStart(6, '0')}`;
 
       // 5. Crear Journal Entry con líneas
       const journalEntry = await tx.journalEntry.create({

@@ -34,15 +34,15 @@ export default function IntegrationsPage() {
     checkGmailStatus()
     
     // Verificar parámetros de URL (callback de OAuth)
-    const params = new URLSearchParams(window.location.search)
+    const params = new URLSearchParams(globalThis.location.search)
     if (params.get('gmail_success') === 'true') {
       setSuccessMessage('¡Gmail conectado exitosamente! Ahora puedes recibir documentos por email.')
       // Limpiar URL
-      window.history.replaceState({}, '', '/company/settings/integrations')
+      globalThis.history.replaceState({}, '', '/company/settings/integrations')
     }
     if (params.get('gmail_error')) {
       setError(`Error al conectar Gmail: ${params.get('gmail_error')}`)
-      window.history.replaceState({}, '', '/company/settings/integrations')
+      globalThis.history.replaceState({}, '', '/company/settings/integrations')
     }
   }, [])
 
@@ -61,7 +61,7 @@ export default function IntegrationsPage() {
 
   const handleConnectGmail = () => {
     // Redirigir a OAuth de Google
-    window.location.href = '/api/auth/gmail?action=authorize'
+    globalThis.location.href = '/api/auth/gmail?action=authorize'
   }
 
   const handleDisconnectGmail = async () => {
@@ -202,12 +202,13 @@ export default function IntegrationsPage() {
 
             {/* Botones de acción */}
             <div className="flex gap-3 pt-2">
-              {loading ? (
+              {loading && (
                 <Button disabled>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   Verificando...
                 </Button>
-              ) : gmailStatus?.authenticated ? (
+              )}
+              {!loading && gmailStatus?.authenticated && (
                 <>
                   <Button variant="outline" onClick={checkGmailStatus}>
                     <RefreshCw className="h-4 w-4 mr-2" />
@@ -228,7 +229,8 @@ export default function IntegrationsPage() {
                     </a>
                   </Button>
                 </>
-              ) : (
+              )}
+              {!loading && !gmailStatus?.authenticated && (
                 <>
                   <Button 
                     onClick={handleConnectGmail}
@@ -240,7 +242,7 @@ export default function IntegrationsPage() {
                   </Button>
                   <Button variant="outline" asChild>
                     <a 
-                      href="https://github.com/tuusuario/quickbooks-clone/blob/main/docs/GMAIL_SETUP.md" 
+                      href="https://github.com/tuusuario/computoplus/blob/main/docs/GMAIL_SETUP.md" 
                       target="_blank"
                     >
                       <Settings className="h-4 w-4 mr-2" />

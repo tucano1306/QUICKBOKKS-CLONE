@@ -59,7 +59,7 @@ const config = {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			},
-  			// QuickBooks Brand Colors
+  			// COMPUTOPLUS Brand Colors
   			qb: {
   				green: {
   					DEFAULT: '#2CA01C',
