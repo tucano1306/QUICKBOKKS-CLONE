@@ -164,12 +164,11 @@ export async function POST(request: NextRequest) {
             OR: [{ companyId }, { companyId: null }]
           }
         });
-      });
 
-      if (!targetAccount) {
-        console.warn(`⚠️ Cuenta ${targetAccountCode} no encontrada, transacción creada sin journal entry`);
-        return { transaction, journalEntry: null };
-      }
+        if (!targetAccount) {
+          console.warn(`⚠️ Cuenta ${targetAccountCode} no encontrada, transacción creada sin journal entry`);
+          return { transaction, journalEntry: null };
+        }
 
       // 4. Generar número de asiento único
       const entryNumber = await generateEntryNumber(tx, companyId);
