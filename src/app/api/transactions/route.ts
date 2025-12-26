@@ -6,6 +6,50 @@ import { deleteTransactionWithReversal } from '@/lib/accounting-service'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * Determinar código de cuenta según tipo de transacción y categoría
+ */
+function getTargetAccountCode(type: string, category: string): string {
+  if (type === 'INCOME') {
+    return '4900'; // Otros Ingresos
+  }
+  
+  const categoryLower = category.toLowerCase();
+  if (categoryLower.includes('salario') || categoryLower.includes('payroll') || categoryLower.includes('sueldo') || categoryLower.includes('chofer')) {
+    return '5100'; // Salarios
+  }
+  if (categoryLower.includes('alquiler') || categoryLower.includes('rent')) {
+    return '5200'; // Alquiler
+  }
+  if (categoryLower.includes('servicio') || categoryLower.includes('utility') || categoryLower.includes('luz') || categoryLower.includes('agua')) {
+    return '5300'; // Servicios
+  }
+  return '5900'; // Otros Gastos
+}
+
+/**
+ * Generar siguiente número de asiento contable
+ */
+async function generateEntryNumber(tx: any, companyId: string): Promise<string> {
+  const year = new Date().getFullYear();
+  const lastJE = await tx.journalEntry.findFirst({
+    where: { 
+      companyId,
+      entryNumber: { startsWith: `JE-${year}-` }
+    },
+    orderBy: { entryNumber: 'desc' }
+  });
+  
+  let nextNumber = 1;
+  if (lastJE?.entryNumber) {
+    const lastNum = Number.parseInt(lastJE.entryNumber.split('-')[2], 10);
+    if (!Number.isNaN(lastNum)) {
+      nextNumber = lastNum + 1;
+    }
+  }
+  return `JE-${year}-${String(nextNumber).padStart(6, '0')}`;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -95,68 +139,43 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // 2. Buscar cuentas necesarias
-      const cashAccount = await tx.chartOfAccounts.findFirst({
-        where: { 
-          code: '1000',
-          OR: [{ companyId }, { companyId: null }]
-        }
-      });
+      // 2. Intentar crear journal entry (opcional, no bloqueante)
+      let journalEntry = null;
+      try {
+        // 2a. Buscar cuentas necesarias
+        const cashAccount = await tx.chartOfAccounts.findFirst({
+          where: { 
+            code: '1000',
+            OR: [{ companyId }, { companyId: null }]
+          }
+        });
 
-      if (!cashAccount) {
-        throw new Error('Cuenta de Caja (1000) no encontrada. Ejecute el seed de cuentas.');
-      }
-
-      // 3. Determinar cuenta de ingreso/gasto
-      let targetAccountCode: string;
-      if (type === 'INCOME') {
-        targetAccountCode = '4900'; // Otros Ingresos
-      } else {
-        // Mapear categoría a cuenta de gasto
-        const categoryLower = (category || '').toLowerCase();
-        if (categoryLower.includes('salario') || categoryLower.includes('payroll') || categoryLower.includes('sueldo') || categoryLower.includes('chofer')) {
-          targetAccountCode = '5100'; // Salarios
-        } else if (categoryLower.includes('alquiler') || categoryLower.includes('rent')) {
-          targetAccountCode = '5200'; // Alquiler
-        } else if (categoryLower.includes('servicio') || categoryLower.includes('utility') || categoryLower.includes('luz') || categoryLower.includes('agua')) {
-          targetAccountCode = '5300'; // Servicios
-        } else {
-          targetAccountCode = '5900'; // Otros Gastos
+        if (!cashAccount) {
+          console.warn('⚠️ Cuenta de Caja (1000) no encontrada, transacción creada sin journal entry');
+          return { transaction, journalEntry: null };
         }
-      }
 
-      const targetAccount = await tx.chartOfAccounts.findFirst({
-        where: { 
-          code: targetAccountCode,
-          OR: [{ companyId }, { companyId: null }]
-        }
+        // 3. Determinar cuenta de ingreso/gasto
+        const targetAccountCode = getTargetAccountCode(type, category || '');
+
+        const targetAccount = await tx.chartOfAccounts.findFirst({
+          where: { 
+            code: targetAccountCode,
+            OR: [{ companyId }, { companyId: null }]
+          }
+        });
       });
 
       if (!targetAccount) {
-        throw new Error(`Cuenta ${targetAccountCode} no encontrada. Ejecute el seed de cuentas.`);
+        console.warn(`⚠️ Cuenta ${targetAccountCode} no encontrada, transacción creada sin journal entry`);
+        return { transaction, journalEntry: null };
       }
 
       // 4. Generar número de asiento único
-      const year = new Date().getFullYear();
-      const lastJE = await tx.journalEntry.findFirst({
-        where: { 
-          companyId,
-          entryNumber: { startsWith: `JE-${year}-` }
-        },
-        orderBy: { entryNumber: 'desc' }
-      });
-      
-      let nextNumber = 1;
-      if (lastJE?.entryNumber) {
-        const lastNum = Number.parseInt(lastJE.entryNumber.split('-')[2], 10);
-        if (!Number.isNaN(lastNum)) {
-          nextNumber = lastNum + 1;
-        }
-      }
-      const entryNumber = `JE-${year}-${String(nextNumber).padStart(6, '0')}`;
+      const entryNumber = await generateEntryNumber(tx, companyId);
 
       // 5. Crear Journal Entry con líneas
-      const journalEntry = await tx.journalEntry.create({
+      journalEntry = await tx.journalEntry.create({
         data: {
           entryNumber,
           date: txDate,
@@ -183,6 +202,10 @@ export async function POST(request: NextRequest) {
       });
 
       console.log(`✅ Transacción ${transaction.id} creada con JE ${journalEntry.entryNumber}`);
+    } catch (jeError) {
+      console.error('⚠️ Error creando journal entry, pero transacción fue creada:', jeError);
+      // No lanzar error, la transacción ya fue creada exitosamente
+    }
       
       return { transaction, journalEntry };
     });
@@ -190,7 +213,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       transaction: result.transaction,
-      journalEntry: { entryNumber: result.journalEntry.entryNumber }
+      journalEntry: result.journalEntry ? { entryNumber: result.journalEntry.entryNumber } : null
     })
   } catch (error: any) {
     console.error('Error creating transaction:', error)

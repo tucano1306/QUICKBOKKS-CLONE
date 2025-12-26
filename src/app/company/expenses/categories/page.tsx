@@ -34,7 +34,7 @@ interface Category {
 
 export default function CategoriesPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -313,10 +313,11 @@ export default function CategoriesPage() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="category-name" className="block text-sm font-medium text-gray-700 mb-2">
                       Nombre de la Categoría <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="category-name"
                       type="text"
                       required
                       value={formData.name}
@@ -328,10 +329,11 @@ export default function CategoriesPage() {
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="category-description" className="block text-sm font-medium text-gray-700 mb-2">
                       Descripción (opcional)
                     </label>
                     <textarea
+                      id="category-description"
                       value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Describe el tipo de gastos que incluye esta categoría"
@@ -342,10 +344,11 @@ export default function CategoriesPage() {
 
                   {/* Type */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="category-type" className="block text-sm font-medium text-gray-700 mb-2">
                       Tipo de Gasto <span className="text-red-500">*</span>
                     </label>
                     <select
+                      id="category-type"
                       required
                       value={formData.type}
                       onChange={e => setFormData({ ...formData, type: e.target.value })}
@@ -364,15 +367,16 @@ export default function CategoriesPage() {
 
                   {/* Tax Rate */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="category-taxRate" className="block text-sm font-medium text-gray-700 mb-2">
                       Sales Tax Rate <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
+                        id="category-taxRate"
                         type="text"
                         required
                         value={formData.taxRate}
-                        onChange={e => setFormData({ ...formData, taxRate: parseFloat(e.target.value.replace(/,/g, '')) })}
+                        onChange={e => setFormData({ ...formData, taxRate: Number.parseFloat(e.target.value.replaceAll(',', '')) })}
                         className="amount-input w-full px-4 py-2 pr-8 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
