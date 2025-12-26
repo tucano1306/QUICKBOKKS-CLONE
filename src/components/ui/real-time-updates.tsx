@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useCompany } from '@/contexts/CompanyContext'
 import { Card } from './card'
 import { Badge } from './badge'
 import { 
-  CheckCircle, 
   TrendingUp, 
   FileText, 
   DollarSign, 
@@ -13,7 +12,6 @@ import {
   X,
   Bell,
   Sparkles,
-  ArrowRight,
   AlertTriangle,
   Info
 } from 'lucide-react'
@@ -39,15 +37,50 @@ interface FinancialUpdate {
   }>
 }
 
-export default function RealTimeUpdates({ enabled = false }: { enabled?: boolean }) {
+export default function RealTimeUpdates({ enabled = false }: Readonly<{ enabled?: boolean }>) {
   const { activeCompany } = useCompany()
   const [financialData, setFinancialData] = useState<FinancialUpdate | null>(null)
   const [isVisible, setIsVisible] = useState(true)
   const [isConnected, setIsConnected] = useState(false)
   const [unreadAlerts, setUnreadAlerts] = useState(0)
 
+  const handleSSEMessage = useCallback((event: MessageEvent) => {
+    try {
+      const data: FinancialUpdate = JSON.parse(event.data)
+      setFinancialData(data)
+      
+      if (data.alerts && data.alerts.length > 0) {
+        setUnreadAlerts(prev => prev + data.alerts.length)
+        
+        if (Notification.permission === 'granted' && activeCompany) {
+          data.alerts.forEach(alert => {
+            new Notification(`${activeCompany.name} - ${alert.type.toUpperCase()}`, {
+              body: alert.message,
+              icon: '/favicon.ico',
+              tag: `alert-${Date.now()}`
+            })
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing SSE data:', error)
+    }
+  }, [activeCompany])
+
+  const handleSSEError = useCallback((eventSource: EventSource | null, connect: () => void) => {
+    return (error: Event) => {
+      console.error('❌ Error en conexión SSE:', error)
+      setIsConnected(false)
+      eventSource?.close()
+      
+      setTimeout(() => {
+        console.log('🔄 Intentando reconectar SSE...')
+        connect()
+      }, 5000)
+    }
+  }, [])
+
   useEffect(() => {
-    // Solo conectar si está habilitado
     if (!enabled || !activeCompany?.id) return
 
     let eventSource: EventSource | null = null
@@ -55,7 +88,6 @@ export default function RealTimeUpdates({ enabled = false }: { enabled?: boolean
 
     const connect = () => {
       try {
-        // Crear conexión SSE
         eventSource = new EventSource(`/api/realtime/financial-updates?companyId=${activeCompany.id}`)
 
         eventSource.onopen = () => {
@@ -63,42 +95,8 @@ export default function RealTimeUpdates({ enabled = false }: { enabled?: boolean
           setIsConnected(true)
         }
 
-        eventSource.onmessage = (event) => {
-          try {
-            const data: FinancialUpdate = JSON.parse(event.data)
-            setFinancialData(data)
-            
-            // Contar alertas nuevas
-            if (data.alerts && data.alerts.length > 0) {
-              setUnreadAlerts(prev => prev + data.alerts.length)
-              
-              // Mostrar notificación si está permitido
-              if (Notification.permission === 'granted') {
-                data.alerts.forEach(alert => {
-                  new Notification(`${activeCompany.name} - ${alert.type.toUpperCase()}`, {
-                    body: alert.message,
-                    icon: '/favicon.ico',
-                    tag: `alert-${Date.now()}`
-                  })
-                })
-              }
-            }
-          } catch (error) {
-            console.error('Error parsing SSE data:', error)
-          }
-        }
-
-        eventSource.onerror = (error) => {
-          console.error('❌ Error en conexión SSE:', error)
-          setIsConnected(false)
-          eventSource?.close()
-          
-          // Intentar reconectar después de 5 segundos
-          reconnectTimeout = setTimeout(() => {
-            console.log('🔄 Intentando reconectar SSE...')
-            connect()
-          }, 5000)
-        }
+        eventSource.onmessage = handleSSEMessage
+        eventSource.onerror = handleSSEError(eventSource, connect)
       } catch (error) {
         console.error('Error creating SSE connection:', error)
         setIsConnected(false)
@@ -190,7 +188,7 @@ export default function RealTimeUpdates({ enabled = false }: { enabled?: boolean
                     <>
                       <span className="mx-1">•</span>
                       <span>Actualizado hace {
-                        Math.floor((new Date().getTime() - new Date(financialData.timestamp).getTime()) / 1000)
+                        Math.floor((Date.now() - new Date(financialData.timestamp).getTime()) / 1000)
                       }s</span>
                     </>
                   )}
@@ -208,7 +206,7 @@ export default function RealTimeUpdates({ enabled = false }: { enabled?: boolean
 
         {/* Content */}
         <div className="max-h-[600px] overflow-y-auto bg-gray-50 p-4 space-y-4">
-          {!financialData ? (
+          {financialData ? (
             <div className="p-8 text-center text-gray-500">
               <RefreshCw className="w-12 h-12 mx-auto mb-3 text-gray-300 animate-spin" />
               <p className="text-sm">Cargando datos financieros...</p>
@@ -308,7 +306,7 @@ export default function RealTimeUpdates({ enabled = false }: { enabled?: boolean
                     const colorClass = getAlertColor(alert.type)
                     
                     return (
-                      <div key={index} className={`rounded-lg p-3 ${colorClass} border`}>
+                      <div key={`${alert.type}-${alert.message}-${index}`} className={`rounded-lg p-3 ${colorClass} border`}>
                         <div className="flex items-start gap-2">
                           <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" />
                           <p className="text-sm">{alert.message}</p>

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react'
 
 interface Company {
   id: string
@@ -23,8 +23,8 @@ interface CompanyContextType {
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined)
 
-export function CompanyProvider({ children }: { children: ReactNode }) {
-  const [activeCompany, setActiveCompanyState] = useState<Company | null>(null)
+export function CompanyProvider({ children }: Readonly<{ children: ReactNode }>) {
+  const [activeCompany, setActiveCompany] = useState<Company | null>(null)
   const [companies, setCompanies] = useState<Company[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -41,7 +41,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
           const companyToSet = savedCompanyId 
             ? data.find((c: Company) => c.id === savedCompanyId) || data[0]
             : data[0]
-          setActiveCompanyState(companyToSet)
+          setActiveCompany(companyToSet)
         }
       }
     } catch (error) {
@@ -51,8 +51,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const setActiveCompany = (company: Company) => {
-    setActiveCompanyState(company)
+  const handleSetActiveCompany = (company: Company) => {
+    setActiveCompany(company)
     localStorage.setItem('activeCompanyId', company.id)
   }
 
@@ -62,16 +62,19 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const contextValue = useMemo(
+    () => ({
+      activeCompany,
+      companies,
+      setActiveCompany: handleSetActiveCompany,
+      refreshCompanies,
+      isLoading,
+    }),
+    [activeCompany, companies, isLoading]
+  )
+
   return (
-    <CompanyContext.Provider
-      value={{
-        activeCompany,
-        companies,
-        setActiveCompany,
-        refreshCompanies,
-        isLoading,
-      }}
-    >
+    <CompanyContext.Provider value={contextValue}>
       {children}
     </CompanyContext.Provider>
   )

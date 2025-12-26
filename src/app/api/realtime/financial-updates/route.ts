@@ -63,9 +63,8 @@ export async function GET(req: NextRequest) {
       return new Response('Company not found', { status: 404 })
     }
 
-    // Verificar si el usuario tiene acceso (simplificado por ahora)
-    // En producción, verificar en CompanyUser
-    const companyUser = await prisma.companyUser.findFirst({
+    // Verificar si el usuario tiene acceso
+    await prisma.companyUser.findFirst({
       where: {
         userId: session.user.id,
         companyId: companyId,
