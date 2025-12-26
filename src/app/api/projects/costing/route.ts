@@ -45,11 +45,9 @@ export async function GET(request: NextRequest) {
     })
 
     // Build detailed costing for each project
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const costingData = projects.map((project: any) => {
       // Group expenses by category
       const expensesByCategory: Record<string, { amount: number; count: number }> = {}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       project.expenses.forEach((exp: any) => {
         const cat = exp.category?.name || 'Other'
         if (!expensesByCategory[cat]) {
@@ -61,7 +59,6 @@ export async function GET(request: NextRequest) {
 
       // Calculate labor costs
       const laborByEmployee: Record<string, { hours: number; cost: number }> = {}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       project.timeEntries.forEach((entry: any) => {
         const empName = entry.employee 
           ? `${entry.employee.firstName} ${entry.employee.lastName}`

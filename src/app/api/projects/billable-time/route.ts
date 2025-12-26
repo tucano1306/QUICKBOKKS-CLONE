@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
     })
 
     // Transform to billable time format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const billableEntries = timeEntries.map((entry: any) => {
       const hours = entry.clockOut && entry.clockIn
         ? (new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60)

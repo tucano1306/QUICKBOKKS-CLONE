@@ -489,32 +489,36 @@ export default function VendorsListPage() {
       )
       .join('')
 
-    const html = `<!doctype html><html><head><meta charset="utf-8" />
-      <title>Directorio de Proveedores</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 32px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 16px; }
-        th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; font-size: 12px; }
-        th { background: #f3f4f6; }
-      </style>
-    </head>
-    <body>
-      <h1>Directorio de Proveedores</h1>
-      <p>Generado el ${new Date().toLocaleString('es-MX')}</p>
-      <table>
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Proveedor</th>
-            <th>Email</th>
-            <th>Teléfono</th>
-            <th>Ciudad</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </body></html>`
+    const html = `<!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Directorio de Proveedores</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 32px; }
+          table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+          th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; font-size: 12px; }
+          th { background: #f3f4f6; }
+        </style>
+      </head>
+      <body>
+        <h1>Directorio de Proveedores</h1>
+        <p>Generado el ${new Date().toLocaleString('es-MX')}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Proveedor</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Ciudad</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </body>
+    </html>`
 
     const printWindow = globalThis.window.open('', '_blank')
     if (!printWindow) return
@@ -815,18 +819,15 @@ export default function VendorsListPage() {
         </Card>
 
         {showVendorModal && (
-          // NOSONAR - Modal overlay pattern with proper keyboard support
-          <div // NOSONAR
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+          <div
+            aria-label="Cerrar modal"
             className="qb-modal-overlay"
-            onClick={() => setShowVendorModal(false)}
+            onMouseDown={(e) => e.target === e.currentTarget && setShowVendorModal(false)}
             onKeyDown={(e) => e.key === 'Escape' && setShowVendorModal(false)}
             tabIndex={-1}
           >
-            <div // NOSONAR
-              className="qb-modal max-w-3xl"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
+            <div className="qb-modal max-w-3xl">
               <div className="qb-modal-header">
                 <h2 className="qb-modal-title">
                   {modalMode === 'create' ? 'Nuevo Proveedor' : 'Editar Proveedor'}
@@ -995,18 +996,15 @@ export default function VendorsListPage() {
         )}
 
         {showDetailModal && (
-          // NOSONAR - Modal overlay pattern
-          <div // NOSONAR
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+          <div
+            aria-label="Cerrar modal"
             className="qb-modal-overlay"
-            onClick={() => setShowDetailModal(false)}
+            onMouseDown={(e) => e.target === e.currentTarget && setShowDetailModal(false)}
             onKeyDown={(e) => e.key === 'Escape' && setShowDetailModal(false)}
             tabIndex={-1}
           >
-            <div // NOSONAR
-              className="qb-modal max-w-4xl"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
+            <div className="qb-modal max-w-4xl">
               <div className="qb-modal-header">
                 <h2 className="qb-modal-title">Detalle del Proveedor</h2>
                 <button className="qb-modal-close" onClick={() => setShowDetailModal(false)}>
@@ -1016,13 +1014,15 @@ export default function VendorsListPage() {
                 </button>
               </div>
               <div className="qb-modal-body space-y-4">
-                {detailLoading ? (
+                {detailLoading && (
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                   </div>
-                ) : detailVendor === null ? (
+                )}
+                {!detailLoading && detailVendor === null && (
                   <p className="text-gray-500 text-center py-8">No se pudo cargar el proveedor</p>
-                ) : (
+                )}
+                {!detailLoading && detailVendor !== null && (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="qb-info-box">
@@ -1084,8 +1084,6 @@ export default function VendorsListPage() {
                       )}
                     </div>
                   </>
-                ) : (
-                  <p className="text-center text-gray-500 py-8">No se encontró información</p>
                 )}
               </div>
               <div className="qb-modal-footer">
@@ -1098,18 +1096,15 @@ export default function VendorsListPage() {
         )}
 
         {vendorToDelete && (
-          // NOSONAR - Modal overlay pattern
-          <div // NOSONAR
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+          <div
+            aria-label="Cerrar modal"
             className="qb-modal-overlay"
-            onClick={() => setVendorToDelete(null)}
+            onMouseDown={(e) => e.target === e.currentTarget && setVendorToDelete(null)}
             onKeyDown={(e) => e.key === 'Escape' && setVendorToDelete(null)}
             tabIndex={-1}
           >
-            <div // NOSONAR
-              className="qb-modal max-w-md"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
+            <div className="qb-modal max-w-md">
               <div className="qb-modal-header !bg-gradient-to-r !from-red-600 !to-red-500">
                 <h2 className="qb-modal-title">⚠️ Eliminar Proveedor</h2>
                 <button className="qb-modal-close" onClick={() => setVendorToDelete(null)}>

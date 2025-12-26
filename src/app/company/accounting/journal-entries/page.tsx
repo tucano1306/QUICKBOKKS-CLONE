@@ -112,8 +112,8 @@ export default function JournalEntriesPage() {
     try {
       const response = await fetch(`/api/accounting/chart-of-accounts?companyId=${activeCompany.id}`)
       if (response.ok) {
-        const data = await response.json()
-        setAccounts(Array.isArray(data) ? data : (data.accounts || []))
+        await response.json()
+        // Accounts state will be added when needed
       }
     } catch (error) {
       console.error('Error fetching accounts:', error)

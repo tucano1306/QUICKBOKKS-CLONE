@@ -137,7 +137,6 @@ async function processLegacyData(
   for (const exp of expenses) {
     if (txWithJE.has(exp.id)) continue;
     legacyExpenses += exp.amount || 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const catName = (exp.category as any)?.name || exp.vendor || 'Otros Gastos';
     addToCategory(expensesByCategory, catName, exp.amount || 0);
   }

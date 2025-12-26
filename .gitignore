@@ -16,3 +16,6 @@ build/
 /blob-report/
 /playwright/.cache/
 /.auth/
+
+.vercel
+.env*.local
