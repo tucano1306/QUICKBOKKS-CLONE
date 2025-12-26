@@ -1,7 +1,8 @@
-'use server'
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getGmailService } from '@/lib/gmail-service'
+
+// Forzar renderizado dinámico para esta ruta API
+export const dynamic = 'force-dynamic'
 
 /**
  * Ruta para iniciar autenticación OAuth con Gmail

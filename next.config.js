@@ -8,6 +8,9 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
+  // Configuración necesaria para despliegue con API routes
+  output: undefined, // No usar export estático
+  
   // Optimización de imágenes
   images: {
     domains: ['localhost'],
