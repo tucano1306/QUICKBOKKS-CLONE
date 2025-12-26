@@ -21,7 +21,8 @@ import {
   AlertCircle,
   CheckCircle,
   Plus,
-  Trash2
+  Trash2,
+  Folder
 } from 'lucide-react'
 
 interface PaymentSplit {
@@ -65,7 +66,7 @@ interface Expense {
 export default function EditExpensePage() {
   const router = useRouter()
   const params = useParams()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -118,11 +119,11 @@ export default function EditExpensePage() {
   }
 
   const getTotalPayments = () => {
-    return paymentSplits.reduce((sum, split) => sum + (parseFloat(split.amount) || 0), 0)
+    return paymentSplits.reduce((sum, split) => sum + (Number.parseFloat(split.amount) || 0), 0)
   }
 
   const getPaymentDifference = () => {
-    const total = parseFloat(formData.amount) || 0
+    const total = Number.parseFloat(formData.amount) || 0
     return total - getTotalPayments()
   }
 
@@ -138,11 +139,54 @@ export default function EditExpensePage() {
     }
   }, [status, expenseId])
 
+  const parsePaymentSplits = (notes: string | null) => {
+    if (!notes) return { parsedNotes: '', paymentSplits: null }
+    
+    try {
+      const notesData = JSON.parse(notes)
+      if (notesData.paymentSplits && Array.isArray(notesData.paymentSplits)) {
+        const splits = notesData.paymentSplits.map((s: { method: string; amount: number; reference?: string }, idx: number) => ({
+          id: (idx + 1).toString(),
+          method: s.method,
+          amount: s.amount.toString(),
+          reference: s.reference || ''
+        }))
+        return { parsedNotes: notesData.text || '', paymentSplits: splits }
+      }
+    } catch {
+      // No es JSON, son notas normales
+    }
+    return { parsedNotes: notes, paymentSplits: null }
+  }
+
+  const loadExpenseData = async (expense: Expense) => {
+    const { parsedNotes, paymentSplits } = parsePaymentSplits(expense.notes)
+    
+    if (paymentSplits) {
+      setUseMultiplePayments(paymentSplits.length > 1)
+      setPaymentSplits(paymentSplits)
+    }
+    
+    setFormData({
+      description: expense.description,
+      amount: expense.amount.toString(),
+      date: expense.date.split('T')[0],
+      categoryId: expense.categoryId,
+      vendor: expense.vendor || '',
+      paymentMethod: expense.paymentMethod,
+      reference: expense.reference || '',
+      notes: parsedNotes,
+      taxDeductible: expense.taxDeductible,
+      taxAmount: expense.taxAmount?.toString() || '',
+      employeeId: expense.employeeId || '',
+      status: expense.status
+    })
+  }
+
   const loadData = async () => {
     try {
       setLoading(true)
       
-      // Load expense, categories and employees in parallel
       const [expenseRes, categoriesRes, employeesRes] = await Promise.all([
         fetch(`/api/expenses/${expenseId}`),
         fetch('/api/expenses/categories'),
@@ -151,44 +195,7 @@ export default function EditExpensePage() {
 
       if (expenseRes.ok) {
         const expense: Expense = await expenseRes.json()
-        
-        // Intentar parsear paymentSplits de las notas si existen
-        let parsedNotes = expense.notes || ''
-        let loadedPaymentSplits: PaymentSplit[] | null = null
-        
-        if (expense.notes) {
-          try {
-            const notesData = JSON.parse(expense.notes)
-            if (notesData.paymentSplits && Array.isArray(notesData.paymentSplits)) {
-              loadedPaymentSplits = notesData.paymentSplits.map((s: { method: string; amount: number; reference?: string }, idx: number) => ({
-                id: (idx + 1).toString(),
-                method: s.method,
-                amount: s.amount.toString(),
-                reference: s.reference || ''
-              }))
-              parsedNotes = notesData.text || ''
-              setUseMultiplePayments(loadedPaymentSplits.length > 1)
-              setPaymentSplits(loadedPaymentSplits)
-            }
-          } catch {
-            // No es JSON, son notas normales
-          }
-        }
-        
-        setFormData({
-          description: expense.description,
-          amount: expense.amount.toString(),
-          date: expense.date.split('T')[0],
-          categoryId: expense.categoryId,
-          vendor: expense.vendor || '',
-          paymentMethod: expense.paymentMethod,
-          reference: expense.reference || '',
-          notes: parsedNotes,
-          taxDeductible: expense.taxDeductible,
-          taxAmount: expense.taxAmount?.toString() || '',
-          employeeId: expense.employeeId || '',
-          status: expense.status
-        })
+        await loadExpenseData(expense)
       } else {
         setMessage({ type: 'error', text: 'Gasto no encontrado' })
       }
@@ -234,7 +241,7 @@ export default function EditExpensePage() {
       return
     }
 
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+    if (!formData.amount || Number.parseFloat(formData.amount) <= 0) {
       setMessage({ type: 'error', text: 'El monto debe ser mayor a 0' })
       setSaving(false)
       return
@@ -248,7 +255,7 @@ export default function EditExpensePage() {
 
     // Validar pagos múltiples si está activo
     if (useMultiplePayments) {
-      const invalidSplits = paymentSplits.some(s => !s.amount || parseFloat(s.amount) <= 0)
+      const invalidSplits = paymentSplits.some(s => !s.amount || Number.parseFloat(s.amount) <= 0)
       if (invalidSplits) {
         setMessage({ type: 'error', text: 'Todos los métodos de pago deben tener un monto válido' })
         setSaving(false)
@@ -271,7 +278,7 @@ export default function EditExpensePage() {
           text: formData.notes,
           paymentSplits: paymentSplits.map(s => ({
             method: s.method,
-            amount: parseFloat(s.amount),
+            amount: Number.parseFloat(s.amount),
             reference: s.reference || undefined
           }))
         }
@@ -283,8 +290,8 @@ export default function EditExpensePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          amount: parseFloat(formData.amount),
-          taxAmount: formData.taxAmount ? parseFloat(formData.taxAmount) : 0,
+          amount: Number.parseFloat(formData.amount),
+          taxAmount: formData.taxAmount ? Number.parseFloat(formData.taxAmount) : 0,
           employeeId: formData.employeeId || null,
           notes: notesToSave,
           paymentMethod: useMultiplePayments ? 'MULTIPLE' : formData.paymentMethod
@@ -301,6 +308,7 @@ export default function EditExpensePage() {
         setMessage({ type: 'error', text: error.error || 'Error al actualizar el gasto' })
       }
     } catch (error) {
+      console.error('Error updating expense:', error)
       setMessage({ type: 'error', text: 'Error de conexión' })
     } finally {
       setSaving(false)
@@ -412,7 +420,7 @@ export default function EditExpensePage() {
                     inputMode="decimal"
                     value={formData.amount}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/,/g, '.');
+                      const val = e.target.value.replaceAll(',', '.');
                       if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
                         handleChange({ target: { name: 'amount', value: val } } as React.ChangeEvent<HTMLInputElement>);
                       }
@@ -440,10 +448,22 @@ export default function EditExpensePage() {
               {/* Category and Status */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="categoryId" className="flex items-center gap-2">
-                    <Tag className="h-4 w-4" />
-                    Categoría *
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="categoryId" className="flex items-center gap-2">
+                      <Tag className="h-4 w-4" />
+                      Categoría *
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push('/company/expenses/categories')}
+                      className="text-xs"
+                    >
+                      <Folder className="h-3 w-3 mr-1" />
+                      Gestionar
+                    </Button>
+                  </div>
                   <select
                     id="categoryId"
                     name="categoryId"
@@ -568,7 +588,7 @@ export default function EditExpensePage() {
                             inputMode="decimal"
                             value={split.amount}
                             onChange={(e) => {
-                              const val = e.target.value.replace(/,/g, '.');
+                              const val = e.target.value.replaceAll(',', '.');
                               if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
                                 updatePaymentSplit(split.id, 'amount', val);
                               }
@@ -615,7 +635,7 @@ export default function EditExpensePage() {
                     <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Monto Total del Gasto:</span>
-                        <span className="font-medium">${parseFloat(formData.amount || '0').toFixed(2)}</span>
+                        <span className="font-medium">${Number.parseFloat(formData.amount || '0').toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm mt-1">
                         <span className="text-gray-600">Suma de Pagos:</span>
@@ -676,7 +696,7 @@ export default function EditExpensePage() {
                     inputMode="decimal"
                     value={formData.taxAmount}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/,/g, '.');
+                      const val = e.target.value.replaceAll(',', '.');
                       if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
                         handleChange({ target: { name: 'taxAmount', value: val } } as React.ChangeEvent<HTMLInputElement>);
                       }

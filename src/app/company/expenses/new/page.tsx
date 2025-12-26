@@ -464,9 +464,21 @@ export default function NewExpensePage() {
 
               {/* Categoría */}
               <div className="space-y-2">
-                <Label htmlFor="categoryId">
-                  Categoría <span className="text-red-500">*</span>
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="categoryId">
+                    Categoría <span className="text-red-500">*</span>
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push('/company/expenses/categories')}
+                    className="text-xs"
+                  >
+                    <Folder className="h-3 w-3 mr-1" />
+                    Gestionar Categorías
+                  </Button>
+                </div>
                 <div className="relative">
                   <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <select
@@ -486,8 +498,9 @@ export default function NewExpensePage() {
                   </select>
                 </div>
                 {categories.length === 0 && (
-                  <p className="text-sm text-amber-600">
-                    No hay categorías. <a href="/company/expenses/categories" className="underline">Crear una categoría</a>
+                  <p className="text-sm text-amber-600 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    No hay categorías disponibles. Haz clic en "Gestionar Categorías" para crear una.
                   </p>
                 )}
               </div>
