@@ -56,8 +56,10 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('activeCompanyId', company.id)
   }
 
+  // Cargar empresas solo una vez al montar
   useEffect(() => {
     refreshCompanies()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

@@ -39,7 +39,7 @@ interface FinancialUpdate {
   }>
 }
 
-export default function RealTimeUpdates() {
+export default function RealTimeUpdates({ enabled = false }: { enabled?: boolean }) {
   const { activeCompany } = useCompany()
   const [financialData, setFinancialData] = useState<FinancialUpdate | null>(null)
   const [isVisible, setIsVisible] = useState(true)
@@ -47,7 +47,8 @@ export default function RealTimeUpdates() {
   const [unreadAlerts, setUnreadAlerts] = useState(0)
 
   useEffect(() => {
-    if (!activeCompany?.id) return
+    // Solo conectar si está habilitado
+    if (!enabled || !activeCompany?.id) return
 
     let eventSource: EventSource | null = null
     let reconnectTimeout: NodeJS.Timeout

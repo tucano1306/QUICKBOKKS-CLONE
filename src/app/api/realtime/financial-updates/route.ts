@@ -96,8 +96,8 @@ export async function GET(req: NextRequest) {
         // Enviar primera actualización inmediata
         await sendUpdate()
 
-        // Configurar intervalo para actualizaciones periódicas (cada 10 segundos)
-        const intervalId = setInterval(sendUpdate, 10000)
+        // Configurar intervalo para actualizaciones periódicas (cada 60 segundos en lugar de 10)
+        const intervalId = setInterval(sendUpdate, 60000)
 
         // Enviar heartbeat cada 30 segundos para mantener conexión
         const heartbeatId = setInterval(() => {
