@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 // Este endpoint maneja las conversaciones con el AI Assistant
 // En producción, aquí integrarías OpenAI GPT-4, Anthropic Claude, o tu propio modelo
 export async function POST(request: NextRequest) {

@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createPaymentReceivedJournalEntry, createInvoiceJournalEntry } from '@/lib/accounting-service'
 
+export const dynamic = 'force-dynamic'
+
 // GET all payments
 export async function GET(request: NextRequest) {
   try {

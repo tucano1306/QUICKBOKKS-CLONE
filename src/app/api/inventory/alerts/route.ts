@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getActiveAlerts, resolveAlert } from '@/lib/stock-alert-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/inventory/alerts
  * Obtiene alertas activas de stock

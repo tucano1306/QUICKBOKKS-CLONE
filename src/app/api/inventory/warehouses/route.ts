@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createWarehouse, getWarehouses, updateWarehouse } from '@/lib/warehouse-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/inventory/warehouses
  * Lista todos los almacenes del usuario

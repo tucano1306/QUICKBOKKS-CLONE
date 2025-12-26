@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientDashboardStats, getClientInvoices, generateClientStatement } from '@/lib/client-portal-service';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/client-portal/dashboard?customerId=xxx
  * Obtener estadísticas del dashboard del cliente

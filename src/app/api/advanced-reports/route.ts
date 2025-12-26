@@ -12,6 +12,8 @@ import {
   bulkReclassifyTransactions,
 } from '@/lib/advanced-accounting-service';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/advanced-reports?type=analytical-ledger&accountId=xxx&startDate=...&endDate=...
  * Genera reportes contables avanzados

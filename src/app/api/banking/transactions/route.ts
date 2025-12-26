@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { getBankTransactions } from '@/lib/bank-service'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/banking/transactions
  * Obtiene transacciones bancarias con filtros

@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/settings/users/invite - Invite a new user to the company
  */

@@ -10,6 +10,8 @@ import {
   type AgentContext,
 } from '@/lib/ai-agent-service';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/ai-agent/chat
  * Envía un mensaje al agente IA

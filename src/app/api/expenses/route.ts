@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { validateExpenseRequest, validatePagination } from '@/lib/validation-middleware'
 import { deleteExpenseWithReversal } from '@/lib/accounting-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Parsear fecha correctamente desde diferentes formatos
  * YYYY-MM-DD (input type="date") o MM/DD/YYYY (formato americano)

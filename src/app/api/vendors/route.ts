@@ -10,6 +10,8 @@ import {
 } from '@/lib/validation-middleware'
 import { generateVendorNumber } from '@/lib/vendor-service'
 
+export const dynamic = 'force-dynamic'
+
 const DEFAULT_COMPANY_ID = 'default-company-001'
 
 function normalizeStatus(status?: string | null): VendorStatus | undefined {

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { unmatchTransaction } from '@/lib/reconciliation-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/banking/reconcile/unmatch
  * Desmarca una reconciliación

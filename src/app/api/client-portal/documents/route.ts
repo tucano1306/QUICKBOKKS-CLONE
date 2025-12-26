@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientDocuments, uploadClientDocument } from '@/lib/client-portal-service';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/client-portal/documents?customerId=xxx
  * Obtener documentos del cliente

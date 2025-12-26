@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { createInventoryItem } from '@/lib/inventory-service'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/inventory/items
  * Lista items de inventario con filtros

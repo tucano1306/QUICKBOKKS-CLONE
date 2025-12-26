@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { validateCustomerRequest, validatePagination, createErrorResponse } from '@/lib/validation-middleware'
 import { validateCustomer } from '@/lib/validation'
 
+export const dynamic = 'force-dynamic'
+
 // GET all customers
 export async function GET(request: NextRequest) {
   try {

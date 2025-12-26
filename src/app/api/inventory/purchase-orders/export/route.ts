@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getPurchaseOrders } from '@/lib/warehouse-service'
 
+export const dynamic = 'force-dynamic'
+
 function toDateString(value?: string | Date | null) {
   if (!value) return ''
   const date = value instanceof Date ? value : new Date(value)

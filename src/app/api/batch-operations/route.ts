@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { BatchOperationType, BatchStatus } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 // GET - List batch operations
 export async function GET(request: NextRequest) {
   try {

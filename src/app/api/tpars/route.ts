@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { TPARSStatus } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 // GET - Get TPARS report for a fiscal year
 export async function GET(request: NextRequest) {
   try {

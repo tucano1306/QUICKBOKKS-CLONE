@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { syncBankTransactions } from '@/lib/bank-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/banking/sync
  * Sincroniza transacciones de una cuenta bancaria

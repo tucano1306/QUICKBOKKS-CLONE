@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { getUserBankAccounts, updateBankAccountBalance } from '@/lib/bank-service'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/banking/accounts
  * Obtiene todas las cuentas bancarias del usuario

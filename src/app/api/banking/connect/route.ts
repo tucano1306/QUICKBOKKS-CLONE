@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { completeBankConnection } from '@/lib/bank-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/banking/connect
  * Completa la conexión bancaria después de Plaid Link

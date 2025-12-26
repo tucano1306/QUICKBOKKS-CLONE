@@ -16,6 +16,8 @@ import {
   getMonthlyDeadlinesSummary
 } from '@/lib/accounting-firm-service';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/firm/dashboard - Dashboard consolidado para firmas contables
  */

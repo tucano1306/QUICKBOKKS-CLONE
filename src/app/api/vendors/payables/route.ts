@@ -14,6 +14,8 @@ import {
   resolvePayableStatus,
 } from '@/lib/vendor-service'
 
+export const dynamic = 'force-dynamic'
+
 const DEFAULT_COMPANY_ID = 'default-company-001'
 
 function normalizeStatus(status?: string | null): PayableStatus | undefined {

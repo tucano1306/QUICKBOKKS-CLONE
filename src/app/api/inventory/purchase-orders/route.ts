@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { createPurchaseOrder, getPurchaseOrders } from '@/lib/warehouse-service'
 import { validatePurchaseOrderRequest } from '@/lib/validation-middleware'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/inventory/purchase-orders
  * Lista órdenes de compra

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { receiveInventory, issueInventory, adjustInventory, transferInventory } from '@/lib/inventory-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/inventory/movements/receive
  * Registra entrada de inventario (compra/recepción)

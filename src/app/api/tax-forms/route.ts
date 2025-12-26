@@ -13,6 +13,8 @@ import {
   getAllW2ForYear,
 } from '@/lib/tax-forms-service';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/tax-forms?type=941&year=2024&quarter=1
  * Obtiene formularios tributarios generados

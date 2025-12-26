@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic'
+
 // Helper types
 interface CategoryMap { [key: string]: { name: string; amount: number } }
 

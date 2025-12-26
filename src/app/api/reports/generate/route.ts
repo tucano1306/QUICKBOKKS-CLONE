@@ -12,6 +12,8 @@ import {
   generateInventoryValuation,
 } from '@/lib/report-service';
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);

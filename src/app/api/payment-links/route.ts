@@ -12,6 +12,8 @@ import {
   // handleStripeWebhook, // Not exported
 } from '@/lib/payment-links-service';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/payment-links?invoiceId=xxx
  * Obtener payment links de una factura

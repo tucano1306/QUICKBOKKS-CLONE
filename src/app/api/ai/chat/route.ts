@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import Groq from 'groq-sdk'
 import { AI_TOOLS, executeToolCall } from '@/lib/ai-tools'
 
+export const dynamic = 'force-dynamic'
+
 // Inicializar cliente Groq
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 let groq: Groq | null = null;

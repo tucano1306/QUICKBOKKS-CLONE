@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { createPayrollRun, getPayrollSummary } from '@/lib/payroll-service';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);

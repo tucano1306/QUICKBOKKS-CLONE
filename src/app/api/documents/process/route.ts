@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 // Simulación de procesamiento con IA
 // En producción, esto usaría:
 // - Tesseract.js o Google Vision API para OCR

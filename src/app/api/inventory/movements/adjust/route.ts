@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { adjustInventory } from '@/lib/inventory-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/inventory/movements/adjust
  * Ajusta inventario manualmente

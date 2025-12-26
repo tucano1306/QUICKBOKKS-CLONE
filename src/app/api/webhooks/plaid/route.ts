@@ -4,6 +4,8 @@ import { syncBankTransactions, updateBankAccountBalance } from '@/lib/bank-servi
 import { autoMatchTransaction } from '@/lib/reconciliation-service'
 import crypto from 'crypto'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/webhooks/plaid
  * Webhook handler para eventos de Plaid

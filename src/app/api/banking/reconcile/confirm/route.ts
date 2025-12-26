@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { confirmMatch } from '@/lib/reconciliation-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/banking/reconcile/confirm
  * Confirma un match manualmente

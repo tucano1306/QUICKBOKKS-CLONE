@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { autoReconcileAccount } from '@/lib/reconciliation-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/banking/reconcile/auto
  * Auto-reconcilia todas las transacciones de una cuenta

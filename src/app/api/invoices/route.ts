@@ -6,6 +6,8 @@ import { validateInvoiceRequest, validatePagination, createErrorResponse } from 
 import { validateInvoice } from '@/lib/validation'
 import { createInvoiceJournalEntry } from '@/lib/accounting-service'
 
+export const dynamic = 'force-dynamic'
+
 // GET all invoices
 export async function GET(request: NextRequest) {
   try {

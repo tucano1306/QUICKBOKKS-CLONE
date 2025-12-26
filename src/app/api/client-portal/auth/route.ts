@@ -11,6 +11,8 @@ import {
   changeClientPortalPassword,
 } from '@/lib/client-portal-service';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/client-portal/auth - Autenticar cliente
  */

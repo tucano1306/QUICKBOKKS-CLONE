@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ImportType, ImportStatus, AccountType } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 // Helper types
 type ImportRow = Record<string, unknown>
 type ImportError = { row: number; message: string }

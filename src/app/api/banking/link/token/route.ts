@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { initiateBankConnection } from '@/lib/bank-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/banking/link/token
  * Genera un link token para iniciar Plaid Link
