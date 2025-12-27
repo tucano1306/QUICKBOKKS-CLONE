@@ -49,6 +49,15 @@ interface DashboardStats {
   }[]
 }
 
+interface StatCard {
+  name: string
+  value: string
+  change: string
+  trend: 'up' | 'down'
+  icon: React.ElementType
+  color: string
+}
+
 // Helper functions para evitar ternarios anidados
 const getColorGradient = (color: string): string => {
   switch (color) {
@@ -114,6 +123,103 @@ const getActivitySign = (type: string): string => {
   if (type === 'payment') return '+'
   if (type === 'expense') return '-'
   return ''
+}
+
+// Props interfaces
+interface StatCardProps {
+  readonly stat: StatCard
+  readonly index: number
+}
+
+interface ActivityItemProps {
+  readonly activity: DashboardStats['recentActivity'][0]
+  readonly formatCurrency: (amount: number) => string
+  readonly formatTimeAgo: (dateStr: string) => string
+}
+
+// Componente para tarjetas de estadísticas
+function StatCardComponent({ stat, index }: StatCardProps) {
+  const Icon = stat.icon
+  const colorGradient = getColorGradient(stat.color)
+  const bgColor = getBackgroundColor(stat.color)
+  const textColor = getTextColor(stat.color)
+  const sparklineColor = getSparklineColor(stat.color)
+  
+  return (
+    <Card 
+      key={stat.name} 
+      className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${colorGradient}`} />
+      <CardContent className="p-6 relative">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${bgColor}`}>
+            <Icon className={`w-6 h-6 ${textColor}`} />
+          </div>
+          <div className={`flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full ${
+            stat.trend === 'up' ? 'text-[#108000] bg-green-100' : 'text-red-700 bg-red-100'
+          }`}>
+            {stat.trend === 'up' ? (
+              <ArrowUpRight className="w-4 h-4" />
+            ) : (
+              <ArrowDownRight className="w-4 h-4" />
+            )}
+            {stat.change}
+          </div>
+        </div>
+        <div className="text-3xl font-bold text-[#0D2942] mb-1">
+          {stat.value}
+        </div>
+        <div className="text-sm text-gray-500 font-medium">
+          {stat.name}
+        </div>
+        <div className="absolute bottom-2 right-2 opacity-30">
+          <Sparkline 
+            data={[30, 45, 35, 50, 40, 60, 55]} 
+            color={sparklineColor}
+            height={30}
+            width={60}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Componente para item de actividad reciente
+function ActivityItem({ 
+  activity, 
+  formatCurrency, 
+  formatTimeAgo 
+}: ActivityItemProps) {
+  const activityBgColor = getActivityBgColor(activity.type)
+  const activityIcon = getActivityIcon(activity.type)
+  const activityTextColor = getActivityTextColor(activity.type)
+  const activitySign = getActivitySign(activity.type)
+  
+  return (
+    <div 
+      key={`${activity.type}-${activity.date}-${activity.entityName}`}
+      className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+    >
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activityBgColor}`}>
+        {activityIcon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+          {activity.description}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {activity.entityName} • {formatTimeAgo(activity.date)}
+        </p>
+      </div>
+      <div className={`text-sm font-bold ${activityTextColor}`}>
+        {activitySign}
+        {formatCurrency(activity.amount)}
+      </div>
+    </div>
+  )
 }
 
 export default function CompanyDashboardPage() {
@@ -207,6 +313,45 @@ export default function CompanyDashboardPage() {
     return 'Hace unos minutos'
   }
 
+  const buildStatCards = useCallback((statsData: DashboardStats): StatCard[] => {
+    return [
+      {
+        name: 'Ingresos del Mes',
+        value: formatCurrency(statsData.revenue.current),
+        change: formatPercentage(statsData.revenue.change),
+        trend: statsData.revenue.change >= 0 ? 'up' : 'down',
+        icon: DollarSign,
+        color: 'green'
+      },
+      {
+        name: 'Gastos del Mes',
+        value: formatCurrency(statsData.expenses.current),
+        change: formatPercentage(statsData.expenses.change),
+        trend: statsData.expenses.change <= 0 ? 'up' : 'down',
+        icon: TrendingDown,
+        color: 'red'
+      },
+      {
+        name: 'Clientes Activos',
+        value: statsData.customers.total.toString(),
+        change: `+${statsData.customers.new}`,
+        trend: 'up',
+        icon: Users,
+        color: 'blue'
+      },
+      {
+        name: 'Facturas Pendientes',
+        value: statsData.invoices.pending.toString(),
+        change: statsData.invoices.overdue > 0 ? `${statsData.invoices.overdue} vencidas` : 'Al día',
+        trend: statsData.invoices.overdue > 0 ? 'down' : 'up',
+        icon: FileText,
+        color: 'orange'
+      }
+    ]
+  }, [])
+
+  const statCards = stats ? buildStatCards(stats) : []
+
   if (status === 'loading' || isLoading || !activeCompany) {
     return (
       <CompanyTabsLayout>
@@ -219,41 +364,6 @@ export default function CompanyDashboardPage() {
       </CompanyTabsLayout>
     )
   }
-
-  const statCards = stats ? [
-    {
-      name: 'Ingresos del Mes',
-      value: formatCurrency(stats.revenue.current),
-      change: formatPercentage(stats.revenue.change),
-      trend: stats.revenue.change >= 0 ? 'up' : 'down',
-      icon: DollarSign,
-      color: 'green'
-    },
-    {
-      name: 'Gastos del Mes',
-      value: formatCurrency(stats.expenses.current),
-      change: formatPercentage(stats.expenses.change),
-      trend: stats.expenses.change <= 0 ? 'up' : 'down',
-      icon: TrendingDown,
-      color: 'red'
-    },
-    {
-      name: 'Clientes Activos',
-      value: stats.customers.total.toString(),
-      change: `+${stats.customers.new}`,
-      trend: 'up',
-      icon: Users,
-      color: 'blue'
-    },
-    {
-      name: 'Facturas Pendientes',
-      value: stats.invoices.pending.toString(),
-      change: stats.invoices.overdue > 0 ? `${stats.invoices.overdue} vencidas` : 'Al día',
-      trend: stats.invoices.overdue > 0 ? 'down' : 'up',
-      icon: FileText,
-      color: 'orange'
-    }
-  ] : []
 
   return (
     <CompanyTabsLayout>
@@ -338,55 +448,9 @@ export default function CompanyDashboardPage() {
 
         {/* Estadísticas principales con animaciones */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statCards.map((stat, index) => {
-            const Icon = stat.icon
-            const colorGradient = getColorGradient(stat.color)
-            const bgColor = getBackgroundColor(stat.color)
-            const textColor = getTextColor(stat.color)
-            const sparklineColor = getSparklineColor(stat.color)
-            
-            return (
-              <Card 
-                key={stat.name} 
-                className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${colorGradient}`} />
-                <CardContent className="p-6 relative">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${bgColor}`}>
-                      <Icon className={`w-6 h-6 ${textColor}`} />
-                    </div>
-                    <div className={`flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full ${
-                      stat.trend === 'up' ? 'text-[#108000] bg-green-100' : 'text-red-700 bg-red-100'
-                    }`}>
-                      {stat.trend === 'up' ? (
-                        <ArrowUpRight className="w-4 h-4" />
-                      ) : (
-                        <ArrowDownRight className="w-4 h-4" />
-                      )}
-                      {stat.change}
-                    </div>
-                  </div>
-                  <div className="text-3xl font-bold text-[#0D2942] mb-1">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-gray-500 font-medium">
-                    {stat.name}
-                  </div>
-                  {/* Mini sparkline */}
-                  <div className="absolute bottom-2 right-2 opacity-30">
-                    <Sparkline 
-                      data={[30, 45, 35, 50, 40, 60, 55]} 
-                      color={sparklineColor}
-                      height={30}
-                      width={60}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+          {statCards.map((stat, index) => (
+            <StatCardComponent key={stat.name} stat={stat} index={index} />
+          ))}
         </div>
 
         {/* Gráficos principales mejorados */}
@@ -584,35 +648,14 @@ export default function CompanyDashboardPage() {
             <CardContent className="p-0">
               <div className="divide-y dark:divide-gray-700">
                 {stats?.recentActivity && stats.recentActivity.length > 0 ? (
-                  stats.recentActivity.slice(0, 5).map((activity) => {
-                    const activityBgColor = getActivityBgColor(activity.type)
-                    const activityIcon = getActivityIcon(activity.type)
-                    const activityTextColor = getActivityTextColor(activity.type)
-                    const activitySign = getActivitySign(activity.type)
-                    
-                    return (
-                      <div 
-                        key={`${activity.type}-${activity.date}-${activity.entityName}`}
-                        className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                      >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activityBgColor}`}>
-                          {activityIcon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {activity.description}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {activity.entityName} • {formatTimeAgo(activity.date)}
-                          </p>
-                        </div>
-                        <div className={`text-sm font-bold ${activityTextColor}`}>
-                          {activitySign}
-                          {formatCurrency(activity.amount)}
-                        </div>
-                      </div>
-                    )
-                  })
+                  stats.recentActivity.slice(0, 5).map((activity) => (
+                    <ActivityItem 
+                      key={`${activity.type}-${activity.date}-${activity.entityName}`}
+                      activity={activity}
+                      formatCurrency={formatCurrency}
+                      formatTimeAgo={formatTimeAgo}
+                    />
+                  ))
                 ) : (
                   <div className="p-8 text-center">
                     <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
