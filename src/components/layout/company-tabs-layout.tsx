@@ -414,36 +414,36 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
       {/* Barra superior estilo QuickBooks */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-full px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-2 md:gap-4">
             {/* Left: Company info */}
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
               {activeCompany.logo ? (
                 <img
                   src={activeCompany.logo}
                   alt={activeCompany.name}
-                  className="w-10 h-10 rounded-lg object-cover shadow-sm flex-shrink-0"
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover shadow-sm flex-shrink-0"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2CA01C] to-[#108000] flex items-center justify-center text-white font-bold text-sm shadow-lg flex-shrink-0">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-[#2CA01C] to-[#108000] flex items-center justify-center text-white font-bold text-xs md:text-sm shadow-lg flex-shrink-0">
                   {activeCompany.name.slice(0, 2).toUpperCase()}
                 </div>
               )}
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold text-[#0D2942] truncate">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm md:text-lg font-bold text-[#0D2942] truncate">
                   {activeCompany.name}
                 </h2>
               </div>
             </div>
 
-            {/* Center: + New Button (QuickBooks style) */}
-            <div className="relative">
+            {/* Center: + New Button (QuickBooks style) - Hidden on mobile */}
+            <div className="relative hidden sm:block">
               <button
                 onClick={() => setShowCreateMenu(!showCreateMenu)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#2CA01C] hover:bg-[#108000] text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.98]"
+                className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-[#2CA01C] hover:bg-[#108000] text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.98] text-sm md:text-base"
               >
-                <Plus className="w-5 h-5" />
-                <span>New</span>
-                <ChevronDown className={cn('w-4 h-4 transition-transform', showCreateMenu && 'rotate-180')} />
+                <Plus className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden md:inline">New</span>
+                <ChevronDown className={cn('w-3 h-3 md:w-4 md:h-4 transition-transform', showCreateMenu && 'rotate-180')} />
               </button>
               
               {/* Quick Create Dropdown */}
@@ -473,9 +473,9 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
             </div>
 
             {/* Right: Search, Help, Notifications, Settings, Main Menu */}
-            <div className="flex items-center gap-2">
-              {/* Search Bar */}
-              <div className="relative">
+            <div className="flex items-center gap-1 md:gap-2">
+              {/* Search Bar - Hidden on mobile */}
+              <div className="relative hidden md:block">
                 {showSearch ? (
                   <div className="flex items-center gap-2">
                     <div className="relative">
@@ -507,8 +507,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 )}
               </div>
 
-              {/* Help */}
-              <div className="relative">
+              {/* Help - Hidden on small mobile */}
+              <div className="relative hidden sm:block">
                 <button
                   onClick={() => { setShowHelp(!showHelp); setShowNotifications(false) }}
                   className={cn(
@@ -560,8 +560,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 )}
               </div>
 
-              {/* Notifications */}
-              <div className="relative">
+              {/* Notifications - Hidden on small mobile */}
+              <div className="relative hidden sm:block">
                 <button
                   onClick={() => { setShowNotifications(!showNotifications); setShowHelp(false) }}
                   className={cn(
@@ -635,25 +635,34 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
               </div>
 
 
-              {/* Settings */}
+              {/* Settings - Hidden on small mobile */}
               <button
                 onClick={() => router.push('/company/settings/company')}
-                className="p-2.5 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2.5 hover:bg-gray-100 rounded-full transition-colors hidden sm:block"
                 title="Settings"
               >
                 <Settings className="w-5 h-5 text-gray-600" />
               </button>
 
-              {/* Divider */}
-              <div className="w-px h-8 bg-gray-200 mx-1"></div>
+              {/* Divider - Hidden on mobile */}
+              <div className="w-px h-8 bg-gray-200 mx-1 hidden md:block"></div>
 
               {/* Main Menu Button */}
               <button
                 onClick={() => router.push('/dashboard')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#0D2942] hover:bg-[#1a3a5c] text-white rounded-lg transition-all duration-200 font-medium text-sm"
+                className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-[#0D2942] hover:bg-[#1a3a5c] text-white rounded-lg transition-all duration-200 font-medium text-xs md:text-sm"
               >
                 <Home className="w-4 h-4" />
                 <span className="hidden sm:inline">Main Menu</span>
+              </button>
+
+              {/* Mobile + New Button - Only visible on mobile */}
+              <button
+                onClick={() => setShowCreateMenu(!showCreateMenu)}
+                className="sm:hidden flex items-center justify-center p-2 bg-[#2CA01C] hover:bg-[#108000] text-white rounded-lg transition-all duration-200 active:scale-[0.98]"
+                title="Create New"
+              >
+                <Plus className="w-5 h-5" />
               </button>
             </div>
           </div>

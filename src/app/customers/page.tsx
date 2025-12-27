@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { redirect, useRouter } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,7 +26,6 @@ import {
   Phone, 
   Building, 
   Users,
-  Download,
   Eye,
   Send,
   FileSpreadsheet,
@@ -74,9 +73,8 @@ interface CustomerFormData {
 }
 
 export default function CustomersPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
-  const router = useRouter()
   
   const [customers, setCustomers] = useState<Customer[]>([])
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
@@ -323,7 +321,7 @@ export default function CustomersPage() {
     ].join('\n')
 
     const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
+    const url = globalThis.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `clientes-${format(new Date(), 'yyyy-MM-dd')}.csv`
@@ -348,23 +346,24 @@ export default function CustomersPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
-            <p className="text-gray-600 mt-1">Gestiona tu directorio de clientes</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Clientes</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-1">Gestiona tu directorio de clientes</p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={exportToExcel}>
+          <div className="flex flex-wrap gap-2 md:gap-3">
+            <Button variant="outline" size="sm" onClick={exportToExcel}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Excel
+              <span className="hidden sm:inline">Excel</span>
             </Button>
-            <Button variant="outline" onClick={exportToPDF}>
+            <Button variant="outline" size="sm" onClick={exportToPDF}>
               <FileDown className="h-4 w-4 mr-2" />
-              PDF
+              <span className="hidden sm:inline">PDF</span>
             </Button>
-            <Button onClick={() => setShowAddModal(true)}>
+            <Button size="sm" onClick={() => setShowAddModal(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Nuevo Cliente
+              <span className="hidden sm:inline">Nuevo Cliente</span>
+              <span className="sm:hidden">Nuevo</span>
             </Button>
           </div>
         </div>
@@ -555,7 +554,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); globalThis.location.href = `/customers/${customer.id}`; }}
                               className="bg-blue-50 hover:bg-blue-100 border-blue-300"
                             >
                               <Eye className="h-4 w-4 mr-1 text-blue-600" />
@@ -611,7 +610,7 @@ export default function CustomersPage() {
                                 type="button"
                                 variant="outline" 
                                 size="sm" 
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}/activity`; }}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); globalThis.location.href = `/customers/${customer.id}/activity`; }}
                                 className="bg-green-50 hover:bg-green-100 border-green-300"
                               >
                                 <Activity className="h-4 w-4 mr-1 text-green-600" />
@@ -624,7 +623,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/company/documents/upload?customerId=${customer.id}`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); globalThis.location.href = `/company/documents/upload?customerId=${customer.id}`; }}
                               className="bg-orange-50 hover:bg-orange-100 border-orange-300"
                             >
                               <Upload className="h-4 w-4 mr-1 text-orange-600" />
@@ -636,7 +635,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/company/customers/transactions?customerId=${customer.id}`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); globalThis.location.href = `/company/customers/transactions?customerId=${customer.id}`; }}
                               className="bg-indigo-50 hover:bg-indigo-100 border-indigo-300"
                             >
                               <DollarSign className="h-4 w-4 mr-1 text-indigo-600" />
@@ -648,7 +647,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/invoices?customerId=${customer.id}`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); globalThis.location.href = `/invoices?customerId=${customer.id}`; }}
                               className="bg-teal-50 hover:bg-teal-100 border-teal-300"
                             >
                               <Receipt className="h-4 w-4 mr-1 text-teal-600" />
@@ -660,7 +659,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}/notes`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); globalThis.location.href = `/customers/${customer.id}/notes`; }}
                               className="bg-yellow-50 hover:bg-yellow-100 border-yellow-300"
                             >
                               <StickyNote className="h-4 w-4 mr-1 text-yellow-600" />
@@ -672,7 +671,7 @@ export default function CustomersPage() {
                               type="button"
                               variant="outline" 
                               size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/customers/${customer.id}/crm`; }}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); globalThis.location.href = `/customers/${customer.id}/crm`; }}
                               className="bg-pink-50 hover:bg-pink-100 border-pink-300"
                             >
                               <UserCircle className="h-4 w-4 mr-1 text-pink-600" />
@@ -702,10 +701,26 @@ export default function CustomersPage() {
         </Card>
 
         {showAddModal && (
-          <div className="qb-modal-overlay" onClick={() => { setShowAddModal(false); resetForm(); }}>
-            <div className="qb-modal max-w-2xl" onClick={(e) => e.stopPropagation()}>
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role
+          <div 
+            className="qb-modal-overlay" 
+            onClick={() => { setShowAddModal(false); resetForm(); }}
+            onKeyDown={(e) => e.key === 'Escape' && setShowAddModal(false)}
+            role="button"
+            tabIndex={0}
+            aria-label="Cerrar modal"
+          >
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/prefer-tag-over-role */}
+            <div 
+              className="qb-modal max-w-2xl" 
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.key === 'Escape' && e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-customer-title"
+            >
               <div className="qb-modal-header">
-                <h3 className="qb-modal-title">Agregar Nuevo Cliente</h3>
+                <h3 id="add-customer-title" className="qb-modal-title">Agregar Nuevo Cliente</h3>
                 <button onClick={() => { setShowAddModal(false); resetForm(); }} className="qb-modal-close">
                   <X className="h-5 w-5" />
                 </button>
@@ -715,37 +730,37 @@ export default function CustomersPage() {
                 <div className="qb-modal-body space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="qb-form-group">
-                      <label className="qb-label">
+                      <label htmlFor="add-customer-name" className="qb-label">
                         Nombre Completo <span className="text-red-500">*</span>
                       </label>
-                      <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="John Smith" />
+                      <Input id="add-customer-name" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="John Smith" />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">
+                      <label htmlFor="add-customer-email" className="qb-label">
                         Email <span className="text-red-500">*</span>
                       </label>
-                      <Input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="john@company.com" />
+                      <Input id="add-customer-email" type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="john@company.com" />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">Teléfono</label>
-                      <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+1 305 555 1234" />
+                      <label htmlFor="add-customer-phone" className="qb-label">Teléfono</label>
+                      <Input id="add-customer-phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+1 305 555 1234" />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">EIN / Tax ID</label>
-                      <Input value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} placeholder="12-3456789" />
+                      <label htmlFor="add-customer-taxid" className="qb-label">EIN / Tax ID</label>
+                      <Input id="add-customer-taxid" value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} placeholder="12-3456789" />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">Empresa</label>
-                      <Input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} placeholder="Acme Corp LLC" />
+                      <label htmlFor="add-customer-company" className="qb-label">Empresa</label>
+                      <Input id="add-customer-company" value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} placeholder="Acme Corp LLC" />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">Estado</label>
-                      <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="qb-select">
+                      <label htmlFor="add-customer-status" className="qb-label">Estado</label>
+                      <select id="add-customer-status" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="qb-select">
                         <option value="ACTIVE">Activo</option>
                         <option value="INACTIVE">Inactivo</option>
                       </select>
@@ -753,8 +768,8 @@ export default function CustomersPage() {
                   </div>
 
                   <div className="qb-form-group">
-                    <label className="qb-label">Dirección</label>
-                    <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="123 Main Street, Miami, FL 33101" />
+                    <label htmlFor="add-customer-address" className="qb-label">Dirección</label>
+                    <Input id="add-customer-address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="123 Main Street, Miami, FL 33101" />
                   </div>
                 </div>
 
@@ -773,10 +788,26 @@ export default function CustomersPage() {
         )}
 
         {showEditModal && selectedCustomer && (
-          <div className="qb-modal-overlay" onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }}>
-            <div className="qb-modal max-w-2xl" onClick={(e) => e.stopPropagation()}>
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role
+          <div 
+            className="qb-modal-overlay" 
+            onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }}
+            onKeyDown={(e) => e.key === 'Escape' && setShowEditModal(false)}
+            role="button"
+            tabIndex={0}
+            aria-label="Cerrar modal"
+          >
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/prefer-tag-over-role */}
+            <div 
+              className="qb-modal max-w-2xl" 
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.key === 'Escape' && e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-customer-title"
+            >
               <div className="qb-modal-header">
-                <h3 className="qb-modal-title">Editar Cliente</h3>
+                <h3 id="edit-customer-title" className="qb-modal-title">Editar Cliente</h3>
                 <button onClick={() => { setShowEditModal(false); setSelectedCustomer(null); resetForm(); }} className="qb-modal-close">
                   <X className="h-5 w-5" />
                 </button>
@@ -786,37 +817,37 @@ export default function CustomersPage() {
                 <div className="qb-modal-body space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="qb-form-group">
-                      <label className="qb-label">
+                      <label htmlFor="edit-customer-name" className="qb-label">
                         Nombre Completo <span className="text-red-500">*</span>
                       </label>
-                      <Input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                      <Input id="edit-customer-name" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">
+                      <label htmlFor="edit-customer-email" className="qb-label">
                         Email <span className="text-red-500">*</span>
                       </label>
-                      <Input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                      <Input id="edit-customer-email" type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">Teléfono</label>
-                      <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                      <label htmlFor="edit-customer-phone" className="qb-label">Teléfono</label>
+                      <Input id="edit-customer-phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">EIN / Tax ID</label>
-                      <Input value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} />
+                      <label htmlFor="edit-customer-taxid" className="qb-label">EIN / Tax ID</label>
+                      <Input id="edit-customer-taxid" value={formData.taxId} onChange={(e) => setFormData({ ...formData, taxId: e.target.value })} />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">Empresa</label>
-                      <Input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
+                      <label htmlFor="edit-customer-company" className="qb-label">Empresa</label>
+                      <Input id="edit-customer-company" value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
                     </div>
 
                     <div className="qb-form-group">
-                      <label className="qb-label">Estado</label>
-                      <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="qb-select">
+                      <label htmlFor="edit-customer-status" className="qb-label">Estado</label>
+                      <select id="edit-customer-status" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="qb-select">
                         <option value="ACTIVE">Activo</option>
                         <option value="INACTIVE">Inactivo</option>
                       </select>
@@ -824,8 +855,8 @@ export default function CustomersPage() {
                   </div>
 
                   <div className="qb-form-group">
-                    <label className="qb-label">Dirección</label>
-                    <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                    <label htmlFor="edit-customer-address" className="qb-label">Dirección</label>
+                    <Input id="edit-customer-address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
                   </div>
                 </div>
 
@@ -844,10 +875,26 @@ export default function CustomersPage() {
         )}
 
         {showPermissionsModal && selectedCustomer && (
-          <div className="qb-modal-overlay" onClick={() => { setShowPermissionsModal(false); setSelectedCustomer(null); }}>
-            <div className="qb-modal max-w-md" onClick={(e) => e.stopPropagation()}>
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role
+          <div 
+            className="qb-modal-overlay" 
+            onClick={() => { setShowPermissionsModal(false); setSelectedCustomer(null); }}
+            onKeyDown={(e) => e.key === 'Escape' && setShowPermissionsModal(false)}
+            role="button"
+            tabIndex={0}
+            aria-label="Cerrar modal"
+          >
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/prefer-tag-over-role */}
+            <div 
+              className="qb-modal max-w-md" 
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.key === 'Escape' && e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="permissions-title"
+            >
               <div className="qb-modal-header">
-                <h3 className="qb-modal-title">Configurar Permisos - {selectedCustomer.name}</h3>
+                <h3 id="permissions-title" className="qb-modal-title">Configurar Permisos - {selectedCustomer.name}</h3>
                 <button onClick={() => { setShowPermissionsModal(false); setSelectedCustomer(null); }} className="qb-modal-close">
                   <X className="h-5 w-5" />
                 </button>

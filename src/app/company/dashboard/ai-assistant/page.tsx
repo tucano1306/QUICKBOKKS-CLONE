@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Bot,
@@ -47,7 +47,7 @@ const quickPrompts = [
 ]
 
 export default function AIAssistantPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
   const { activeCompany } = useCompany()
   const [messages, setMessages] = useState<Message[]>([])
@@ -222,11 +222,11 @@ Puedo ayudarte con:
           <div className="mb-4">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Preguntas rápidas:</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {quickPrompts.map((prompt, index) => {
+              {quickPrompts.map((prompt) => {
                 const Icon = prompt.icon
                 return (
                   <button
-                    key={index}
+                    key={prompt.text}
                     onClick={() => handleQuickPrompt(prompt.text)}
                     className="flex items-center gap-2 p-3 text-left text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 transition-all"
                   >
@@ -263,15 +263,15 @@ Puedo ayudarte con:
                   >
                     <div className="whitespace-pre-wrap text-sm">
                       {message.content.split('**').map((part, i) => 
-                        i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                        i % 2 === 1 ? <strong key={`${message.id}-bold-${i}`}>{part}</strong> : part
                       )}
                     </div>
 
                     {/* Metrics */}
                     {message.metrics && message.metrics.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-2">
-                        {message.metrics.map((metric, idx) => (
-                          <div key={idx} className="bg-white dark:bg-gray-700 p-2 rounded-lg">
+                        {message.metrics.map((metric) => (
+                          <div key={`${message.id}-${metric.label}`} className="bg-white dark:bg-gray-700 p-2 rounded-lg">
                             <p className="text-xs text-gray-500 dark:text-gray-400">{metric.label}</p>
                             <p className="font-bold text-gray-900 dark:text-white">{metric.value}</p>
                           </div>
@@ -283,9 +283,9 @@ Puedo ayudarte con:
                   {/* Suggestions */}
                   {message.suggestions && message.suggestions.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {message.suggestions.map((suggestion, idx) => (
+                      {message.suggestions.map((suggestion) => (
                         <button
-                          key={idx}
+                          key={`${message.id}-${suggestion}`}
                           onClick={() => handleQuickPrompt(suggestion)}
                           className="text-xs px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                         >

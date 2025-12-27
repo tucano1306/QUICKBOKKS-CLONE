@@ -7,7 +7,7 @@ import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AnimatedBarChart, AnimatedDonutChart, AnimatedProgress, Sparkline, AnimatedCounter } from '@/components/ui/animated-charts'
+import { Sparkline, AnimatedCounter } from '@/components/ui/animated-charts'
 import {
   TrendingUp,
   TrendingDown,
@@ -49,9 +49,77 @@ interface DashboardStats {
   }[]
 }
 
+// Helper functions para evitar ternarios anidados
+const getColorGradient = (color: string): string => {
+  switch (color) {
+    case 'green': return 'from-[#2CA01C] to-[#108000]'
+    case 'red': return 'from-red-400 to-rose-500'
+    case 'blue': return 'from-[#0077C5] to-blue-600'
+    default: return 'from-amber-400 to-orange-500'
+  }
+}
+
+const getBackgroundColor = (color: string): string => {
+  switch (color) {
+    case 'green': return 'bg-green-100'
+    case 'red': return 'bg-red-100'
+    case 'blue': return 'bg-blue-100'
+    default: return 'bg-amber-100'
+  }
+}
+
+const getTextColor = (color: string): string => {
+  switch (color) {
+    case 'green': return 'text-[#2CA01C]'
+    case 'red': return 'text-red-600'
+    case 'blue': return 'text-[#0077C5]'
+    default: return 'text-amber-600'
+  }
+}
+
+const getSparklineColor = (color: string): string => {
+  switch (color) {
+    case 'green': return '#2CA01C'
+    case 'red': return '#ef4444'
+    case 'blue': return '#0077C5'
+    default: return '#f59e0b'
+  }
+}
+
+const getActivityIcon = (type: string) => {
+  switch (type) {
+    case 'invoice': return <FileText className="w-5 h-5" />
+    case 'payment': return <DollarSign className="w-5 h-5" />
+    default: return <Receipt className="w-5 h-5" />
+  }
+}
+
+const getActivityBgColor = (type: string): string => {
+  switch (type) {
+    case 'invoice': return 'bg-blue-100 text-blue-600'
+    case 'payment': return 'bg-green-100 text-green-600'
+    default: return 'bg-red-100 text-red-600'
+  }
+}
+
+const getActivityTextColor = (type: string): string => {
+  switch (type) {
+    case 'payment': return 'text-green-600'
+    case 'expense': return 'text-red-600'
+    default: return 'text-gray-900 dark:text-white'
+  }
+}
+
+const getActivitySign = (type: string): string => {
+  if (type === 'payment') return '+'
+  if (type === 'expense') return '-'
+  return ''
+}
+
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export default function CompanyDashboardPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -192,13 +260,13 @@ export default function CompanyDashboardPage() {
     <CompanyTabsLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0D2942] flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-[#2CA01C]" />
-              Dashboard - {activeCompany.name}
+            <h1 className="text-xl md:text-2xl font-bold text-[#0D2942] flex items-center gap-2">
+              <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-[#2CA01C]" />
+              <span className="truncate">Dashboard - {activeCompany.name}</span>
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-sm md:text-base text-gray-500 mt-1">
               Resumen general de tu negocio en tiempo real
             </p>
           </div>
@@ -211,15 +279,16 @@ export default function CompanyDashboardPage() {
               className="gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Actualizar
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
             <Button
               onClick={() => router.push('/company')}
               variant="outline"
+              size="sm"
               className="gap-2"
             >
               <Home className="w-4 h-4" />
-              Inicio
+              <span className="hidden sm:inline">Inicio</span>
             </Button>
           </div>
         </div>
@@ -272,32 +341,22 @@ export default function CompanyDashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {statCards.map((stat, index) => {
             const Icon = stat.icon
+            const colorGradient = getColorGradient(stat.color)
+            const bgColor = getBackgroundColor(stat.color)
+            const textColor = getTextColor(stat.color)
+            const sparklineColor = getSparklineColor(stat.color)
+            
             return (
               <Card 
                 key={stat.name} 
                 className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
-                  stat.color === 'green' ? 'from-[#2CA01C] to-[#108000]' :
-                  stat.color === 'red' ? 'from-red-400 to-rose-500' :
-                  stat.color === 'blue' ? 'from-[#0077C5] to-blue-600' :
-                  'from-amber-400 to-orange-500'
-                }`} />
+                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${colorGradient}`} />
                 <CardContent className="p-6 relative">
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${
-                      stat.color === 'green' ? 'bg-green-100' :
-                      stat.color === 'red' ? 'bg-red-100' :
-                      stat.color === 'blue' ? 'bg-blue-100' :
-                      'bg-amber-100'
-                    }`}>
-                      <Icon className={`w-6 h-6 ${
-                        stat.color === 'green' ? 'text-[#2CA01C]' :
-                        stat.color === 'red' ? 'text-red-600' :
-                        stat.color === 'blue' ? 'text-[#0077C5]' :
-                        'text-amber-600'
-                      }`} />
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${bgColor}`}>
+                      <Icon className={`w-6 h-6 ${textColor}`} />
                     </div>
                     <div className={`flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full ${
                       stat.trend === 'up' ? 'text-[#108000] bg-green-100' : 'text-red-700 bg-red-100'
@@ -320,7 +379,7 @@ export default function CompanyDashboardPage() {
                   <div className="absolute bottom-2 right-2 opacity-30">
                     <Sparkline 
                       data={[30, 45, 35, 50, 40, 60, 55]} 
-                      color={stat.color === 'green' ? '#2CA01C' : stat.color === 'red' ? '#ef4444' : stat.color === 'blue' ? '#0077C5' : '#f59e0b'}
+                      color={sparklineColor}
                       height={30}
                       width={60}
                     />
@@ -526,38 +585,35 @@ export default function CompanyDashboardPage() {
             <CardContent className="p-0">
               <div className="divide-y dark:divide-gray-700">
                 {stats?.recentActivity && stats.recentActivity.length > 0 ? (
-                  stats.recentActivity.slice(0, 5).map((activity, index) => (
-                    <div 
-                      key={index} 
-                      className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        activity.type === 'invoice' ? 'bg-blue-100 text-blue-600' :
-                        activity.type === 'payment' ? 'bg-green-100 text-green-600' :
-                        'bg-red-100 text-red-600'
-                      }`}>
-                        {activity.type === 'invoice' ? <FileText className="w-5 h-5" /> :
-                         activity.type === 'payment' ? <DollarSign className="w-5 h-5" /> :
-                         <Receipt className="w-5 h-5" />}
+                  stats.recentActivity.slice(0, 5).map((activity) => {
+                    const activityBgColor = getActivityBgColor(activity.type)
+                    const activityIcon = getActivityIcon(activity.type)
+                    const activityTextColor = getActivityTextColor(activity.type)
+                    const activitySign = getActivitySign(activity.type)
+                    
+                    return (
+                      <div 
+                        key={`${activity.type}-${activity.date}-${activity.entityName}`}
+                        className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activityBgColor}`}>
+                          {activityIcon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {activity.description}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {activity.entityName} • {formatTimeAgo(activity.date)}
+                          </p>
+                        </div>
+                        <div className={`text-sm font-bold ${activityTextColor}`}>
+                          {activitySign}
+                          {formatCurrency(activity.amount)}
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {activity.description}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {activity.entityName} • {formatTimeAgo(activity.date)}
-                        </p>
-                      </div>
-                      <div className={`text-sm font-bold ${
-                        activity.type === 'payment' ? 'text-green-600' :
-                        activity.type === 'expense' ? 'text-red-600' :
-                        'text-gray-900 dark:text-white'
-                      }`}>
-                        {activity.type === 'payment' ? '+' : activity.type === 'expense' ? '-' : ''}
-                        {formatCurrency(activity.amount)}
-                      </div>
-                    </div>
-                  ))
+                    )
+                  })
                 ) : (
                   <div className="p-8 text-center">
                     <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />

@@ -23,7 +23,7 @@ interface Message {
 }
 
 export default function AIAgentChat() {
-  const { data: session } = useSession()
+  useSession()
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -191,7 +191,7 @@ Puedo ayudarte con:
             <div className="h-[600px] overflow-y-auto p-6 space-y-6">
               {messages.map((message, index) => (
                 <div
-                  key={index}
+                  key={`${message.role}-${index}-${message.content.substring(0, 20)}`}
                   className={`flex gap-3 ${
                     message.role === 'user' ? 'justify-end' : 'justify-start'
                   }`}
@@ -221,7 +221,7 @@ Puedo ayudarte con:
                         </p>
                         {message.actions.map((action, idx) => (
                           <div
-                            key={idx}
+                            key={`${action.type}-${idx}`}
                             className="text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-1 rounded mb-1"
                           >
                             <strong>{action.type}:</strong> {action.description}
@@ -239,7 +239,7 @@ Puedo ayudarte con:
                         <div className="flex flex-wrap gap-2">
                           {message.suggestions.map((suggestion, idx) => (
                             <button
-                              key={idx}
+                              key={`${suggestion}-${idx}`}
                               onClick={() => handleSuggestionClick(suggestion)}
                               className="text-xs bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full transition-colors"
                             >
@@ -285,7 +285,7 @@ Puedo ayudarte con:
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleKeyPress(e) }}
                   placeholder="Escribe tu mensaje... (Ej: 'Crea una factura para el cliente ABC por $5,000')"
                   disabled={isLoading}
                   className="flex-1 bg-white dark:bg-slate-700"

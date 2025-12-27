@@ -1,4 +1,4 @@
-import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
 /**
  * SIMULACIÓN COMPLETA DE USUARIO
@@ -76,6 +76,7 @@ async function safeGoto(page: Page, url: string, retries = 2): Promise<boolean> 
         if (page.url().includes(url.replace(/^\//, ''))) {
           return true;
         }
+        throw error;
       }
     }
   }
@@ -83,12 +84,12 @@ async function safeGoto(page: Page, url: string, retries = 2): Promise<boolean> 
 }
 
 // Helper para hacer login
-async function login(page: Page) {
-  const navigated = await safeGoto(page, '/auth/login');
+async function login(page: Page): Promise<void> {
+  await safeGoto(page, '/auth/login');
   
   // Si ya está autenticado, redirige al dashboard
   if (page.url().includes('/company') || page.url().includes('/dashboard')) {
-    return true;
+    return;
   }
   
   // Intentar login
@@ -101,8 +102,6 @@ async function login(page: Page) {
     await page.locator('button[type="submit"]').click();
     await waitForPageLoad(page);
   }
-  
-  return true;
 }
 
 test.describe('🔄 SIMULACIÓN COMPLETA DE USUARIO', () => {
@@ -113,7 +112,6 @@ test.describe('🔄 SIMULACIÓN COMPLETA DE USUARIO', () => {
       
       // Verificar elementos de login
       const hasLoginForm = await page.locator('form').count() > 0;
-      const hasEmailField = await page.locator('input[type="email"], input[name="email"]').count() > 0;
       
       expect(hasLoginForm || page.url().includes('/company')).toBeTruthy();
     });
@@ -524,7 +522,7 @@ test.describe('🔄 SIMULACIÓN COMPLETA DE USUARIO', () => {
         const dateInput = page.locator('input[name="date"], input[type="date"]');
         const isRequired = await dateInput.getAttribute('required');
         
-        console.log(isRequired !== null ? '✓ Fecha es requerida' : '⚠ Verificar requerimiento de fecha');
+        console.log(isRequired ? '✓ Fecha es requerida' : '⚠ Verificar requerimiento de fecha');
       }
     });
   });
@@ -564,7 +562,6 @@ test.describe('🔄 SIMULACIÓN COMPLETA DE USUARIO', () => {
       await safeGoto(page, '/company/reports/profit-loss');
       
       // El gasto debería aparecer en el total
-      const pageContent = await page.content();
       console.log('✓ Flujo completo ejecutado - verificar manualmente si el gasto aparece');
     });
 

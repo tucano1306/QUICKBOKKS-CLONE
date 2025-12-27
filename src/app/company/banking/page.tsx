@@ -11,8 +11,6 @@ import { Badge } from '@/components/ui/badge'
 import {
   Building2,
   CreditCard,
-  TrendingUp,
-  TrendingDown,
   Plus,
   Search,
   Filter,
@@ -27,7 +25,6 @@ import {
   CheckCircle2,
   CheckCircle,
   AlertCircle,
-  XCircle,
   Clock,
   DollarSign,
   X,
@@ -82,8 +79,27 @@ interface Transaction {
   }
 }
 
+// Helper functions
+const getMessageTypeStyles = (type: 'success' | 'error' | 'info'): string => {
+  if (type === 'success') return 'bg-green-50 text-green-800 border border-green-200'
+  if (type === 'error') return 'bg-red-50 text-red-800 border border-red-200'
+  return 'bg-blue-50 text-blue-800 border border-blue-200'
+}
+
+const getAccountTypeStyles = (accountType: string): string => {
+  if (accountType === 'CHECKING') return 'bg-blue-100'
+  if (accountType === 'SAVINGS') return 'bg-green-100'
+  return 'bg-purple-100'
+}
+
+const getAccountTypeIcon = (accountType: string) => {
+  if (accountType === 'CHECKING') return <Wallet className="w-6 h-6 text-blue-600" />
+  if (accountType === 'SAVINGS') return <PiggyBank className="w-6 h-6 text-green-600" />
+  return <CreditCard className="w-6 h-6 text-purple-600" />
+}
+
 export default function BankingManagementPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
   
   // States
@@ -508,11 +524,7 @@ export default function BankingManagementPage() {
 
         {/* Message Display */}
         {message && (
-          <div className={`p-3 rounded-lg flex items-center gap-2 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-            'bg-blue-50 text-blue-800 border border-blue-200'
-          }`}>
+          <div className={`p-3 rounded-lg flex items-center gap-2 ${getMessageTypeStyles(message.type)}`}>
             {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
             {message.text}
           </div>
@@ -620,18 +632,8 @@ export default function BankingManagementPage() {
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-lg ${
-                          account.accountType === 'CHECKING' ? 'bg-blue-100' :
-                          account.accountType === 'SAVINGS' ? 'bg-green-100' :
-                          'bg-purple-100'
-                        }`}>
-                          {account.accountType === 'CHECKING' ? (
-                            <Wallet className="w-6 h-6 text-blue-600" />
-                          ) : account.accountType === 'SAVINGS' ? (
-                            <PiggyBank className="w-6 h-6 text-green-600" />
-                          ) : (
-                            <CreditCard className="w-6 h-6 text-purple-600" />
-                          )}
+                        <div className={`p-3 rounded-lg ${getAccountTypeStyles(account.accountType)}`}>
+                          {getAccountTypeIcon(account.accountType)}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -1017,16 +1019,18 @@ export default function BankingManagementPage() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Nombre de la Cuenta *</label>
+                  <label htmlFor="account-name" className="block text-sm font-medium mb-1">Nombre de la Cuenta *</label>
                   <Input
+                    id="account-name"
                     value={accountForm.accountName}
                     onChange={(e) => setAccountForm({ ...accountForm, accountName: e.target.value })}
                     placeholder="Ej: Cuenta Principal, Nómina, etc."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Nombre del Banco *</label>
+                  <label htmlFor="bank-name" className="block text-sm font-medium mb-1">Nombre del Banco *</label>
                   <Input
+                    id="bank-name"
                     value={accountForm.bankName}
                     onChange={(e) => setAccountForm({ ...accountForm, bankName: e.target.value })}
                     placeholder="Ej: BBVA, Santander, Chase, etc."
@@ -1034,16 +1038,18 @@ export default function BankingManagementPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Número de Cuenta</label>
+                    <label htmlFor="account-number" className="block text-sm font-medium mb-1">Número de Cuenta</label>
                     <Input
+                      id="account-number"
                       value={accountForm.accountNumber}
                       onChange={(e) => setAccountForm({ ...accountForm, accountNumber: e.target.value })}
                       placeholder="Últimos 4 dígitos"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Tipo de Cuenta</label>
+                    <label htmlFor="account-type" className="block text-sm font-medium mb-1">Tipo de Cuenta</label>
                     <select
+                      id="account-type"
                       value={accountForm.accountType}
                       onChange={(e) => setAccountForm({ ...accountForm, accountType: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
@@ -1057,8 +1063,9 @@ export default function BankingManagementPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Moneda</label>
+                    <label htmlFor="account-currency" className="block text-sm font-medium mb-1">Moneda</label>
                     <select
+                      id="account-currency"
                       value={accountForm.currency}
                       onChange={(e) => setAccountForm({ ...accountForm, currency: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
@@ -1069,12 +1076,13 @@ export default function BankingManagementPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Balance Inicial</label>
+                    <label htmlFor="account-balance" className="block text-sm font-medium mb-1">Balance Inicial</label>
                     <Input
+                      id="account-balance"
                       type="text"
                       className="amount-input"
                       value={accountForm.balance}
-                      onChange={(e) => setAccountForm({ ...accountForm, balance: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                      onChange={(e) => setAccountForm({ ...accountForm, balance: Number.parseFloat(e.target.value.replaceAll(',', '')) || 0 })}
                     />
                   </div>
                 </div>
@@ -1116,8 +1124,9 @@ export default function BankingManagementPage() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Cuenta *</label>
+                  <label htmlFor="transaction-account" className="block text-sm font-medium mb-1">Cuenta *</label>
                   <select
+                    id="transaction-account"
                     value={transactionForm.bankAccountId}
                     onChange={(e) => setTransactionForm({ ...transactionForm, bankAccountId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
@@ -1132,37 +1141,41 @@ export default function BankingManagementPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Fecha *</label>
+                    <label htmlFor="transaction-date" className="block text-sm font-medium mb-1">Fecha *</label>
                     <Input
+                      id="transaction-date"
                       type="date"
                       value={transactionForm.date}
                       onChange={(e) => setTransactionForm({ ...transactionForm, date: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Monto *</label>
+                    <label htmlFor="transaction-amount" className="block text-sm font-medium mb-1">Monto *</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
+                        id="transaction-amount"
                         type="text"
                         value={transactionForm.amount}
-                        onChange={(e) => setTransactionForm({ ...transactionForm, amount: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                        onChange={(e) => setTransactionForm({ ...transactionForm, amount: Number.parseFloat(e.target.value.replaceAll(',', '')) || 0 })}
                         className="amount-input pl-10"
                       />
                     </div>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Descripción *</label>
+                  <label htmlFor="transaction-description" className="block text-sm font-medium mb-1">Descripción *</label>
                   <Input
+                    id="transaction-description"
                     value={transactionForm.name}
                     onChange={(e) => setTransactionForm({ ...transactionForm, name: e.target.value })}
                     placeholder="Descripción de la transacción"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Categoría</label>
+                  <label htmlFor="transaction-category" className="block text-sm font-medium mb-1">Categoría</label>
                   <select
+                    id="transaction-category"
                     value={transactionForm.category}
                     onChange={(e) => setTransactionForm({ ...transactionForm, category: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
@@ -1179,16 +1192,18 @@ export default function BankingManagementPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Referencia</label>
+                  <label htmlFor="transaction-reference" className="block text-sm font-medium mb-1">Referencia</label>
                   <Input
+                    id="transaction-reference"
                     value={transactionForm.reference}
                     onChange={(e) => setTransactionForm({ ...transactionForm, reference: e.target.value })}
                     placeholder="Número de cheque, factura, etc."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Notas</label>
+                  <label htmlFor="transaction-notes" className="block text-sm font-medium mb-1">Notas</label>
                   <Input
+                    id="transaction-notes"
                     value={transactionForm.notes}
                     onChange={(e) => setTransactionForm({ ...transactionForm, notes: e.target.value })}
                     placeholder="Notas adicionales"
@@ -1229,8 +1244,9 @@ export default function BankingManagementPage() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Cuenta Origen *</label>
+                  <label htmlFor="transfer-from-account" className="block text-sm font-medium mb-1">Cuenta Origen *</label>
                   <select
+                    id="transfer-from-account"
                     value={transferForm.fromAccountId}
                     onChange={(e) => setTransferForm({ ...transferForm, fromAccountId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
@@ -1246,8 +1262,9 @@ export default function BankingManagementPage() {
                   <ArrowRightLeft className="w-8 h-8 text-gray-400" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Cuenta Destino *</label>
+                  <label htmlFor="transfer-to-account" className="block text-sm font-medium mb-1">Cuenta Destino *</label>
                   <select
+                    id="transfer-to-account"
                     value={transferForm.toAccountId}
                     onChange={(e) => setTransferForm({ ...transferForm, toAccountId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
@@ -1261,29 +1278,32 @@ export default function BankingManagementPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Fecha</label>
+                    <label htmlFor="transfer-date" className="block text-sm font-medium mb-1">Fecha</label>
                     <Input
+                      id="transfer-date"
                       type="date"
                       value={transferForm.date}
                       onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Monto *</label>
+                    <label htmlFor="transfer-amount" className="block text-sm font-medium mb-1">Monto *</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
+                        id="transfer-amount"
                         type="text"
                         value={transferForm.amount}
-                        onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                        onChange={(e) => setTransferForm({ ...transferForm, amount: Number.parseFloat(e.target.value.replaceAll(',', '')) || 0 })}
                         className="amount-input pl-10"
                       />
                     </div>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Descripción</label>
+                  <label htmlFor="transfer-description" className="block text-sm font-medium mb-1">Descripción</label>
                   <Input
+                    id="transfer-description"
                     value={transferForm.description}
                     onChange={(e) => setTransferForm({ ...transferForm, description: e.target.value })}
                     placeholder="Motivo de la transferencia"
