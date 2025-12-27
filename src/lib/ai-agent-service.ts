@@ -98,10 +98,11 @@ Tu nombre es "FinanceBot" y tienes las siguientes capacidades:
 7. **Automatizaciones**: Configurar reglas automáticas, recordatorios, alertas.
 
 REGLAS IMPORTANTES:
-- Siempre confirma antes de ejecutar acciones destructivas (eliminar, modificar datos importantes)
-- Usa las funciones disponibles para ejecutar acciones reales en el sistema
+- DEBES usar las funciones disponibles para ejecutar acciones reales en el sistema
+- Cuando el usuario te pida crear múltiples elementos (ej: "crea 10 gastos"), DEBES llamar la función correspondiente MÚLTIPLES VECES
+- Puedes ejecutar MÚLTIPLES funciones en una sola respuesta (ej: crear 10 gastos llamando create_expense 10 veces)
+- SIEMPRE ejecuta las acciones que el usuario te pide, no solo describas lo que harías
 - Proporciona explicaciones claras de lo que haces y por qué
-- Si no estás seguro, pregunta al usuario antes de proceder
 - Habla siempre en español de manera profesional pero amigable
 - Cuando crees entidades (facturas, gastos), proporciona los IDs generados
 - Si detectas errores o inconsistencias, alertar al usuario
@@ -429,6 +430,22 @@ async function createExpense(params: any, userId: string): Promise<any> {
     };
   }
 
+  // Verificar si existen las cuentas contables necesarias
+  const cashAccount = await prisma.chartOfAccounts.findFirst({
+    where: {
+      code: '1000',
+      OR: [
+        { companyId: userCompany.companyId },
+        { companyId: null }
+      ]
+    }
+  });
+
+  if (!cashAccount) {
+    // Crear cuentas básicas si no existen
+    await ensureBasicAccounts(userCompany.companyId);
+  }
+
   // Categorizar automáticamente si no se proporciona categoría
   let categoryId = params.categoryId;
   let categoryName = params.category;
@@ -464,6 +481,52 @@ async function createExpense(params: any, userId: string): Promise<any> {
     amount: expense.amount,
     category: params.category,
   };
+}
+
+// Función para asegurar que existan las cuentas básicas
+async function ensureBasicAccounts(companyId: string): Promise<void> {
+  const basicAccounts = [
+    { code: '1000', name: 'Caja', type: 'ASSET', category: 'CURRENT_ASSET', level: 1 },
+    { code: '1100', name: 'Bancos', type: 'ASSET', category: 'CURRENT_ASSET', level: 1 },
+    { code: '1200', name: 'Cuentas por Cobrar', type: 'ASSET', category: 'CURRENT_ASSET', level: 1 },
+    { code: '2000', name: 'Cuentas por Pagar', type: 'LIABILITY', category: 'CURRENT_LIABILITY', level: 1 },
+    { code: '4000', name: 'Ingresos por Ventas', type: 'INCOME', category: 'OPERATING_INCOME', level: 1 },
+    { code: '4900', name: 'Otros Ingresos', type: 'INCOME', category: 'OTHER_INCOME', level: 1 },
+    { code: '5000', name: 'Gastos Operativos', type: 'EXPENSE', category: 'OPERATING_EXPENSE', level: 1 },
+    { code: '5100', name: 'Gastos de Salarios', type: 'EXPENSE', category: 'OPERATING_EXPENSE', level: 1 },
+    { code: '5200', name: 'Gastos de Alquiler', type: 'EXPENSE', category: 'OPERATING_EXPENSE', level: 1 },
+    { code: '5300', name: 'Gastos de Servicios', type: 'EXPENSE', category: 'OPERATING_EXPENSE', level: 1 },
+    { code: '5900', name: 'Otros Gastos', type: 'EXPENSE', category: 'OTHER_EXPENSE', level: 1 },
+  ];
+
+  for (const account of basicAccounts) {
+    try {
+      // Buscar primero si ya existe
+      const existing = await prisma.chartOfAccounts.findFirst({
+        where: {
+          companyId,
+          code: account.code
+        }
+      });
+
+      if (!existing) {
+        await prisma.chartOfAccounts.create({
+          data: {
+            code: account.code,
+            name: account.name,
+            type: account.type as any,
+            category: account.category as any,
+            level: account.level,
+            companyId,
+            isActive: true,
+            balance: 0
+          }
+        });
+      }
+    } catch (e) {
+      console.log(`[AI-Agent] Cuenta ${account.code} ya existe:`, e instanceof Error ? e.message : 'Error desconocido');
+    }
+  }
 }
 
 async function createCustomer(params: any): Promise<any> {
@@ -547,8 +610,8 @@ async function generateIncomeStatement(userId: string, startDate: Date, endDate:
     },
   });
 
-  const revenue = invoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
-  const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
+  const revenue = invoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
+  const totalExpenses = expenses.reduce((sum, exp) => sum + Number.parseFloat(exp.amount.toString()), 0);
   const netIncome = revenue - totalExpenses;
 
   return {
@@ -577,8 +640,8 @@ async function generateCashFlow(userId: string, startDate: Date, endDate: Date):
     },
   });
 
-  const inflow = invoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
-  const outflow = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
+  const inflow = invoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
+  const outflow = expenses.reduce((sum, exp) => sum + Number.parseFloat(exp.amount.toString()), 0);
   const netCashFlow = inflow - outflow;
 
   return {
@@ -606,8 +669,8 @@ async function generateTaxSummary(userId: string, startDate: Date, endDate: Date
     },
   });
 
-  const revenue = invoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
-  const deductions = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
+  const revenue = invoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
+  const deductions = expenses.reduce((sum, exp) => sum + Number.parseFloat(exp.amount.toString()), 0);
   const taxableIncome = revenue - deductions;
   const estimatedTax = taxableIncome * 0.25; // 25% simplified
 
@@ -644,7 +707,7 @@ async function generateSalesByCustomer(userId: string, startDate: Date, endDate:
         invoiceCount: 0,
       };
     }
-    byCustomer[customerName].totalSales += parseFloat(invoice.total.toString());
+    byCustomer[customerName].totalSales += Number.parseFloat(invoice.total.toString());
     byCustomer[customerName].invoiceCount += 1;
   });
 
@@ -659,16 +722,34 @@ async function generateSalesByCustomer(userId: string, startDate: Date, endDate:
   };
 }
 
+// Helper para construir filtro de monto
+function buildAmountFilter(minAmount?: number, maxAmount?: number) {
+  const filter: any = {};
+  if (minAmount) filter.gte = minAmount;
+  if (maxAmount) filter.lte = maxAmount;
+  return Object.keys(filter).length > 0 ? filter : undefined;
+}
+
+// Helper para construir filtro de fecha
+function buildDateFilter(startDate?: string, endDate?: string) {
+  const filter: any = {};
+  if (startDate) filter.gte = new Date(startDate);
+  if (endDate) filter.lte = new Date(endDate);
+  return Object.keys(filter).length > 0 ? filter : undefined;
+}
+
 async function searchTransactions(params: any, userId: string): Promise<any> {
   const results: any = { invoices: [], expenses: [] };
+  const shouldSearchInvoices = params.type === 'invoice' || params.type === 'all';
+  const shouldSearchExpenses = params.type === 'expense' || params.type === 'all';
 
-  if (params.type === 'invoice' || params.type === 'all') {
+  if (shouldSearchInvoices) {
     const where: any = { userId };
+    const amountFilter = buildAmountFilter(params.minAmount, params.maxAmount);
+    const dateFilter = buildDateFilter(params.startDate, params.endDate);
     
-    if (params.minAmount) where.total = { gte: params.minAmount };
-    if (params.maxAmount) where.total = { ...where.total, lte: params.maxAmount };
-    if (params.startDate) where.issueDate = { gte: new Date(params.startDate) };
-    if (params.endDate) where.issueDate = { ...where.issueDate, lte: new Date(params.endDate) };
+    if (amountFilter) where.total = amountFilter;
+    if (dateFilter) where.issueDate = dateFilter;
 
     results.invoices = await prisma.invoice.findMany({
       where,
@@ -677,13 +758,13 @@ async function searchTransactions(params: any, userId: string): Promise<any> {
     });
   }
 
-  if (params.type === 'expense' || params.type === 'all') {
+  if (shouldSearchExpenses) {
     const where: any = { userId };
+    const amountFilter = buildAmountFilter(params.minAmount, params.maxAmount);
+    const dateFilter = buildDateFilter(params.startDate, params.endDate);
     
-    if (params.minAmount) where.amount = { gte: params.minAmount };
-    if (params.maxAmount) where.amount = { ...where.amount, lte: params.maxAmount };
-    if (params.startDate) where.date = { gte: new Date(params.startDate) };
-    if (params.endDate) where.date = { ...where.date, lte: new Date(params.endDate) };
+    if (amountFilter) where.amount = amountFilter;
+    if (dateFilter) where.date = dateFilter;
 
     results.expenses = await prisma.expense.findMany({
       where,
@@ -741,9 +822,9 @@ async function getFinancialSummary(params: any, userId: string): Promise<any> {
   const paidInvoices = invoices.filter(inv => inv.status === 'PAID');
   const unpaidInvoices = invoices.filter(inv => inv.status !== 'PAID');
 
-  const totalRevenue = paidInvoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
-  const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
-  const outstandingAR = unpaidInvoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
+  const totalRevenue = paidInvoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
+  const totalExpenses = expenses.reduce((sum, exp) => sum + Number.parseFloat(exp.amount.toString()), 0);
+  const outstandingAR = unpaidInvoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
 
   return {
     period: params.period,
@@ -779,7 +860,7 @@ async function analyzeExpenses(params: any, userId: string): Promise<any> {
     if (!byCategory[category]) {
       byCategory[category] = { total: 0, count: 0, avg: 0 };
     }
-    byCategory[category].total += parseFloat(exp.amount.toString());
+    byCategory[category].total += Number.parseFloat(exp.amount.toString());
     byCategory[category].count += 1;
   });
 
@@ -927,12 +1008,21 @@ async function chatWithOpenAI(context: AgentContext): Promise<AgentResponse> {
     ...context.history,
   ];
 
-  // Primera llamada - puede incluir function calling
+  // Primera llamada - puede incluir tool calling
+  const tools = AGENT_FUNCTIONS.map(fn => ({
+    type: 'function' as const,
+    function: {
+      name: fn.name,
+      description: fn.description,
+      parameters: fn.parameters
+    }
+  }));
+
   const completion = await openai.chat.completions.create({
     model: 'gpt-4-turbo-preview',
     messages,
-    functions: AGENT_FUNCTIONS,
-    function_call: 'auto',
+    tools,
+    tool_choice: 'auto',
     temperature: 0.7,
     max_tokens: 1000,
   });
@@ -941,9 +1031,10 @@ async function chatWithOpenAI(context: AgentContext): Promise<AgentResponse> {
   const actions: any[] = [];
 
   // Si el asistente quiere llamar una función
-  if (assistantMessage.function_call) {
-    const functionName = assistantMessage.function_call.name;
-    const functionArgs = assistantMessage.function_call.arguments;
+  if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+    const toolCall = assistantMessage.tool_calls[0];
+    const functionName = toolCall.function.name;
+    const functionArgs = toolCall.function.arguments;
 
     // Ejecutar la función
     const functionResult = await executeFunction(
@@ -959,21 +1050,23 @@ async function chatWithOpenAI(context: AgentContext): Promise<AgentResponse> {
     });
 
     // Segunda llamada con el resultado de la función
-    messages.push({
-      role: 'assistant',
-      content: null,
-      function_call: assistantMessage.function_call,
-    });
-
-    messages.push({
-      role: 'function',
-      name: functionName,
-      content: JSON.stringify(functionResult),
-    });
+    const updatedMessages = [
+      ...messages,
+      {
+        role: 'assistant' as const,
+        content: assistantMessage.content,
+        tool_calls: assistantMessage.tool_calls,
+      },
+      {
+        role: 'tool' as const,
+        tool_call_id: toolCall.id,
+        content: JSON.stringify(functionResult),
+      }
+    ];
 
     const secondCompletion = await openai.chat.completions.create({
       model: 'gpt-4-turbo-preview',
-      messages,
+      messages: updatedMessages,
       temperature: 0.7,
       max_tokens: 1000,
     });
@@ -999,27 +1092,21 @@ async function chatWithOpenAI(context: AgentContext): Promise<AgentResponse> {
 
 // ============== INTEGRACIÓN GROQ (GRATIS) ==============
 
-async function chatWithGroq(context: AgentContext): Promise<AgentResponse> {
-  if (!groq) {
-    throw new Error('Groq no está configurado. Establece GROQ_API_KEY en .env');
-  }
-
-  // Obtener datos del contexto para enriquecer la respuesta
-  let companyData = '';
+// Helper para obtener datos de la compañía
+async function getCompanyData(companyId: string): Promise<string> {
   try {
     const company = await prisma.company.findFirst({
-      where: { id: context.companyId }
+      where: { id: companyId }
     });
     
     if (company) {
-      // Contar entidades relacionadas por separado
       const [customerCount, invoiceCount, expenseCount] = await Promise.all([
-        prisma.customer.count({ where: { companyId: context.companyId } }),
-        prisma.invoice.count({ where: { companyId: context.companyId } }),
-        prisma.expense.count({ where: { companyId: context.companyId } })
+        prisma.customer.count({ where: { companyId } }),
+        prisma.invoice.count({ where: { companyId } }),
+        prisma.expense.count({ where: { companyId } })
       ]);
       
-      companyData = `
+      return `
 Datos de la empresa actual:
 - Nombre: ${company.name}
 - Clientes: ${customerCount}
@@ -1028,23 +1115,32 @@ Datos de la empresa actual:
 `;
     }
   } catch (e) {
-    // Ignorar si no hay datos
+    console.log('[AI-Agent] No se pudieron cargar datos de la empresa:', e instanceof Error ? e.message : 'Error desconocido');
+  }
+  return '';
+}
+
+// Helper para detectar si el usuario quiere crear un catálogo de cuentas
+function wantsToCreateChartOfAccounts(message: string): boolean {
+  const createKeywords = ['crear', 'generar', 'crea', 'créa'];
+  const chartKeywords = ['catálogo', 'catalogo', 'cuentas', 'plan de cuentas'];
+  const msgLower = message.toLowerCase();
+  
+  return createKeywords.some(k => msgLower.includes(k)) && 
+         chartKeywords.some(k => msgLower.includes(k));
+}
+
+// Helper para crear respuesta de catálogo de cuentas
+function createChartOfAccountsResponse(catalogResult: any): AgentResponse {
+  if (!catalogResult || catalogResult.error) {
+    return {
+      success: false,
+      message: `❌ Hubo un problema creando el catálogo: ${catalogResult?.error || 'Error desconocido'}. Por favor intenta nuevamente.`,
+      suggestions: ['Intentar de nuevo', 'Crear catálogo manualmente'],
+    };
   }
 
-  const systemPromptWithContext = SYSTEM_PROMPT + '\n\n' + companyData;
-
-  // Detectar si el usuario quiere crear un catálogo de cuentas
-  const userMessage = context.history[context.history.length - 1]?.content || '';
-  const wantsChartOfAccounts = 
-    (userMessage.toLowerCase().includes('crear') || userMessage.toLowerCase().includes('generar') || userMessage.toLowerCase().includes('crea') || userMessage.toLowerCase().includes('créa')) &&
-    (userMessage.toLowerCase().includes('catálogo') || userMessage.toLowerCase().includes('catalogo') || userMessage.toLowerCase().includes('cuentas') || userMessage.toLowerCase().includes('plan de cuentas'));
-
-  if (wantsChartOfAccounts) {
-    // Generar catálogo de cuentas directamente
-    const catalogResult = await generateChartOfAccounts(context, userMessage);
-    
-    if (catalogResult && !catalogResult.error) {
-      let responseMessage = `✅ **¡Catálogo de Cuentas Creado Exitosamente!**
+  const responseMessage = `✅ **¡Catálogo de Cuentas Creado Exitosamente!**
 
 📊 Se han creado **${catalogResult.created}** cuentas contables de **${catalogResult.total}** para tu Dealer de Carros.
 
@@ -1087,48 +1183,137 @@ Datos de la empresa actual:
 
 ¿Necesitas algo más?`;
 
-      return {
-        success: true,
-        message: responseMessage,
-        actions: [{
-          type: 'create_chart_of_accounts',
-          description: 'Catálogo de cuentas para dealer de carros',
-          result: catalogResult
-        }],
-        data: catalogResult,
-        suggestions: [
-          'Ver catálogo de cuentas',
-          'Crear una factura',
-          'Registrar un gasto',
-          'Agregar un cliente'
-        ],
-      };
-    } else {
-      return {
-        success: false,
-        message: `❌ Hubo un problema creando el catálogo: ${catalogResult?.error || 'Error desconocido'}. Por favor intenta nuevamente.`,
-        suggestions: ['Intentar de nuevo', 'Crear catálogo manualmente'],
-      };
-    }
+  return {
+    success: true,
+    message: responseMessage,
+    actions: [{
+      type: 'create_chart_of_accounts',
+      description: 'Catálogo de cuentas para dealer de carros',
+      result: catalogResult
+    }],
+    data: catalogResult,
+    suggestions: [
+      'Ver catálogo de cuentas',
+      'Crear una factura',
+      'Registrar un gasto',
+      'Agregar un cliente'
+    ],
+  };
+}
+
+// Helper para ejecutar tool calls
+async function executeToolCalls(toolCalls: any[], userId: string): Promise<{actions: any[], toolResults: any[]}> {
+  const actions: any[] = [];
+  const toolResults: any[] = [];
+  
+  for (const toolCall of toolCalls) {
+    const functionName = toolCall.function.name;
+    const functionArgs = toolCall.function.arguments;
+
+    console.log('[AI-Agent] Ejecutando función:', functionName, 'con args:', functionArgs);
+
+    const functionResult = await executeFunction(functionName, functionArgs, userId);
+    console.log('[AI-Agent] Resultado de función:', functionResult);
+
+    actions.push({
+      type: functionName,
+      description: `Ejecutando: ${functionName}`,
+      result: functionResult,
+    });
+
+    toolResults.push({
+      tool_call_id: toolCall.id,
+      role: 'tool',
+      name: functionName,
+      content: JSON.stringify(functionResult),
+    });
   }
+  
+  return { actions, toolResults };
+}
+
+async function chatWithGroq(context: AgentContext): Promise<AgentResponse> {
+  if (!groq) {
+    throw new Error('Groq no está configurado. Establece GROQ_API_KEY en .env');
+  }
+
+  const companyData = await getCompanyData(context.companyId);
+  const systemPromptWithContext = SYSTEM_PROMPT + '\n\n' + companyData;
+
+  // Detectar si el usuario quiere crear un catálogo de cuentas
+  const userMessage = context.history.at(-1)?.content || '';
+  
+  if (wantsToCreateChartOfAccounts(userMessage)) {
+    const catalogResult = await generateChartOfAccounts(context, userMessage);
+    return createChartOfAccountsResponse(catalogResult);
+  }
+
+  // Convertir AGENT_FUNCTIONS a formato de tools para Groq
+  const tools = AGENT_FUNCTIONS.map(fn => ({
+    type: 'function',
+    function: {
+      name: fn.name,
+      description: fn.description,
+      parameters: fn.parameters
+    }
+  }));
 
   const messages: any[] = [
     { role: 'system', content: systemPromptWithContext },
     ...context.history.map(m => ({ role: m.role, content: m.content })),
   ];
 
+  // Primera llamada - puede incluir tool calling
   const completion = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages,
+    tools,
+    tool_choice: 'auto',
     temperature: 0.7,
     max_tokens: 2000,
   });
 
-  const assistantMessage = completion.choices[0]?.message?.content || '';
+  const assistantMessage = completion.choices[0]?.message;
 
+  // Si el asistente quiere llamar una función (tool)
+  if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
+    console.log('[AI-Agent] Groq tool_calls detectados:', assistantMessage.tool_calls);
+
+    const { actions, toolResults } = await executeToolCalls(assistantMessage.tool_calls, context.userId);
+
+    // Segunda llamada con los resultados de las funciones
+    const updatedMessages = [
+      ...messages,
+      {
+        role: 'assistant',
+        content: assistantMessage.content,
+        tool_calls: assistantMessage.tool_calls,
+      },
+      ...toolResults
+    ];
+
+    const secondCompletion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: updatedMessages,
+      temperature: 0.7,
+      max_tokens: 2000,
+    });
+
+    const finalMessage = secondCompletion.choices[0]?.message;
+
+    return {
+      success: true,
+      message: finalMessage?.content || 'Acción completada',
+      actions,
+      data: actions.length === 1 ? actions[0].result : actions.map(a => a.result),
+      suggestions: generateSuggestions(actions[0]?.type),
+    };
+  }
+
+  // Si no hay tool call, respuesta directa
   return {
     success: true,
-    message: assistantMessage,
+    message: assistantMessage?.content || 'Lo siento, no pude procesar tu solicitud.',
     suggestions: generateDefaultSuggestions(),
   };
 }
@@ -1236,9 +1421,9 @@ Responde SOLO con un JSON válido con esta estructura exacta (sin markdown ni co
     // Limpiar el contenido de posible markdown
     let cleanContent = content;
     if (content.includes('```json')) {
-      cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      cleanContent = content.replaceAll('```json\n', '').replaceAll('```json', '').replaceAll('```\n', '').replaceAll('```', '');
     } else if (content.includes('```')) {
-      cleanContent = content.replace(/```\n?/g, '');
+      cleanContent = content.replaceAll('```\n', '').replaceAll('```', '');
     }
     
     const parsed = JSON.parse(cleanContent.trim());
@@ -1266,8 +1451,8 @@ Responde SOLO con un JSON válido con esta estructura exacta (sin markdown ni co
             data: {
               code: account.code,
               name: account.name,
-              type: account.type as any,
-              category: category as any,
+              type: account.type,
+              category: category,
               level: account.level || 1,
               companyId: context.companyId,
               isActive: true,
@@ -1314,7 +1499,7 @@ async function generateFallbackResponse(context: AgentContext, userMessage: stri
     ]);
     stats = { customers, invoices, products, employees };
   } catch (e) {
-    // Ignorar errores
+    console.log('[AI-Agent] No se pudieron cargar estadísticas:', e instanceof Error ? e.message : 'Error desconocido');
   }
 
   return {
