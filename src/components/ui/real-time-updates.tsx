@@ -120,7 +120,7 @@ export default function RealTimeUpdates({ enabled = false }: Readonly<{ enabled?
         clearTimeout(reconnectTimeout)
       }
     }
-  }, [activeCompany?.id])
+  }, [activeCompany?.id, enabled, handleSSEError, handleSSEMessage])
 
   const clearAlerts = () => {
     setUnreadAlerts(0)

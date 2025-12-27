@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react'
 
 interface Company {
   id: string
@@ -28,7 +28,7 @@ export function CompanyProvider({ children }: Readonly<{ children: ReactNode }>)
   const [companies, setCompanies] = useState<Company[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  const refreshCompanies = async () => {
+  const refreshCompanies = useCallback(async () => {
     try {
       const response = await fetch('/api/companies')
       if (response.ok) {
@@ -49,7 +49,7 @@ export function CompanyProvider({ children }: Readonly<{ children: ReactNode }>)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [activeCompany])
 
   const handleSetActiveCompany = (company: Company) => {
     setActiveCompany(company)
@@ -70,7 +70,7 @@ export function CompanyProvider({ children }: Readonly<{ children: ReactNode }>)
       refreshCompanies,
       isLoading,
     }),
-    [activeCompany, companies, isLoading]
+    [activeCompany, companies, isLoading, refreshCompanies]
   )
 
   return (

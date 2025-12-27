@@ -4,12 +4,12 @@ import { useEffect, useState, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 interface AnimatedBarChartProps {
-  data: { label: string; value: number; color?: string }[]
-  height?: number
-  showLabels?: boolean
-  showValues?: boolean
-  animated?: boolean
-  className?: string
+  readonly data: { label: string; value: number; color?: string }[]
+  readonly height?: number
+  readonly showLabels?: boolean
+  readonly showValues?: boolean
+  readonly animated?: boolean
+  readonly className?: string
 }
 
 export function AnimatedBarChart({
@@ -19,7 +19,7 @@ export function AnimatedBarChart({
   showValues = true,
   animated = true,
   className
-}: AnimatedBarChartProps) {
+}: Readonly<AnimatedBarChartProps>) {
   const [animatedData, setAnimatedData] = useState(data.map(d => ({ ...d, animatedValue: 0 })))
   const maxValue = Math.max(...data.map(d => d.value), 1)
 
@@ -89,13 +89,13 @@ export function AnimatedBarChart({
 }
 
 interface AnimatedLineChartProps {
-  data: { label: string; value: number }[]
-  height?: number
-  color?: string
-  showArea?: boolean
-  showDots?: boolean
-  animated?: boolean
-  className?: string
+  readonly data: { label: string; value: number }[]
+  readonly height?: number
+  readonly color?: string
+  readonly showArea?: boolean
+  readonly showDots?: boolean
+  readonly animated?: boolean
+  readonly className?: string
 }
 
 export function AnimatedLineChart({
@@ -106,7 +106,7 @@ export function AnimatedLineChart({
   showDots = true,
   animated = true,
   className
-}: AnimatedLineChartProps) {
+}: Readonly<AnimatedLineChartProps>) {
   const [progress, setProgress] = useState(animated ? 0 : 1)
   const svgRef = useRef<SVGSVGElement>(null)
   
@@ -215,7 +215,7 @@ export function AnimatedLineChart({
         
         {/* Dots */}
         {showDots && points.map((point, i) => (
-          <g key={i}>
+          <g key={`${data[i]?.label}-${i}`}>
             <circle
               cx={40 + (i / (data.length - 1 || 1)) * 320}
               cy={point.y}
@@ -249,15 +249,15 @@ export function AnimatedLineChart({
 }
 
 interface AnimatedDonutChartProps {
-  data: { label: string; value: number; color: string }[]
-  size?: number
-  thickness?: number
-  showLegend?: boolean
-  showCenter?: boolean
-  centerValue?: string
-  centerLabel?: string
-  animated?: boolean
-  className?: string
+  readonly data: { label: string; value: number; color: string }[]
+  readonly size?: number
+  readonly thickness?: number
+  readonly showLegend?: boolean
+  readonly showCenter?: boolean
+  readonly centerValue?: string
+  readonly centerLabel?: string
+  readonly animated?: boolean
+  readonly className?: string
 }
 
 export function AnimatedDonutChart({
@@ -270,7 +270,7 @@ export function AnimatedDonutChart({
   centerLabel,
   animated = true,
   className
-}: AnimatedDonutChartProps) {
+}: Readonly<AnimatedDonutChartProps>) {
   const [progress, setProgress] = useState(animated ? 0 : 1)
   const total = data.reduce((sum, d) => sum + d.value, 0)
   const radius = (size - thickness) / 2
@@ -309,7 +309,7 @@ export function AnimatedDonutChart({
 
             return (
               <circle
-                key={i}
+                key={`${segment.label}-${i}`}
                 cx={size / 2}
                 cy={size / 2}
                 r={radius}
@@ -345,7 +345,7 @@ export function AnimatedDonutChart({
       {showLegend && (
         <div className="flex flex-col gap-2">
           {data.map((segment, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={`${segment.label}-${i}`} className="flex items-center gap-2">
               <div
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: segment.color }}
@@ -363,14 +363,14 @@ export function AnimatedDonutChart({
 }
 
 interface AnimatedProgressProps {
-  value: number
-  max?: number
-  color?: string
-  height?: number
-  showValue?: boolean
-  label?: string
-  animated?: boolean
-  className?: string
+  readonly value: number
+  readonly max?: number
+  readonly color?: string
+  readonly height?: number
+  readonly showValue?: boolean
+  readonly label?: string
+  readonly animated?: boolean
+  readonly className?: string
 }
 
 export function AnimatedProgress({
@@ -382,7 +382,7 @@ export function AnimatedProgress({
   label,
   animated = true,
   className
-}: AnimatedProgressProps) {
+}: Readonly<AnimatedProgressProps>) {
   const [animatedValue, setAnimatedValue] = useState(animated ? 0 : value)
   const percentage = Math.min((animatedValue / max) * 100, 100)
 
@@ -438,12 +438,12 @@ export function AnimatedProgress({
 }
 
 interface SparklineProps {
-  data: number[]
-  color?: string
-  height?: number
-  width?: number
-  filled?: boolean
-  className?: string
+  readonly data: number[]
+  readonly color?: string
+  readonly height?: number
+  readonly width?: number
+  readonly filled?: boolean
+  readonly className?: string
 }
 
 export function Sparkline({
@@ -453,7 +453,7 @@ export function Sparkline({
   width = 120,
   filled = false,
   className
-}: SparklineProps) {
+}: Readonly<SparklineProps>) {
   if (data.length < 2) return null
 
   const max = Math.max(...data)
@@ -471,7 +471,9 @@ export function Sparkline({
 
   const areaD = pathD + ` L ${width} ${height} L 0 ${height} Z`
 
-  const trend = data[data.length - 1] > data[0] ? 'up' : 'down'
+  const lastValue = data.at(-1)
+  const firstValue = data.at(0)
+  const trend = (lastValue !== undefined && firstValue !== undefined && lastValue > firstValue) ? 'up' : 'down'
   const trendColor = trend === 'up' ? '#22c55e' : '#ef4444'
 
   return (
@@ -496,8 +498,8 @@ export function Sparkline({
         strokeLinejoin="round"
       />
       <circle
-        cx={points[points.length - 1].x}
-        cy={points[points.length - 1].y}
+        cx={points.at(-1)?.x ?? 0}
+        cy={points.at(-1)?.y ?? 0}
         r="3"
         fill={trendColor}
       />
@@ -506,12 +508,12 @@ export function Sparkline({
 }
 
 interface AnimatedCounterProps {
-  value: number
-  prefix?: string
-  suffix?: string
-  decimals?: number
-  duration?: number
-  className?: string
+  readonly value: number
+  readonly prefix?: string
+  readonly suffix?: string
+  readonly decimals?: number
+  readonly duration?: number
+  readonly className?: string
 }
 
 export function AnimatedCounter({
@@ -521,7 +523,7 @@ export function AnimatedCounter({
   decimals = 0,
   duration = 1000,
   className
-}: AnimatedCounterProps) {
+}: Readonly<AnimatedCounterProps>) {
   const [displayValue, setDisplayValue] = useState(0)
 
   useEffect(() => {
@@ -542,7 +544,7 @@ export function AnimatedCounter({
     }
 
     requestAnimationFrame(animate)
-  }, [value, duration])
+  }, [value, duration, displayValue])
 
   const formattedValue = displayValue.toLocaleString(undefined, {
     minimumFractionDigits: decimals,

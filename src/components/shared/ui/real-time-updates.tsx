@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useCompany } from '@/contexts/CompanyContext'
 import { Card } from './card'
 import { Badge } from './badge'
 import { 
-  CheckCircle, 
   TrendingUp, 
   FileText, 
   DollarSign, 
@@ -13,7 +12,6 @@ import {
   X,
   Bell,
   Sparkles,
-  ArrowRight,
   AlertTriangle,
   Info
 } from 'lucide-react'
@@ -46,6 +44,43 @@ export default function RealTimeUpdates() {
   const [isConnected, setIsConnected] = useState(false)
   const [unreadAlerts, setUnreadAlerts] = useState(0)
 
+  // Función para mostrar notificaciones de alertas
+  const showAlertNotifications = useCallback((alerts: Array<{ type: 'info' | 'warning' | 'error'; message: string }>) => {
+    if (Notification.permission !== 'granted' || !activeCompany) return
+    
+    alerts.forEach(alert => {
+      new Notification(`${activeCompany.name} - ${alert.type.toUpperCase()}`, {
+        body: alert.message,
+        icon: '/favicon.ico',
+        tag: `alert-${Date.now()}`
+      })
+    })
+  }, [activeCompany])
+
+  // Función para procesar mensajes SSE
+  const handleSSEMessage = useCallback((event: MessageEvent) => {
+    try {
+      const data: FinancialUpdate = JSON.parse(event.data)
+      setFinancialData(data)
+      
+      // Contar alertas nuevas
+      if (data.alerts && data.alerts.length > 0) {
+        setUnreadAlerts(prev => prev + data.alerts.length)
+        showAlertNotifications(data.alerts)
+      }
+    } catch (error) {
+      console.error('Error parsing SSE data:', error)
+    }
+  }, [showAlertNotifications])
+
+  // Función para reconectar
+  const scheduleReconnect = (connect: () => void) => {
+    return setTimeout(() => {
+      console.log('🔄 Intentando reconectar SSE...')
+      connect()
+    }, 5000)
+  }
+
   useEffect(() => {
     if (!activeCompany?.id) return
 
@@ -62,30 +97,7 @@ export default function RealTimeUpdates() {
           setIsConnected(true)
         }
 
-        eventSource.onmessage = (event) => {
-          try {
-            const data: FinancialUpdate = JSON.parse(event.data)
-            setFinancialData(data)
-            
-            // Contar alertas nuevas
-            if (data.alerts && data.alerts.length > 0) {
-              setUnreadAlerts(prev => prev + data.alerts.length)
-              
-              // Mostrar notificación si está permitido
-              if (Notification.permission === 'granted') {
-                data.alerts.forEach(alert => {
-                  new Notification(`${activeCompany.name} - ${alert.type.toUpperCase()}`, {
-                    body: alert.message,
-                    icon: '/favicon.ico',
-                    tag: `alert-${Date.now()}`
-                  })
-                })
-              }
-            }
-          } catch (error) {
-            console.error('Error parsing SSE data:', error)
-          }
-        }
+        eventSource.onmessage = handleSSEMessage
 
         eventSource.onerror = (error) => {
           console.error('❌ Error en conexión SSE:', error)
@@ -93,10 +105,7 @@ export default function RealTimeUpdates() {
           eventSource?.close()
           
           // Intentar reconectar después de 5 segundos
-          reconnectTimeout = setTimeout(() => {
-            console.log('🔄 Intentando reconectar SSE...')
-            connect()
-          }, 5000)
+          reconnectTimeout = scheduleReconnect(connect)
         }
       } catch (error) {
         console.error('Error creating SSE connection:', error)
@@ -121,7 +130,7 @@ export default function RealTimeUpdates() {
         clearTimeout(reconnectTimeout)
       }
     }
-  }, [activeCompany?.id])
+  }, [activeCompany?.id, activeCompany?.name, handleSSEMessage])
 
   const clearAlerts = () => {
     setUnreadAlerts(0)
@@ -189,7 +198,7 @@ export default function RealTimeUpdates() {
                     <>
                       <span className="mx-1">•</span>
                       <span>Actualizado hace {
-                        Math.floor((new Date().getTime() - new Date(financialData.timestamp).getTime()) / 1000)
+                        Math.floor((Date.now() - new Date(financialData.timestamp).getTime()) / 1000)
                       }s</span>
                     </>
                   )}
@@ -207,12 +216,7 @@ export default function RealTimeUpdates() {
 
         {/* Content */}
         <div className="max-h-[600px] overflow-y-auto bg-gray-50 p-4 space-y-4">
-          {!financialData ? (
-            <div className="p-8 text-center text-gray-500">
-              <RefreshCw className="w-12 h-12 mx-auto mb-3 text-gray-300 animate-spin" />
-              <p className="text-sm">Cargando datos financieros...</p>
-            </div>
-          ) : (
+          {financialData ? (
             <>
               {/* Balance Cards */}
               <div className="grid grid-cols-2 gap-3">
@@ -307,7 +311,7 @@ export default function RealTimeUpdates() {
                     const colorClass = getAlertColor(alert.type)
                     
                     return (
-                      <div key={index} className={`rounded-lg p-3 ${colorClass} border`}>
+                      <div key={`${alert.type}-${alert.message}-${index}`} className={`rounded-lg p-3 ${colorClass} border`}>
                         <div className="flex items-start gap-2">
                           <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" />
                           <p className="text-sm">{alert.message}</p>
@@ -330,6 +334,11 @@ export default function RealTimeUpdates() {
                 </p>
               </div>
             </>
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              <RefreshCw className="w-12 h-12 mx-auto mb-3 text-gray-300 animate-spin" />
+              <p className="text-sm">Cargando datos financieros...</p>
+            </div>
           )}
         </div>
       </Card>

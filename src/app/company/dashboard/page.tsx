@@ -7,7 +7,7 @@ import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkline, AnimatedCounter } from '@/components/ui/animated-charts'
+import { Sparkline, AnimatedCounter, AnimatedProgress } from '@/components/ui/animated-charts'
 import {
   TrendingUp,
   TrendingDown,
@@ -116,7 +116,6 @@ const getActivitySign = (type: string): string => {
   return ''
 }
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 export default function CompanyDashboardPage() {
   const router = useRouter()
   const { status } = useSession()

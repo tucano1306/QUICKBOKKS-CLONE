@@ -62,6 +62,12 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
 ): T {
   const lastCall = useRef<number>(0)
   const lastCallTimer = useRef<NodeJS.Timeout>()
+  const callbackRef = useRef(callback)
+
+  // Update callback ref on each render
+  useEffect(() => {
+    callbackRef.current = callback
+  }, [callback])
 
   return useCallback(
     ((...args: Parameters<T>) => {
@@ -69,16 +75,16 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
       
       if (now - lastCall.current >= delay) {
         lastCall.current = now
-        callback(...args)
+        callbackRef.current(...args)
       } else {
         clearTimeout(lastCallTimer.current)
         lastCallTimer.current = setTimeout(() => {
           lastCall.current = Date.now()
-          callback(...args)
+          callbackRef.current(...args)
         }, delay - (now - lastCall.current))
       }
     }) as T,
-    [callback, delay]
+    [delay]
   )
 }
 

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Upload, FileText, Image, File, X, CheckCircle, AlertCircle } from 'lucide-react'
+import { Upload, FileText, Image as ImageIcon, File, X, CheckCircle, AlertCircle } from 'lucide-react'
+import NextImage from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -14,10 +15,10 @@ interface UploadedFile {
 }
 
 interface DragDropUploadProps {
-  onFilesSelected?: ((files: File[]) => void) | ((files: File[]) => Promise<void>)
-  maxFiles?: number
-  maxSizeMB?: number
-  acceptedTypes?: string[]
+  readonly onFilesSelected?: ((files: File[]) => void) | ((files: File[]) => Promise<void>)
+  readonly maxFiles?: number
+  readonly maxSizeMB?: number
+  readonly acceptedTypes?: string[]
 }
 
 export default function DragDropUpload({
@@ -25,7 +26,7 @@ export default function DragDropUpload({
   maxFiles = 10,
   maxSizeMB = 10,
   acceptedTypes = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx', '.xls', '.xlsx']
-}: DragDropUploadProps) {
+}: Readonly<DragDropUploadProps>) {
   const [isDragging, setIsDragging] = useState(false)
   const [files, setFiles] = useState<UploadedFile[]>([])
 
@@ -39,23 +40,7 @@ export default function DragDropUpload({
     }
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-
-    const droppedFiles = Array.from(e.dataTransfer.files)
-    processFiles(droppedFiles)
-  }, [])
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files)
-      processFiles(selectedFiles)
-    }
-  }
-
-  const processFiles = (selectedFiles: File[]) => {
+  const processFiles = useCallback((selectedFiles: File[]) => {
     // Validar número de archivos
     if (files.length + selectedFiles.length > maxFiles) {
       alert(`⚠️ Máximo ${maxFiles} archivos permitidos`)
@@ -92,13 +77,30 @@ export default function DragDropUpload({
     if (onFilesSelected) {
       onFilesSelected(validFiles)
     }
+  }, [files, maxFiles, maxSizeMB, acceptedTypes, onFilesSelected])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    processFiles(droppedFiles)
+  }, [processFiles])
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files)
+      processFiles(selectedFiles)
+    }
   }
 
   const removeFile = (index: number) => {
     setFiles(prev => {
       const newFiles = [...prev]
-      if (newFiles[index].preview) {
-        URL.revokeObjectURL(newFiles[index].preview!)
+      const preview = newFiles[index].preview
+      if (preview) {
+        URL.revokeObjectURL(preview)
       }
       newFiles.splice(index, 1)
       return newFiles
@@ -106,7 +108,7 @@ export default function DragDropUpload({
   }
 
   const getFileIcon = (file: File) => {
-    if (file.type.startsWith('image/')) return <Image className="w-5 h-5 text-blue-600" />
+    if (file.type.startsWith('image/')) return <ImageIcon className="w-5 h-5 text-blue-600" />
     if (file.type.includes('pdf')) return <FileText className="w-5 h-5 text-red-600" />
     return <File className="w-5 h-5 text-gray-600" />
   }
@@ -120,19 +122,21 @@ export default function DragDropUpload({
   return (
     <div className="space-y-4">
       {/* Drop Zone */}
-      <div
+      <label
+        htmlFor="file-input"
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
         className={`
-          relative border-2 border-dashed rounded-lg p-12 text-center transition-all
+          relative border-2 border-dashed rounded-lg p-12 text-center transition-all cursor-pointer block
           ${isDragging 
             ? 'border-blue-600 bg-blue-50 scale-105' 
             : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/50'
           }
         `}
       >
+        <span className="sr-only">Seleccionar archivos</span>
         <input
           id="file-input"
           type="file"
@@ -159,12 +163,6 @@ export default function DragDropUpload({
             <p className="text-sm text-gray-600 mb-4">
               o haz clic para seleccionar archivos
             </p>
-            <label htmlFor="file-input">
-              <Button type="button" onClick={() => document.getElementById('file-input')?.click()}>
-                <Upload className="w-4 h-4 mr-2" />
-                Seleccionar Archivos
-              </Button>
-            </label>
           </div>
           
           <div className="text-xs text-gray-500">
@@ -172,7 +170,7 @@ export default function DragDropUpload({
             <p>Tamaño máximo por archivo: {maxSizeMB}MB | Máximo {maxFiles} archivos</p>
           </div>
         </div>
-      </div>
+      </label>
 
       {/* Files List */}
       {files.length > 0 && (
@@ -181,15 +179,17 @@ export default function DragDropUpload({
             Archivos seleccionados ({files.length})
           </h3>
           {files.map((uploadedFile, index) => (
-            <Card key={index} className="overflow-hidden">
+            <Card key={`${uploadedFile.file.name}-${uploadedFile.file.size}-${index}`} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   {/* Preview or Icon */}
                   <div className="flex-shrink-0">
                     {uploadedFile.preview ? (
-                      <img 
+                      <NextImage 
                         src={uploadedFile.preview} 
                         alt={uploadedFile.file.name}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 object-cover rounded border"
                       />
                     ) : (
