@@ -8,7 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { Calendar, TrendingUp, Building2, Wallet, CreditCard, Package, Download, Printer, RefreshCw, AlertCircle, CheckCircle, FileText } from 'lucide-react'
+import { TrendingUp, Building2, Wallet, CreditCard, Download, RefreshCw, AlertCircle, CheckCircle, FileText } from 'lucide-react'
 import jsPDF from 'jspdf'
 
 interface DateRange {
@@ -42,7 +42,7 @@ interface BalanceSheetData {
 
 export default function BalanceSheetPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [dateRange, setDateRange] = useState<DateRange>({
     startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
@@ -90,8 +90,6 @@ export default function BalanceSheetPage() {
       fetchBalanceSheet()
     }
   }, [status, fetchBalanceSheet])
-
-  const currentDate = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
 
   // Función para recalcular balance basado en rango de fechas
   const recalculateBalance = () => {
@@ -414,7 +412,7 @@ export default function BalanceSheetPage() {
     doc.text('Balance General - Reporte Financiero', pageWidth / 2, footerY, { align: 'center' })
     doc.text('Página 1 de 1', pageWidth - margin, footerY, { align: 'right' })
 
-    doc.save(`balance-general-${activeCompany?.name?.replace(/\s+/g, '-') || 'empresa'}-${dateRange.endDate}.pdf`)
+    doc.save(`balance-general-${activeCompany?.name?.replaceAll(/\s+/g, '-') || 'empresa'}-${dateRange.endDate}.pdf`)
     setMessage({ type: 'success', text: 'PDF generado exitosamente' })
   }
 
@@ -448,7 +446,6 @@ export default function BalanceSheetPage() {
                 value={dateRange}
                 onSelect={(range: DateRange) => {
                   setDateRange(range)
-                  recalculateBalance()
                 }}
               />
             </div>
@@ -459,7 +456,7 @@ export default function BalanceSheetPage() {
             <Button variant="outline" onClick={() => {
               const csvData = generateBalanceCSV()
               const blob = new Blob([csvData], { type: 'text/csv' })
-              const url = window.URL.createObjectURL(blob)
+              const url = globalThis.URL.createObjectURL(blob)
               const a = document.createElement('a')
               a.href = url
               a.download = `balance-general-${dateRange.endDate}.csv`
@@ -481,8 +478,9 @@ export default function BalanceSheetPage() {
                 const pasivosCortoRows = pasivosCorto.map(p => `<tr><td style="padding-left: 30px;">${p.concepto}</td><td class="amount">$${p.monto.toLocaleString()}</td></tr>`).join('')
                 const pasivosLargoRows = pasivosLargo.map(p => `<tr><td style="padding-left: 30px;">${p.concepto}</td><td class="amount">$${p.monto.toLocaleString()}</td></tr>`).join('')
                 const capitalRows = capital.map(c => `<tr><td style="padding-left: 30px;">${c.concepto}</td><td class="amount">$${c.monto.toLocaleString()}</td></tr>`).join('')
+                const isBalanced = Math.abs(totalActivos - totalPasivosCapital) < 0.01
                 
-                printWindow.document.write(`
+                const htmlContent = `
                   <!DOCTYPE html>
                   <html>
                   <head>
@@ -549,8 +547,8 @@ export default function BalanceSheetPage() {
                       <tr class="grand-total"><td>TOTAL PASIVOS + CAPITAL</td><td class="amount">$${totalPasivosCapital.toLocaleString()}</td></tr>
                     </table>
                     
-                    <div class="balance-check ${Math.abs(totalActivos - totalPasivosCapital) < 0.01 ? 'balanced' : 'unbalanced'}">
-                      ${Math.abs(totalActivos - totalPasivosCapital) < 0.01 
+                    <div class="balance-check ${isBalanced ? 'balanced' : 'unbalanced'}">
+                      ${isBalanced
                         ? '✓ Balance Cuadrado: Activos = Pasivos + Capital' 
                         : '⚠ Diferencia detectada: $' + Math.abs(totalActivos - totalPasivosCapital).toLocaleString()}
                     </div>
@@ -561,8 +559,8 @@ export default function BalanceSheetPage() {
                     </div>
                   </body>
                   </html>
-                `)
-                printWindow.document.close()
+                `
+                printWindow.document.documentElement.innerHTML = htmlContent
                 printWindow.focus()
                 setTimeout(() => printWindow.print(), 250)
               }
@@ -638,8 +636,8 @@ export default function BalanceSheetPage() {
                 <div className="mb-6">
                   <h3 className="font-semibold text-gray-900 mb-3 text-lg">Activos Circulantes</h3>
                   <div className="space-y-2">
-                    {activosCirculantes.length > 0 ? activosCirculantes.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
+                    {activosCirculantes.length > 0 ? activosCirculantes.map((item) => (
+                      <div key={`activo-circ-${item.concepto}`} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                         <span className="text-gray-700">{item.concepto}</span>
                         <span className="font-semibold">${item.monto.toLocaleString()}</span>
                       </div>
@@ -657,8 +655,8 @@ export default function BalanceSheetPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3 text-lg">Activos Fijos</h3>
                   <div className="space-y-2">
-                    {activosFijos.length > 0 ? activosFijos.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
+                    {activosFijos.length > 0 ? activosFijos.map((item) => (
+                      <div key={`activo-fijo-${item.concepto}`} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                         <span className={item.monto < 0 ? 'text-gray-700 italic' : 'text-gray-700'}>
                           {item.concepto}
                         </span>
@@ -702,8 +700,8 @@ export default function BalanceSheetPage() {
                 <div className="mb-6">
                   <h3 className="font-semibold text-gray-900 mb-3 text-lg">Pasivos a Corto Plazo</h3>
                   <div className="space-y-2">
-                    {pasivosCorto.length > 0 ? pasivosCorto.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
+                    {pasivosCorto.length > 0 ? pasivosCorto.map((item) => (
+                      <div key={`pasivo-corto-${item.concepto}`} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                         <span className="text-gray-700">{item.concepto}</span>
                         <span className="font-semibold">${item.monto.toLocaleString()}</span>
                       </div>
@@ -721,8 +719,8 @@ export default function BalanceSheetPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3 text-lg">Pasivos a Largo Plazo</h3>
                   <div className="space-y-2">
-                    {pasivosLargo.length > 0 ? pasivosLargo.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
+                    {pasivosLargo.length > 0 ? pasivosLargo.map((item) => (
+                      <div key={`pasivo-largo-${item.concepto}`} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                         <span className="text-gray-700">{item.concepto}</span>
                         <span className="font-semibold">${item.monto.toLocaleString()}</span>
                       </div>
@@ -756,8 +754,8 @@ export default function BalanceSheetPage() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-2">
-                  {capital.length > 0 ? capital.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
+                  {capital.length > 0 ? capital.map((item) => (
+                    <div key={`capital-${item.concepto}`} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                       <span className="text-gray-700">{item.concepto}</span>
                       <span className="font-semibold">${item.monto.toLocaleString()}</span>
                     </div>

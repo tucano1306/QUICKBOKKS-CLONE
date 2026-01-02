@@ -8,7 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { Calendar, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download, Printer, RefreshCw, AlertCircle, CheckCircle, FileText } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download, RefreshCw, FileText } from 'lucide-react'
 import jsPDF from 'jspdf'
 
 interface DateRange {
@@ -28,7 +28,7 @@ interface CashFlowData {
 
 export default function CashFlowPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [dateRange, setDateRange] = useState<DateRange>({
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -112,12 +112,22 @@ export default function CashFlowPage() {
 
   const cambioPercentage = efectivoInicial > 0 ? ((flujoNetoTotal / efectivoInicial) * 100).toFixed(1) : '0.0'
 
+  // Helper functions for PDF colors to reduce cognitive complexity
+  const getPositiveColor = (): [number, number, number] => [5, 150, 105]
+  const getNegativeColor = (): [number, number, number] => [220, 38, 38]
+  const getColorForValue = (value: number): [number, number, number] => value >= 0 ? getPositiveColor() : getNegativeColor()
+
   // Función para generar PDF profesional
   const generatePDF = () => {
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
     const margin = 14
     let y = 0
+
+    const setColorForValue = (value: number) => {
+      const [r, g, b] = getColorForValue(value)
+      doc.setTextColor(r, g, b)
+    }
 
     // ===== HEADER =====
     doc.setFillColor(30, 64, 175)
@@ -162,7 +172,7 @@ export default function CashFlowPage() {
     doc.setFont('helvetica', 'normal')
     doc.text('Efectivo Final:', col2, y)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(efectivoFinal >= efectivoInicial ? 5 : 220, efectivoFinal >= efectivoInicial ? 150 : 38, efectivoFinal >= efectivoInicial ? 105 : 38)
+    setColorForValue(efectivoFinal - efectivoInicial)
     doc.text(`$${efectivoFinal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col2 + 40, y)
     
     y += 8
@@ -170,7 +180,7 @@ export default function CashFlowPage() {
     doc.setFont('helvetica', 'normal')
     doc.text('Flujo Neto:', col1, y)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(flujoNetoTotal >= 0 ? 5 : 220, flujoNetoTotal >= 0 ? 150 : 38, flujoNetoTotal >= 0 ? 105 : 38)
+    setColorForValue(flujoNetoTotal)
     doc.text(`$${flujoNetoTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${cambioPercentage}%)`, col1 + 40, y)
 
     doc.setTextColor(0, 0, 0)
@@ -202,7 +212,7 @@ export default function CashFlowPage() {
     doc.setTextColor(0, 0, 0)
     doc.setFont('helvetica', 'bold')
     doc.text('Flujo Neto de Operaciones', margin + 10, y)
-    doc.setTextColor(flujoOperaciones >= 0 ? 5 : 220, flujoOperaciones >= 0 ? 150 : 38, flujoOperaciones >= 0 ? 105 : 38)
+    setColorForValue(flujoOperaciones)
     doc.text(`$${flujoOperaciones.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
     y += 12
 
@@ -233,7 +243,7 @@ export default function CashFlowPage() {
     doc.setTextColor(0, 0, 0)
     doc.setFont('helvetica', 'bold')
     doc.text('Flujo Neto de Inversión', margin + 10, y)
-    doc.setTextColor(flujoInversion >= 0 ? 5 : 220, flujoInversion >= 0 ? 150 : 38, flujoInversion >= 0 ? 105 : 38)
+    setColorForValue(flujoInversion)
     doc.text(`$${flujoInversion.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
     y += 12
 
@@ -264,7 +274,7 @@ export default function CashFlowPage() {
     doc.setTextColor(0, 0, 0)
     doc.setFont('helvetica', 'bold')
     doc.text('Flujo Neto de Financiamiento', margin + 10, y)
-    doc.setTextColor(flujoFinanciamiento >= 0 ? 5 : 220, flujoFinanciamiento >= 0 ? 150 : 38, flujoFinanciamiento >= 0 ? 105 : 38)
+    setColorForValue(flujoFinanciamiento)
     doc.text(`$${flujoFinanciamiento.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y, { align: 'right' })
     y += 15
 
@@ -272,14 +282,15 @@ export default function CashFlowPage() {
     doc.setTextColor(0, 0, 0)
     const bgColor = flujoNetoTotal >= 0 ? [220, 252, 231] : [254, 226, 226]
     doc.setFillColor(bgColor[0], bgColor[1], bgColor[2])
-    doc.setDrawColor(flujoNetoTotal >= 0 ? 5 : 220, flujoNetoTotal >= 0 ? 150 : 38, flujoNetoTotal >= 0 ? 105 : 38)
+    const [borderR, borderG, borderB] = getColorForValue(flujoNetoTotal)
+    doc.setDrawColor(borderR, borderG, borderB)
     doc.setLineWidth(1)
     doc.rect(margin, y, pageWidth - (margin * 2), 15, 'FD')
     
     doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
     doc.text('FLUJO NETO DE EFECTIVO', margin + 10, y + 10)
-    doc.setTextColor(flujoNetoTotal >= 0 ? 5 : 220, flujoNetoTotal >= 0 ? 150 : 38, flujoNetoTotal >= 0 ? 105 : 38)
+    setColorForValue(flujoNetoTotal)
     doc.setFontSize(13)
     doc.text(`$${flujoNetoTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 10, y + 10, { align: 'right' })
 
@@ -319,7 +330,7 @@ export default function CashFlowPage() {
     doc.text('Estado de Flujo de Efectivo - Reporte Financiero', pageWidth / 2, footerY, { align: 'center' })
     doc.text('Página 1 de 1', pageWidth - margin, footerY, { align: 'right' })
 
-    doc.save(`flujo-efectivo-${activeCompany?.name?.replace(/\s+/g, '-') || 'empresa'}-${dateRange.endDate}.pdf`)
+    doc.save(`flujo-efectivo-${activeCompany?.name?.replaceAll(/\s+/g, '-') || 'empresa'}-${dateRange.endDate}.pdf`)
     setMessage({ type: 'success', text: 'PDF generado exitosamente' })
   }
 
@@ -336,6 +347,15 @@ export default function CashFlowPage() {
   return (
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
+        {/* Message */}
+        {message && (
+          <div className={`flex items-center gap-2 p-4 rounded-lg ${
+            message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+          }`}>
+            <span>{message.text}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -353,7 +373,6 @@ export default function CashFlowPage() {
                 value={dateRange}
                 onSelect={(range: DateRange) => {
                   setDateRange(range)
-                  recalculateCashFlow()
                 }}
               />
             </div>
@@ -364,7 +383,7 @@ export default function CashFlowPage() {
             <Button variant="outline" onClick={() => {
               const csv = `Estado de Flujo de Efectivo\nEmpresa: ${activeCompany?.name}\nPeriodo: ${dateRange.startDate} al ${dateRange.endDate}\n\nActividades de Operación\n`
               const blob = new Blob([csv], { type: 'text/csv' })
-              const url = window.URL.createObjectURL(blob)
+              const url = globalThis.URL.createObjectURL(blob)
               const a = document.createElement('a')
               a.href = url
               a.download = `flujo-efectivo-${dateRange.endDate}.csv`
@@ -381,7 +400,12 @@ export default function CashFlowPage() {
             <Button onClick={() => {
               const printWindow = window.open('', '_blank')
               if (printWindow) {
-                printWindow.document.write(`
+                const operatingNetClass = (cashFlowData?.operating?.net || 0) >= 0 ? 'positive' : 'negative'
+                const investingNetClass = (cashFlowData?.investing?.net || 0) >= 0 ? 'positive' : 'negative'
+                const financingNetClass = (cashFlowData?.financing?.net || 0) >= 0 ? 'positive' : 'negative'
+                const flujoNetoClass = flujoNetoTotal >= 0 ? 'positive' : 'negative'
+                
+                const htmlContent = `
                   <!DOCTYPE html>
                   <html>
                   <head>
@@ -422,7 +446,7 @@ export default function CashFlowPage() {
                       <table>
                         <tr><td>Cobros de Clientes</td><td class="amount positive">$${(cashFlowData?.operating?.inflow || 0).toLocaleString()}</td></tr>
                         <tr><td>Pagos Operativos</td><td class="amount negative">($${(cashFlowData?.operating?.outflow || 0).toLocaleString()})</td></tr>
-                        <tr class="total-row"><td>Flujo Neto de Operaciones</td><td class="amount ${(cashFlowData?.operating?.net || 0) >= 0 ? 'positive' : 'negative'}">$${(cashFlowData?.operating?.net || 0).toLocaleString()}</td></tr>
+                        <tr class="total-row"><td>Flujo Neto de Operaciones</td><td class="amount ${operatingNetClass}">$${(cashFlowData?.operating?.net || 0).toLocaleString()}</td></tr>
                       </table>
                     </div>
                     
@@ -431,7 +455,7 @@ export default function CashFlowPage() {
                       <table>
                         <tr><td>Venta de Activos</td><td class="amount positive">$${(cashFlowData?.investing?.inflow || 0).toLocaleString()}</td></tr>
                         <tr><td>Compra de Activos</td><td class="amount negative">($${(cashFlowData?.investing?.outflow || 0).toLocaleString()})</td></tr>
-                        <tr class="total-row"><td>Flujo Neto de Inversión</td><td class="amount ${(cashFlowData?.investing?.net || 0) >= 0 ? 'positive' : 'negative'}">$${(cashFlowData?.investing?.net || 0).toLocaleString()}</td></tr>
+                        <tr class="total-row"><td>Flujo Neto de Inversión</td><td class="amount ${investingNetClass}">$${(cashFlowData?.investing?.net || 0).toLocaleString()}</td></tr>
                       </table>
                     </div>
                     
@@ -440,14 +464,14 @@ export default function CashFlowPage() {
                       <table>
                         <tr><td>Préstamos Recibidos</td><td class="amount positive">$${(cashFlowData?.financing?.inflow || 0).toLocaleString()}</td></tr>
                         <tr><td>Pago de Préstamos</td><td class="amount negative">($${(cashFlowData?.financing?.outflow || 0).toLocaleString()})</td></tr>
-                        <tr class="total-row"><td>Flujo Neto de Financiamiento</td><td class="amount ${(cashFlowData?.financing?.net || 0) >= 0 ? 'positive' : 'negative'}">$${(cashFlowData?.financing?.net || 0).toLocaleString()}</td></tr>
+                        <tr class="total-row"><td>Flujo Neto de Financiamiento</td><td class="amount ${financingNetClass}">$${(cashFlowData?.financing?.net || 0).toLocaleString()}</td></tr>
                       </table>
                     </div>
                     
                     <div class="grand-total">
                       <table>
                         <tr><td>Efectivo al Inicio del Período</td><td class="amount">$${efectivoInicial.toLocaleString()}</td></tr>
-                        <tr><td><strong>Flujo Neto Total</strong></td><td class="amount ${flujoNetoTotal >= 0 ? 'positive' : 'negative'}"><strong>$${flujoNetoTotal.toLocaleString()}</strong></td></tr>
+                        <tr><td><strong>Flujo Neto Total</strong></td><td class="amount ${flujoNetoClass}"><strong>$${flujoNetoTotal.toLocaleString()}</strong></td></tr>
                         <tr><td><strong>Efectivo al Final del Período</strong></td><td class="amount"><strong>$${efectivoFinal.toLocaleString()}</strong></td></tr>
                       </table>
                     </div>
@@ -458,8 +482,8 @@ export default function CashFlowPage() {
                     </div>
                   </body>
                   </html>
-                `)
-                printWindow.document.close()
+                `
+                printWindow.document.documentElement.innerHTML = htmlContent
                 printWindow.focus()
                 setTimeout(() => printWindow.print(), 250)
               }
@@ -506,7 +530,7 @@ export default function CashFlowPage() {
                   <ArrowDownRight className="w-4 h-4 text-red-600" />
                 )}
                 <span className={`text-sm ${flujoNetoTotal >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {Math.abs(parseFloat(cambioPercentage))}% vs inicial
+                  {Math.abs(Number.parseFloat(cambioPercentage))}% vs inicial
                 </span>
               </div>
             </CardContent>
@@ -549,8 +573,8 @@ export default function CashFlowPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-2">
-                {cashFlowDataDisplay.operaciones.filter(item => item.monto !== 0).map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded hover:bg-gray-100 transition">
+                {cashFlowDataDisplay.operaciones.filter(item => item.monto !== 0).map((item) => (
+                  <div key={`operacion-${item.concepto}`} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded hover:bg-gray-100 transition">
                     <div className="flex items-center gap-3">
                       {item.tipo === 'entrada' ? (
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -584,8 +608,8 @@ export default function CashFlowPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-2">
-                {cashFlowDataDisplay.inversion.filter(item => item.monto !== 0).map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded hover:bg-gray-100 transition">
+                {cashFlowDataDisplay.inversion.filter(item => item.monto !== 0).map((item) => (
+                  <div key={`inversion-${item.concepto}`} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded hover:bg-gray-100 transition">
                     <div className="flex items-center gap-3">
                       {item.tipo === 'entrada' ? (
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -619,8 +643,8 @@ export default function CashFlowPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-2">
-                {cashFlowDataDisplay.financiamiento.filter(item => item.monto !== 0).map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded hover:bg-gray-100 transition">
+                {cashFlowDataDisplay.financiamiento.filter(item => item.monto !== 0).map((item) => (
+                  <div key={`financiamiento-${item.concepto}`} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded hover:bg-gray-100 transition">
                     <div className="flex items-center gap-3">
                       {item.tipo === 'entrada' ? (
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>

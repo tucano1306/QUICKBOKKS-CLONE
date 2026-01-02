@@ -45,7 +45,7 @@ interface PeriodData {
 
 export default function ComparativeReportsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [dateRange, setDateRange] = useState<DateRange>({
     startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
@@ -84,17 +84,24 @@ export default function ComparativeReportsPage() {
 
   const currentData = periodData
 
+  const getViewModeLabel = (mode: 'monthly' | 'quarterly' | 'yearly'): string => {
+    if (mode === 'monthly') return 'Mensual'
+    if (mode === 'quarterly') return 'Trimestral'
+    return 'Anual'
+  }
+
   const recalculate = () => {
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
-      setMessage({ type: 'success', text: `Reportes Comparativos Recalculados - Periodo: ${dateRange.startDate} al ${dateRange.endDate} - Vista: ${viewMode === 'monthly' ? 'Mensual' : viewMode === 'quarterly' ? 'Trimestral' : 'Anual'}` })
+      setMessage({ type: 'success', text: `Reportes Comparativos Recalculados - Periodo: ${dateRange.startDate} al ${dateRange.endDate} - Vista: ${getViewModeLabel(viewMode)}` })
       setTimeout(() => setMessage(null), 3000)
     }, 1000)
   }
 
   const exportCSV = () => {
-    let csv = `REPORTE COMPARATIVO - ${viewMode === 'monthly' ? 'MENSUAL' : viewMode === 'quarterly' ? 'TRIMESTRAL' : 'ANUAL'}\n`
+    const viewLabel = getViewModeLabel(viewMode).toUpperCase()
+    let csv = `REPORTE COMPARATIVO - ${viewLabel}\n`
     csv += `Empresa: ${activeCompany?.name}\n`
     csv += `Periodo: ${dateRange.startDate} al ${dateRange.endDate}\n\n`
     csv += 'Periodo,Ingresos,Gastos,Utilidad,Margen %,Activos,Pasivos,Capital\n'
@@ -102,7 +109,7 @@ export default function ComparativeReportsPage() {
       csv += `"${row.period}",${row.ingresos},${row.gastos},${row.utilidad},${row.margen},${row.activos},${row.pasivos},${row.capital}\n`
     })
     const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
+    const url = globalThis.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `reporte-comparativo-${viewMode}-${dateRange.endDate}.csv`
@@ -156,7 +163,6 @@ export default function ComparativeReportsPage() {
                 value={dateRange}
                 onSelect={(range: DateRange) => {
                   setDateRange(range)
-                  recalculate()
                 }}
               />
             </div>
@@ -171,7 +177,7 @@ export default function ComparativeReportsPage() {
             <Button onClick={() => {
               const printWindow = window.open('', '_blank')
               if (printWindow) {
-                const viewLabel = viewMode === 'monthly' ? 'Mensual' : viewMode === 'quarterly' ? 'Trimestral' : 'Anual'
+                const viewLabel = getViewModeLabel(viewMode)
                 const dataRows = currentData.map(row => `
                   <tr>
                     <td>${row.period}</td>
@@ -441,7 +447,7 @@ export default function ComparativeReportsPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              Análisis Comparativo {viewMode === 'monthly' ? 'Mensual' : viewMode === 'quarterly' ? 'Trimestral' : 'Anual'}
+              Análisis Comparativo {getViewModeLabel(viewMode)}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -460,8 +466,14 @@ export default function ComparativeReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentData.map((row, idx) => (
-                    <tr key={idx} className="border-b hover:bg-gray-50">
+                  {currentData.map((row) => {
+                    const getBadgeVariant = (): 'default' | 'secondary' | 'destructive' => {
+                      if (row.margen >= 40) return 'default'
+                      if (row.margen >= 30) return 'secondary'
+                      return 'destructive'
+                    }
+                    return (
+                    <tr key={row.period} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.period}</td>
                       <td className="px-4 py-3 text-sm text-right text-green-700 font-semibold">
                         ${row.ingresos.toLocaleString()}
@@ -473,7 +485,7 @@ export default function ComparativeReportsPage() {
                         ${row.utilidad.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
-                        <Badge variant={row.margen >= 40 ? 'default' : row.margen >= 30 ? 'secondary' : 'destructive'}>
+                        <Badge variant={getBadgeVariant()}>
                           {row.margen.toFixed(1)}%
                         </Badge>
                       </td>
@@ -487,7 +499,7 @@ export default function ComparativeReportsPage() {
                         ${row.capital.toLocaleString()}
                       </td>
                     </tr>
-                  ))}
+                  )})}}
                   <tr className="bg-gray-100 font-bold">
                     <td className="px-4 py-3 text-sm text-gray-900">TOTALES</td>
                     <td className="px-4 py-3 text-sm text-right text-green-800">
@@ -503,13 +515,13 @@ export default function ComparativeReportsPage() {
                       <Badge>{promedioMargen.toFixed(1)}%</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-gray-800">
-                      ${currentData[currentData.length - 1].activos.toLocaleString()}
+                      ${currentData.at(-1)?.activos.toLocaleString() ?? 0}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-gray-800">
-                      ${currentData[currentData.length - 1].pasivos.toLocaleString()}
+                      ${currentData.at(-1)?.pasivos.toLocaleString() ?? 0}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-blue-800">
-                      ${currentData[currentData.length - 1].capital.toLocaleString()}
+                      ${currentData.at(-1)?.capital.toLocaleString() ?? 0}
                     </td>
                   </tr>
                 </tbody>

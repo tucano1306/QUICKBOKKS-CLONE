@@ -15,12 +15,7 @@ interface DateRange {
   label: string
 }
 
-interface DateRangeSelectorProps {
-  value?: DateRange
-  onSelect?: any // Function type - using any to avoid Next.js serialization false positive
-  showPresets?: boolean
-  className?: string
-}
+interface DateRangeSelectorProps {\n  readonly value?: DateRange\n  readonly onSelect?: (range: DateRange) => void\n  readonly showPresets?: boolean\n  readonly className?: string\n}
 
 const createPresets = (): DateRange[] => {
   const today = new Date()
@@ -90,8 +85,7 @@ const createPresets = (): DateRange[] => {
   ]
 }
 
-export default function DateRangeSelector({ value, onSelect, showPresets = true, className }: DateRangeSelectorProps) {
-  const onChange = onSelect as ((range: DateRange) => void) | undefined
+export default function DateRangeSelector({ value, onSelect: onChange, showPresets = true, className }: DateRangeSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets')
   
@@ -174,7 +168,7 @@ export default function DateRangeSelector({ value, onSelect, showPresets = true,
       return `Desde ${format(startDateValue, 'd MMM yyyy', { locale: es })}`
     }
     
-    return `Hasta ${format(endDateValue!, 'd MMM yyyy', { locale: es })}`
+    return `Hasta ${format(endDateValue, 'd MMM yyyy', { locale: es })}`
   }
 
   return (
@@ -195,7 +189,7 @@ export default function DateRangeSelector({ value, onSelect, showPresets = true,
             <span className="font-medium">{formatDisplayValue()}</span>
             {daysCount > 0 && (
               <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                {daysCount} día{daysCount !== 1 ? 's' : ''}
+                {daysCount} día{daysCount === 1 ? '' : 's'}
               </span>
             )}
           </div>
@@ -279,9 +273,9 @@ export default function DateRangeSelector({ value, onSelect, showPresets = true,
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block text-center">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block text-center">
                     Fecha Inicio
-                  </label>
+                  </span>
                   <Calendar
                     mode="single"
                     selected={startDateValue}
@@ -291,9 +285,9 @@ export default function DateRangeSelector({ value, onSelect, showPresets = true,
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block text-center">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block text-center">
                     Fecha Fin
-                  </label>
+                  </span>
                   <Calendar
                     mode="single"
                     selected={endDateValue}
@@ -312,7 +306,7 @@ export default function DateRangeSelector({ value, onSelect, showPresets = true,
           <div className="text-sm text-gray-500">
             {startDateValue && endDateValue && (
               <span>
-                <span className="font-semibold text-primary">{daysCount}</span> día{daysCount !== 1 ? 's' : ''} seleccionado{daysCount !== 1 ? 's' : ''}
+                <span className="font-semibold text-primary">{daysCount}</span> día{daysCount === 1 ? '' : 's'} seleccionado{daysCount === 1 ? '' : 's'}
               </span>
             )}
           </div>

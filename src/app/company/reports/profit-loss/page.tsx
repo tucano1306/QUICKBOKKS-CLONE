@@ -8,7 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Calendar, Download, Printer, RefreshCw, AlertCircle, CheckCircle, FileText } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download, RefreshCw, AlertCircle, CheckCircle, FileText } from 'lucide-react'
 import jsPDF from 'jspdf'
 
 interface DateRange {
@@ -40,7 +40,7 @@ interface IncomeStatementData {
 
 export default function ProfitLossPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [dateRange, setDateRange] = useState<DateRange>({
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -91,8 +91,6 @@ export default function ProfitLossPage() {
       fetchIncomeStatement()
     }
   }, [status, fetchIncomeStatement])
-
-  const currentMonth = new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
 
   // Función para recalcular P&L basado en rango de fechas
   const recalculatePL = () => {
@@ -148,12 +146,21 @@ export default function ProfitLossPage() {
     return csv
   }
 
+  // Helper function for color based on value
+  const getColorForValue = (value: number): [number, number, number] => 
+    value >= 0 ? [5, 150, 105] : [220, 38, 38]
+
   // Función para generar PDF profesional
   const generatePDF = () => {
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
     const margin = 14
     let y = 0
+
+    const setColorForValue = (value: number) => {
+      const [r, g, b] = getColorForValue(value)
+      doc.setTextColor(r, g, b)
+    }
 
     // ===== HEADER CON FONDO AZUL =====
     doc.setFillColor(30, 64, 175) // Azul oscuro profesional
@@ -213,14 +220,14 @@ export default function ProfitLossPage() {
     doc.setFont('helvetica', 'normal')
     doc.text('Utilidad Neta:', col1, y)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(utilidadNeta >= 0 ? 5 : 220, utilidadNeta >= 0 ? 150 : 38, utilidadNeta >= 0 ? 105 : 38)
+    setColorForValue(utilidadNeta)
     doc.text(`$${utilidadNeta.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, col1 + 40, y)
     
     doc.setTextColor(0, 0, 0)
     doc.setFont('helvetica', 'normal')
     doc.text('Margen Neto:', col2, y)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(utilidadNeta >= 0 ? 5 : 220, utilidadNeta >= 0 ? 150 : 38, utilidadNeta >= 0 ? 105 : 38)
+    setColorForValue(utilidadNeta)
     doc.text(`${margenNeto.toFixed(2)}%`, col2 + 40, y)
 
     doc.setTextColor(0, 0, 0)
@@ -293,7 +300,7 @@ export default function ProfitLossPage() {
     doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F')
     doc.setFont('helvetica', 'bold')
     doc.text('UTILIDAD OPERATIVA', margin + 5, y + 5.5)
-    doc.setTextColor(utilidadOperativa >= 0 ? 5 : 220, utilidadOperativa >= 0 ? 150 : 38, utilidadOperativa >= 0 ? 105 : 38)
+    setColorForValue(utilidadOperativa)
     doc.text(`$${utilidadOperativa.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 5, y + 5.5, { align: 'right' })
     y += 15
 
@@ -332,14 +339,15 @@ export default function ProfitLossPage() {
     doc.setTextColor(0, 0, 0)
     const netBgColor = utilidadNeta >= 0 ? [220, 252, 231] : [254, 226, 226] // Verde claro o rojo claro
     doc.setFillColor(netBgColor[0], netBgColor[1], netBgColor[2])
-    doc.setDrawColor(utilidadNeta >= 0 ? 5 : 220, utilidadNeta >= 0 ? 150 : 38, utilidadNeta >= 0 ? 105 : 38)
+    const [borderR, borderG, borderB] = getColorForValue(utilidadNeta)
+    doc.setDrawColor(borderR, borderG, borderB)
     doc.setLineWidth(1)
     doc.rect(margin, y, pageWidth - (margin * 2), 15, 'FD')
     
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.text('UTILIDAD NETA', margin + 10, y + 10)
-    doc.setTextColor(utilidadNeta >= 0 ? 5 : 220, utilidadNeta >= 0 ? 150 : 38, utilidadNeta >= 0 ? 105 : 38)
+    setColorForValue(utilidadNeta)
     doc.setFontSize(14)
     doc.text(`$${utilidadNeta.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, pageWidth - margin - 10, y + 10, { align: 'right' })
     
@@ -363,7 +371,7 @@ export default function ProfitLossPage() {
     doc.text('Página 1 de 1', pageWidth - margin, footerY, { align: 'right' })
 
     // Descargar PDF
-    doc.save(`estado-resultados-${activeCompany?.name?.replace(/\s+/g, '-') || 'empresa'}-${dateRange.endDate}.pdf`)
+    doc.save(`estado-resultados-${activeCompany?.name?.replaceAll(/\s+/g, '-') || 'empresa'}-${dateRange.endDate}.pdf`)
     setMessage({ type: 'success', text: 'PDF generado exitosamente' })
   }
 
@@ -397,7 +405,6 @@ export default function ProfitLossPage() {
                 value={dateRange}
                 onSelect={(range: DateRange) => {
                   setDateRange(range)
-                  recalculatePL()
                 }}
               />
             </div>
@@ -408,7 +415,7 @@ export default function ProfitLossPage() {
             <Button variant="outline" onClick={() => {
               const csvData = generatePLCSV()
               const blob = new Blob([csvData], { type: 'text/csv' })
-              const url = window.URL.createObjectURL(blob)
+              const url = globalThis.URL.createObjectURL(blob)
               const a = document.createElement('a')
               a.href = url
               a.download = `estado-resultados-${dateRange.endDate}.csv`
@@ -429,7 +436,7 @@ export default function ProfitLossPage() {
                 const gastosOpRows = gastosOperativos.map(g => `<tr><td style="padding-left: 20px;">${g.concepto}</td><td class="amount negative">$${g.monto.toLocaleString()}</td></tr>`).join('')
                 const otrosGastosRows = otrosGastos.map(g => `<tr><td style="padding-left: 20px;">${g.concepto}</td><td class="amount negative">$${g.monto.toLocaleString()}</td></tr>`).join('')
                 
-                printWindow.document.write(`
+                const htmlContent = `
                   <!DOCTYPE html>
                   <html>
                   <head>
@@ -493,8 +500,8 @@ export default function ProfitLossPage() {
                     </div>
                   </body>
                   </html>
-                `)
-                printWindow.document.close()
+                `
+                printWindow.document.documentElement.innerHTML = htmlContent
                 printWindow.focus()
                 setTimeout(() => printWindow.print(), 250)
               }
@@ -578,8 +585,8 @@ export default function ProfitLossPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-3">
-                {ingresos.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                {ingresos.map((item) => (
+                  <div key={`ingreso-${item.concepto}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="text-gray-900 font-medium">{item.concepto}</div>
                       <div className={`flex items-center gap-1 text-sm ${item.cambio >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -606,8 +613,8 @@ export default function ProfitLossPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-3">
-                {gastosOperativos.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                {gastosOperativos.map((item) => (
+                  <div key={`gasto-op-${item.concepto}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="text-gray-900 font-medium">{item.concepto}</div>
                       {item.cambio !== 0 && (
@@ -648,8 +655,8 @@ export default function ProfitLossPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-3">
-                {otrosGastos.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                {otrosGastos.map((item) => (
+                  <div key={`otro-gasto-${item.concepto}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="text-gray-900 font-medium">{item.concepto}</div>
                       <div className={`flex items-center gap-1 text-sm ${item.cambio >= 0 ? 'text-red-600' : 'text-green-600'}`}>
