@@ -69,6 +69,7 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
     callbackRef.current = callback
   }, [callback])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback(
     ((...args: Parameters<T>) => {
       const now = Date.now()

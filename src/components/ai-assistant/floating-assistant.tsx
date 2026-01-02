@@ -6,7 +6,6 @@ import { useCompany } from '@/contexts/CompanyContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { 
   Bot,
   X,
@@ -17,12 +16,9 @@ import {
   Loader2,
   User,
   TrendingUp,
-  AlertCircle,
-  CheckCircle,
   FileText,
   DollarSign,
   Calendar,
-  MessageSquare,
   Zap
 } from 'lucide-react'
 
@@ -35,7 +31,7 @@ interface Message {
 }
 
 interface FloatingAssistantProps {
-  initiallyOpen?: boolean
+  readonly initiallyOpen?: boolean
 }
 
 export default function FloatingAssistant({ initiallyOpen = false }: FloatingAssistantProps) {
@@ -71,10 +67,10 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
       }
     }
     
-    window.addEventListener('openAIChat', handleOpenChat as EventListener)
+    globalThis.addEventListener('openAIChat', handleOpenChat as EventListener)
     
     return () => {
-      window.removeEventListener('openAIChat', handleOpenChat as EventListener)
+      globalThis.removeEventListener('openAIChat', handleOpenChat as EventListener)
     }
   }, [])
 
@@ -85,8 +81,8 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
       setPendingQuestion(null)
       // Pequeño delay para que el usuario vea la pregunta antes de enviarla
       setTimeout(() => {
-        const submitButton = document.querySelector('[data-ai-submit]') as HTMLButtonElement
-        if (submitButton) submitButton.click()
+        const submitButton = document.querySelector('[data-ai-submit]')
+        if (submitButton) (submitButton as HTMLButtonElement).click()
       }, 300)
     }
   }, [pendingQuestion, isOpen, activeCompany, messages.length])
@@ -110,6 +106,7 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
       }
       setMessages([welcomeMessage])
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, activeCompany])
 
   const sendMessage = async () => {
@@ -173,82 +170,6 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
       return
     }
     setIsLoading(false)
-  }
-
-  // Manejar respuestas simuladas en caso de error adicional  
-  const handleSimulatedResponse = (query: string) => {
-      // Respuestas inteligentes simuladas basadas en palabras clave
-      let simulatedResponse = ''
-      let simulatedSuggestions: string[] = []
-      
-      if (query.includes('balance') || query.includes('estado financiero') || query.includes('situación')) {
-        simulatedResponse = `📊 **Estado Financiero Actual de ${activeCompany?.name}**\n\n💰 **Balance General:**\n• Activos Totales: $2,450,000\n• Pasivos: $890,000\n• Capital: $1,560,000\n• Liquidez Inmediata: $450,000\n\n📈 **Estado de Resultados (Este Mes):**\n• Ingresos: $385,000\n• Gastos: $245,000\n• Utilidad Neta: $140,000 (+57%)\n\n✅ **Salud Financiera: EXCELENTE**\n• Ratio de liquidez: 2.8 (saludable)\n• Margen de utilidad: 36%\n• ROI: 24% anual\n\n💡 **Recomendaciones:**\n1. Considera invertir el excedente de liquidez\n2. Tus márgenes están por encima del promedio de la industria\n3. Mantén el control de gastos operativos`
-        simulatedSuggestions = [
-          '📊 Muéstrame el detalle de activos',
-          '📉 ¿Cuáles son mis mayores gastos?',
-          '💵 ¿Cuánto tengo en cuentas por cobrar?',
-          '📈 Dame proyecciones para próximo trimestre'
-        ]
-      } else if (query.includes('factura') || query.includes('cobro') || query.includes('vencid')) {
-        simulatedResponse = `📋 **Resumen de Facturas**\n\n⚠️ **Facturas Vencidas: 3**\n• Cliente A - $15,000 (vencido hace 15 días)\n• Cliente B - $8,500 (vencido hace 7 días)\n• Cliente C - $12,300 (vencido hace 3 días)\n**Total vencido: $35,800**\n\n⏰ **Por Vencer (Próximos 7 días): 5**\n• Total: $58,900\n\n✅ **Pagadas Este Mes: 18**\n• Total cobrado: $245,600\n\n📊 **Estadísticas:**\n• Tasa de cobro: 85% (buena)\n• Días promedio de cobro: 28 días\n• Clientes con retraso: 3 de 24\n\n💡 **Acciones Recomendadas:**\n1. 📧 Enviar recordatorio automático a 3 clientes\n2. 📞 Llamar a Cliente A (mayor monto vencido)\n3. 🎯 Aplicar descuento por pronto pago (próximas facturas)\n\n¿Quieres que envíe los recordatorios automáticamente?`
-        simulatedSuggestions = [
-          '📧 Sí, envía recordatorios a clientes vencidos',
-          '📊 Muéstrame el detalle de cada factura',
-          '💰 ¿Cuánto cobraré este mes?',
-          '📈 Análisis de comportamiento de pagos'
-        ]
-      } else if (query.includes('gasto') || query.includes('egreso') || query.includes('gast')) {
-        simulatedResponse = `💸 **Análisis de Gastos (Este Mes)**\n\n📊 **Total Gastado: $245,000**\n\n🏆 **Top 5 Categorías:**\n1. 👥 Nómina - $95,000 (39%)\n2. 🏢 Renta/Servicios - $45,000 (18%)\n3. 📦 Inventario - $38,000 (16%)\n4. 📱 Marketing - $28,000 (11%)\n5. 🚗 Transporte - $15,000 (6%)\n\n📈 **Comparación vs Mes Anterior:**\n• ⬇️ Nómina: -3% (ahorro $2,900)\n• ⬆️ Marketing: +15% (inversión adicional)\n• ➡️ Servicios: sin cambio\n\n⚠️ **Alertas:**\n• Marketing excedió presupuesto en $3,000\n• Transporte 5% bajo presupuesto ✅\n\n💡 **Oportunidades de Ahorro:**\n1. 🔍 Renegociar contrato de servicios ($3,000/mes)\n2. 📊 3 gastos sin categorizar - revisar\n3. 💳 5 gastos duplicados detectados - verificar\n\n🎯 **Gastos Deducibles Fiscales:**\n• Total elegible: $189,000 (77%)\n• Ahorro estimado en impuestos: $47,250`
-        simulatedSuggestions = [
-          '📋 Muéstrame los gastos sin categorizar',
-          '🔍 Detalle de gastos duplicados',
-          '💰 ¿Cómo puedo reducir gastos?',
-          '📊 Comparar con trimestre anterior'
-        ]
-      } else if (query.includes('impuesto') || query.includes('fiscal') || query.includes('tax') || query.includes('irs')) {
-        simulatedResponse = `🧮 **Tax Summary (Florida, USA)**\n\n💰 **Taxes This Month:**\n• Federal Income Tax: $42,000\n• Florida Sales Tax (7%): $28,500\n• Total obligations: $70,500\n\n📅 **Upcoming Deadlines:**\n• 📌 January 15 - Q4 Estimated Tax Payment\n• 📌 January 31 - W-2/1099 Filing\n• 📌 April 15 - Annual Tax Return\n\n✅ **Available Deductions:**\n• Operating expenses: $189,000\n• Equipment depreciation: $45,000\n• Charitable donations: $5,000\n• **Potential savings: $58,750**\n\n📊 **Compliance:**\n• ✅ Sales tax collected up to date\n• ✅ Quarterly payments on track\n• ⚠️ 3 expenses missing receipts\n• ✅ 1099 contractors documented\n\n💡 **Recommendations:**\n1. 📄 Collect 3 missing receipts\n2. 💰 Reserve $70,500 for Q4 payment\n3. 📋 Start annual return preparation\n4. 🎯 Maximize available deductions\n\n🔗 **Integrations:**\n• Export to TurboTax: Available\n• IRS Portal: Connected ✅\n• FL DOR: Sales tax current`
-        simulatedSuggestions = [
-          '📄 View missing receipts',
-          '💰 Project next quarter taxes',
-          '🎯 Optimize tax deductions',
-          '📊 Generate report for CPA'
-        ]
-      } else if (query.includes('flujo') || query.includes('cash flow') || query.includes('liquidez')) {
-        simulatedResponse = `💵 **Análisis de Flujo de Efectivo**\n\n📊 **Posición Actual:**\n• 💰 Efectivo disponible: $450,000\n• 📈 Cuentas por cobrar: $385,000\n• 📉 Cuentas por pagar: $125,000\n• **Liquidez neta: $710,000** ✅\n\n📈 **Proyección (Próximos 30 días):**\n• ⬆️ Entradas esperadas: $580,000\n• ⬇️ Salidas programadas: $395,000\n• **Flujo neto proyectado: +$185,000**\n\n🎯 **Movimientos Clave:**\n\n**Esta Semana:**\n• 💚 Cobro Cliente A: $45,000\n• 💚 Cobro Cliente B: $32,000\n• 🔴 Pago nómina: $95,000\n• 🔴 Pago proveedores: $38,000\n\n**Próximas 2 Semanas:**\n• 💚 Facturas por cobrar: $245,000\n• 🔴 Impuestos: $70,500\n• 🔴 Renta: $45,000\n\n⚠️ **Alertas:**\n• ✅ Sin riesgo de liquidez detectado\n• 💡 Excedente de $150k disponible para inversión\n• ⚠️ 3 facturas vencidas ($35k) - cobrar pronto\n\n💡 **Recomendaciones:**\n1. 💰 Invertir excedente en cuenta de ahorro (4.5% anual)\n2. 📧 Cobrar facturas vencidas = +$35k inmediato\n3. 🎯 Negociar términos de pago a 15 días (vs 30 actual)\n4. 📊 Tu ratio de liquidez es excelente: 2.8x`
-        simulatedSuggestions = [
-          '📅 Proyección a 90 días',
-          '💡 Estrategias para mejorar flujo',
-          '📊 Comparar con mes anterior',
-          '🎯 ¿Cuándo tendré problemas de liquidez?'
-        ]
-      } else if (query.includes('recomendación') || query.includes('consejo') || query.includes('sugerencia') || query.includes('mejorar')) {
-        simulatedResponse = `💡 **Recomendaciones Personalizadas para ${activeCompany?.name}**\n\n🎯 **Alta Prioridad:**\n\n1. 💰 **Cobrar Facturas Vencidas**\n   • 3 facturas vencidas ($35,800)\n   • Impacto: Mejora liquidez inmediata\n   • Acción: Enviar recordatorios automáticos\n   • Tiempo: 5 minutos\n\n2. 🔍 **Optimizar Deducciones Fiscales**\n   • $58,750 en ahorros potenciales\n   • Faltan 3 comprobantes fiscales\n   • Acción: Solicitar y categorizar\n   • Ahorro: $58,750 en impuestos\n\n3. 📊 **Automatizar Categorización**\n   • 12 transacciones sin categorizar\n   • Usar IA para clasificar automáticamente\n   • Tiempo ahorrado: 2 horas/semana\n\n📈 **Oportunidades de Crecimiento:**\n\n4. 💵 **Invertir Excedente de Liquidez**\n   • $150,000 disponibles\n   • Opción: Cuenta de ahorro 4.5% anual\n   • Ganancia proyectada: $6,750/año\n\n5. 🎯 **Mejorar Términos de Cobro**\n   • Actual: 28 días promedio\n   • Meta: 15 días\n   • Beneficio: +$200k disponible más rápido\n\n6. 📉 **Reducir Gastos Operativos**\n   • Renegociar servicios: ahorro $3,000/mes\n   • Eliminar suscripciones sin uso: $800/mes\n   • **Ahorro total: $45,600/año**\n\n⚙️ **Automatización:**\n\n7. 🤖 **Configurar Workflows**\n   • Recordatorios de pago automáticos\n   • Conciliación bancaria diaria\n   • Reportes semanales por email\n\n8. 📱 **Integrar Apps**\n   • Conectar con banco principal\n   • Sincronizar con CRM\n   • Link con plataforma de pagos\n\n💪 **Tu Negocio vs Industria:**\n• Márgenes: 36% (industria: 22%) 🏆\n• Liquidez: 2.8x (industria: 1.5x) 🏆\n• Crecimiento: +18% (industria: +8%) 🏆\n\n**¡Estás superando el promedio! Continúa así.** 🎉`
-        simulatedSuggestions = [
-          '🎯 Implementa las 3 prioridades principales',
-          '💰 Ver detalle de ahorros fiscales',
-          '📊 Benchmark completo vs industria',
-          '⚙️ Configurar automatizaciones ahora'
-        ]
-      } else {
-        // Respuesta general inteligente
-        simulatedResponse = `🤖 He analizado tu consulta sobre "${inputValue}".\n\n📊 **Información Disponible:**\n\nPuedo ayudarte específicamente con:\n\n💰 **Finanzas:**\n• Estado de resultados y balance\n• Análisis de rentabilidad\n• Proyecciones financieras\n• Flujo de efectivo\n\n📋 **Operaciones:**\n• Facturas pendientes y vencidas\n• Gastos y categorización\n• Cuentas por cobrar/pagar\n• Gestión de proveedores\n\n🧮 **Impuestos:**\n• Cálculo de obligaciones fiscales\n• Deducciones disponibles\n• Fechas límite importantes\n• Compliance y cumplimiento\n\n📈 **Análisis IA:**\n• Predicciones de ventas\n• Detección de anomalías\n• Recomendaciones personalizadas\n• Optimización de procesos\n\n💡 **Intenta preguntas como:**\n• "¿Cuál es mi situación financiera?"\n• "¿Qué facturas están vencidas?"\n• "Analiza mis gastos del mes"\n• "Dame recomendaciones para mejorar"\n• "¿Cuándo vencen mis impuestos?"\n• "Proyecta mi flujo de efectivo"\n\n¿En qué aspecto específico te gustaría que te ayude?`
-        simulatedSuggestions = [
-          '📊 Muéstrame un resumen ejecutivo',
-          '💰 Estado financiero completo',
-          '🎯 Dame recomendaciones prioritarias',
-          '📈 Análisis de rendimiento del mes'
-        ]
-      }
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: simulatedResponse,
-        timestamp: new Date(),
-        suggestions: simulatedSuggestions
-      }
-      setMessages(prev => [...prev, assistantMessage])
-      setIsLoading(false)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -396,9 +317,9 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
                           <Sparkles className="w-3 h-3" />
                           Preguntas sugeridas:
                         </p>
-                        {message.suggestions.map((suggestion, idx) => (
+                        {message.suggestions.map((suggestion) => (
                           <button
-                            key={idx}
+                            key={suggestion}
                             onClick={() => selectSuggestion(suggestion)}
                             className="block w-full text-left text-xs p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors"
                           >
@@ -433,9 +354,9 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
                   Acciones rápidas:
                 </p>
                 <div className="grid grid-cols-2 gap-2">
-                  {quickActions.map((action, idx) => (
+                  {quickActions.map((action) => (
                     <button
-                      key={idx}
+                      key={action.label}
                       onClick={action.onClick}
                       className="flex items-center gap-2 text-xs p-2 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                     >
@@ -454,7 +375,7 @@ export default function FloatingAssistant({ initiallyOpen = false }: FloatingAss
                   <Input
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyPress}
                     placeholder="Escribe tu pregunta..."
                     disabled={isLoading}
                     className="resize-none"

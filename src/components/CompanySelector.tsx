@@ -2,6 +2,7 @@
 
 import { useCompany } from '@/contexts/CompanyContext'
 import { useState } from 'react'
+import Image from 'next/image'
 
 export default function CompanySelector() {
   const { activeCompany, companies, setActiveCompany, isLoading } = useCompany()
@@ -23,7 +24,7 @@ export default function CompanySelector() {
       >
         <div className="flex items-center space-x-2">
           {activeCompany.logo ? (
-            <img src={activeCompany.logo} alt="" className="w-6 h-6 rounded" />
+            <Image src={activeCompany.logo} alt="" width={24} height={24} className="w-6 h-6 rounded" />
           ) : (
             <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">
               {activeCompany.name.charAt(0)}
@@ -65,8 +66,9 @@ export default function CompanySelector() {
                       : 'hover:bg-gray-50 text-gray-700'
                   }`}
                 >
+                >
                   {company.logo ? (
-                    <img src={company.logo} alt="" className="w-8 h-8 rounded" />
+                    <Image src={company.logo} alt="" width={32} height={32} className="w-8 h-8 rounded" />
                   ) : (
                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded flex items-center justify-center text-white font-bold">
                       {company.name.charAt(0)}

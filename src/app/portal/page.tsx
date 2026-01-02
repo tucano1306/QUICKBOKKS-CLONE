@@ -5,6 +5,19 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
+function getInvoiceStatusColor(status: string): string {
+  if (status === 'PAID') return 'bg-green-500'
+  if (status === 'OVERDUE') return 'bg-red-500'
+  return 'bg-orange-500'
+}
+
+function getDocumentIcon(type: string): string {
+  if (type.includes('pdf')) return '📄'
+  if (type.includes('image')) return '🖼️'
+  if (type.includes('word')) return '📝'
+  return '📎'
+}
+
 export default function ClientPortalPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentView, setCurrentView] = useState<'login' | 'dashboard' | 'invoices' | 'documents'>('login');
@@ -84,6 +97,7 @@ export default function ClientPortalPage() {
     if (isLoggedIn && currentView === 'documents' && documents.length === 0) {
       loadDocuments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentView, isLoggedIn]);
 
   if (!isLoggedIn) {
@@ -103,8 +117,9 @@ export default function ClientPortalPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
+              <label htmlFor="email-input" className="block text-sm font-medium mb-2">Email</label>
               <input
+                id="email-input"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -115,8 +130,9 @@ export default function ClientPortalPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Contraseña</label>
+              <label htmlFor="password-input" className="block text-sm font-medium mb-2">Contraseña</label>
               <input
+                id="password-input"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -133,9 +149,9 @@ export default function ClientPortalPage() {
 
           <p className="text-center text-sm text-gray-600 mt-6">
             ¿Olvidaste tu contraseña?{' '}
-            <a href="#" className="text-blue-600 hover:underline">
+            <button type="button" className="text-blue-600 hover:underline">
               Recuperar
-            </a>
+            </button>
           </p>
         </Card>
       </div>
@@ -236,13 +252,7 @@ export default function ClientPortalPage() {
                     </div>
                     <div className="text-right">
                       <Badge
-                        className={
-                          invoice.status === 'PAID'
-                            ? 'bg-green-500'
-                            : invoice.status === 'OVERDUE'
-                            ? 'bg-red-500'
-                            : 'bg-orange-500'
-                        }
+                        className={getInvoiceStatusColor(invoice.status)}
                       >
                         {invoice.status}
                       </Badge>
@@ -255,8 +265,8 @@ export default function ClientPortalPage() {
 
                   <div className="mt-4 pt-4 border-t">
                     <h4 className="font-semibold mb-2">Items:</h4>
-                    {invoice.items.map((item: any, idx: number) => (
-                      <div key={idx} className="flex justify-between text-sm py-1">
+                    {invoice.items.map((item: any) => (
+                      <div key={`${invoice.id}-${item.description}`} className="flex justify-between text-sm py-1">
                         <span>
                           {item.description} (x{item.quantity || 0})
                         </span>
@@ -302,9 +312,7 @@ export default function ClientPortalPage() {
                   <Card key={doc.id} className="p-4 hover:shadow-lg transition-shadow">
                     <div className="flex items-start gap-3">
                       <div className="text-4xl">
-                        {doc.type.includes('pdf') ? '📄' : 
-                         doc.type.includes('image') ? '🖼️' : 
-                         doc.type.includes('word') ? '📝' : '📎'}
+                        {getDocumentIcon(doc.type)}
                       </div>
                     <div className="flex-1">
                       <h3 className="font-semibold">{doc.name}</h3>

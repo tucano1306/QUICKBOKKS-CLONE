@@ -10,7 +10,6 @@ import {
   Clock, 
   Loader2,
   Eye,
-  Download,
   Trash2,
   RefreshCw,
   ThumbsUp,
@@ -20,7 +19,6 @@ import {
   File,
   AlertCircle,
   ChevronDown,
-  ChevronUp,
   Brain,
   Sparkles,
   DollarSign,
@@ -33,7 +31,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { 
@@ -202,7 +199,7 @@ function formatFileSize(bytes: number): string {
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 function formatCurrency(amount: number | null): string {
@@ -211,6 +208,22 @@ function formatCurrency(amount: number | null): string {
     style: 'currency',
     currency: 'USD'
   }).format(amount)
+}
+
+function getConfidenceColor(confidence: number): string {
+  if (confidence >= 80) return 'bg-green-500'
+  if (confidence >= 60) return 'bg-yellow-500'
+  return 'bg-red-500'
+}
+
+function formatValue(value: unknown, key: string): string {
+  if (typeof value === 'object' && value !== null) {
+    return JSON.stringify(value)
+  }
+  if (typeof value === 'number' && key.toLowerCase().includes('amount')) {
+    return formatCurrency(value)
+  }
+  return String(value)
 }
 
 export default function DocumentAIProcessor() {
@@ -231,6 +244,7 @@ export default function DocumentAIProcessor() {
   useEffect(() => {
     loadDocuments()
     loadAccounts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
 
   const loadDocuments = async () => {
@@ -304,7 +318,7 @@ export default function DocumentAIProcessor() {
   }, [autoProcess, autoCreateJournalEntry])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+    onDrop: (files) => { onDrop(files) },
     accept: {
       'application/pdf': ['.pdf'],
       'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.tiff'],
@@ -521,7 +535,7 @@ export default function DocumentAIProcessor() {
                   onCheckedChange={setAutoCreateJournalEntry}
                   disabled={!autoProcess}
                 />
-                <Label htmlFor="auto-journal" className={!autoProcess ? 'text-muted-foreground' : ''}>
+                <Label htmlFor="auto-journal" className={autoProcess ? '' : 'text-muted-foreground'}>
                   Auto-create journal entries
                 </Label>
               </div>
@@ -589,17 +603,19 @@ export default function DocumentAIProcessor() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : documents.length === 0 ? (
+          )}
+          {!isLoading && documents.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No documents found</p>
               <p className="text-sm">Upload some documents to get started</p>
             </div>
-          ) : (
+          )}
+          {!isLoading && documents.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -656,7 +672,7 @@ export default function DocumentAIProcessor() {
                       </TableCell>
                       <TableCell>
                         {doc.vendor?.name || 
-                         (doc.extractedData as DocumentAnalysis['extractedData'])?.vendor || 
+                         doc.extractedData?.vendor || 
                          '-'}
                       </TableCell>
                       <TableCell>
@@ -667,9 +683,7 @@ export default function DocumentAIProcessor() {
                           <div className="flex items-center gap-1">
                             <div className={cn(
                               'h-2 w-2 rounded-full',
-                              doc.aiConfidence >= 80 ? 'bg-green-500' :
-                              doc.aiConfidence >= 60 ? 'bg-yellow-500' :
-                              'bg-red-500'
+                              getConfidenceColor(doc.aiConfidence)
                             )} />
                             {doc.aiConfidence}%
                           </div>
@@ -835,7 +849,7 @@ export default function DocumentAIProcessor() {
                         <span className="text-muted-foreground">Vendor:</span>
                         <span className="font-medium">
                           {selectedDocument.vendor?.name || 
-                           (selectedDocument.extractedData as DocumentAnalysis['extractedData'])?.vendor || 
+                           selectedDocument.extractedData?.vendor || 
                            '-'}
                         </span>
                       </div>
@@ -898,12 +912,10 @@ export default function DocumentAIProcessor() {
                               .map(([key, value]) => (
                                 <div key={key} className="flex justify-between">
                                   <span className="text-muted-foreground capitalize">
-                                    {key.replace(/([A-Z])/g, ' $1').trim()}:
+                                    {key.replaceAll(/([A-Z])/g, ' $1').trim()}:
                                   </span>
                                   <span className="font-medium">
-                                    {typeof value === 'number' && key.toLowerCase().includes('amount')
-                                      ? formatCurrency(value)
-                                      : String(value)}
+                                    {formatValue(value, key)}
                                   </span>
                                 </div>
                               ))}
@@ -912,7 +924,7 @@ export default function DocumentAIProcessor() {
                       </Card>
 
                       {/* Line Items */}
-                      {(selectedDocument.extractedData as DocumentAnalysis['extractedData'])?.lineItems?.length > 0 && (
+                      {selectedDocument.extractedData?.lineItems?.length > 0 && (
                         <Card>
                           <CardHeader>
                             <CardTitle className="text-sm">Line Items</CardTitle>
@@ -928,8 +940,8 @@ export default function DocumentAIProcessor() {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {(selectedDocument.extractedData as DocumentAnalysis['extractedData']).lineItems.map((item, i) => (
-                                  <TableRow key={i}>
+                                {selectedDocument.extractedData.lineItems.map((item, i) => (
+                                  <TableRow key={`${item.description}-${i}`}>
                                     <TableCell>{item.description}</TableCell>
                                     <TableCell className="text-right">{item.quantity}</TableCell>
                                     <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
@@ -992,8 +1004,8 @@ export default function DocumentAIProcessor() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {selectedDocument.aiAnalysis.journalEntry.lines.map((line, i) => (
-                              <TableRow key={i}>
+                            {selectedDocument.aiAnalysis.journalEntry.lines.map((line) => (
+                              <TableRow key={`${line.accountCode}-${line.accountName}`}>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <Badge variant="outline">{line.accountCode}</Badge>
@@ -1025,7 +1037,8 @@ export default function DocumentAIProcessor() {
                         </Table>
                       </CardContent>
                     </Card>
-                  ) : selectedDocument.journalEntry ? (
+                  )}
+                  {!selectedDocument.aiAnalysis?.journalEntry && selectedDocument.journalEntry && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-sm flex items-center gap-2">
@@ -1043,7 +1056,8 @@ export default function DocumentAIProcessor() {
                         </div>
                       </CardContent>
                     </Card>
-                  ) : (
+                  )}
+                  {!selectedDocument.aiAnalysis?.journalEntry && !selectedDocument.journalEntry && (
                     <div className="text-center py-8 text-muted-foreground">
                       <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No journal entry suggestion available</p>

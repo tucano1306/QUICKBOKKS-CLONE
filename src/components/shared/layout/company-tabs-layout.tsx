@@ -3,41 +3,27 @@
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
-import FloatingAssistant from '@/components/ai-assistant/floating-assistant'
-import RealTimeUpdates from '@/components/ui/real-time-updates'
 import {
   LayoutDashboard,
   FileText,
   DollarSign,
   Users,
-  Package,
   TrendingUp,
   Settings,
   Building2,
   Receipt,
-  Wallet,
-  CreditCard,
   ChevronDown,
   Calculator,
-  PieChart,
   FolderKanban,
-  UserCheck,
   ShoppingCart,
-  Briefcase,
   FileCheck,
-  Activity,
   Target,
   Zap,
   Brain,
-  Shield,
-  Smartphone,
-  Globe,
-  Cloud,
-  BarChart3,
   Home,
-  LogOut,
   ArrowLeftRight
 } from 'lucide-react'
 
@@ -288,7 +274,7 @@ const tabSections: TabSection[] = [
   }
 ]
 
-export default function CompanyTabsLayout({ children }: { children: React.ReactNode }) {
+export default function CompanyTabsLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { activeCompany } = useCompany()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -344,9 +330,11 @@ export default function CompanyTabsLayout({ children }: { children: React.ReactN
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {activeCompany.logo ? (
-                <img
+                <Image
                   src={activeCompany.logo}
                   alt={activeCompany.name}
+                  width={40}
+                  height={40}
                   className="w-10 h-10 rounded-lg object-cover"
                 />
               ) : (

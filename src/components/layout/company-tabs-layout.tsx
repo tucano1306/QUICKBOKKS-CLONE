@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
 import {
@@ -418,9 +419,11 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
             {/* Left: Company info */}
             <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
               {activeCompany.logo ? (
-                <img
+                <Image
                   src={activeCompany.logo}
                   alt={activeCompany.name}
+                  width={40}
+                  height={40}
                   className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover shadow-sm flex-shrink-0"
                 />
               ) : (
