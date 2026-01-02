@@ -217,13 +217,16 @@ function getConfidenceColor(confidence: number): string {
 }
 
 function formatValue(value: unknown, key: string): string {
-  if (typeof value === 'object' && value !== null) {
+  if (value === null || value === undefined) {
+    return '-'
+  }
+  if (typeof value === 'object') {
     return JSON.stringify(value)
   }
   if (typeof value === 'number' && key.toLowerCase().includes('amount')) {
     return formatCurrency(value)
   }
-  return String(value)
+  return String(value as string | number | boolean)
 }
 
 export default function DocumentAIProcessor() {
@@ -986,7 +989,7 @@ export default function DocumentAIProcessor() {
                 </TabsContent>
                 
                 <TabsContent value="journal" className="space-y-4">
-                  {selectedDocument.aiAnalysis?.journalEntry ? (
+                  {selectedDocument.aiAnalysis?.journalEntry && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-sm">Suggested Journal Entry</CardTitle>
