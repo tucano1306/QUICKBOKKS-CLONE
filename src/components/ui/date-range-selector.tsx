@@ -15,7 +15,12 @@ interface DateRange {
   label: string
 }
 
-interface DateRangeSelectorProps {\n  readonly value?: DateRange\n  readonly onSelect?: (range: DateRange) => void\n  readonly showPresets?: boolean\n  readonly className?: string\n}
+interface DateRangeSelectorProps {
+  readonly value?: DateRange
+  readonly onSelect?: (range: DateRange) => void
+  readonly showPresets?: boolean
+  readonly className?: string
+}
 
 const createPresets = (): DateRange[] => {
   const today = new Date()
