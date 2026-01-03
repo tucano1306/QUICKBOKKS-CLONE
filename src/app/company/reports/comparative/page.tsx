@@ -499,7 +499,7 @@ export default function ComparativeReportsPage() {
                         ${row.capital.toLocaleString()}
                       </td>
                     </tr>
-                  ))}}
+                  ))}
                   <tr className="bg-gray-100 font-bold">
                     <td className="px-4 py-3 text-sm text-gray-900">TOTALES</td>
                     <td className="px-4 py-3 text-sm text-right text-green-800">
