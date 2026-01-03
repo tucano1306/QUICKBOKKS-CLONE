@@ -110,6 +110,7 @@ export default function CustomersPage() {
     if (status === 'authenticated' && activeCompany) {
       fetchCustomers()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, activeCompany])
 
   useEffect(() => {

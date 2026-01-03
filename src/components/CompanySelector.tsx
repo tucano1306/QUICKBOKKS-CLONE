@@ -66,7 +66,6 @@ export default function CompanySelector() {
                       : 'hover:bg-gray-50 text-gray-700'
                   }`}
                 >
-                >
                   {company.logo ? (
                     <Image src={company.logo} alt="" width={32} height={32} className="w-8 h-8 rounded" />
                   ) : (

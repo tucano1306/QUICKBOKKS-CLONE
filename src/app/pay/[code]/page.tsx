@@ -17,6 +17,7 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
 
   useEffect(() => {
     loadPaymentLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadPaymentLink = async () => {

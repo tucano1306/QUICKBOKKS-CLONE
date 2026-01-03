@@ -73,6 +73,7 @@ export default function CustomerNotesPage() {
     if (status === 'authenticated') {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, customerId])
 
   const loadData = async () => {

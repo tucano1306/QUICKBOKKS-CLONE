@@ -44,6 +44,7 @@ export default function CustomerActivityPage() {
     if (status === 'authenticated') {
       loadCustomerActivity()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, params.id])
 
   const loadCustomerActivity = async () => {
