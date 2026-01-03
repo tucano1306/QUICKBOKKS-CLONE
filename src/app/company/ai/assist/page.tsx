@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+// Card imports removed - not used in this component
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -15,19 +15,12 @@ import {
   Bot,
   User,
   Sparkles,
-  Clock,
   ThumbsUp,
   ThumbsDown,
   Copy,
   Check,
-  Bookmark,
   TrendingUp,
-  DollarSign,
-  FileText,
   Calculator,
-  HelpCircle,
-  Lightbulb,
-  Info,
   Plus,
   Trash2,
   History,
@@ -93,11 +86,13 @@ const getWelcomeMessage = (): Message => ({
 
 export default function AIAssistPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const searchParams = useSearchParams()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [inputMessage, setInputMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [initialQueryProcessed, setInitialQueryProcessed] = useState(false)
   const [messages, setMessages] = useState<Message[]>([getWelcomeMessage()])
   const [recentConversations, setRecentConversations] = useState<Conversation[]>([])
   const [showHistory, setShowHistory] = useState(false)
@@ -204,7 +199,7 @@ export default function AIAssistPage() {
       // Get first user message as title
       const firstUserMsg = msgs.find(m => m.type === 'user')
       const userMessages = msgs.filter(m => m.type === 'user')
-      const lastUserMsg = userMessages[userMessages.length - 1]
+      const lastUserMsg = userMessages.at(-1)
       
       // Find or create conversation
       const existingIndex = existing.findIndex(c => c.id === convId)
@@ -295,14 +290,90 @@ export default function AIAssistPage() {
     setLoading(false)
   }, [loadConversationsFromStorage])
 
+  // Procesar query parameter 'q' para auto-enviar pregunta
+  useEffect(() => {
+    const query = searchParams.get('q')
+    if (query && !initialQueryProcessed && activeCompany?.id && !loading) {
+      setInitialQueryProcessed(true)
+      // Delay para asegurar que el componente esté listo
+      setTimeout(() => {
+        setInputMessage(query)
+        // Auto-enviar después de un pequeño delay
+        setTimeout(() => {
+          handleSendMessageFromQuery(query)
+        }, 100)
+      }, 500)
+    }
+  }, [searchParams, initialQueryProcessed, activeCompany?.id, loading])
+
+  // Función separada para enviar mensaje desde query param
+  const handleSendMessageFromQuery = async (queryMessage: string) => {
+    if (!queryMessage.trim() || isTyping) return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: queryMessage,
+      timestamp: new Date().toISOString()
+    }
+
+    const newMessages = [...messages, userMessage]
+    setMessages(newMessages)
+    setInputMessage('')
+    setIsTyping(true)
+
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: queryMessage,
+          companyId: activeCompany?.id
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: data.response || 'Lo siento, no pude procesar tu consulta. Intenta de nuevo.',
+        timestamp: new Date().toISOString(),
+        category: 'response'
+      }
+      const updatedMessages = [...newMessages, aiResponse]
+      setMessages(updatedMessages)
+      saveConversation(updatedMessages, currentConversationId)
+    } catch (error) {
+      console.error('Error calling AI API:', error)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: '❌ Hubo un error al procesar tu consulta. Por favor, intenta de nuevo.',
+        timestamp: new Date().toISOString(),
+        category: 'error'
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsTyping(false)
+    }
+  }
+
   const handleNewChat = () => {
     setMessages([getWelcomeMessage()])
     setInputMessage('')
     setShowHistory(false)
     setCurrentConversationId(`conv-${Date.now()}`)
+    setInitialQueryProcessed(false) // Reset para permitir nueva query
     if (inputRef.current) {
       inputRef.current.style.height = 'auto'
     }
+    // Limpiar query param de la URL
+    router.replace('/company/ai/assist')
   }
 
   const handleSendMessage = async () => {
@@ -342,6 +413,7 @@ export default function AIAssistPage() {
         const text = await response.text()
         data = JSON.parse(text)
       } catch (parseError) {
+        console.error('JSON parse error:', parseError)
         throw new Error('Error al procesar respuesta del servidor')
       }
 
@@ -492,7 +564,7 @@ export default function AIAssistPage() {
               <div>
                 <p className="font-medium text-gray-900">AI Assistant</p>
                 <p className="text-xs text-green-600 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden="true"></span>{' '}
                   En línea
                 </p>
               </div>
@@ -521,7 +593,7 @@ export default function AIAssistPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge className="bg-green-100 text-green-700 border-green-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse" aria-hidden="true"></span>{' '}
                 Activo
               </Badge>
               <Button variant="ghost" size="sm" onClick={handleNewChat}>
