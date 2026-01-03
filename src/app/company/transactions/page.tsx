@@ -103,10 +103,10 @@ export default function TransactionsPage() {
       }
       
       // Filtro por monto mínimo
-      if (minAmount && t.amount < parseFloat(minAmount)) return false
+      if (minAmount && t.amount < Number.parseFloat(minAmount)) return false
       
       // Filtro por monto máximo
-      if (maxAmount && t.amount > parseFloat(maxAmount)) return false
+      if (maxAmount && t.amount > Number.parseFloat(maxAmount)) return false
       
       return true
     })
@@ -161,7 +161,7 @@ export default function TransactionsPage() {
   const deleteSelected = async () => {
     if (selectedIds.size === 0) return
     
-    const confirmDelete = window.confirm(
+    const confirmDelete = globalThis.confirm(
       `¿Estás seguro de eliminar ${selectedIds.size} transacción(es)?\n\nEsta acción no se puede deshacer.`
     )
     
@@ -176,14 +176,15 @@ export default function TransactionsPage() {
       })
       
       if (res.ok) {
-        alert(`${selectedIds.size} transacción(es) eliminada(s)`)
+        globalThis.alert(`${selectedIds.size} transacción(es) eliminada(s)`)
         setSelectedIds(new Set())
         loadTransactions()
       } else {
-        alert('Error al eliminar')
+        globalThis.alert('Error al eliminar')
       }
-    } catch (e) {
-      alert('Error de conexión')
+    } catch (error) {
+      console.error('Error deleting transactions:', error)
+      globalThis.alert('Error de conexión')
     } finally {
       setDeleting(false)
     }
@@ -191,7 +192,7 @@ export default function TransactionsPage() {
 
   // Eliminar individual
   const deleteTransaction = async (id: string) => {
-    const confirmDelete = window.confirm('¿Eliminar esta transacción?')
+    const confirmDelete = globalThis.confirm('¿Eliminar esta transacción?')
     if (!confirmDelete) return
     
     try {
@@ -199,8 +200,9 @@ export default function TransactionsPage() {
       if (res.ok) {
         loadTransactions()
       }
-    } catch (e) {
-      alert('Error al eliminar')
+    } catch (error) {
+      console.error('Error deleting transaction:', error)
+      globalThis.alert('Error al eliminar')
     }
   }
 
@@ -258,10 +260,11 @@ export default function TransactionsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Búsqueda por texto */}
               <div>
-                <label className="text-sm font-medium mb-1 block">Buscar</label>
+                <label htmlFor="search-text" className="text-sm font-medium mb-1 block">Buscar</label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
+                    id="search-text"
                     placeholder="Descripción, categoría..."
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
@@ -272,7 +275,7 @@ export default function TransactionsPage() {
               
               {/* Fecha desde */}
               <div>
-                <label className="text-sm font-medium mb-1 block">Desde</label>
+                <span className="text-sm font-medium mb-1 block">Desde</span>
                 <DatePicker
                   value={dateFrom}
                   onChange={(date: string) => setDateFrom(date)}
@@ -282,7 +285,7 @@ export default function TransactionsPage() {
               
               {/* Fecha hasta */}
               <div>
-                <label className="text-sm font-medium mb-1 block">Hasta</label>
+                <span className="text-sm font-medium mb-1 block">Hasta</span>
                 <DatePicker
                   value={dateTo}
                   onChange={(date: string) => setDateTo(date)}
@@ -293,8 +296,9 @@ export default function TransactionsPage() {
               {/* Monto mínimo y máximo */}
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-sm font-medium mb-1 block">Monto mín</label>
+                  <label htmlFor="min-amount" className="text-sm font-medium mb-1 block">Monto mín</label>
                   <Input
+                    id="min-amount"
                     type="text"
                     className="amount-input"
                     placeholder="0"
@@ -303,8 +307,9 @@ export default function TransactionsPage() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-sm font-medium mb-1 block">Monto máx</label>
+                  <label htmlFor="max-amount" className="text-sm font-medium mb-1 block">Monto máx</label>
                   <Input
+                    id="max-amount"
                     type="text"
                     className="amount-input"
                     placeholder="∞"
@@ -461,16 +466,18 @@ export default function TransactionsPage() {
           )}
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loading && (
             <div className="text-center py-8">Cargando...</div>
-          ) : filteredTransactions.length === 0 ? (
+          )}
+          {!loading && filteredTransactions.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               {hasActiveFilters 
                 ? 'No hay transacciones que coincidan con los filtros'
                 : 'No hay transacciones registradas'
               }
             </div>
-          ) : (
+          )}
+          {!loading && filteredTransactions.length > 0 && (
             <div className="space-y-3">
               {paginatedTransactions.map((t) => (
                 <div 
@@ -503,11 +510,17 @@ export default function TransactionsPage() {
                     <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {new Date(t.date).toLocaleDateString('es-ES', { 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
+                        {(() => {
+                          // Parsear la fecha como UTC y ajustar a local para evitar desplazamiento de día
+                          const dateStr = t.date.split('T')[0]; // Obtener solo YYYY-MM-DD
+                          const [year, month, day] = dateStr.split('-').map(Number);
+                          const localDate = new Date(year, month - 1, day);
+                          return localDate.toLocaleDateString('es-ES', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          });
+                        })()}
                       </span>
                       <Badge variant="outline" className="text-xs">{t.category}</Badge>
                     </div>

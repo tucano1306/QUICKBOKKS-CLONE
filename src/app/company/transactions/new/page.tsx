@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -74,7 +74,7 @@ export default function NewTransactionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          amount: parseFloat(formData.amount),
+          amount: Number.parseFloat(formData.amount),
           companyId: activeCompany.id,
           status: 'COMPLETED',
           createJournalEntry: true // Para que cree el journal entry automáticamente
@@ -163,7 +163,7 @@ export default function NewTransactionPage() {
                     placeholder="0.00"
                     value={formData.amount}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/,/g, '.');
+                      const val = e.target.value.replaceAll(',', '.');
                       if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
                         setFormData({ ...formData, amount: val });
                       }

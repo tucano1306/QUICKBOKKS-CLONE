@@ -118,7 +118,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
     }
 
-    const txDate = date ? new Date(date) : new Date();
+    // Parsear fecha como fecha local (sin desplazamiento de timezone)
+    let txDate: Date;
+    if (date) {
+      const [year, month, day] = date.split('-').map(Number);
+      txDate = new Date(year, month - 1, day, 12, 0, 0); // Mediodía local para evitar cambios de día
+    } else {
+      txDate = new Date();
+    }
     const txAmount = Number.parseFloat(amount);
     const txDescription = description || category || (type === 'INCOME' ? 'Ingreso' : 'Gasto');
 
