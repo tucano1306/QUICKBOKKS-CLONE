@@ -8,7 +8,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import DateRangeSelector from '@/components/ui/date-range-selector'
-import { TrendingUp, Building2, Wallet, CreditCard, Download, RefreshCw, AlertCircle, CheckCircle, FileText } from 'lucide-react'
+import { TrendingUp, Building2, Wallet, CreditCard, Download, RefreshCw, AlertCircle, CheckCircle, FileText, Printer } from 'lucide-react'
 import jsPDF from 'jspdf'
 
 interface DateRange {

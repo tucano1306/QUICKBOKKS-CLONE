@@ -37,7 +37,7 @@ interface Transaction {
 export default function EditTransactionPage() {
   const router = useRouter()
   const params = useParams()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -92,6 +92,7 @@ export default function EditTransactionPage() {
     if (status === 'authenticated' && transactionId) {
       loadTransaction()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, transactionId])
 
   const loadTransaction = async () => {
@@ -150,7 +151,7 @@ export default function EditTransactionPage() {
       return
     }
 
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+    if (!formData.amount || Number.parseFloat(formData.amount) <= 0) {
       setMessage({ type: 'error', text: 'El monto debe ser mayor a 0' })
       setSaving(false)
       return
@@ -168,7 +169,7 @@ export default function EditTransactionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          amount: parseFloat(formData.amount)
+          amount: Number.parseFloat(formData.amount)
         })
       })
 
@@ -182,6 +183,7 @@ export default function EditTransactionPage() {
         setMessage({ type: 'error', text: error.error || 'Error al actualizar la transacción' })
       }
     } catch (error) {
+      console.error('Update error:', error)
       setMessage({ type: 'error', text: 'Error de conexión' })
     } finally {
       setSaving(false)
@@ -347,7 +349,7 @@ export default function EditTransactionPage() {
                     inputMode="decimal"
                     value={formData.amount}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/,/g, '.');
+                      const val = e.target.value.replaceAll(',', '.');
                       if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
                         setFormData(prev => ({ ...prev, amount: val }));
                       }

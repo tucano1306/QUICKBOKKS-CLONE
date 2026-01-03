@@ -56,7 +56,7 @@ interface Transaction {
 export default function TransactionDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [transaction, setTransaction] = useState<Transaction | null>(null)
   const [attachments, setAttachments] = useState<Attachment[]>([])
@@ -78,6 +78,7 @@ export default function TransactionDetailPage() {
       loadTransaction()
       loadAttachments()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, transactionId])
 
   const loadAttachments = useCallback(async () => {
@@ -126,6 +127,7 @@ export default function TransactionDetailPage() {
       }
       loadAttachments()
     } catch (err) {
+      console.error('Upload error:', err)
       toast.error('Failed to upload file')
     } finally {
       setUploading(false)
@@ -144,6 +146,7 @@ export default function TransactionDetailPage() {
         loadAttachments()
       }
     } catch (err) {
+      console.error('Delete error:', err)
       toast.error('Failed to delete attachment')
     }
   }
@@ -308,7 +311,7 @@ export default function TransactionDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Descripción</label>
+                  <span className="text-sm font-medium text-gray-500">Descripción</span>
                   <p className="text-lg font-semibold text-gray-900">
                     {transaction.description || transaction.category}
                   </p>
@@ -316,19 +319,19 @@ export default function TransactionDetailPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                    <span className="text-sm font-medium text-gray-500 flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
                       Monto
-                    </label>
+                    </span>
                     <p className={`text-3xl font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
                       {isIncome ? '+' : '-'}${transaction.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                    <span className="text-sm font-medium text-gray-500 flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
                       Fecha
-                    </label>
+                    </span>
                     <p className="text-lg font-medium text-gray-900">
                       {new Date(transaction.date).toLocaleDateString('es-MX', {
                         year: 'numeric',
@@ -340,10 +343,10 @@ export default function TransactionDetailPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                  <span className="text-sm font-medium text-gray-500 flex items-center gap-1">
                     <Tag className="h-4 w-4" />
                     Categoría
-                  </label>
+                  </span>
                   <Badge variant="secondary" className="mt-1 text-sm">
                     {transaction.category}
                   </Badge>
@@ -351,7 +354,7 @@ export default function TransactionDetailPage() {
 
                 {transaction.reference && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Referencia</label>
+                    <span className="text-sm font-medium text-gray-500">Referencia</span>
                     <p className="text-gray-900">{transaction.reference}</p>
                   </div>
                 )}

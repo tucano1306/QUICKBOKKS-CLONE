@@ -7,7 +7,6 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   FileSpreadsheet,
   Upload,
@@ -25,7 +24,6 @@ import {
   Eye,
   X,
   TrendingUp,
-  DollarSign,
   Check
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -52,8 +50,31 @@ interface DetectedType {
   mappings: Record<string, string>
 }
 
+// Helper function to handle column mapping changes
+const handleColumnMappingChange = (
+  e: React.ChangeEvent<HTMLSelectElement>,
+  field: { field: string },
+  typeMappings: Record<string, string>,
+  optionValue: string,
+  setColumnMappings: React.Dispatch<React.SetStateAction<Record<string, Record<string, string>>>>
+) => {
+  const newTypeMappings = { ...typeMappings }
+  Object.keys(newTypeMappings).forEach(key => {
+    if (newTypeMappings[key] === field.field) {
+      delete newTypeMappings[key]
+    }
+  })
+  if (e.target.value) {
+    newTypeMappings[e.target.value] = field.field
+  }
+  setColumnMappings(prev => ({
+    ...prev,
+    [optionValue]: newTypeMappings
+  }))
+}
+
 export default function ImportDataPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   
   const [uploadedFile, setUploadedFile] = useState<ExcelFile | null>(null)
@@ -223,9 +244,9 @@ export default function ImportDataPage() {
         const allAliases = [field.field, ...field.aliases]
         
         for (const header of sheet.headers) {
-          const headerLower = header.toLowerCase().replace(/[^a-z0-9]/g, '')
+          const headerLower = header.toLowerCase().replaceAll(/[^a-z0-9]/g, '')
           
-          if (allAliases.some(alias => headerLower.includes(alias.toLowerCase().replace(/[^a-z0-9]/g, '')))) {
+          if (allAliases.some(alias => headerLower.includes(alias.toLowerCase().replaceAll(/[^a-z0-9]/g, '')))) {
             newMappings[header] = field.field
             break
           }
@@ -244,13 +265,14 @@ export default function ImportDataPage() {
     setIsDragging(false)
     
     const files = Array.from(e.dataTransfer.files)
-    const excelFile = files.find(f => f.name.match(/\.(xlsx|xls|csv)$/i))
+    const excelFile = files.find(f => /\.(xlsx|xls|csv)$/i.exec(f.name))
     
     if (excelFile) {
       processFile(excelFile)
     } else {
       toast.error('Por favor sube un archivo Excel (.xlsx, .xls, .csv)')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Manejar selección de archivo
@@ -305,13 +327,13 @@ export default function ImportDataPage() {
 
         const result = await response.json()
 
-        if (!response.ok) {
-          totalErrors.push(`${type}: ${result.error || 'Error'}`)
-        } else {
+        if (response.ok) {
           totalImported += result.imported || 0
           if (result.errors?.length) {
             totalErrors.push(...result.errors.map((e: string) => `${type}: ${e}`))
           }
+        } else {
+          totalErrors.push(`${type}: ${result.error || 'Error'}`)
         }
       }
 
@@ -385,32 +407,31 @@ export default function ImportDataPage() {
 
         {/* Progress Steps */}
         <div className="flex items-center justify-center gap-2">
-          {['upload', 'configure', 'preview', 'result'].map((s, i) => (
-            <div key={s} className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-                step === s 
-                  ? 'bg-blue-600 text-white' 
-                  : ['upload', 'configure', 'preview', 'result'].indexOf(step) > i
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-500'
-              }`}>
-                {['upload', 'configure', 'preview', 'result'].indexOf(step) > i ? '✓' : i + 1}
+          {['upload', 'configure', 'preview', 'result'].map((s, i) => {
+            const stepIndex = ['upload', 'configure', 'preview', 'result'].indexOf(step)
+            const isCompleted = stepIndex > i
+            const isCurrent = step === s
+            let stepClass = 'bg-gray-200 text-gray-500'
+            if (isCurrent) stepClass = 'bg-blue-600 text-white'
+            else if (isCompleted) stepClass = 'bg-green-500 text-white'
+            return (
+              <div key={s} className="flex items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${stepClass}`}>
+                  {isCompleted ? '✓' : i + 1}
+                </div>
+                {i < 3 && (
+                  <div className={`w-16 h-1 mx-1 ${isCompleted ? 'bg-green-500' : 'bg-gray-200'}`} />
+                )}
               </div>
-              {i < 3 && (
-                <div className={`w-16 h-1 mx-1 ${
-                  ['upload', 'configure', 'preview', 'result'].indexOf(step) > i
-                    ? 'bg-green-500'
-                    : 'bg-gray-200'
-                }`} />
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Step 1: Upload */}
         {step === 'upload' && (
           <Card>
             <CardContent className="p-8">
+              {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
               <div
                 className={`border-2 border-dashed rounded-xl p-16 text-center transition-all ${
                   isDragging 
@@ -606,21 +627,7 @@ export default function ImportDataPage() {
                                   value={
                                     Object.entries(typeMappings).find(([, v]) => v === field.field)?.[0] || ''
                                   }
-                                  onChange={(e) => {
-                                    const newTypeMappings = { ...typeMappings }
-                                    Object.keys(newTypeMappings).forEach(key => {
-                                      if (newTypeMappings[key] === field.field) {
-                                        delete newTypeMappings[key]
-                                      }
-                                    })
-                                    if (e.target.value) {
-                                      newTypeMappings[e.target.value] = field.field
-                                    }
-                                    setColumnMappings(prev => ({
-                                      ...prev,
-                                      [option.value]: newTypeMappings
-                                    }))
-                                  }}
+                                  onChange={(e) => handleColumnMappingChange(e, field, typeMappings, option.value, setColumnMappings)}
                                 >
                                   <option value="">-- Sin asignar --</option>
                                   {selectedSheet.headers.map(header => (
@@ -734,16 +741,32 @@ export default function ImportDataPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {selectedSheet.data.slice(0, 5).map((row, i) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 text-gray-400">{i + 1}</td>
-                          {selectedSheet.headers.slice(0, 6).map(h => (
-                            <td key={h} className="px-3 py-2 text-gray-700 truncate max-w-xs">
-                              {String(row[h] ?? '-')}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
+                      {selectedSheet.data.slice(0, 5).map((row, i) => {
+                        const firstVal = Object.values(row)[0]
+                        let keyVal: string
+                        if (firstVal == null) keyVal = String(i)
+                        else if (typeof firstVal === 'object') keyVal = JSON.stringify(firstVal)
+                        else if (typeof firstVal === 'string' || typeof firstVal === 'number' || typeof firstVal === 'boolean') keyVal = String(firstVal)
+                        else keyVal = String(i)
+                        return (
+                          <tr key={`row-${i}-${keyVal}`} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                            {selectedSheet.headers.slice(0, 6).map(h => {
+                              const cellVal = row[h]
+                              let display: string
+                              if (cellVal == null) display = '-'
+                              else if (typeof cellVal === 'object') display = JSON.stringify(cellVal)
+                              else if (typeof cellVal === 'string' || typeof cellVal === 'number' || typeof cellVal === 'boolean') display = String(cellVal)
+                              else display = '-'
+                              return (
+                                <td key={h} className="px-3 py-2 text-gray-700 truncate max-w-xs">
+                                  {display}
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                   {selectedSheet.data.length > 5 && (
@@ -834,7 +857,7 @@ export default function ImportDataPage() {
                   </h4>
                   <ul className="list-disc list-inside text-sm text-orange-700 space-y-1">
                     {importResult.errors.slice(0, 10).map((error: string, i: number) => (
-                      <li key={i}>{error}</li>
+                      <li key={`error-${error.slice(0, 20)}-${i}`}>{error}</li>
                     ))}
                     {importResult.errors.length > 10 && (
                       <li className="font-semibold">... y {importResult.errors.length - 10} más</li>
