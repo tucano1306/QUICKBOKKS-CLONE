@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic'
+// Revalidar cada 30 segundos - las empresas cambian poco frecuentemente
+export const revalidate = 30
 
 export async function GET() {
   try {

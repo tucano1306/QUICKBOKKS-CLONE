@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic'
+// Revalidar cada 60 segundos - permite caché del lado del servidor
+export const revalidate = 60
 
 export async function GET() {
   try {
