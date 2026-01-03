@@ -9,16 +9,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
-  UserCircle,
   ArrowLeft,
   PhoneCall,
   Video,
   Mail as MailIcon,
   MessageSquare,
   Calendar,
-  DollarSign,
-  FileText,
-  TrendingUp,
   Clock,
   Plus,
   User,
@@ -104,6 +100,7 @@ export default function CustomerCRMPage() {
         setInteractions(interactionsData.interactions || [])
       }
     } catch (error) {
+      console.error('Error loading CRM data:', error)
       toast.error('Error al cargar datos')
     } finally {
       setIsLoading(false)
@@ -118,7 +115,7 @@ export default function CustomerCRMPage() {
       id: Date.now().toString(),
       type: formData.get('type') as any,
       date: new Date().toISOString(),
-      duration: parseInt(formData.get('duration') as string) || 0,
+      duration: Number.parseInt(formData.get('duration') as string) || 0,
       subject: formData.get('subject') as string,
       notes: formData.get('notes') as string,
       outcome: formData.get('outcome') as string,
@@ -458,8 +455,9 @@ export default function CustomerCRMPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Tipo *</label>
+                    <label htmlFor="interaction-type" className="block text-sm font-medium mb-1">Tipo *</label>
                     <select
+                      id="interaction-type"
                       name="type"
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -472,8 +470,9 @@ export default function CustomerCRMPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Duración (minutos)</label>
+                    <label htmlFor="interaction-duration" className="block text-sm font-medium mb-1">Duración (minutos)</label>
                     <Input
+                      id="interaction-duration"
                       name="duration"
                       type="text"
                       className="amount-input"
@@ -483,16 +482,18 @@ export default function CustomerCRMPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Asunto *</label>
+                  <label htmlFor="interaction-subject" className="block text-sm font-medium mb-1">Asunto *</label>
                   <Input
+                    id="interaction-subject"
                     name="subject"
                     required
                     placeholder="Tema de la interacción"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Notas *</label>
+                  <label htmlFor="interaction-notes" className="block text-sm font-medium mb-1">Notas *</label>
                   <textarea
+                    id="interaction-notes"
                     name="notes"
                     required
                     rows={4}
@@ -501,8 +502,9 @@ export default function CustomerCRMPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Resultado *</label>
+                  <label htmlFor="interaction-outcome" className="block text-sm font-medium mb-1">Resultado *</label>
                   <Input
+                    id="interaction-outcome"
                     name="outcome"
                     required
                     placeholder="ej: Positivo, Pendiente respuesta, Cerrado"
@@ -535,8 +537,9 @@ export default function CustomerCRMPage() {
             <form onSubmit={handleUpdateAccountManager}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Responsable *</label>
+                  <label htmlFor="account-manager" className="block text-sm font-medium mb-1">Responsable *</label>
                   <Input
+                    id="account-manager"
                     name="accountManager"
                     defaultValue={customer.accountManager}
                     required

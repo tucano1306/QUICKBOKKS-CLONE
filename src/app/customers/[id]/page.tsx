@@ -11,7 +11,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function CustomerDetailPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
   const params = useParams()
   const customerId = params?.id as string
@@ -145,10 +145,11 @@ export default function CustomerDetailPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-name" className="block text-sm font-medium mb-2">
                     Nombre Completo *
                   </label>
                   <Input
+                    id="customer-name"
                     type="text"
                     name="name"
                     value={formData.name}
@@ -158,10 +159,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-company" className="block text-sm font-medium mb-2">
                     Empresa
                   </label>
                   <Input
+                    id="customer-company"
                     type="text"
                     name="company"
                     value={formData.company}
@@ -170,10 +172,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-email" className="block text-sm font-medium mb-2">
                     Email
                   </label>
                   <Input
+                    id="customer-email"
                     type="email"
                     name="email"
                     value={formData.email}
@@ -182,10 +185,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-phone" className="block text-sm font-medium mb-2">
                     Teléfono
                   </label>
                   <Input
+                    id="customer-phone"
                     type="tel"
                     name="phone"
                     value={formData.phone}
@@ -194,10 +198,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-taxId" className="block text-sm font-medium mb-2">
                     RFC/Tax ID
                   </label>
                   <Input
+                    id="customer-taxId"
                     type="text"
                     name="taxId"
                     value={formData.taxId}
@@ -206,10 +211,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-status" className="block text-sm font-medium mb-2">
                     Estado
                   </label>
                   <select
+                    id="customer-status"
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
@@ -221,10 +227,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-address" className="block text-sm font-medium mb-2">
                     Dirección
                   </label>
                   <Input
+                    id="customer-address"
                     type="text"
                     name="address"
                     value={formData.address}
@@ -233,10 +240,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-city" className="block text-sm font-medium mb-2">
                     Ciudad
                   </label>
                   <Input
+                    id="customer-city"
                     type="text"
                     name="city"
                     value={formData.city}
@@ -245,10 +253,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-state" className="block text-sm font-medium mb-2">
                     Estado
                   </label>
                   <Input
+                    id="customer-state"
                     type="text"
                     name="state"
                     value={formData.state}
@@ -257,10 +266,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-zipCode" className="block text-sm font-medium mb-2">
                     Código Postal
                   </label>
                   <Input
+                    id="customer-zipCode"
                     type="text"
                     name="zipCode"
                     value={formData.zipCode}
@@ -269,10 +279,11 @@ export default function CustomerDetailPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="customer-notes" className="block text-sm font-medium mb-2">
                     Notas
                   </label>
                   <textarea
+                    id="customer-notes"
                     name="notes"
                     value={formData.notes}
                     onChange={handleChange}
@@ -303,7 +314,7 @@ export default function CustomerDetailPage() {
           </CardContent>
         </Card>
 
-        {customer && customer.invoices && customer.invoices.length > 0 && (
+        {customer?.invoices?.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Facturas Recientes</CardTitle>

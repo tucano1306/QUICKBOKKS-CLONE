@@ -44,6 +44,7 @@ export default function CompanySelector() {
 
       {isOpen && (
         <>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}

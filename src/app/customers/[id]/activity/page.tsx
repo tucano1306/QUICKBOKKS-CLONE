@@ -12,7 +12,6 @@ import {
   ArrowLeft,
   Eye,
   Download,
-  Calendar,
   Clock,
   FileText,
   DollarSign,
@@ -32,7 +31,7 @@ interface ActivityLog {
 export default function CustomerActivityPage() {
   const params = useParams()
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [customer, setCustomer] = useState<any>(null)
   const [activities, setActivities] = useState<ActivityLog[]>([])
   const [isLoading, setIsLoading] = useState(true)

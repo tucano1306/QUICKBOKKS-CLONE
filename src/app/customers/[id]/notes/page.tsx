@@ -97,6 +97,7 @@ export default function CustomerNotesPage() {
         setCustomerName(customerData.name || customerData.customer?.name || 'Cliente')
       }
     } catch (error) {
+      console.error('Error loading notes data:', error)
       toast.error('Error al cargar datos')
     } finally {
       setIsLoading(false)
@@ -518,8 +519,9 @@ export default function CustomerNotesPage() {
             <form onSubmit={handleSaveNote}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Título *</label>
+                  <label htmlFor="note-title" className="block text-sm font-medium mb-1">Título *</label>
                   <Input
+                    id="note-title"
                     name="title"
                     defaultValue={editingNote?.title}
                     required
@@ -527,8 +529,9 @@ export default function CustomerNotesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Contenido *</label>
+                  <label htmlFor="note-content" className="block text-sm font-medium mb-1">Contenido *</label>
                   <textarea
+                    id="note-content"
                     name="content"
                     defaultValue={editingNote?.content}
                     required
@@ -538,10 +541,11 @@ export default function CustomerNotesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="note-tags" className="block text-sm font-medium mb-1">
                     Etiquetas (separadas por comas)
                   </label>
                   <Input
+                    id="note-tags"
                     name="tags"
                     defaultValue={editingNote?.tags.join(', ')}
                     placeholder="reunion, propuesta, urgente"
@@ -579,8 +583,9 @@ export default function CustomerNotesPage() {
             <form onSubmit={handleSaveTask}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Título *</label>
+                  <label htmlFor="task-title" className="block text-sm font-medium mb-1">Título *</label>
                   <Input
+                    id="task-title"
                     name="title"
                     defaultValue={editingTask?.title}
                     required
@@ -588,8 +593,9 @@ export default function CustomerNotesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Descripción</label>
+                  <label htmlFor="task-description" className="block text-sm font-medium mb-1">Descripción</label>
                   <textarea
+                    id="task-description"
                     name="description"
                     defaultValue={editingTask?.description}
                     rows={3}
@@ -599,8 +605,9 @@ export default function CustomerNotesPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Fecha de vencimiento *</label>
+                    <label htmlFor="task-dueDate" className="block text-sm font-medium mb-1">Fecha de vencimiento *</label>
                     <Input
+                      id="task-dueDate"
                       name="dueDate"
                       type="date"
                       defaultValue={editingTask?.dueDate}
@@ -608,8 +615,9 @@ export default function CustomerNotesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Prioridad *</label>
+                    <label htmlFor="task-priority" className="block text-sm font-medium mb-1">Prioridad *</label>
                     <select
+                      id="task-priority"
                       name="priority"
                       defaultValue={editingTask?.priority || 'MEDIUM'}
                       required
@@ -623,8 +631,9 @@ export default function CustomerNotesPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Asignado a *</label>
+                  <label htmlFor="task-assignedTo" className="block text-sm font-medium mb-1">Asignado a *</label>
                   <Input
+                    id="task-assignedTo"
                     name="assignedTo"
                     defaultValue={editingTask?.assignedTo || session?.user?.name}
                     required

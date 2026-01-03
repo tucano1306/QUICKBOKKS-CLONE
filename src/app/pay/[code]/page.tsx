@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export default function PaymentPage({ params }: { params: { code: string } }) {
+export default function PaymentPage({ params }: Readonly<{ params: { code: string } }>) {
   const [paymentLink, setPaymentLink] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -47,7 +46,7 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
           action: 'process-payment',
           shortCode: params.code,
           paymentDetails: {
-            amount: parseFloat(amount),
+            amount: Number.parseFloat(amount),
             paymentMethod,
             reference,
             notes,
@@ -62,7 +61,7 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
       if (result.success) {
         alert('¡Pago procesado exitosamente!');
         // Redireccionar a página de confirmación
-        window.location.href = '/portal/payment-success';
+        globalThis.location.href = '/portal/payment-success';
       } else {
         alert(result.error || 'Error procesando pago');
       }
@@ -134,8 +133,8 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
 
               <div className="border-t pt-3 mt-3">
                 <h3 className="font-semibold mb-2">Items:</h3>
-                {invoice.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between text-sm py-1">
+                {invoice.items.map((item: any) => (
+                  <div key={`${item.description}-${item.quantity}`} className="flex justify-between text-sm py-1">
                     <span>
                       {item.description} (x{item.quantity})
                     </span>
@@ -147,17 +146,17 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
               <div className="border-t pt-3 mt-3">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span>${parseFloat(invoice.total).toFixed(2)}</span>
+                  <span>${Number.parseFloat(invoice.total).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between text-sm text-gray-600 mt-1">
                   <span>Pagado</span>
-                  <span>${parseFloat(invoice.paidAmount || 0).toFixed(2)}</span>
+                  <span>${Number.parseFloat(invoice.paidAmount || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between text-xl font-bold text-blue-600 mt-2">
                   <span>Balance</span>
-                  <span>${parseFloat(invoice.balance).toFixed(2)}</span>
+                  <span>${Number.parseFloat(invoice.balance).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -182,8 +181,9 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
             ) : (
               <form onSubmit={handlePayment} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Monto a Pagar</label>
+                  <label htmlFor="pay-amount" className="block text-sm font-medium mb-2">Monto a Pagar</label>
                   <Input
+                    id="pay-amount"
                     type="text"
                     className="amount-input"
                     value={amount}
@@ -192,13 +192,14 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Máximo: ${parseFloat(invoice.balance).toFixed(2)}
+                    Máximo: ${Number.parseFloat(invoice.balance).toFixed(2)}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Método de Pago</label>
+                  <label htmlFor="pay-method" className="block text-sm font-medium mb-2">Método de Pago</label>
                   <select
+                    id="pay-method"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as any)}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -210,10 +211,11 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="pay-reference" className="block text-sm font-medium mb-2">
                     Referencia/Número de Transacción
                   </label>
                   <Input
+                    id="pay-reference"
                     type="text"
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
@@ -222,8 +224,9 @@ export default function PaymentPage({ params }: { params: { code: string } }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Notas (Opcional)</label>
+                  <label htmlFor="pay-notes" className="block text-sm font-medium mb-2">Notas (Opcional)</label>
                   <textarea
+                    id="pay-notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
