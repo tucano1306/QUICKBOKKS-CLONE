@@ -137,6 +137,7 @@ export default function EditExpensePage() {
     if (status === 'authenticated' && expenseId) {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, expenseId])
 
   const parsePaymentSplits = (notes: string | null) => {

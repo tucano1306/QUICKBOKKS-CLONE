@@ -16,6 +16,7 @@ export function useDebouncedCallback<T extends (...args: Parameters<T>) => Retur
   // Actualizar referencia del callback
   callbackRef.current = callback
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback(
     ((...args: Parameters<T>) => {
       if (timeoutRef.current) {
@@ -44,6 +45,7 @@ export function useThrottledCallback<T extends (...args: Parameters<T>) => Retur
   
   callbackRef.current = callback
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback(
     ((...args: Parameters<T>) => {
       const now = Date.now()

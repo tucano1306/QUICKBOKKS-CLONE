@@ -10,7 +10,6 @@ import { Pagination } from '@/components/ui/pagination'
 import {
   Plus,
   Download,
-  Upload,
   Filter,
   Search,
   Edit,
@@ -49,7 +48,7 @@ interface Expense {
 
 export default function ExpensesListPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -91,6 +90,7 @@ export default function ExpensesListPage() {
     if (status === 'authenticated') {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status])
 
   const loadData = async () => {
@@ -323,7 +323,7 @@ export default function ExpensesListPage() {
     setSelectedExpenses(new Set())
   }
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
+  const _handleStatusChange = async (id: string, newStatus: string) => {
     try {
       const response = await fetch(`/api/expenses`, {
         method: 'PATCH',
@@ -360,7 +360,7 @@ export default function ExpensesListPage() {
 
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
+    const url = globalThis.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `gastos_${new Date().toISOString().split('T')[0]}.csv`
@@ -594,8 +594,9 @@ export default function ExpensesListPage() {
 
             {/* Date From */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Desde</label>
+              <label htmlFor="expense-date-from" className="block text-xs text-gray-500 mb-1">Desde</label>
               <input
+                id="expense-date-from"
                 type="date"
                 value={dateFrom}
                 onChange={e => setDateFrom(e.target.value)}
@@ -605,8 +606,9 @@ export default function ExpensesListPage() {
 
             {/* Date To */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+              <label htmlFor="expense-date-to" className="block text-xs text-gray-500 mb-1">Hasta</label>
               <input
+                id="expense-date-to"
                 type="date"
                 value={dateTo}
                 onChange={e => setDateTo(e.target.value)}

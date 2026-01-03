@@ -53,7 +53,7 @@ interface Expense {
 export default function ExpenseDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [expense, setExpense] = useState<Expense | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,6 +71,7 @@ export default function ExpenseDetailPage() {
     if (status === 'authenticated' && expenseId) {
       loadExpense()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, expenseId])
 
   const loadExpense = async () => {
@@ -254,7 +255,7 @@ export default function ExpenseDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Descripción</label>
+                  <span className="text-sm font-medium text-gray-500">Descripción</span>
                   <p className="text-lg font-semibold text-gray-900">{expense.description}</p>
                 </div>
 
@@ -311,7 +312,7 @@ export default function ExpenseDetailPage() {
                     <p className="text-gray-900">{getPaymentMethodLabel(expense.paymentMethod)}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Referencia</label>
+                    <span className="text-sm font-medium text-gray-500">Referencia</span>
                     <p className="text-gray-900">{expense.reference || 'Sin referencia'}</p>
                   </div>
                 </div>
@@ -324,8 +325,8 @@ export default function ExpenseDetailPage() {
                       Desglose de Pagos
                     </label>
                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
-                      {getPaymentSplits()!.map((split: { method: string; amount: number; reference?: string }, index: number) => (
-                        <div key={index} className="flex justify-between items-center text-sm">
+                      {getPaymentSplits()!.map((split: { method: string; amount: number; reference?: string }) => (
+                        <div key={`${split.method}-${split.amount}`} className="flex justify-between items-center text-sm">
                           <span className="text-gray-700 dark:text-gray-300">
                             {getPaymentMethodLabel(split.method)}
                             {split.reference && (

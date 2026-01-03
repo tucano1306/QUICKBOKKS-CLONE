@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { 
-  Bot, Brain, Zap, CheckCircle, XCircle, Clock, AlertCircle,
+  Bot, Brain, Zap, CheckCircle, Clock, AlertCircle,
   ThumbsUp, ThumbsDown, RefreshCw, TrendingUp, Target, Activity,
-  Settings, Play, Pause
+  Play, Pause
 } from 'lucide-react'
 
 interface Transaction {
@@ -41,12 +41,10 @@ interface AIStats {
 
 export default function AICategorizationPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [accounts, setAccounts] = useState<any[]>([])
   const [stats, setStats] = useState<AIStats>({
     totalProcessed: 0, categorized: 0, pending: 0, averageConfidence: 0, accuracyRate: 0, learningProgress: 0
   })
@@ -73,14 +71,14 @@ export default function AICategorizationPage() {
 
       const data = await response.json()
       setTransactions(data.transactions || [])
-      setCategories(data.categories || [])
-      setAccounts(data.accounts || [])
+      // Note: categories and accounts are loaded from API for future use
       setStats(data.stats || stats)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCompany?.id, filterStatus])
 
   useEffect(() => {
@@ -399,12 +397,12 @@ export default function AICategorizationPage() {
             <CardTitle>Transacciones para Clasificar</CardTitle>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0}
                   onChange={selectAll}
                 />
-                Seleccionar todo
+                <span>Seleccionar todo</span>
               </label>
               {selectedIds.size > 0 && (
                 <div className="flex gap-2">
@@ -471,9 +469,12 @@ export default function AICategorizationPage() {
                         </td>
                         <td className="p-4 text-center">
                           <Badge className={getStatusBadge(t.status)}>
-                            {t.status === 'categorized' ? 'Categorizada' : 
-                             t.status === 'pending' ? 'Pendiente' :
-                             t.status === 'reviewed' ? 'Revisada' : 'Rechazada'}
+                            {(() => {
+                              if (t.status === 'categorized') return 'Categorizada'
+                              if (t.status === 'pending') return 'Pendiente'
+                              if (t.status === 'reviewed') return 'Revisada'
+                              return 'Rechazada'
+                            })()}
                           </Badge>
                         </td>
                         <td className="p-4">

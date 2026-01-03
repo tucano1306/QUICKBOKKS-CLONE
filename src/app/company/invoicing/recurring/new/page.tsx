@@ -9,13 +9,10 @@ import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { 
   RefreshCw,
   Save,
   X,
-  Calendar,
-  User,
   DollarSign,
   Repeat,
   Mail,
@@ -31,7 +28,7 @@ interface Customer {
 
 export default function NewRecurringInvoicePage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   
   const [loading, setLoading] = useState(false)
@@ -55,7 +52,8 @@ export default function NewRecurringInvoicePage() {
     if (activeCompany?.id) {
       fetchCustomers()
     }
-  }, [activeCompany])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCompany?.id])
 
   const fetchCustomers = async () => {
     try {
@@ -108,7 +106,7 @@ export default function NewRecurringInvoicePage() {
 
     setLoading(true)
     try {
-      const recurringData = {
+      const _recurringData = {
         templateName,
         customerId: selectedCustomer,
         amount,
@@ -207,10 +205,11 @@ export default function NewRecurringInvoicePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="templateName" className="block text-sm font-medium text-gray-700 mb-2">
                 Nombre de Plantilla *
               </label>
               <Input
+                id="templateName"
                 value={templateName}
                 onChange={(e) => setTemplateName(e.target.value)}
                 placeholder="Ej: Servicio de Hosting Mensual"
@@ -218,10 +217,11 @@ export default function NewRecurringInvoicePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="selectedCustomer" className="block text-sm font-medium text-gray-700 mb-2">
                 Cliente *
               </label>
               <select
+                id="selectedCustomer"
                 value={selectedCustomer}
                 onChange={(e) => setSelectedCustomer(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -236,15 +236,16 @@ export default function NewRecurringInvoicePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
                 Monto *
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
+                  id="amount"
                   type="text"
                   value={amount}
-                  onChange={(e) => setAmount(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                  onChange={(e) => setAmount(Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                   className="pl-10 amount-input"
                   placeholder="0.00"
                 />
@@ -252,10 +253,11 @@ export default function NewRecurringInvoicePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                 Descripción
               </label>
               <textarea
+                id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 min-h-20"
@@ -274,10 +276,11 @@ export default function NewRecurringInvoicePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 mb-2">
                 Frecuencia *
               </label>
               <select
+                id="frequency"
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value as any)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -292,20 +295,22 @@ export default function NewRecurringInvoicePage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
                   Fecha de Inicio *
                 </label>
                 <Input
+                  id="startDate"
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
                   Fecha de Fin (Opcional)
                 </label>
                 <Input
+                  id="endDate"
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}

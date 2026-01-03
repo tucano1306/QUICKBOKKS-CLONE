@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -8,7 +8,6 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { 
   BarChart3,
   Download,
@@ -19,15 +18,13 @@ import {
   TrendingUp,
   TrendingDown,
   PieChart,
-  Filter,
   Eye,
   X,
   Loader2,
   Printer,
   CheckCircle,
   AlertCircle,
-  Info,
-  RefreshCw
+  Info
 } from 'lucide-react'
 
 interface PayrollReport {
@@ -52,27 +49,27 @@ interface DepartmentCost {
 
 export default function PayrollReportsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState<string>('current')
   const [showReportModal, setShowReportModal] = useState(false)
   const [selectedReport, setSelectedReport] = useState<PayrollReport | null>(null)
   const [exporting, setExporting] = useState(false)
-  const [filterStartDate, setFilterStartDate] = useState('')
-  const [filterEndDate, setFilterEndDate] = useState('')
+  const [filterStartDate] = useState('')
+  const [filterEndDate] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   const [reports, setReports] = useState<PayrollReport[]>([])
   const [departmentCosts, setDepartmentCosts] = useState<DepartmentCost[]>([])
 
-  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  const iconMap = useMemo<Record<string, React.ComponentType<{ className?: string }>>>(() => ({
     summary: BarChart3,
     tax: FileText,
     costs: PieChart,
     deductions: TrendingDown,
     overtime: Calendar,
     employee: Users
-  }
+  }), [])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -107,7 +104,7 @@ export default function PayrollReportsPage() {
     } finally {
       setLoading(false)
     }
-  }, [activeCompany, filterStartDate, filterEndDate])
+  }, [activeCompany, filterStartDate, filterEndDate, iconMap])
 
   useEffect(() => {
     if (status === 'authenticated' && activeCompany) {
@@ -173,7 +170,7 @@ export default function PayrollReportsPage() {
     link.download = filename
     document.body.appendChild(link)
     link.click()
-    document.body.removeChild(link)
+    link.remove()
   }
 
   const exportAllReports = async () => {
@@ -215,7 +212,7 @@ export default function PayrollReportsPage() {
       link.download = `reportes-nomina-consolidados-${new Date().toISOString().split('T')[0]}.csv`
       document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
+      link.remove()
       
     } catch (error) {
       console.error('Error al exportar:', error)
@@ -227,7 +224,7 @@ export default function PayrollReportsPage() {
   }
 
   const printReport = () => {
-    window.print()
+    globalThis.print()
   }
 
   if (status === 'loading' || loading) {
@@ -268,22 +265,25 @@ export default function PayrollReportsPage() {
         </div>
 
         {/* Message Display */}
-        {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' ? 'bg-green-50 border border-green-200' :
-            message.type === 'error' ? 'bg-red-50 border border-red-200' :
-            'bg-blue-50 border border-blue-200'
-          }`}>
-            {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
-            {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
-            {message.type === 'info' && <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />}
-            <span className={`${
-              message.type === 'success' ? 'text-green-800' :
-              message.type === 'error' ? 'text-red-800' :
-              'text-blue-800'
-            }`}>{message.text}</span>
-          </div>
-        )}
+        {message && (() => {
+          let bgClass = 'bg-blue-50 border border-blue-200'
+          let textClass = 'text-blue-800'
+          if (message.type === 'success') {
+            bgClass = 'bg-green-50 border border-green-200'
+            textClass = 'text-green-800'
+          } else if (message.type === 'error') {
+            bgClass = 'bg-red-50 border border-red-200'
+            textClass = 'text-red-800'
+          }
+          return (
+            <div className={`p-4 rounded-lg flex items-center gap-3 ${bgClass}`}>
+              {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
+              {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
+              {message.type === 'info' && <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+              <span className={textClass}>{message.text}</span>
+            </div>
+          )
+        })()}
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

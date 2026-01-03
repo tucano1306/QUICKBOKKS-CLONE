@@ -46,7 +46,7 @@ interface QuoteItem {
 
 export default function NewEstimatePage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   
   const [loading, setLoading] = useState(false)
@@ -73,7 +73,8 @@ export default function NewEstimatePage() {
       fetchProducts()
       generateEstimateNumber()
     }
-  }, [activeCompany])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCompany?.id])
 
   const fetchCustomers = async () => {
     try {
@@ -164,6 +165,7 @@ export default function NewEstimatePage() {
       toast.success('✅ Cotización guardada como borrador')
       router.push('/company/invoicing/estimates')
     } catch (error) {
+      console.error('Error saving draft:', error)
       toast.error('Error al guardar cotización')
     } finally {
       setLoading(false)
@@ -181,6 +183,7 @@ export default function NewEstimatePage() {
       toast.success('✅ Cotización creada y enviada')
       router.push('/company/invoicing/estimates')
     } catch (error) {
+      console.error('Error creating estimate:', error)
       toast.error('Error al crear cotización')
     } finally {
       setLoading(false)
@@ -277,12 +280,12 @@ export default function NewEstimatePage() {
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
-                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                  <label htmlFor="estimate-date" className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
+                  <Input id="estimate-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Válido hasta</label>
-                  <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+                  <label htmlFor="estimate-expiry" className="block text-sm font-medium text-gray-700 mb-2">Válido hasta</label>
+                  <Input id="estimate-expiry" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
                 </div>
               </CardContent>
             </Card>
@@ -330,14 +333,14 @@ export default function NewEstimatePage() {
                           type="text"
                           className="amount-input"
                           value={item.quantity}
-                          onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                          onChange={(e) => updateItem(item.id, 'quantity', Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                           placeholder="Cant."
                         />
                         <Input
                           type="text"
                           className="amount-input"
                           value={item.unitPrice}
-                          onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                          onChange={(e) => updateItem(item.id, 'unitPrice', Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                           placeholder="Precio"
                         />
                         <div className="px-3 py-2 bg-gray-50 rounded font-semibold text-sm">

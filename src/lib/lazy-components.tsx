@@ -28,15 +28,15 @@ export const LazyChart = dynamic(
   { loading: LoadingSpinner, ssr: false }
 )
 
-// Lazy load del editor de texto enriquecido
+// Lazy load del editor de texto enriquecido (placeholder - component not yet implemented)
 export const LazyRichTextEditor = dynamic(
-  () => import('@/components/ui/rich-text-editor').catch(() => ({ default: () => null })),
+  () => Promise.resolve({ default: () => null }),
   { loading: LoadingSpinner, ssr: false }
 )
 
-// Lazy load de tablas grandes con virtualización
+// Lazy load de tablas grandes con virtualización (placeholder - component not yet implemented)
 export const LazyDataTable = dynamic(
-  () => import('@/components/ui/data-table').catch(() => ({ default: () => null })),
+  () => Promise.resolve({ default: () => null }),
   { loading: LoadingSpinner, ssr: false }
 )
 

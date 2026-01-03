@@ -12,22 +12,16 @@ import { Badge } from '@/components/ui/badge'
 import { 
   Scale,
   Building2,
-  Search,
   Download,
-  Calendar,
   DollarSign,
   AlertTriangle,
   CheckCircle2,
   CheckCircle,
   RefreshCw,
-  TrendingUp,
-  TrendingDown,
   AlertCircle,
-  FileText,
   Edit,
   X,
   Loader2,
-  Plus,
   ArrowRight,
   ClipboardCheck
 } from 'lucide-react'
@@ -69,19 +63,17 @@ interface Discrepancy {
 
 export default function BalanceCheckPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
-  const { activeCompany } = useCompany()
+  const { status } = useSession()
+  useCompany()
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<string>('')
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false)
-  const [showReportModal, setShowReportModal] = useState(false)
   
   // Real data from API
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [balanceChecks, setBalanceChecks] = useState<BalanceCheck[]>([])
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([])
-  const [detailedCheck, setDetailedCheck] = useState<any>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   
   // Adjustment form
@@ -99,6 +91,7 @@ export default function BalanceCheckPage() {
     if (status === 'authenticated') {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router])
 
   const loadData = async () => {
@@ -137,25 +130,32 @@ export default function BalanceCheckPage() {
         
         if (data.accounts) {
           // Summary view
-          const checks: BalanceCheck[] = data.accounts.map((acc: any) => ({
-            accountId: acc.id,
-            accountName: acc.accountName,
-            bankName: acc.bankName || '',
-            systemBalance: parseFloat(acc.balance) || 0,
-            lastStatementBalance: parseFloat(acc.lastReconciliation?.statementBalance) || 0,
-            statementDate: acc.lastReconciliation?.endDate,
-            difference: acc.unreconciledAmount || 0,
-            status: acc.unreconciledCount === 0 ? 'balanced' : 
-                   Math.abs(acc.unreconciledAmount || 0) > 0 ? 'discrepancy' : 'pending',
-            unreconciledTransactions: acc.unreconciledCount || 0,
-            pendingDeposits: 0,
-            pendingWithdrawals: 0
-          }))
+          const checks: BalanceCheck[] = data.accounts.map((acc: any) => {
+            const unreconciledAmt = acc.unreconciledAmount || 0
+            let checkStatus: 'balanced' | 'discrepancy' | 'pending' = 'pending'
+            if (acc.unreconciledCount === 0) {
+              checkStatus = 'balanced'
+            } else if (Math.abs(unreconciledAmt) > 0) {
+              checkStatus = 'discrepancy'
+            }
+            return {
+              accountId: acc.id,
+              accountName: acc.accountName,
+              bankName: acc.bankName || '',
+              systemBalance: Number.parseFloat(acc.balance) || 0,
+              lastStatementBalance: Number.parseFloat(acc.lastReconciliation?.statementBalance) || 0,
+              statementDate: acc.lastReconciliation?.endDate,
+              difference: unreconciledAmt,
+              status: checkStatus,
+              unreconciledTransactions: acc.unreconciledCount || 0,
+              pendingDeposits: 0,
+              pendingWithdrawals: 0
+            }
+          })
           setBalanceChecks(checks)
         }
         
         if (data.detailedCheck) {
-          setDetailedCheck(data.detailedCheck)
           // Extract discrepancies
           if (data.detailedCheck.discrepancies) {
             const disc: Discrepancy[] = data.detailedCheck.discrepancies.map((d: any, i: number) => ({
@@ -235,29 +235,27 @@ export default function BalanceCheckPage() {
 
   const generateReport = async () => {
     try {
-      const response = await fetch('/api/banking/reports/reconciliation?type=all-accounts')
-      if (response.ok) {
-        const data = await response.json()
+      await fetch('/api/banking/reports/reconciliation?type=all-accounts')
         
-        // Generate CSV
-        const headers = ['Cuenta', 'Banco', 'Saldo Sistema', 'Último Estado', 'Diferencia', 'Estado', 'Trans. Pendientes']
-        const rows = balanceChecks.map(check => [
-          check.accountName,
-          check.bankName,
-          check.systemBalance.toFixed(2),
-          (check.lastStatementBalance || 0).toFixed(2),
-          check.difference.toFixed(2),
-          check.status,
-          check.unreconciledTransactions
-        ])
-        
-        const csvContent = [
-          ['REPORTE DE CUADRE DE SALDOS'],
-          [`Generado: ${new Date().toLocaleString('es-MX')}`],
-          [''],
-          headers.join(','),
-          ...rows.map(r => r.join(','))
-        ].join('\n')
+      // Generate CSV
+      const headers = ['Cuenta', 'Banco', 'Saldo Sistema', 'Último Estado', 'Diferencia', 'Estado', 'Trans. Pendientes']
+      const rows = balanceChecks.map(check => [
+        check.accountName,
+        check.bankName,
+        check.systemBalance.toFixed(2),
+        (check.lastStatementBalance || 0).toFixed(2),
+        check.difference.toFixed(2),
+        check.status,
+        check.unreconciledTransactions
+      ])
+      
+      const csvContent = [
+        ['REPORTE DE CUADRE DE SALDOS'],
+        [`Generado: ${new Date().toLocaleString('es-MX')}`],
+        [''],
+        headers.join(','),
+        ...rows.map(r => r.join(','))
+      ].join('\n')
         
         const blob = new Blob([csvContent], { type: 'text/csv' })
         const url = URL.createObjectURL(blob)
@@ -269,7 +267,6 @@ export default function BalanceCheckPage() {
         
         setMessage({ type: 'success', text: 'Reporte de cuadre exportado' })
         setTimeout(() => setMessage(null), 3000)
-      }
     } catch (error) {
       console.error('Error generating report:', error)
       setMessage({ type: 'error', text: 'Error al generar reporte' })
@@ -332,16 +329,20 @@ export default function BalanceCheckPage() {
         </div>
 
         {/* Message Display */}
-        {message && (
-          <div className={`p-3 rounded-lg flex items-center gap-2 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-            'bg-blue-50 text-blue-800 border border-blue-200'
-          }`}>
-            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            {message.text}
-          </div>
-        )}
+        {message && (() => {
+          let msgClass = 'bg-blue-50 text-blue-800 border border-blue-200'
+          if (message.type === 'success') {
+            msgClass = 'bg-green-50 text-green-800 border border-green-200'
+          } else if (message.type === 'error') {
+            msgClass = 'bg-red-50 text-red-800 border border-red-200'
+          }
+          return (
+            <div className={`p-3 rounded-lg flex items-center gap-2 ${msgClass}`}>
+              {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+              {message.text}
+            </div>
+          )
+        })()}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -400,8 +401,9 @@ export default function BalanceCheckPage() {
           <CardContent>
             <div className="flex gap-4 items-end">
               <div className="flex-1">
-                <label className="block text-sm font-medium mb-1">Seleccionar Cuenta</label>
+                <label htmlFor="account-select" className="block text-sm font-medium mb-1">Seleccionar Cuenta</label>
                 <select
+                  id="account-select"
                   value={selectedAccount}
                   onChange={(e) => setSelectedAccount(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg"
@@ -473,11 +475,23 @@ export default function BalanceCheckPage() {
                       </td>
                     </tr>
                   ))}
-                  {balanceChecks.map((check) => (
-                    <tr key={check.accountId} className={`hover:bg-gray-50 ${
-                      check.status === 'discrepancy' ? 'bg-red-50' : 
-                      check.status === 'balanced' ? 'bg-green-50' : ''
-                    }`}>
+                  {balanceChecks.map((check) => {
+                    let rowBgClass = 'hover:bg-gray-50'
+                    if (check.status === 'discrepancy') {
+                      rowBgClass = 'hover:bg-gray-50 bg-red-50'
+                    } else if (check.status === 'balanced') {
+                      rowBgClass = 'hover:bg-gray-50 bg-green-50'
+                    }
+                    
+                    let differenceColorClass = 'text-red-600'
+                    if (check.difference === 0) {
+                      differenceColorClass = 'text-green-600'
+                    } else if (check.difference > 0) {
+                      differenceColorClass = 'text-blue-600'
+                    }
+                    
+                    return (
+                    <tr key={check.accountId} className={rowBgClass}>
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{check.accountName}</div>
                       </td>
@@ -498,10 +512,7 @@ export default function BalanceCheckPage() {
                         ) : '-'}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className={`font-semibold ${
-                          check.difference === 0 ? 'text-green-600' : 
-                          check.difference > 0 ? 'text-blue-600' : 'text-red-600'
-                        }`}>
+                        <span className={`font-semibold ${differenceColorClass}`}>
                           {check.difference === 0 ? '✓' : formatCurrency(check.difference)}
                         </span>
                       </td>
@@ -557,7 +568,7 @@ export default function BalanceCheckPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -588,7 +599,15 @@ export default function BalanceCheckPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {discrepancies.map((disc) => (
+                    {discrepancies.map((disc) => {
+                      const statementDisplay = disc.statementAmount === undefined ? '-' : formatCurrency(disc.statementAmount)
+                      let discTypeLabel = 'Diferencia Monto'
+                      if (disc.type === 'missing-in-bank') {
+                        discTypeLabel = 'Falta en Banco'
+                      } else if (disc.type === 'missing-in-system') {
+                        discTypeLabel = 'Falta en Sistema'
+                      }
+                      return (
                       <tr key={disc.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm">
                           {new Date(disc.date).toLocaleDateString('es-MX')}
@@ -598,16 +617,14 @@ export default function BalanceCheckPage() {
                           {formatCurrency(disc.systemAmount)}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {disc.statementAmount !== undefined ? formatCurrency(disc.statementAmount) : '-'}
+                          {statementDisplay}
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-red-600">
                           {formatCurrency(disc.difference)}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <Badge className="bg-orange-100 text-orange-700">
-                            {disc.type === 'missing-in-bank' ? 'Falta en Banco' :
-                             disc.type === 'missing-in-system' ? 'Falta en Sistema' :
-                             'Diferencia Monto'}
+                            {discTypeLabel}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -616,7 +633,7 @@ export default function BalanceCheckPage() {
                           </Button>
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
@@ -666,8 +683,9 @@ export default function BalanceCheckPage() {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
+                    <label htmlFor="adjustment-account" className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
                     <select
+                      id="adjustment-account"
                       value={adjustmentForm.accountId}
                       onChange={(e) => setAdjustmentForm({ ...adjustmentForm, accountId: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
@@ -696,22 +714,24 @@ export default function BalanceCheckPage() {
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Saldo Objetivo (según estado de cuenta)</label>
+                    <label htmlFor="target-balance" className="block text-sm font-medium mb-1">Saldo Objetivo (según estado de cuenta)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
+                        id="target-balance"
                         type="text"
                         placeholder="0.00"
                         className="amount-input pl-10"
                         value={adjustmentForm.targetBalance}
-                        onChange={(e) => setAdjustmentForm({ ...adjustmentForm, targetBalance: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                        onChange={(e) => setAdjustmentForm({ ...adjustmentForm, targetBalance: Number.parseFloat(e.target.value.replaceAll(',', '')) || 0 })}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Fecha del Ajuste</label>
+                    <label htmlFor="adjustment-date" className="block text-sm font-medium mb-1">Fecha del Ajuste</label>
                     <Input
+                      id="adjustment-date"
                       type="date"
                       value={adjustmentForm.date}
                       onChange={(e) => setAdjustmentForm({ ...adjustmentForm, date: e.target.value })}
@@ -719,8 +739,9 @@ export default function BalanceCheckPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Descripción del Ajuste</label>
+                    <label htmlFor="adjustment-description" className="block text-sm font-medium mb-1">Descripción del Ajuste</label>
                     <Input
+                      id="adjustment-description"
                       placeholder="Ej: Ajuste por comisiones bancarias no registradas"
                       value={adjustmentForm.description}
                       onChange={(e) => setAdjustmentForm({ ...adjustmentForm, description: e.target.value })}

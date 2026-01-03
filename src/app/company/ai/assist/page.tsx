@@ -276,6 +276,7 @@ export default function AIAssistPage() {
     } catch (error) {
       console.error('Error deleting conversation:', error)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCompany?.id, currentConversationId])
 
   useEffect(() => {
@@ -304,6 +305,7 @@ export default function AIAssistPage() {
         }, 100)
       }, 500)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, initialQueryProcessed, activeCompany?.id, loading])
 
   // Función separada para enviar mensaje desde query param

@@ -35,7 +35,7 @@ interface Employee {
 
 export default function EmployeesPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
@@ -64,7 +64,8 @@ export default function EmployeesPage() {
     if (status === 'authenticated' && activeCompany) {
       fetchEmployees()
     }
-  }, [status, activeCompany])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, activeCompany, router])
 
   useEffect(() => {
     const filtered = employees.filter(
@@ -98,6 +99,15 @@ export default function EmployeesPage() {
   // Función para abrir modal de edición
   const handleEditEmployee = (employee: Employee) => {
     setSelectedEmployee(employee)
+    // Format start date
+    let formattedStartDate = ''
+    if (employee.startDate) {
+      if (typeof employee.startDate === 'string') {
+        formattedStartDate = employee.startDate.split('T')[0]
+      } else {
+        formattedStartDate = new Date(employee.startDate).toISOString().split('T')[0]
+      }
+    }
     setEditFormData({
       firstName: employee.firstName,
       lastName: employee.lastName,
@@ -106,7 +116,7 @@ export default function EmployeesPage() {
       position: employee.position,
       department: employee.department,
       salary: employee.salary,
-      startDate: employee.startDate ? (typeof employee.startDate === 'string' ? employee.startDate.split('T')[0] : new Date(employee.startDate).toISOString().split('T')[0]) : '',
+      startDate: formattedStartDate,
       status: employee.status
     })
     setShowEditModal(true)
@@ -225,10 +235,10 @@ export default function EmployeesPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {stats.map((stat, index) => {
+          {stats.map((stat) => {
             const Icon = stat.icon
             return (
-              <Card key={index}>
+              <Card key={stat.label}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-sm text-gray-600">{stat.label}</div>
@@ -368,23 +378,36 @@ export default function EmployeesPage() {
 
         {/* Modal Editar Empleado */}
         {showEditModal && selectedEmployee && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
-            <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <CardTitle>Editar Empleado: {selectedEmployee.firstName} {selectedEmployee.lastName}</CardTitle>
-              </CardHeader>
+          <>
+            <button
+              type="button" 
+              className="fixed inset-0 bg-black/50 z-40" 
+              onClick={() => setShowEditModal(false)}
+              onKeyDown={(e) => e.key === 'Escape' && setShowEditModal(false)}
+              aria-label="Cerrar modal"
+            />
+            <div 
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+              aria-labelledby="edit-modal-title"
+            >
+              <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                <CardHeader>
+                  <CardTitle id="edit-modal-title">Editar Empleado: {selectedEmployee.firstName} {selectedEmployee.lastName}</CardTitle>
+                </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Nombre</label>
+                    <label htmlFor="edit-firstName" className="text-sm font-medium">Nombre</label>
                     <Input 
+                      id="edit-firstName"
                       value={editFormData.firstName}
                       onChange={(e) => setEditFormData({...editFormData, firstName: e.target.value})}
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Apellido</label>
+                    <label htmlFor="edit-lastName" className="text-sm font-medium">Apellido</label>
                     <Input 
+                      id="edit-lastName"
                       value={editFormData.lastName}
                       onChange={(e) => setEditFormData({...editFormData, lastName: e.target.value})}
                     />
@@ -393,16 +416,18 @@ export default function EmployeesPage() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Email</label>
+                    <label htmlFor="edit-email" className="text-sm font-medium">Email</label>
                     <Input 
+                      id="edit-email"
                       type="email" 
                       value={editFormData.email}
                       onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Teléfono</label>
+                    <label htmlFor="edit-phone" className="text-sm font-medium">Teléfono</label>
                     <Input 
+                      id="edit-phone"
                       value={editFormData.phone}
                       onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
                     />
@@ -411,15 +436,17 @@ export default function EmployeesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Puesto</label>
+                    <label htmlFor="edit-position" className="text-sm font-medium">Puesto</label>
                     <Input 
+                      id="edit-position"
                       value={editFormData.position}
                       onChange={(e) => setEditFormData({...editFormData, position: e.target.value})}
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Departamento</label>
+                    <label htmlFor="edit-department" className="text-sm font-medium">Departamento</label>
                     <select 
+                      id="edit-department"
                       className="w-full border rounded-md p-2"
                       value={editFormData.department}
                       onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
@@ -438,17 +465,19 @@ export default function EmployeesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Salario Anual</label>
+                    <label htmlFor="edit-salary" className="text-sm font-medium">Salario Anual</label>
                     <Input 
+                      id="edit-salary"
                       type="text"
                       className="amount-input"
                       value={editFormData.salary}
-                      onChange={(e) => setEditFormData({...editFormData, salary: Number(e.target.value.replace(/,/g, ''))})}
+                      onChange={(e) => setEditFormData({...editFormData, salary: Number(e.target.value.replaceAll(',', ''))})}
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Fecha de Inicio</label>
+                    <label htmlFor="edit-startDate" className="text-sm font-medium">Fecha de Inicio</label>
                     <Input 
+                      id="edit-startDate"
                       type="date" 
                       value={editFormData.startDate}
                       onChange={(e) => setEditFormData({...editFormData, startDate: e.target.value})}
@@ -457,8 +486,9 @@ export default function EmployeesPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">Estado</label>
+                  <label htmlFor="edit-status" className="text-sm font-medium">Estado</label>
                   <select 
+                    id="edit-status"
                     className="w-full border rounded-md p-2"
                     value={editFormData.status}
                     onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
@@ -481,15 +511,27 @@ export default function EmployeesPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+            </div>
+          </>
         )}
 
         {/* Modal Confirmar Eliminación */}
         {showDeleteModal && selectedEmployee && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteModal(false)}>
-            <Card className="w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-red-600">
+          <>
+            <button
+              type="button" 
+              className="fixed inset-0 bg-black/50 z-40" 
+              onClick={() => setShowDeleteModal(false)}
+              onKeyDown={(e) => e.key === 'Escape' && setShowDeleteModal(false)}
+              aria-label="Cerrar modal"
+            />
+            <div 
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+              aria-labelledby="delete-modal-title"
+            >
+              <Card className="w-full max-w-md mx-4 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                <CardHeader>
+                  <CardTitle id="delete-modal-title" className="flex items-center gap-2 text-red-600">
                   <AlertTriangle className="w-5 h-5" />
                   Confirmar Eliminación
                 </CardTitle>
@@ -499,8 +541,7 @@ export default function EmployeesPage() {
                   ¿Estás seguro de que deseas eliminar al empleado{' '}
                   <span className="font-semibold text-gray-900">
                     {selectedEmployee.firstName} {selectedEmployee.lastName}
-                  </span>
-                  ?
+                  </span>?
                 </p>
                 <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
                   Esta acción no se puede deshacer. Se eliminarán todos los registros asociados a este empleado.
@@ -518,47 +559,59 @@ export default function EmployeesPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+            </div>
+          </>
         )}
 
         {/* Modal Nuevo Empleado */}
         {showNewEmployeeModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewEmployeeModal(false)}>
-            <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <CardTitle>Nuevo Empleado</CardTitle>
-              </CardHeader>
+          <>
+            <button
+              type="button" 
+              className="fixed inset-0 bg-black/50 z-40" 
+              onClick={() => setShowNewEmployeeModal(false)}
+              onKeyDown={(e) => e.key === 'Escape' && setShowNewEmployeeModal(false)}
+              aria-label="Cerrar modal"
+            />
+            <div 
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+              aria-labelledby="new-employee-modal-title"
+            >
+              <Card className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                <CardHeader>
+                  <CardTitle id="new-employee-modal-title">Nuevo Empleado</CardTitle>
+                </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Nombre</label>
-                    <Input placeholder="Juan" />
+                    <label htmlFor="new-firstName" className="text-sm font-medium">Nombre</label>
+                    <Input id="new-firstName" placeholder="Juan" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Apellido</label>
-                    <Input placeholder="Pérez" />
+                    <label htmlFor="new-lastName" className="text-sm font-medium">Apellido</label>
+                    <Input id="new-lastName" placeholder="Pérez" />
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Email</label>
-                    <Input type="email" placeholder="juan.perez@empresa.com" />
+                    <label htmlFor="new-email" className="text-sm font-medium">Email</label>
+                    <Input id="new-email" type="email" placeholder="juan.perez@empresa.com" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Teléfono</label>
-                    <Input placeholder="(555) 123-4567" />
+                    <label htmlFor="new-phone" className="text-sm font-medium">Teléfono</label>
+                    <Input id="new-phone" placeholder="(555) 123-4567" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Puesto</label>
-                    <Input placeholder="Contador Senior" />
+                    <label htmlFor="new-position" className="text-sm font-medium">Puesto</label>
+                    <Input id="new-position" placeholder="Contador Senior" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Departamento</label>
-                    <select className="w-full border rounded-md p-2">
+                    <label htmlFor="new-department" className="text-sm font-medium">Departamento</label>
+                    <select id="new-department" className="w-full border rounded-md p-2">
                       <option>Contabilidad</option>
                       <option>Ventas</option>
                       <option>Operaciones</option>
@@ -571,23 +624,23 @@ export default function EmployeesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Salario Anual</label>
-                    <Input type="text" className="amount-input" placeholder="75000" />
+                    <label htmlFor="new-salary" className="text-sm font-medium">Salario Anual</label>
+                    <Input id="new-salary" type="text" className="amount-input" placeholder="75000" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Fecha de Inicio</label>
-                    <Input type="date" />
+                    <label htmlFor="new-startDate" className="text-sm font-medium">Fecha de Inicio</label>
+                    <Input id="new-startDate" type="date" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">SSN / RFC</label>
-                    <Input placeholder="123-45-6789" />
+                    <label htmlFor="new-ssn" className="text-sm font-medium">SSN / RFC</label>
+                    <Input id="new-ssn" placeholder="123-45-6789" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Tipo de Empleado</label>
-                    <select className="w-full border rounded-md p-2">
+                    <label htmlFor="new-employeeType" className="text-sm font-medium">Tipo de Empleado</label>
+                    <select id="new-employeeType" className="w-full border rounded-md p-2">
                       <option>W-2 Employee</option>
                       <option>1099 Contractor</option>
                       <option>1099-NEC</option>
@@ -597,23 +650,23 @@ export default function EmployeesPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">Dirección</label>
-                  <Input placeholder="123 Main Street, Miami, FL 33101" />
+                  <label htmlFor="new-address" className="text-sm font-medium">Dirección</label>
+                  <Input id="new-address" placeholder="123 Main Street, Miami, FL 33101" />
                 </div>
 
                 <div className="border-t pt-4">
                   <h3 className="font-semibold mb-3">Información de Nómina</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium">Método de Pago</label>
-                      <select className="w-full border rounded-md p-2">
+                      <label htmlFor="new-paymentMethod" className="text-sm font-medium">Método de Pago</label>
+                      <select id="new-paymentMethod" className="w-full border rounded-md p-2">
                         <option>Depósito Directo</option>
                         <option>Cheque</option>
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Frecuencia de Pago</label>
-                      <select className="w-full border rounded-md p-2">
+                      <label htmlFor="new-payFrequency" className="text-sm font-medium">Frecuencia de Pago</label>
+                      <select id="new-payFrequency" className="w-full border rounded-md p-2">
                         <option>Quincenal</option>
                         <option>Semanal</option>
                         <option>Mensual</option>
@@ -626,8 +679,8 @@ export default function EmployeesPage() {
                   <h3 className="font-semibold mb-3">Retenciones (W-4)</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium">Filing Status</label>
-                      <select className="w-full border rounded-md p-2">
+                      <label htmlFor="new-filingStatus" className="text-sm font-medium">Filing Status</label>
+                      <select id="new-filingStatus" className="w-full border rounded-md p-2">
                         <option>Single</option>
                         <option>Married Filing Jointly</option>
                         <option>Married Filing Separately</option>
@@ -635,8 +688,8 @@ export default function EmployeesPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Allowances</label>
-                      <Input type="text" className="amount-input" placeholder="1" defaultValue="1" />
+                      <label htmlFor="new-allowances" className="text-sm font-medium">Allowances</label>
+                      <Input id="new-allowances" type="text" className="amount-input" placeholder="1" defaultValue="1" />
                     </div>
                   </div>
                 </div>
@@ -654,7 +707,8 @@ export default function EmployeesPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </CompanyTabsLayout>

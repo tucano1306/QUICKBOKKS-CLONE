@@ -9,7 +9,6 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Upload,
-  Camera,
   FileText,
   History,
   CheckCircle,
@@ -18,8 +17,7 @@ import {
   Trash2,
   Eye,
   Download,
-  AlertCircle,
-  RefreshCw
+  AlertCircle
 } from 'lucide-react'
 
 interface Receipt {
@@ -35,7 +33,7 @@ interface Receipt {
 
 export default function ReceiptsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(false)
@@ -130,7 +128,7 @@ export default function ReceiptsPage() {
     e.stopPropagation()
     setDragActive(false)
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    if (e.dataTransfer.files?.[0]) {
       processFile(e.dataTransfer.files[0])
     }
   }
@@ -257,6 +255,12 @@ export default function ReceiptsPage() {
           </p>
         </div>
 
+        {loading && (
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+          </div>
+        )}
+
         {/* Upload Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Upload Card */}
@@ -264,9 +268,10 @@ export default function ReceiptsPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Subir Recibo</h2>
 
             {/* Drag and Drop Zone */}
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+            <label
+              htmlFor="file-upload"
+              className={`block border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -275,6 +280,7 @@ export default function ReceiptsPage() {
             >
               {selectedFile && preview ? (
                 <div className="space-y-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={preview}
                     alt="Preview"
@@ -300,7 +306,7 @@ export default function ReceiptsPage() {
                       {uploading ? (
                         <>
                           <span className="animate-spin mr-2">⏳</span>
-                          Subiendo...
+                          <span>Subiendo...</span>
                         </>
                       ) : (
                         <>
@@ -340,7 +346,7 @@ export default function ReceiptsPage() {
                   </div>
                 </div>
               )}
-            </div>
+            </label>
           </Card>
 
           {/* Info Card */}

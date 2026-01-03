@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -31,7 +31,6 @@ import {
   Building2,
   Users,
   Calendar,
-  DollarSign,
   CheckCircle2,
   AlertCircle,
   FileSpreadsheet
@@ -153,7 +152,7 @@ const taxForms: TaxFormData[] = [
 
 export default function TaxFormsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   
   const [selectedForm, setSelectedForm] = useState<TaxFormType>('rt6')
@@ -161,7 +160,6 @@ export default function TaxFormsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(2024)
   const [selectedQuarter, setSelectedQuarter] = useState<number>(4)
   const [employees, setEmployees] = useState<Employee[]>(sampleEmployees)
-  const [isLoading, setIsLoading] = useState(false)
   const [previewData, setPreviewData] = useState<any>(null)
   const [showPreview, setShowPreview] = useState(false)
 
@@ -171,16 +169,10 @@ export default function TaxFormsPage() {
     }
   }, [status, router])
 
-  // Cargar empleados reales si hay compañía activa
-  useEffect(() => {
-    if (activeCompany) {
-      fetchEmployees()
-    }
-  }, [activeCompany])
-
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
+    if (!activeCompany?.id) return
     try {
-      const response = await fetch(`/api/employees?companyId=${activeCompany?.id}`)
+      const response = await fetch(`/api/employees?companyId=${activeCompany.id}`)
       if (response.ok) {
         const result = await response.json()
         const data = result.data || result
@@ -191,7 +183,14 @@ export default function TaxFormsPage() {
     } catch (error) {
       console.error('Error fetching employees:', error)
     }
-  }
+  }, [activeCompany?.id])
+
+  // Cargar empleados reales si hay compañía activa
+  useEffect(() => {
+    if (activeCompany) {
+      fetchEmployees()
+    }
+  }, [activeCompany, fetchEmployees])
 
   const currentFormInfo = taxForms.find(f => f.type === selectedForm)
 
@@ -456,7 +455,7 @@ export default function TaxFormsPage() {
       csvContent += `EIN,${data.companyInfo.ein}\n\n`
       
       Object.entries(data.data).forEach(([key, value]) => {
-        if (typeof value !== 'object') {
+        if (typeof value === 'string' || typeof value === 'number') {
           csvContent += `${key},$${value}\n`
         }
       })
@@ -473,7 +472,7 @@ export default function TaxFormsPage() {
   // Descargar formulario
   const handleDownload = () => {
     let data: any
-    let filename: string
+    let filename: string = ''
 
     switch (selectedForm) {
       case 'rt6':
@@ -507,13 +506,13 @@ export default function TaxFormsPage() {
           const emp = employees.find(e => e.id === selectedEmployee)
           if (emp) {
             data = generateW2Data(emp)
-            filename = `FormW2_${emp.lastName.replace(/\s/g, '_')}`
+            filename = `FormW2_${emp.lastName.replaceAll(/\s/g, '_')}`
           }
         }
         break
     }
 
-    downloadAsCSV(data, filename!)
+    downloadAsCSV(data, filename)
   }
 
   // Renderizar preview del formulario
@@ -523,8 +522,8 @@ export default function TaxFormsPage() {
     if (previewData.formType === 'Form W-2 (Todos)') {
       return (
         <div className="space-y-6">
-          {previewData.employees.map((w2: any, index: number) => (
-            <Card key={index} className="border-2 border-blue-200">
+          {previewData.employees.map((w2: any) => (
+            <Card key={w2.employeeInfo.ssn} className="border-2 border-blue-200">
               <CardHeader className="bg-blue-50">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <FileText className="w-5 h-5" />
@@ -588,9 +587,9 @@ export default function TaxFormsPage() {
               if (typeof value === 'object') return null
               
               const label = key
-                .replace(/([A-Z])/g, ' $1')
+                .replaceAll(/([A-Z])/g, ' $1')
                 .replace(/^./, str => str.toUpperCase())
-                .replace(/_/g, ' ')
+                .replaceAll('_', ' ')
 
               return (
                 <div key={key} className="p-3 bg-gray-50 rounded-lg">
@@ -615,8 +614,8 @@ export default function TaxFormsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {previewData.data.employees.map((emp: any, index: number) => (
-                    <TableRow key={index}>
+                  {previewData.data.employees.map((emp: any) => (
+                    <TableRow key={emp.ssn}>
                       <TableCell>{emp.ssn}</TableCell>
                       <TableCell>{emp.name}</TableCell>
                       <TableCell className="text-right">${emp.wages}</TableCell>
@@ -688,14 +687,14 @@ export default function TaxFormsPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Selector de Formulario */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="form-type" className="block text-sm font-medium text-gray-700 mb-2">
                   Tipo de Formulario
                 </label>
                 <Select value={selectedForm} onValueChange={(value: TaxFormType) => {
                   setSelectedForm(value)
                   setShowPreview(false)
                 }}>
-                  <SelectTrigger>
+                  <SelectTrigger id="form-type">
                     <SelectValue placeholder="Seleccione formulario" />
                   </SelectTrigger>
                   <SelectContent>
@@ -713,11 +712,11 @@ export default function TaxFormsPage() {
 
               {/* Selector de Año */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="fiscal-year" className="block text-sm font-medium text-gray-700 mb-2">
                   Año Fiscal
                 </label>
-                <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                  <SelectTrigger>
+                <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number.parseInt(value))}>
+                  <SelectTrigger id="fiscal-year">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -731,11 +730,11 @@ export default function TaxFormsPage() {
               {/* Selector de Trimestre (solo para formularios trimestrales) */}
               {(selectedForm === 'rt6' || selectedForm === '941') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="quarter" className="block text-sm font-medium text-gray-700 mb-2">
                     Trimestre
                   </label>
-                  <Select value={selectedQuarter.toString()} onValueChange={(value) => setSelectedQuarter(parseInt(value))}>
-                    <SelectTrigger>
+                  <Select value={selectedQuarter.toString()} onValueChange={(value) => setSelectedQuarter(Number.parseInt(value))}>
+                    <SelectTrigger id="quarter">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -751,11 +750,11 @@ export default function TaxFormsPage() {
               {/* Selector de Empleado (solo para W-2) */}
               {selectedForm === 'w2' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="employee" className="block text-sm font-medium text-gray-700 mb-2">
                     Empleado
                   </label>
                   <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                    <SelectTrigger>
+                    <SelectTrigger id="employee">
                       <SelectValue placeholder="Seleccione empleado" />
                     </SelectTrigger>
                     <SelectContent>
@@ -894,9 +893,10 @@ export default function TaxFormsPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {taxForms.map(form => (
-                <div
+                <button
+                  type="button"
                   key={form.type}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                  className={`p-4 border rounded-lg cursor-pointer transition-all text-left w-full ${
                     selectedForm === form.type
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-blue-300'
@@ -917,7 +917,7 @@ export default function TaxFormsPage() {
                       <p className="text-xs text-gray-500">{form.frequency}</p>
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </CardContent>

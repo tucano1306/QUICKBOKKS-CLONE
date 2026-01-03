@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Building, Edit, Check, Trash2, X, AlertTriangle, ArrowRight, LogIn } from 'lucide-react'
+import { Plus, Building, Check, Trash2, X, AlertTriangle, ArrowRight, LogIn } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useCompany } from '@/contexts/CompanyContext'
 
@@ -40,7 +40,7 @@ interface NewCompanyForm {
 
 export default function CompaniesPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { companies, activeCompany, setActiveCompany, refreshCompanies } = useCompany()
   const [isLoading, setIsLoading] = useState(false)
   const [showNewCompanyForm, setShowNewCompanyForm] = useState(false)
@@ -228,10 +228,11 @@ export default function CompaniesPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-name" className="block text-sm font-medium text-gray-700 mb-1">
                       Nombre Comercial *
                     </label>
                     <Input
+                      id="company-name"
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
@@ -240,10 +241,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-legalName" className="block text-sm font-medium text-gray-700 mb-1">
                       Razón Social *
                     </label>
                     <Input
+                      id="company-legalName"
                       name="legalName"
                       value={formData.legalName}
                       onChange={handleInputChange}
@@ -252,10 +254,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-taxId" className="block text-sm font-medium text-gray-700 mb-1">
                       RFC *
                     </label>
                     <Input
+                      id="company-taxId"
                       name="taxId"
                       value={formData.taxId}
                       onChange={handleInputChange}
@@ -264,10 +267,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-industry" className="block text-sm font-medium text-gray-700 mb-1">
                       Industria
                     </label>
                     <Input
+                      id="company-industry"
                       name="industry"
                       value={formData.industry}
                       onChange={handleInputChange}
@@ -275,10 +279,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-phone" className="block text-sm font-medium text-gray-700 mb-1">
                       Teléfono
                     </label>
                     <Input
+                      id="company-phone"
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
@@ -286,10 +291,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-email" className="block text-sm font-medium text-gray-700 mb-1">
                       Email
                     </label>
                     <Input
+                      id="company-email"
                       name="email"
                       type="email"
                       value={formData.email}
@@ -298,10 +304,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-address" className="block text-sm font-medium text-gray-700 mb-1">
                       Dirección
                     </label>
                     <Input
+                      id="company-address"
                       name="address"
                       value={formData.address}
                       onChange={handleInputChange}
@@ -309,10 +316,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-city" className="block text-sm font-medium text-gray-700 mb-1">
                       Ciudad
                     </label>
                     <Input
+                      id="company-city"
                       name="city"
                       value={formData.city}
                       onChange={handleInputChange}
@@ -320,10 +328,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-state" className="block text-sm font-medium text-gray-700 mb-1">
                       Estado
                     </label>
                     <Input
+                      id="company-state"
                       name="state"
                       value={formData.state}
                       onChange={handleInputChange}
@@ -331,10 +340,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-zipCode" className="block text-sm font-medium text-gray-700 mb-1">
                       Código Postal
                     </label>
                     <Input
+                      id="company-zipCode"
                       name="zipCode"
                       value={formData.zipCode}
                       onChange={handleInputChange}
@@ -342,10 +352,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-country" className="block text-sm font-medium text-gray-700 mb-1">
                       País
                     </label>
                     <Input
+                      id="company-country"
                       name="country"
                       value={formData.country}
                       onChange={handleInputChange}
@@ -353,10 +364,11 @@ export default function CompaniesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="company-website" className="block text-sm font-medium text-gray-700 mb-1">
                       Sitio Web
                     </label>
                     <Input
+                      id="company-website"
                       name="website"
                       value={formData.website}
                       onChange={handleInputChange}
@@ -398,6 +410,7 @@ export default function CompaniesPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {company.logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={company.logo}
                         alt={company.name}

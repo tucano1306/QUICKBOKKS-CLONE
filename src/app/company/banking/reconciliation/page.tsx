@@ -67,8 +67,8 @@ interface BankAccount {
 
 export default function BankReconciliationPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
-  const { activeCompany } = useCompany()
+  const { status } = useSession()
+  useCompany() // Context required for company-scoped page
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -107,6 +107,7 @@ export default function BankReconciliationPage() {
     if (status === 'authenticated') {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router])
 
   const loadData = async () => {
@@ -160,6 +161,12 @@ export default function BankReconciliationPage() {
         // Set current period from latest reconciliation or summary
         if (data.reconciliations?.length > 0) {
           const latest = data.reconciliations[0]
+          let statusValue: 'completed' | 'in-progress' | 'needs-review' = 'needs-review'
+          if (latest.status === 'completed') {
+            statusValue = 'completed'
+          } else if (latest.status === 'in_progress') {
+            statusValue = 'in-progress'
+          }
           setReconciliationPeriod({
             id: latest.id,
             accountId: latest.bankAccountId,
@@ -167,15 +174,14 @@ export default function BankReconciliationPage() {
             periodStart: latest.startDate,
             periodEnd: latest.endDate,
             openingBalance: 0,
-            closingBalance: parseFloat(latest.endingBalance) || 0,
-            statementBalance: parseFloat(latest.statementBalance) || 0,
-            difference: parseFloat(latest.difference) || 0,
+            closingBalance: Number.parseFloat(latest.endingBalance) || 0,
+            statementBalance: Number.parseFloat(latest.statementBalance) || 0,
+            difference: Number.parseFloat(latest.difference) || 0,
             totalDeposits: 0,
             totalWithdrawals: 0,
             reconciledItems: latest._count?.matches || 0,
             pendingItems: 0,
-            status: latest.status === 'completed' ? 'completed' : 
-                   latest.status === 'in_progress' ? 'in-progress' : 'needs-review'
+            status: statusValue
           })
         }
       }
@@ -434,7 +440,7 @@ export default function BankReconciliationPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        await response.json()
         const matchedIds = pendingIds
         setReconciledItems(new Set(matchedIds))
         showMessage('success', `Conciliación automática: ${matchedIds.length} items conciliados`)
@@ -452,7 +458,7 @@ export default function BankReconciliationPage() {
   }
 
   // Función para marcar/desmarcar item como conciliado
-  const toggleReconciled = (itemId: string) => {
+  const _toggleReconciled = (itemId: string) => {
     const newSet = new Set(reconciledItems)
     if (newSet.has(itemId)) {
       newSet.delete(itemId)
@@ -549,6 +555,11 @@ export default function BankReconciliationPage() {
         {/* Reconciliation Period Summary */}
         <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
           <CardContent className="p-6">
+            {reconciliations.length > 0 && (
+              <p className="text-blue-100 text-sm mb-2">
+                {reconciliations.length} conciliaciones registradas
+              </p>
+            )}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold mb-1">{currentPeriod.accountName || 'Seleccione una cuenta'}</h3>
@@ -701,12 +712,17 @@ export default function BankReconciliationPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredItems.map((item) => (
-                    <tr key={item.id} className={`hover:bg-gray-50 ${
-                      item.status === 'discrepancy' ? 'bg-red-50' :
-                      item.status === 'missing-system' ? 'bg-orange-50' :
-                      item.status === 'missing-statement' ? 'bg-blue-50' : ''
-                    }`}>
+                  {filteredItems.map((item) => {
+                    let rowClass = 'hover:bg-gray-50'
+                    if (item.status === 'discrepancy') {
+                      rowClass = 'hover:bg-gray-50 bg-red-50'
+                    } else if (item.status === 'missing-system') {
+                      rowClass = 'hover:bg-gray-50 bg-orange-50'
+                    } else if (item.status === 'missing-statement') {
+                      rowClass = 'hover:bg-gray-50 bg-blue-50'
+                    }
+                    return (
+                    <tr key={item.id} className={rowClass}>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-gray-400" />
@@ -739,17 +755,17 @@ export default function BankReconciliationPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900">
-                        {item.systemBalance !== undefined ? (
-                          `$${Math.abs(item.systemBalance).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
-                        ) : (
+                        {item.systemBalance === undefined ? (
                           <span className="text-orange-600">-</span>
+                        ) : (
+                          `$${Math.abs(item.systemBalance).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
                         )}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900">
-                        {item.statementBalance !== undefined ? (
-                          `$${Math.abs(item.statementBalance).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
-                        ) : (
+                        {item.statementBalance === undefined ? (
                           <span className="text-blue-600">-</span>
+                        ) : (
+                          `$${Math.abs(item.statementBalance).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -768,7 +784,7 @@ export default function BankReconciliationPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}  
                 </tbody>
               </table>
             </div>
@@ -815,8 +831,9 @@ export default function BankReconciliationPage() {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
+                    <label htmlFor="new-recon-account" className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
                     <select 
+                      id="new-recon-account"
                       className="w-full px-3 py-2 border rounded-lg"
                       value={newReconciliationForm.accountId}
                       onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, accountId: e.target.value })}
@@ -831,16 +848,18 @@ export default function BankReconciliationPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Fecha Inicio del Período</label>
+                      <label htmlFor="recon-start-date" className="block text-sm font-medium mb-1">Fecha Inicio del Período</label>
                       <Input 
+                        id="recon-start-date"
                         type="date" 
                         value={newReconciliationForm.startDate}
                         onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, startDate: e.target.value })}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Fecha Fin del Período</label>
+                      <label htmlFor="recon-end-date" className="block text-sm font-medium mb-1">Fecha Fin del Período</label>
                       <Input 
+                        id="recon-end-date"
                         type="date" 
                         value={newReconciliationForm.endDate}
                         onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, endDate: e.target.value })}
@@ -848,15 +867,16 @@ export default function BankReconciliationPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Saldo Final según Estado de Cuenta</label>
+                    <label htmlFor="recon-statement-balance" className="block text-sm font-medium mb-1">Saldo Final según Estado de Cuenta</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input 
+                        id="recon-statement-balance"
                         type="text" 
                         placeholder="0.00"
                         className="amount-input pl-10"
                         value={newReconciliationForm.statementBalance}
-                        onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, statementBalance: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                        onChange={(e) => setNewReconciliationForm({ ...newReconciliationForm, statementBalance: Number.parseFloat(e.target.value.replaceAll(',', '')) || 0 })}
                       />
                     </div>
                   </div>
@@ -906,8 +926,9 @@ export default function BankReconciliationPage() {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
+                    <label htmlFor="import-account" className="block text-sm font-medium mb-1">Cuenta Bancaria</label>
                     <select 
+                      id="import-account"
                       className="w-full px-3 py-2 border rounded-lg"
                       value={importForm.accountId}
                       onChange={(e) => setImportForm({ ...importForm, accountId: e.target.value })}

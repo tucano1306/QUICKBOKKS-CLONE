@@ -176,7 +176,8 @@ export default function BankingManagementPage() {
     if (status === 'authenticated') {
       loadData()
     }
-  }, [status])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, router])
 
   const loadData = async () => {
     setLoading(true)

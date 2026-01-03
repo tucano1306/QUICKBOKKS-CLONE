@@ -19,8 +19,6 @@ import {
   Trash2,
   Calendar,
   User,
-  DollarSign,
-  Eye,
   Calculator,
   CreditCard,
   Building2,
@@ -121,7 +119,8 @@ export default function NewInvoicePage() {
       generateInvoiceNumber()
       fetchClassesAndLocations()
     }
-  }, [activeCompany])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCompany?.id])
 
   const fetchClassesAndLocations = async () => {
     try {
@@ -180,7 +179,7 @@ export default function NewInvoicePage() {
     const k = 1024
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   const fetchProducts = async () => {
@@ -202,7 +201,7 @@ export default function NewInvoicePage() {
       if (response.ok) {
         const data = await response.json()
         const invoices = Array.isArray(data) ? data : data.data || []
-        const lastNumber = invoices.length > 0 ? invoices.length : 0
+        const lastNumber = Math.max(invoices.length, 0)
         const year = new Date().getFullYear()
         const month = String(new Date().getMonth() + 1).padStart(2, '0')
         setInvoiceNumber(`FAC-${year}${month}-${String(lastNumber + 1).padStart(4, '0')}`)
@@ -384,7 +383,7 @@ export default function NewInvoicePage() {
       })
 
       if (response.ok) {
-        const invoice = await response.json()
+        await response.json()
         toast.success('✅ Factura creada y enviada')
         
         // Enviar email al cliente
@@ -497,10 +496,11 @@ export default function NewInvoicePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="invoice-customer" className="block text-sm font-medium text-gray-700 mb-2">
                     Cliente *
                   </label>
                   <select
+                    id="invoice-customer"
                     value={selectedCustomer}
                     onChange={(e) => setSelectedCustomer(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -546,20 +546,22 @@ export default function NewInvoicePage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="invoice-issue-date" className="block text-sm font-medium text-gray-700 mb-2">
                       Fecha de Emisión
                     </label>
                     <Input
+                      id="invoice-issue-date"
                       type="date"
                       value={issueDate}
                       onChange={(e) => setIssueDate(e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="invoice-due-date" className="block text-sm font-medium text-gray-700 mb-2">
                       Fecha de Vencimiento
                     </label>
                     <Input
+                      id="invoice-due-date"
                       type="date"
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
@@ -568,10 +570,11 @@ export default function NewInvoicePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="invoice-terms" className="block text-sm font-medium text-gray-700 mb-2">
                     Términos de Pago
                   </label>
                   <Input
+                    id="invoice-terms"
                     value={terms}
                     onChange={(e) => setTerms(e.target.value)}
                     placeholder="Ej: Pago en 30 días"
@@ -636,10 +639,11 @@ export default function NewInvoicePage() {
 
                         <div className="grid grid-cols-2 gap-3">
                           <div className="col-span-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <label htmlFor={`item-product-${item.id}`} className="block text-xs font-medium text-gray-600 mb-1">
                               Producto
                             </label>
                             <select
+                              id={`item-product-${item.id}`}
                               value={item.productId}
                               onChange={(e) => updateItem(item.id, 'productId', e.target.value)}
                               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
@@ -654,10 +658,11 @@ export default function NewInvoicePage() {
                           </div>
 
                           <div className="col-span-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <label htmlFor={`item-desc-${item.id}`} className="block text-xs font-medium text-gray-600 mb-1">
                               Descripción
                             </label>
                             <Input
+                              id={`item-desc-${item.id}`}
                               value={item.description}
                               onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                               placeholder="Descripción del producto o servicio"
@@ -666,46 +671,49 @@ export default function NewInvoicePage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <label htmlFor={`item-qty-${item.id}`} className="block text-xs font-medium text-gray-600 mb-1">
                               Cantidad
                             </label>
                             <Input
+                              id={`item-qty-${item.id}`}
                               type="text"
                               className="text-sm amount-input"
                               value={item.quantity}
-                              onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                              onChange={(e) => updateItem(item.id, 'quantity', Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <label htmlFor={`item-price-${item.id}`} className="block text-xs font-medium text-gray-600 mb-1">
                               Precio Unitario
                             </label>
                             <Input
+                              id={`item-price-${item.id}`}
                               type="text"
                               className="text-sm amount-input"
                               value={item.unitPrice}
-                              onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                              onChange={(e) => updateItem(item.id, 'unitPrice', Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <label htmlFor={`item-tax-${item.id}`} className="block text-xs font-medium text-gray-600 mb-1">
                               IVA (%)
                             </label>
                             <Input
+                              id={`item-tax-${item.id}`}
                               type="text"
                               className="text-sm amount-input"
                               value={item.taxRate}
-                              onChange={(e) => updateItem(item.id, 'taxRate', parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                              onChange={(e) => updateItem(item.id, 'taxRate', Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                               disabled={taxExempt}
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <span className="block text-xs font-medium text-gray-600 mb-1">
                               Total
-                            </label>
+                            </span>
                             <div className="px-3 py-2 bg-gray-50 rounded-md text-sm font-semibold text-gray-900">
                               ${item.total.toFixed(2)}
                             </div>
@@ -745,10 +753,11 @@ export default function NewInvoicePage() {
                 <CardContent className="space-y-4">
                   {classes.length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="invoice-class" className="block text-sm font-medium text-gray-700 mb-2">
                         Clase
                       </label>
                       <select
+                        id="invoice-class"
                         value={selectedClass}
                         onChange={(e) => setSelectedClass(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -880,7 +889,7 @@ export default function NewInvoicePage() {
                             type="text"
                             className="w-16 h-8 text-sm text-right amount-input"
                             value={discount}
-                            onChange={(e) => setDiscount(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                            onChange={(e) => setDiscount(Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                           />
                           <span className="text-xs">%</span>
                         </div>

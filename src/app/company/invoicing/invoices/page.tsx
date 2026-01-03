@@ -59,7 +59,8 @@ export default function InvoicesPage() {
     if (status === 'authenticated' && activeCompany) {
       fetchInvoices()
     }
-  }, [status, activeCompany])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, activeCompany, router])
 
   useEffect(() => {
     let filtered = invoices

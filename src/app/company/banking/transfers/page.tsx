@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { 
   ArrowRightLeft,
-  Plus,
   Search,
   Download,
   Eye,
@@ -64,8 +63,8 @@ interface BankAccount {
 
 export default function BankTransfersPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
-  const { activeCompany } = useCompany()
+  const { status } = useSession()
+  useCompany() // Context required for company-scoped page
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -103,6 +102,7 @@ export default function BankTransfersPage() {
     if (status === 'authenticated') {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router])
 
   const loadData = async () => {
@@ -149,8 +149,8 @@ export default function BankTransfersPage() {
           type: t.isExternal ? 'external' : 'internal',
           description: t.name || t.description || '',
           reference: t.id.slice(0, 12),
-          status: t.pending ? 'pending' : (t.reconciled ? 'completed' : 'completed'),
-          completedDate: !t.pending ? t.date : undefined
+          status: t.pending ? 'pending' : 'completed',
+          completedDate: t.pending ? undefined : t.date
         }))
         setTransfers(mappedTransfers)
       }
@@ -555,7 +555,7 @@ const getTypeBadge = (type: string) => {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 max-w-xs">
                         {transfer.description}
-                        {transfer.exchangeRate && (
+                        {transfer.exchangeRate !== undefined && transfer.exchangeRate !== null && (
                           <div className="text-xs text-purple-600 mt-1">
                             TC: {transfer.exchangeRate} → {transfer.toCurrency} ${transfer.convertedAmount?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                           </div>
@@ -568,7 +568,7 @@ const getTypeBadge = (type: string) => {
                         <div className="text-sm font-semibold text-gray-900">
                           {transfer.fromCurrency} ${transfer.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                         </div>
-                        {transfer.fee && transfer.fee > 0 && (
+                        {transfer.fee !== undefined && transfer.fee > 0 && (
                           <div className="text-xs text-orange-600">
                             Comisión: ${transfer.fee.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                           </div>
@@ -688,8 +688,9 @@ const getTypeBadge = (type: string) => {
               <div className="p-6 space-y-4">
                 {/* From Account */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Cuenta Origen *</label>
+                  <label htmlFor="transfer-from-account" className="block text-sm font-medium mb-1">Cuenta Origen *</label>
                   <select
+                    id="transfer-from-account"
                     value={transferForm.fromAccountId}
                     onChange={(e) => setTransferForm({ ...transferForm, fromAccountId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
@@ -710,8 +711,9 @@ const getTypeBadge = (type: string) => {
                 {transferType === 'internal' ? (
                   /* To Account - Internal */
                   <div>
-                    <label className="block text-sm font-medium mb-1">Cuenta Destino *</label>
+                    <label htmlFor="transfer-to-account" className="block text-sm font-medium mb-1">Cuenta Destino *</label>
                     <select
+                      id="transfer-to-account"
                       value={transferForm.toAccountId}
                       onChange={(e) => setTransferForm({ ...transferForm, toAccountId: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
@@ -728,24 +730,27 @@ const getTypeBadge = (type: string) => {
                   /* External Bank Details */
                   <>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Banco Destino *</label>
+                      <label htmlFor="transfer-ext-bank" className="block text-sm font-medium mb-1">Banco Destino *</label>
                       <Input
+                        id="transfer-ext-bank"
                         value={transferForm.externalBankName}
                         onChange={(e) => setTransferForm({ ...transferForm, externalBankName: e.target.value })}
                         placeholder="Nombre del banco"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Número de Cuenta *</label>
+                      <label htmlFor="transfer-ext-account" className="block text-sm font-medium mb-1">Número de Cuenta *</label>
                       <Input
+                        id="transfer-ext-account"
                         value={transferForm.externalAccountNumber}
                         onChange={(e) => setTransferForm({ ...transferForm, externalAccountNumber: e.target.value })}
                         placeholder="Número de cuenta destino"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Beneficiario</label>
+                      <label htmlFor="transfer-ext-holder" className="block text-sm font-medium mb-1">Beneficiario</label>
                       <Input
+                        id="transfer-ext-holder"
                         value={transferForm.externalAccountHolder}
                         onChange={(e) => setTransferForm({ ...transferForm, externalAccountHolder: e.target.value })}
                         placeholder="Nombre del beneficiario"
@@ -756,21 +761,23 @@ const getTypeBadge = (type: string) => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Fecha</label>
+                    <label htmlFor="transfer-date" className="block text-sm font-medium mb-1">Fecha</label>
                     <Input
+                      id="transfer-date"
                       type="date"
                       value={transferForm.date}
                       onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Monto *</label>
+                    <label htmlFor="transfer-amount" className="block text-sm font-medium mb-1">Monto *</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
+                        id="transfer-amount"
                         type="text"
                         value={transferForm.amount}
-                        onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                        onChange={(e) => setTransferForm({ ...transferForm, amount: Number.parseFloat(e.target.value.replaceAll(',', '')) || 0 })}
                         className="amount-input pl-10"
                       />
                     </div>
@@ -778,8 +785,9 @@ const getTypeBadge = (type: string) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Concepto / Descripción</label>
+                  <label htmlFor="transfer-description" className="block text-sm font-medium mb-1">Concepto / Descripción</label>
                   <Input
+                    id="transfer-description"
                     value={transferForm.description}
                     onChange={(e) => setTransferForm({ ...transferForm, description: e.target.value })}
                     placeholder="Descripción de la transferencia"
@@ -787,8 +795,9 @@ const getTypeBadge = (type: string) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Referencia</label>
+                  <label htmlFor="transfer-reference" className="block text-sm font-medium mb-1">Referencia</label>
                   <Input
+                    id="transfer-reference"
                     value={transferForm.reference}
                     onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })}
                     placeholder="Referencia (opcional)"

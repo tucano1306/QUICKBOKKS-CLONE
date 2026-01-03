@@ -116,6 +116,7 @@ export default function NewExpensePage() {
     if (status === 'authenticated') {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status])
 
   const loadData = async () => {

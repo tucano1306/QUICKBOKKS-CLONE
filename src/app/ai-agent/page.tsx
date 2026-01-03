@@ -67,6 +67,7 @@ Puedo ayudarte con:
         },
       ])
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleSend = async () => {

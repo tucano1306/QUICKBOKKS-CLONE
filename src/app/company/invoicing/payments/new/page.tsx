@@ -37,7 +37,7 @@ interface Invoice {
 
 export default function NewPaymentPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   
   const [loading, setLoading] = useState(false)
@@ -59,7 +59,8 @@ export default function NewPaymentPage() {
     if (activeCompany?.id) {
       fetchInvoices()
     }
-  }, [activeCompany])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCompany?.id])
 
   const fetchInvoices = async () => {
     try {
@@ -193,10 +194,11 @@ export default function NewPaymentPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="payment-invoice" className="block text-sm font-medium text-gray-700 mb-2">
                 Seleccionar Factura *
               </label>
               <select
+                id="payment-invoice"
                 value={selectedInvoice}
                 onChange={(e) => setSelectedInvoice(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -243,15 +245,16 @@ export default function NewPaymentPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="payment-amount" className="block text-sm font-medium text-gray-700 mb-2">
                 Monto Recibido *
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
+                  id="payment-amount"
                   type="text"
                   value={amount}
-                  onChange={(e) => setAmount(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                  onChange={(e) => setAmount(Number.parseFloat(e.target.value.replaceAll(',', '')) || 0)}
                   className="pl-10 text-lg font-semibold amount-input"
                   placeholder="0.00"
                 />
@@ -259,12 +262,13 @@ export default function NewPaymentPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="payment-date" className="block text-sm font-medium text-gray-700 mb-2">
                 Fecha de Pago *
               </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
+                  id="payment-date"
                   type="date"
                   value={paymentDate}
                   onChange={(e) => setPaymentDate(e.target.value)}
@@ -274,9 +278,9 @@ export default function NewPaymentPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="block text-sm font-medium text-gray-700 mb-2">
                 Método de Pago *
-              </label>
+              </span>
               <div className="grid grid-cols-2 gap-3">
                 {paymentMethods.map(method => {
                   const Icon = method.icon
@@ -301,10 +305,11 @@ export default function NewPaymentPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="payment-reference" className="block text-sm font-medium text-gray-700 mb-2">
                 Referencia / Número de Transacción
               </label>
               <Input
+                id="payment-reference"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
                 placeholder="Ej: SPEI-123456789 o Cheque #1234"
@@ -312,10 +317,11 @@ export default function NewPaymentPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="payment-notes" className="block text-sm font-medium text-gray-700 mb-2">
                 Notas Adicionales
               </label>
               <textarea
+                id="payment-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 min-h-20"

@@ -17,13 +17,8 @@ import {
   FileText, 
   CreditCard,
   DollarSign,
-  TrendingUp,
-  Calendar,
   CheckCircle,
-  Clock,
-  Filter,
-  ArrowUpDown,
-  RefreshCw
+  Clock
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -41,7 +36,7 @@ interface Payment {
 }
 
 export default function PaymentsPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [payments, setPayments] = useState<Payment[]>([])
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
@@ -96,6 +91,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     filterPayments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, methodFilter, statusFilter, dateFrom, dateTo, payments])
 
   const filterPayments = () => {
@@ -146,6 +142,7 @@ export default function PaymentsPage() {
 
       toast.success('Archivo Excel generado')
     } catch (error) {
+      console.error('Error exporting:', error)
       toast.error('Error al exportar')
     }
   }

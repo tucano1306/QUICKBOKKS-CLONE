@@ -90,6 +90,7 @@
     "react-hot-toast": "^2.4.1",
     "react-markdown": "^9.1.0",
     "react-plaid-link": "^4.1.1",
+    "recharts": "^3.6.0",
     "stripe": "^20.0.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",

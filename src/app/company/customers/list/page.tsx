@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,7 +36,7 @@ interface Customer {
 
 export default function CustomersListPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
@@ -55,7 +54,8 @@ export default function CustomersListPage() {
     if (status === 'authenticated' && activeCompany) {
       fetchCustomers()
     }
-  }, [status, activeCompany])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, activeCompany, router])
 
   useEffect(() => {
     const filtered = customers.filter(
@@ -111,6 +111,7 @@ export default function CustomersListPage() {
         toast.error(data.error || 'Error al eliminar cliente')
       }
     } catch (error) {
+      console.error('Error deleting customer:', error)
       toast.error('Error al eliminar cliente')
     }
   }

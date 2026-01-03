@@ -11,10 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { 
   Calculator,
   FileText,
-  Download,
-  Printer,
   Users,
-  DollarSign,
   CheckCircle2,
   AlertCircle,
   CheckCircle,
@@ -46,7 +43,7 @@ const FLORIDA_TAX_RATES = {
 
 // Federal Income Tax Withholding Tables 2025 (Single)
 const FEDERAL_WITHHOLDING_SINGLE = [
-  { min: 0, max: 13850, base: 0, rate: 0.10 },
+  { min: 0, max: 13850, base: 0, rate: 0.1 },
   { min: 13850, max: 52850, base: 1385, rate: 0.12 },
   { min: 52850, max: 84200, base: 6065, rate: 0.22 },
   { min: 84200, max: 178150, base: 12962, rate: 0.24 },
@@ -73,8 +70,37 @@ interface Employee {
   type: 'W2' | '1099-NEC' | '1099-MISC'
 }
 
+// Type aliases for message and employee types
+type MessageType = 'success' | 'error' | 'info'
+type EmployeeType = 'W2' | '1099-NEC' | '1099-MISC'
+
+// Helper functions for styling
+function getMessageBgClass(type: MessageType): string {
+  switch (type) {
+    case 'success': return 'bg-green-50 border border-green-200'
+    case 'error': return 'bg-red-50 border border-red-200'
+    default: return 'bg-blue-50 border border-blue-200'
+  }
+}
+
+function getMessageTextClass(type: MessageType): string {
+  switch (type) {
+    case 'success': return 'text-green-800'
+    case 'error': return 'text-red-800'
+    default: return 'text-blue-800'
+  }
+}
+
+function getEmployeeTypeBadgeClass(type: EmployeeType): string {
+  switch (type) {
+    case 'W2': return 'bg-blue-100 text-blue-800'
+    case '1099-NEC': return 'bg-green-100 text-green-800'
+    default: return 'bg-purple-100 text-purple-800'
+  }
+}
+
 export default function FloridaPayrollPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('')
@@ -97,7 +123,7 @@ export default function FloridaPayrollPage() {
       ytdGross: 65000,
       ytdFederalTax: 14300,
       ytdSocialSecurity: 4030,
-      ytdMedicare: 942.50,
+      ytdMedicare: 942.5,
       ytdSuta: 189,
       type: 'W2'
     },
@@ -114,7 +140,7 @@ export default function FloridaPayrollPage() {
       ytdGross: 75000,
       ytdFederalTax: 16500,
       ytdSocialSecurity: 4650,
-      ytdMedicare: 1087.50,
+      ytdMedicare: 1087.5,
       ytdSuta: 189,
       type: 'W2'
     },
@@ -131,7 +157,7 @@ export default function FloridaPayrollPage() {
       ytdGross: 85000,
       ytdFederalTax: 18700,
       ytdSocialSecurity: 5270,
-      ytdMedicare: 1232.50,
+      ytdMedicare: 1232.5,
       ytdSuta: 189,
       type: 'W2'
     }
@@ -185,6 +211,7 @@ export default function FloridaPayrollPage() {
     } finally {
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCompany])
 
   useEffect(() => {
@@ -195,6 +222,7 @@ export default function FloridaPayrollPage() {
       setEmployees(sampleEmployees)
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, activeCompany, loadEmployees])
 
   const calculateFederalWithholding = (grossPay: number, filingStatus: string, allowances: number) => {
@@ -293,7 +321,6 @@ export default function FloridaPayrollPage() {
     // Mostrar resumen
     const totalGross = results.reduce((sum: number, emp: any) => sum + (emp.grossPay || 0), 0)
     const totalNet = results.reduce((sum: number, emp: any) => sum + (emp.netPay || 0), 0)
-    const totalTaxes = results.reduce((sum: number, emp: any) => sum + (emp.totalDeductions || 0), 0)
     
     setMessage({ type: 'success', text: `Nómina calculada: ${results.length} empleados, Gross: $${totalGross.toFixed(2)}, Net: $${totalNet.toFixed(2)}` })
     setTimeout(() => setMessage(null), 5000)
@@ -757,7 +784,7 @@ export default function FloridaPayrollPage() {
     doc.setTextColor(128, 128, 128)
     doc.text(`Generado: ${new Date().toLocaleDateString()} | Internal Revenue Service | Form W-2`, pageWidth / 2, y, { align: 'center' })
 
-    doc.save(`W2_${employee.name.replace(/\s+/g, '_')}_${year}.pdf`)
+    doc.save(`W2_${employee.name.replaceAll(' ', '_')}_${year}.pdf`)
     setMessage({ type: 'success', text: `✅ Formulario W-2 (PDF) descargado para ${employee.name}` })
     setTimeout(() => setMessage(null), 5000)
   }
@@ -931,7 +958,7 @@ export default function FloridaPayrollPage() {
     doc.setTextColor(128, 128, 128)
     doc.text(`Generado: ${new Date().toLocaleDateString()} | Internal Revenue Service | Form 1099-NEC`, pageWidth / 2, y, { align: 'center' })
 
-    doc.save(`1099NEC_${contractor.name.replace(/\s+/g, '_')}_${year}.pdf`)
+    doc.save(`1099NEC_${contractor.name.replaceAll(' ', '_')}_${year}.pdf`)
     setMessage({ type: 'success', text: `✅ Formulario 1099-NEC (PDF) descargado para ${contractor.name}` })
     setTimeout(() => setMessage(null), 5000)
   }
@@ -998,7 +1025,7 @@ export default function FloridaPayrollPage() {
     doc.setTextColor(128, 128, 128)
     doc.text(`Generado: ${new Date().toLocaleDateString()} | Internal Revenue Service | Form 1099-MISC`, pageWidth / 2, y, { align: 'center' })
 
-    doc.save(`1099MISC_${recipient.name.replace(/\s+/g, '_')}_${year}.pdf`)
+    doc.save(`1099MISC_${recipient.name.replaceAll(' ', '_')}_${year}.pdf`)
     setMessage({ type: 'success', text: `✅ Formulario 1099-MISC (PDF) descargado para ${recipient.name}` })
     setTimeout(() => setMessage(null), 5000)
   }
@@ -1106,19 +1133,11 @@ export default function FloridaPayrollPage() {
 
         {/* Message Display */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' ? 'bg-green-50 border border-green-200' :
-            message.type === 'error' ? 'bg-red-50 border border-red-200' :
-            'bg-blue-50 border border-blue-200'
-          }`}>
+          <div className={`p-4 rounded-lg flex items-center gap-3 ${getMessageBgClass(message.type)}`}>
             {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
             {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
             {message.type === 'info' && <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />}
-            <span className={`${
-              message.type === 'success' ? 'text-green-800' :
-              message.type === 'error' ? 'text-red-800' :
-              'text-blue-800'
-            }`}>{message.text}</span>
+            <span className={getMessageTextClass(message.type)}>{message.text}</span>
           </div>
         )}
 
@@ -1215,11 +1234,7 @@ export default function FloridaPayrollPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge className={
-                          emp.type === 'W2' ? 'bg-blue-100 text-blue-800' :
-                          emp.type === '1099-NEC' ? 'bg-green-100 text-green-800' :
-                          'bg-purple-100 text-purple-800'
-                        }>
+                        <Badge className={getEmployeeTypeBadgeClass(emp.type)}>
                           {emp.type}
                         </Badge>
                       </td>

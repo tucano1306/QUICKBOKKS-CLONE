@@ -32,7 +32,7 @@ interface Product {
 
 export default function ProductsListPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
@@ -46,7 +46,8 @@ export default function ProductsListPage() {
     if (status === 'authenticated' && activeCompany) {
       fetchProducts()
     }
-  }, [status, activeCompany])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, activeCompany, router])
 
   useEffect(() => {
     const filtered = products.filter(
@@ -92,6 +93,7 @@ export default function ProductsListPage() {
         toast.error('Error al eliminar producto')
       }
     } catch (error) {
+      console.error('Error deleting product:', error)
       toast.error('Error al eliminar producto')
     }
   }
