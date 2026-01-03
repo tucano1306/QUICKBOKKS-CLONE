@@ -705,3 +705,182 @@ input[type="number"] {
 .qb-alert-info {
   @apply qb-alert bg-blue-50 border-blue-200 text-blue-800;
 }
+/* =====================================================
+   RESPONSIVE / MOBILE STYLES
+   ===================================================== */
+
+/* Mobile-first responsive utilities */
+@media (max-width: 640px) {
+  /* Reduce padding on mobile */
+  .qb-card {
+    @apply p-3;
+  }
+  
+  /* Smaller text on mobile */
+  .qb-page-title {
+    @apply text-xl;
+  }
+  
+  /* Stack buttons on mobile */
+  .qb-btn {
+    @apply w-full justify-center;
+  }
+  
+  /* Full-width modals on mobile */
+  .modal-mobile-full {
+    @apply w-full max-w-full m-0 rounded-none min-h-screen;
+  }
+  
+  /* Smaller empty state on mobile */
+  .qb-empty-state {
+    @apply py-8;
+  }
+  
+  .qb-empty-state-icon {
+    @apply w-12 h-12;
+  }
+  
+  .qb-empty-state-title {
+    @apply text-lg;
+  }
+}
+
+/* Responsive table wrapper - enables horizontal scroll */
+.table-responsive {
+  @apply w-full overflow-x-auto -mx-4 px-4;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 640px) {
+  .table-responsive {
+    @apply mx-0 px-0;
+  }
+}
+
+/* Mobile card stack - converts grid to stack on mobile */
+.card-stack-mobile {
+  @apply flex flex-col gap-3;
+}
+
+@media (min-width: 640px) {
+  .card-stack-mobile {
+    @apply grid grid-cols-2 gap-4;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-stack-mobile {
+    @apply grid-cols-3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .card-stack-mobile {
+    @apply grid-cols-4;
+  }
+}
+
+/* Mobile safe area padding for iOS */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Touch-friendly targets */
+.touch-target {
+  @apply min-h-[44px] min-w-[44px];
+}
+
+/* Mobile form elements */
+@media (max-width: 640px) {
+  input, select, textarea, button {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+}
+
+/* Hide scrollbar on mobile but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile modal overlay with safe areas */
+.modal-overlay-mobile {
+  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-sm;
+}
+
+/* Slide-up animation for mobile sheets */
+@keyframes slide-up-mobile {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up-mobile {
+  animation: slide-up-mobile 0.3s ease-out forwards;
+}
+
+/* Mobile bottom sheet style */
+.bottom-sheet {
+  @apply fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto;
+  animation: slide-up-mobile 0.3s ease-out forwards;
+}
+
+/* Responsive text truncation */
+.truncate-mobile {
+  @apply truncate max-w-[150px];
+}
+
+@media (min-width: 640px) {
+  .truncate-mobile {
+    @apply max-w-none truncate-none;
+  }
+}
+
+/* Mobile-friendly spacing */
+.space-mobile {
+  @apply space-y-3 sm:space-y-4 lg:space-y-6;
+}
+
+/* Responsive grid for stats/metrics */
+.stats-grid {
+  @apply grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4;
+}
+
+/* Mobile action bar (fixed at bottom) */
+.mobile-action-bar {
+  @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 lg:hidden;
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .mobile-action-bar {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Responsive padding utilities */
+.p-responsive {
+  @apply p-3 sm:p-4 lg:p-6;
+}
+
+.px-responsive {
+  @apply px-3 sm:px-4 lg:px-6;
+}
+
+.py-responsive {
+  @apply py-3 sm:py-4 lg:py-6;
+}

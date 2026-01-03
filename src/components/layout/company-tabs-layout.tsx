@@ -36,7 +36,9 @@ import {
   CheckCircle,
   AlertTriangle,
   Info,
-  ExternalLink
+  ExternalLink,
+  Menu,
+  ChevronRight
 } from 'lucide-react'
 
 interface SubMenuItem {
@@ -339,6 +341,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
   const [showSearch, setShowSearch] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [mobileExpandedTab, setMobileExpandedTab] = useState<string | null>(currentTabId)
 
   // Quick Create menu items (como QuickBooks + New)
   const quickCreateItems = [
@@ -412,10 +416,164 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
 
   return (
     <div className="min-h-screen bg-[#F4F5F8]">
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50" 
+            onClick={() => setShowMobileMenu(false)}
+            aria-hidden="true"
+          />
+          
+          {/* Sidebar */}
+          <div className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-white shadow-xl overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-[#0D2942]">
+              <div className="flex items-center gap-3">
+                {activeCompany.logo ? (
+                  <Image
+                    src={activeCompany.logo}
+                    alt={activeCompany.name}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2CA01C] to-[#108000] flex items-center justify-center text-white font-bold text-sm">
+                    {activeCompany.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-white font-bold text-sm truncate max-w-[180px]">{activeCompany.name}</h3>
+                  <p className="text-white/60 text-xs">Menu</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            {/* Quick Actions */}
+            <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Acciones Rápidas</p>
+              <div className="grid grid-cols-3 gap-2">
+                {quickCreateItems.slice(0, 3).map((item) => (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      router.push(item.href)
+                      setShowMobileMenu(false)
+                    }}
+                    className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-gray-200 hover:border-[#2CA01C] hover:shadow-sm transition-all"
+                  >
+                    <item.icon className={cn('w-5 h-5', item.color)} />
+                    <span className="text-xs font-medium text-gray-700">{item.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Navigation */}
+            <nav className="p-2">
+              {tabSections.map((tab) => {
+                const Icon = tab.icon
+                const isExpanded = mobileExpandedTab === tab.id
+                const isActiveTab = currentTab.id === tab.id
+                
+                return (
+                  <div key={tab.id} className="mb-1">
+                    <button
+                      onClick={() => setMobileExpandedTab(isExpanded ? null : tab.id)}
+                      className={cn(
+                        'w-full flex items-center justify-between p-3 rounded-lg transition-all',
+                        isActiveTab 
+                          ? 'bg-green-50 text-[#2CA01C]' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className={cn('w-5 h-5', isActiveTab ? 'text-[#2CA01C]' : 'text-gray-500')} />
+                        <span className="font-medium text-sm">{tab.name}</span>
+                      </div>
+                      <ChevronRight className={cn(
+                        'w-4 h-4 text-gray-400 transition-transform',
+                        isExpanded && 'rotate-90'
+                      )} />
+                    </button>
+                    
+                    {/* Submenus */}
+                    {isExpanded && (
+                      <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-gray-200 pl-4">
+                        {tab.submenus.map((submenu) => {
+                          const isCurrentPage = currentUrl === submenu.href || pathname === submenu.href
+                          return (
+                            <Link
+                              key={submenu.href}
+                              href={submenu.href}
+                              onClick={() => setShowMobileMenu(false)}
+                              className={cn(
+                                'block py-2.5 px-3 rounded-lg text-sm transition-all',
+                                isCurrentPage
+                                  ? 'bg-[#2CA01C] text-white font-medium'
+                                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                              )}
+                            >
+                              {submenu.name}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </nav>
+            
+            {/* Bottom Actions */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    router.push('/company/settings/company')
+                    setShowMobileMenu(false)
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </button>
+                <button
+                  onClick={() => {
+                    router.push('/dashboard')
+                    setShowMobileMenu(false)
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-[#0D2942] text-white rounded-lg font-medium text-sm hover:bg-[#1a3a5c] transition-colors"
+                >
+                  <Home className="w-4 h-4" />
+                  Main Menu
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Barra superior estilo QuickBooks */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-full px-4 py-3">
+        <div className="max-w-full px-3 md:px-4 py-2 md:py-3">
           <div className="flex items-center justify-between gap-2 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setShowMobileMenu(true)}
+              className="lg:hidden p-2 -ml-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            
             {/* Left: Company info */}
             <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
               {activeCompany.logo ? (
@@ -672,8 +830,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
         </div>
       </div>
 
-      {/* Barra de pestañas horizontal */}
-      <div className="bg-white border-b border-gray-200">
+      {/* Barra de pestañas horizontal - Hidden on mobile */}
+      <div className="bg-white border-b border-gray-200 hidden lg:block">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
           <nav className="flex space-x-1 px-4 py-2" aria-label="Tabs">
               {tabSections.map((tab) => {
@@ -686,19 +844,19 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                     key={tab.id}
                     onClick={() => handleTabChange(tab)}
                     className={cn(
-                      'group relative flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl transition-all duration-200 whitespace-nowrap',
+                      'group relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 whitespace-nowrap',
                       isActive
                         ? 'bg-[#2CA01C] text-white shadow-lg shadow-green-500/25'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-[#0D2942]'
                     )}
                   >
                     <Icon className={cn(
-                      'w-5 h-5 transition-transform duration-200',
+                      'w-4 h-4 transition-transform duration-200',
                       isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#2CA01C] group-hover:scale-110'
                     )} />
-                    <span>{tab.name}</span>
+                    <span className="hidden xl:inline">{tab.name}</span>
                     <ChevronDown className={cn(
-                      'w-4 h-4 transition-transform duration-200',
+                      'w-3 h-3 transition-transform duration-200 hidden xl:block',
                       isSubmenuOpen ? 'rotate-180' : '',
                       isActive ? 'text-white/80' : 'text-gray-400'
                     )} />
@@ -709,9 +867,9 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
           </div>
         </div>
 
-        {/* Submenú desplegable con diseño mejorado */}
+        {/* Submenú desplegable con diseño mejorado - Hidden on mobile */}
         {showSubmenu[activeTab] && (
-          <div className="border-t border-gray-100 bg-white shadow-lg">
+          <div className="border-t border-gray-100 bg-white shadow-lg hidden lg:block">
             {/* Título de la sección actual */}
             <div className="px-6 pt-4 pb-2 border-b border-gray-100">
               <div className="flex items-center gap-2">
@@ -722,8 +880,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
               </div>
             </div>
             
-            <div className="max-w-7xl mx-auto px-6 py-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-3">
                 {activeSection.submenus.map((submenu, index) => {
                   const isCurrentPage = currentUrl === submenu.href || pathname === submenu.href
                   
@@ -732,7 +890,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                       key={submenu.href}
                       href={submenu.href}
                       className={cn(
-                        'group relative p-3 rounded-xl border-2 transition-all duration-200',
+                        'group relative p-2 lg:p-3 rounded-xl border-2 transition-all duration-200',
                         isCurrentPage
                           ? 'bg-green-50 border-[#2CA01C] ring-2 ring-green-200 shadow-md transform scale-[1.02]'
                           : 'bg-white border-gray-200 hover:border-[#2CA01C] hover:shadow-md hover:scale-[1.01]'
@@ -756,7 +914,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                       </span>
                       
                       <div className={cn(
-                        'text-sm font-semibold mb-1 mt-3',
+                        'text-xs lg:text-sm font-semibold mb-1 mt-3',
                         isCurrentPage 
                           ? 'text-[#108000]'
                           : 'text-gray-800 group-hover:text-[#2CA01C]'
@@ -779,9 +937,21 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
           </div>
         )}
 
+      {/* Mobile: Current page indicator */}
+      <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center gap-2 text-sm">
+          <currentTab.icon className="w-4 h-4 text-[#2CA01C]" />
+          <span className="text-gray-500">{currentTab.name}</span>
+          <ChevronRight className="w-3 h-3 text-gray-400" />
+          <span className="font-medium text-[#0D2942] truncate">
+            {activeSection.submenus.find(s => currentUrl === s.href || pathname === s.href)?.name || 'Seleccionar'}
+          </span>
+        </div>
+      </div>
+
       {/* Contenido principal */}
       <main className="max-w-full bg-gray-50 min-h-[calc(100vh-200px)]">
-        <div className="p-6">
+        <div className="p-3 md:p-4 lg:p-6">
           {children}
         </div>
       </main>

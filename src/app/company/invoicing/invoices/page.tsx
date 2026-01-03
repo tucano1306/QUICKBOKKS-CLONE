@@ -9,7 +9,6 @@ import ActionButtonsGroup from '@/components/ui/action-buttons-group'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Pagination } from '@/components/ui/pagination'
 import {
   Table,
@@ -41,7 +40,7 @@ interface Invoice {
 
 export default function InvoicesPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([])
@@ -211,20 +210,20 @@ export default function InvoicesPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-[#0D2942] flex items-center gap-2">
-              <FileText className="w-8 h-8 text-[#2CA01C]" />
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0D2942] flex items-center gap-2">
+              <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-[#2CA01C]" />
               Facturas
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               Gestiona y crea facturas profesionales
             </p>
           </div>
           <Button 
-            className="flex items-center gap-2 bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25" 
+            className="flex items-center justify-center gap-2 bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25 w-full sm:w-auto" 
             onClick={() => router.push('/company/invoicing/invoices/new')}
           >
             <Plus className="w-4 h-4" />
@@ -234,20 +233,20 @@ export default function InvoicesPage() {
 
         {/* Action Buttons */}
         <Card className="border-green-200 bg-green-50/30">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 p-3 sm:p-6 sm:pb-3">
             <CardTitle className="text-sm font-medium text-[#108000] flex items-center">
               <FileText className="w-4 h-4 mr-2" />
               Acciones de Facturas
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0">
             <ActionButtonsGroup buttons={invoiceActions} />
           </CardContent>
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {stats.map((stat, index) => {
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          {stats.map((stat) => {
             const colorClasses = {
               blue: { bg: 'from-blue-50 to-white', text: 'text-[#0077C5]', icon: 'bg-[#0077C5]' },
               green: { bg: 'from-green-50 to-white', text: 'text-[#108000]', icon: 'bg-[#2CA01C]' },
@@ -257,10 +256,10 @@ export default function InvoicesPage() {
             const colors = colorClasses[stat.color as keyof typeof colorClasses] || colorClasses.blue
             
             return (
-              <Card key={index} className={`bg-gradient-to-br ${colors.bg} shadow-md hover:shadow-lg transition-shadow`}>
-                <CardContent className="p-4">
-                  <div className="text-sm text-gray-600 font-medium mb-2">{stat.label}</div>
-                  <div className={`text-2xl font-bold ${colors.text}`}>
+              <Card key={stat.label} className={`bg-gradient-to-br ${colors.bg} shadow-md hover:shadow-lg transition-shadow`}>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1 sm:mb-2">{stat.label}</div>
+                  <div className={`text-lg sm:text-2xl font-bold ${colors.text} truncate`}>
                     {stat.value}
                   </div>
                 </CardContent>
@@ -271,14 +270,14 @@ export default function InvoicesPage() {
 
         {/* Filters */}
         <Card className="shadow-md">
-          <CardHeader>
-            <div className="flex items-center justify-between gap-4">
-              <CardTitle className="text-[#0D2942]">Lista de Facturas</CardTitle>
-              <div className="flex items-center gap-2">
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <CardTitle className="text-[#0D2942] text-base sm:text-lg">Lista de Facturas</CardTitle>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#2CA01C] focus:border-[#2CA01C] transition-all"
+                  className="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#2CA01C] focus:border-[#2CA01C] transition-all w-full sm:w-auto"
                 >
                   <option value="all">Todos los estados</option>
                   <option value="DRAFT">Borradores</option>
@@ -286,111 +285,158 @@ export default function InvoicesPage() {
                   <option value="PAID">Pagadas</option>
                   <option value="OVERDUE">Vencidas</option>
                 </select>
-                <div className="flex items-center gap-2">
-                  <Search className="w-4 h-4 text-gray-400" />
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Search className="w-4 h-4 text-gray-400 hidden sm:block" />
                   <Input
                     placeholder="Buscar facturas..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64"
+                    className="w-full sm:w-64"
                   />
                 </div>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Fecha Emisión</TableHead>
-                  <TableHead>Fecha Vencimiento</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInvoices.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
-                      <div className="flex flex-col items-center gap-2">
-                        <DollarSign className="w-12 h-12 text-gray-300" />
-                        <p className="text-gray-500">No hay facturas</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => router.push('/company/invoicing/invoices/new')}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Crear primera factura
-                        </Button>
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
+            {/* Mobile View - Cards */}
+            <div className="block sm:hidden space-y-3 p-3">
+              {filteredInvoices.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-8">
+                  <DollarSign className="w-12 h-12 text-gray-300" />
+                  <p className="text-gray-500">No hay facturas</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => router.push('/company/invoicing/invoices/new')}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Crear primera factura
+                  </Button>
+                </div>
+              ) : (
+                paginatedInvoices.map((invoice) => (
+                  <Card key={invoice.id} className="p-3 hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-semibold text-[#0D2942]">{invoice.invoiceNumber}</div>
+                        <div className="text-sm text-gray-600">{invoice.customer?.name}</div>
                       </div>
-                    </TableCell>
+                      {getStatusBadge(invoice.status)}
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-gray-500 mb-2">
+                      <span>Emisión: {new Date(invoice.issueDate).toLocaleDateString('es-MX')}</span>
+                      <span className="font-bold text-[#0D2942]">${invoice.total.toFixed(2)}</span>
+                    </div>
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button variant="ghost" size="sm" className="flex-1">
+                        <Edit className="w-4 h-4 mr-1" /> Editar
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+            
+            {/* Desktop View - Table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="hidden md:table-cell">Fecha Emisión</TableHead>
+                    <TableHead className="hidden lg:table-cell">Fecha Vencimiento</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
-                ) : (
-                  paginatedInvoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">
-                        {invoice.invoiceNumber}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-gray-400" />
-                          <div>
-                            <div className="font-medium">{invoice.customer?.name}</div>
-                            <div className="text-xs text-gray-500">
-                              {invoice.customer?.email}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="w-3 h-3 text-gray-400" />
-                          {new Date(invoice.issueDate).toLocaleDateString('es-MX')}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="w-3 h-3 text-gray-400" />
-                          {new Date(invoice.dueDate).toLocaleDateString('es-MX')}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        ${invoice.total.toFixed(2)}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="w-4 h-4 text-red-600" />
+                </TableHeader>
+                <TableBody>
+                  {filteredInvoices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-12">
+                        <div className="flex flex-col items-center gap-2">
+                          <DollarSign className="w-12 h-12 text-gray-300" />
+                          <p className="text-gray-500">No hay facturas</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => router.push('/company/invoicing/invoices/new')}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Crear primera factura
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    paginatedInvoices.map((invoice) => (
+                      <TableRow key={invoice.id}>
+                        <TableCell className="font-medium">
+                          {invoice.invoiceNumber}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-gray-400 hidden md:block" />
+                            <div>
+                              <div className="font-medium">{invoice.customer?.name}</div>
+                              <div className="text-xs text-gray-500 hidden lg:block">
+                                {invoice.customer?.email}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Calendar className="w-3 h-3 text-gray-400" />
+                            {new Date(invoice.issueDate).toLocaleDateString('es-MX')}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Calendar className="w-3 h-3 text-gray-400" />
+                            {new Date(invoice.dueDate).toLocaleDateString('es-MX')}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          ${invoice.total.toFixed(2)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="sm">
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
             {/* Paginación */}
             {filteredInvoices.length > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filteredInvoices.length}
-                pageSize={pageSize}
-                onPageChange={setCurrentPage}
-                onPageSizeChange={(size) => {
-                  setPageSize(size)
-                  setCurrentPage(1)
-                }}
-              />
+              <div className="p-3 sm:p-0 sm:pt-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredInvoices.length}
+                  pageSize={pageSize}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size)
+                    setCurrentPage(1)
+                  }}
+                />
+              </div>
             )}
           </CardContent>
         </Card>

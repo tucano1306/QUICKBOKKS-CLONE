@@ -27,16 +27,10 @@ import {
   Building, 
   Users,
   Eye,
-  Send,
   FileSpreadsheet,
   FileDown,
   Settings,
-  StickyNote,
-  UserCircle,
-  Upload,
   FileText,
-  Receipt,
-  DollarSign,
   Activity,
   TrendingUp,
   X
@@ -239,31 +233,6 @@ export default function CustomersPage() {
     }
   }
 
-  const handleInviteToPortal = async (customer: Customer) => {
-    if (!customer.email) {
-      toast.error('El cliente no tiene email registrado')
-      return
-    }
-
-    try {
-      const response = await fetch('/api/customers/portal/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: customer.id })
-      })
-
-      if (response.ok) {
-        toast.success(`Invitación enviada a ${customer.email}`)
-        fetchCustomers()
-      } else {
-        throw new Error('Error al enviar invitación')
-      }
-    } catch (error) {
-      console.error('Error sending portal invite:', error)
-      toast.error('Error al enviar invitación')
-    }
-  }
-
   const openEditModal = (customer: Customer) => {
     setSelectedCustomer(customer)
     setFormData({
@@ -332,82 +301,83 @@ export default function CustomersPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
-            <p className="text-gray-600 mt-1">Gestiona tu directorio de clientes</p>
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Clientes</h1>
+            <p className="text-sm text-gray-600 mt-1">Gestiona tu directorio de clientes</p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={exportToExcel}>
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Excel
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            <Button variant="outline" onClick={exportToExcel} size="sm" className="flex-1 sm:flex-none">
+              <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Excel</span>
             </Button>
-            <Button variant="outline" onClick={exportToPDF}>
-              <FileDown className="h-4 w-4 mr-2" />
-              PDF
+            <Button variant="outline" onClick={exportToPDF} size="sm" className="flex-1 sm:flex-none">
+              <FileDown className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">PDF</span>
             </Button>
-            <Button onClick={() => setShowAddModal(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Cliente
+            <Button onClick={() => setShowAddModal(true)} size="sm" className="flex-1 sm:flex-none">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="sm:hidden">Nuevo</span>
+              <span className="hidden sm:inline">Nuevo Cliente</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Clientes</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total Clientes</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.total}</p>
                 </div>
-                <Users className="h-8 w-8 text-blue-600" />
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Activos</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Activos</p>
+                  <p className="text-lg sm:text-2xl font-bold text-green-600">{stats.active}</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-green-600" />
+                <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Con Portal</p>
-                  <p className="text-2xl font-bold text-purple-600">{stats.portal}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Con Portal</p>
+                  <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.portal}</p>
                 </div>
-                <Activity className="h-8 w-8 text-purple-600" />
+                <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Inactivos</p>
-                  <p className="text-2xl font-bold text-gray-600">{stats.inactive}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Inactivos</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-600">{stats.inactive}</p>
                 </div>
-                <Users className="h-8 w-8 text-gray-400" />
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2">
+          <CardContent className="p-3 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="sm:col-span-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -423,7 +393,7 @@ export default function CustomersPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 >
                   <option value="ALL">Todos los estados</option>
                   <option value="ACTIVE">Activos</option>
@@ -435,7 +405,7 @@ export default function CustomersPage() {
                 <select
                   value={portalFilter}
                   onChange={(e) => setPortalFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 >
                   <option value="ALL">Todos (Portal)</option>
                   <option value="ACTIVE">Con portal activo</option>
@@ -446,35 +416,92 @@ export default function CustomersPage() {
           </CardContent>
         </Card>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <Link href="/customers/pipeline">
             <Button variant="outline" size="sm">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Pipeline
+              <TrendingUp className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Pipeline</span>
             </Button>
           </Link>
           <Link href="/customers/crm-report">
             <Button variant="outline" size="sm">
-              <FileText className="h-4 w-4 mr-2" />
-              Reporte CRM
+              <FileText className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Reporte CRM</span>
             </Button>
           </Link>
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Directorio de Clientes ({filteredCustomers.length})</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Directorio de Clientes ({filteredCustomers.length})</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
+            {/* Mobile View - Cards */}
+            <div className="block md:hidden space-y-3 p-3">
+              {filteredCustomers.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No se encontraron clientes
+                </div>
+              ) : (
+                filteredCustomers.map((customer) => (
+                  <Card key={customer.id} className="p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-semibold text-gray-900">{customer.name}</p>
+                        <p className="text-xs text-gray-500">{customer.taxId || 'Sin RFC'}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Badge variant={customer.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">
+                          {customer.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="space-y-1 mb-3 text-sm text-gray-600">
+                      {customer.email && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          <span className="truncate">{customer.email}</span>
+                        </div>
+                      )}
+                      {customer.phone && (
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {customer.phone}
+                        </div>
+                      )}
+                      {customer.company && (
+                        <div className="flex items-center gap-1">
+                          <Building className="h-3 w-3" />
+                          {customer.company}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-2 border-t">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => router.push(`/customers/${customer.id}`)}>
+                        <Eye className="h-4 w-4 mr-1" /> Ver
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditModal(customer)}>
+                        <Edit className="h-4 w-4 mr-1" /> Editar
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => { setSelectedCustomer(customer); setShowPermissionsModal(true); }}>
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+            
+            {/* Desktop View - Table */}
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Contacto</TableHead>
-                    <TableHead>Empresa</TableHead>
+                    <TableHead className="hidden lg:table-cell">Contacto</TableHead>
+                    <TableHead className="hidden xl:table-cell">Empresa</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead>Portal</TableHead>
+                    <TableHead className="hidden lg:table-cell">Portal</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -494,7 +521,7 @@ export default function CustomersPage() {
                             <p className="text-sm text-gray-500">{customer.taxId || 'Sin RFC'}</p>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           <div className="space-y-1">
                             {customer.email && (
                               <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -510,7 +537,7 @@ export default function CustomersPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden xl:table-cell">
                           {customer.company && (
                             <div className="flex items-center gap-1 text-sm text-gray-600">
                               <Building className="h-3 w-3" />
@@ -523,7 +550,7 @@ export default function CustomersPage() {
                             {customer.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           {customer.portalActive ? (
                             <Badge variant="default" className="bg-green-600">
                               <Activity className="h-3 w-3 mr-1" />
@@ -534,49 +561,33 @@ export default function CustomersPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-wrap items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1">
                             {/* BOTÓN 1: Ver Detalles */}
                             <Button 
                               type="button"
-                              variant="outline" 
+                              variant="ghost" 
                               size="sm" 
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/customers/${customer.id}`); }}
-                              className="bg-blue-50 hover:bg-blue-100 border-blue-300"
+                              title="Ver detalles"
                             >
-                              <Eye className="h-4 w-4 mr-1 text-blue-600" />
-                              <span className="text-xs font-semibold text-blue-700">Ver</span>
+                              <Eye className="h-4 w-4 text-blue-600" />
                             </Button>
 
                             {/* BOTÓN 2: Editar */}
                             <Button 
                               type="button"
-                              variant="outline" 
+                              variant="ghost" 
                               size="sm" 
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditModal(customer); }}
-                              className="bg-green-50 hover:bg-green-100 border-green-300"
+                              title="Editar"
                             >
-                              <Edit className="h-4 w-4 mr-1 text-green-600" />
-                              <span className="text-xs font-semibold text-green-700">Editar</span>
+                              <Edit className="h-4 w-4 text-green-600" />
                             </Button>
 
-                            {/* BOTÓN 3: Invitar al Portal */}
-                            {customer.email && !customer.portalActive && (
-                              <Button 
-                                type="button"
-                                variant="outline" 
-                                size="sm" 
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleInviteToPortal(customer); }}
-                                className="bg-blue-50 hover:bg-blue-100 border-blue-300"
-                              >
-                                <Send className="h-4 w-4 mr-1 text-blue-600" />
-                                <span className="text-xs font-semibold text-blue-700">Invitar</span>
-                              </Button>
-                            )}
-
-                            {/* BOTÓN 4: Configurar Permisos */}
+                            {/* BOTÓN 3: Configurar Permisos */}
                             <Button 
                               type="button"
-                              variant="outline" 
+                              variant="ghost" 
                               size="sm" 
                               onClick={(e) => { 
                                 e.preventDefault();
@@ -584,96 +595,20 @@ export default function CustomersPage() {
                                 setSelectedCustomer(customer); 
                                 setShowPermissionsModal(true); 
                               }}
-                              className="bg-purple-50 hover:bg-purple-100 border-purple-300"
+                              title="Configurar permisos"
                             >
-                              <Settings className="h-4 w-4 mr-1 text-purple-600" />
-                              <span className="text-xs font-semibold text-purple-700">Config</span>
+                              <Settings className="h-4 w-4 text-purple-600" />
                             </Button>
 
-                            {/* BOTÓN 5: Ver Actividad Portal */}
-                            {customer.portalActive && (
-                              <Button 
-                                type="button"
-                                variant="outline" 
-                                size="sm" 
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/customers/${customer.id}/activity`); }}
-                                className="bg-green-50 hover:bg-green-100 border-green-300"
-                              >
-                                <Activity className="h-4 w-4 mr-1 text-green-600" />
-                                <span className="text-xs font-semibold text-green-700">Actividad</span>
-                              </Button>
-                            )}
-
-                            {/* BOTÓN 6: Subir Documentos */}
+                            {/* BOTÓN 4: Eliminar */}
                             <Button 
                               type="button"
-                              variant="outline" 
-                              size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/company/documents/upload?customerId=${customer.id}`); }}
-                              className="bg-orange-50 hover:bg-orange-100 border-orange-300"
-                            >
-                              <Upload className="h-4 w-4 mr-1 text-orange-600" />
-                              <span className="text-xs font-semibold text-orange-700">Docs</span>
-                            </Button>
-
-                            {/* BOTÓN 7: Ver Transacciones */}
-                            <Button 
-                              type="button"
-                              variant="outline" 
-                              size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/company/customers/transactions?customerId=${customer.id}`); }}
-                              className="bg-indigo-50 hover:bg-indigo-100 border-indigo-300"
-                            >
-                              <DollarSign className="h-4 w-4 mr-1 text-indigo-600" />
-                              <span className="text-xs font-semibold text-indigo-700">Trans</span>
-                            </Button>
-
-                            {/* BOTÓN 8: Ver Facturas */}
-                            <Button 
-                              type="button"
-                              variant="outline" 
-                              size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/invoices?customerId=${customer.id}`); }}
-                              className="bg-teal-50 hover:bg-teal-100 border-teal-300"
-                            >
-                              <Receipt className="h-4 w-4 mr-1 text-teal-600" />
-                              <span className="text-xs font-semibold text-teal-700">Facturas</span>
-                            </Button>
-
-                            {/* BOTÓN 9: Notas y Seguimiento */}
-                            <Button 
-                              type="button"
-                              variant="outline" 
-                              size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/customers/${customer.id}/notes`); }}
-                              className="bg-yellow-50 hover:bg-yellow-100 border-yellow-300"
-                            >
-                              <StickyNote className="h-4 w-4 mr-1 text-yellow-600" />
-                              <span className="text-xs font-semibold text-yellow-700">Notas</span>
-                            </Button>
-
-                            {/* BOTÓN 10: CRM 360° */}
-                            <Button 
-                              type="button"
-                              variant="outline" 
-                              size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/customers/${customer.id}/crm`); }}
-                              className="bg-pink-50 hover:bg-pink-100 border-pink-300"
-                            >
-                              <UserCircle className="h-4 w-4 mr-1 text-pink-600" />
-                              <span className="text-xs font-semibold text-pink-700">CRM</span>
-                            </Button>
-
-                            {/* BOTÓN 11: Eliminar */}
-                            <Button 
-                              type="button"
-                              variant="outline" 
+                              variant="ghost" 
                               size="sm" 
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteCustomer(customer.id); }}
-                              className="bg-red-50 hover:bg-red-100 border-red-300"
+                              title="Eliminar"
                             >
-                              <Trash2 className="h-4 w-4 mr-1 text-red-600" />
-                              <span className="text-xs font-semibold text-red-700">Borrar</span>
+                              <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
                           </div>
                         </TableCell>
@@ -688,8 +623,8 @@ export default function CustomersPage() {
 
         {/* MODAL: Agregar Cliente */}
         {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full p-4 sm:p-6 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">Agregar Nuevo Cliente</h3>
                 <button onClick={() => { setShowAddModal(false); resetForm(); }} className="text-gray-400 hover:text-gray-600">

@@ -191,7 +191,7 @@ export default function ComparativeReportsPage() {
                   </tr>
                 `).join('')
                 
-                printWindow.document.write(`
+                const htmlContent = `
                   <!DOCTYPE html>
                   <html>
                   <head>
@@ -275,7 +275,10 @@ export default function ComparativeReportsPage() {
                     </div>
                   </body>
                   </html>
-                `)
+                `
+                printWindow.document.open()
+                // document.write is the standard way to populate print windows
+                printWindow.document.write(htmlContent) // NOSONAR
                 printWindow.document.close()
                 printWindow.focus()
                 setTimeout(() => printWindow.print(), 250)
