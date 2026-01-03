@@ -847,7 +847,7 @@ input[type="number"] {
 
 @media (min-width: 640px) {
   .truncate-mobile {
-    @apply max-w-none truncate-none;
+    @apply max-w-none overflow-visible whitespace-normal;
   }
 }
 
