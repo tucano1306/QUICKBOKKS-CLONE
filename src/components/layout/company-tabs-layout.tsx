@@ -38,7 +38,9 @@ import {
   Info,
   ExternalLink,
   Menu,
-  ChevronRight
+  ChevronRight,
+  Server,
+  Terminal
 } from 'lucide-react'
 
 interface SubMenuItem {
@@ -278,6 +280,17 @@ const tabSections: TabSection[] = [
       { name: '📊 Gestor de Excel', href: '/company/tools/excel-manager', description: 'Cargar, analizar y gestionar archivos Excel' },
       { name: 'Importar Datos', href: '/company/tools/import', description: 'Importar desde otros sistemas' },
       { name: 'Exportar Datos', href: '/company/tools/export', description: 'Exportar información' }
+    ]
+  },
+  {
+    id: 'devops',
+    name: 'DevOps',
+    icon: Server,
+    color: 'cyan',
+    submenus: [
+      { name: '🖥️ Terminal', href: '/company/devops', description: 'Terminal de comandos' },
+      { name: '🔍 SonarQube', href: '/company/devops?tab=sonarqube', description: 'Análisis de código' },
+      { name: '📊 Prometheus', href: '/company/devops?tab=prometheus', description: 'Métricas en tiempo real' }
     ]
   },
   {
