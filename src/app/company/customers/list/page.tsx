@@ -131,42 +131,95 @@ export default function CustomersListPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-[#0D2942]">Clientes</h1>
-            <p className="text-gray-500 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0D2942]">Clientes</h1>
+            <p className="text-sm text-gray-500 mt-1">
               Gestiona tu directorio de clientes
             </p>
           </div>
-          <Button className="flex items-center gap-2 bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25">
+          <Button className="flex items-center justify-center gap-2 bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25 w-full sm:w-auto">
             <Plus className="w-4 h-4" />
             Nuevo Cliente
           </Button>
         </div>
 
         <Card className="shadow-md">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-[#0D2942]">Lista de Clientes</CardTitle>
-              <div className="flex items-center gap-2 max-w-sm">
-                <Search className="w-4 h-4 text-gray-400" />
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <CardTitle className="text-[#0D2942] text-base sm:text-lg">Lista de Clientes</CardTitle>
+              <div className="relative w-full sm:w-auto sm:max-w-sm">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
                   placeholder="Buscar clientes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-xs"
+                  className="pl-10 w-full"
                 />
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6">
+            {/* Vista Móvil - Cards */}
+            <div className="block md:hidden divide-y divide-gray-100">
+              {filteredCustomers.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No se encontraron clientes</p>
+                </div>
+              ) : (
+                paginatedCustomers.map((customer) => (
+                  <div key={customer.id} className="p-4 hover:bg-green-50/50">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-semibold text-[#0D2942]">{customer.name}</p>
+                        {customer.company && (
+                          <p className="text-sm text-gray-600 flex items-center gap-1">
+                            <Building className="w-3 h-3" /> {customer.company}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant={customer.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                        {customer.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1 text-sm text-gray-500 mb-3">
+                      {customer.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-3 h-3" /> {customer.email}
+                        </div>
+                      )}
+                      {customer.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-3 h-3" /> {customer.phone}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <span className="text-xs text-gray-500">{customer._count.invoices} facturas</span>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDelete(customer.id)}>
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Vista Desktop - Table */}
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50 hover:bg-gray-50">
                   <TableHead className="font-semibold text-[#0D2942]">Nombre</TableHead>
-                  <TableHead className="font-semibold text-[#0D2942]">Empresa</TableHead>
-                  <TableHead className="font-semibold text-[#0D2942]">Contacto</TableHead>
+                  <TableHead className="font-semibold text-[#0D2942] hidden lg:table-cell">Empresa</TableHead>
+                  <TableHead className="font-semibold text-[#0D2942] hidden xl:table-cell">Contacto</TableHead>
                   <TableHead className="font-semibold text-[#0D2942]">Facturas</TableHead>
                   <TableHead className="font-semibold text-[#0D2942]">Estado</TableHead>
                   <TableHead className="text-right font-semibold text-[#0D2942]">Acciones</TableHead>
@@ -183,7 +236,7 @@ export default function CustomersListPage() {
                   paginatedCustomers.map((customer) => (
                     <TableRow key={customer.id} className="hover:bg-green-50/50 transition-colors">
                       <TableCell className="font-medium text-[#0D2942]">{customer.name}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {customer.company && (
                           <div className="flex items-center gap-2">
                             <Building className="w-4 h-4 text-[#2CA01C]" />
@@ -191,7 +244,7 @@ export default function CustomersListPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <div className="space-y-1">
                           {customer.email && (
                             <div className="flex items-center gap-2 text-sm">
@@ -234,20 +287,23 @@ export default function CustomersListPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
 
             {/* Paginación */}
             {filteredCustomers.length > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filteredCustomers.length}
-                pageSize={pageSize}
-                onPageChange={setCurrentPage}
-                onPageSizeChange={(size) => {
-                  setPageSize(size)
-                  setCurrentPage(1)
-                }}
-              />
+              <div className="p-3 sm:p-0 sm:pt-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredCustomers.length}
+                  pageSize={pageSize}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size)
+                    setCurrentPage(1)
+                  }}
+                />
+              </div>
             )}
           </CardContent>
         </Card>

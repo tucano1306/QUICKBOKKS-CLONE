@@ -73,16 +73,16 @@ export function Pagination(props: {
   if (totalItems === 0) return null
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-4 bg-gray-50/50 rounded-xl border border-gray-100">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-3 sm:py-4 bg-gray-50/50 rounded-xl border border-gray-100">
       {/* Info de items */}
-      <div className="text-sm text-gray-600 font-medium">
-        Mostrando <span className="text-[#0D2942] font-semibold">{startItem}</span> a <span className="text-[#0D2942] font-semibold">{endItem}</span> de <span className="text-[#2CA01C] font-semibold">{totalItems}</span> registros
+      <div className="text-xs sm:text-sm text-gray-600 font-medium text-center sm:text-left">
+        <span className="text-[#0D2942] font-semibold">{startItem}</span>-<span className="text-[#0D2942] font-semibold">{endItem}</span> de <span className="text-[#2CA01C] font-semibold">{totalItems}</span>
       </div>
 
-      <div className="flex items-center gap-4">
-        {/* Selector de tamaño de página */}
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+        {/* Selector de tamaño de página - solo en desktop */}
         {showPageSize && onPageSizeChange && (
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             <span className="text-sm text-gray-600">Por página:</span>
             <Select
               value={pageSize.toString()}
@@ -103,14 +103,14 @@ export function Pagination(props: {
         )}
 
         {/* Controles de navegación */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           {/* Primera página */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => onPageChange(1)}
             disabled={!canGoPrev}
-            className="h-8 w-8 p-0 rounded-lg"
+            className="h-8 w-8 p-0 rounded-lg hidden sm:flex"
           >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
@@ -127,7 +127,7 @@ export function Pagination(props: {
           </Button>
 
           {/* Números de página */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1">
             {getPageNumbers().map((page, index) => (
               typeof page === 'number' ? (
                 <Button
@@ -135,12 +135,12 @@ export function Pagination(props: {
                   variant={page === currentPage ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => onPageChange(page)}
-                  className={`h-8 w-8 p-0 rounded-lg ${page === currentPage ? 'bg-[#2CA01C] hover:bg-[#108000] shadow-md' : ''}`}
+                  className={`h-8 w-8 p-0 rounded-lg text-xs sm:text-sm ${page === currentPage ? 'bg-[#2CA01C] hover:bg-[#108000] shadow-md' : ''}`}
                 >
                   {page}
                 </Button>
               ) : (
-                <span key={index} className="px-2 text-gray-400">
+                <span key={index} className="px-1 sm:px-2 text-gray-400 text-sm">
                   {page}
                 </span>
               )
@@ -164,7 +164,7 @@ export function Pagination(props: {
             size="sm"
             onClick={() => onPageChange(totalPages)}
             disabled={!canGoNext}
-            className="h-8 w-8 p-0 rounded-lg"
+            className="h-8 w-8 p-0 rounded-lg hidden sm:flex"
           >
             <ChevronsRight className="h-4 w-4" />
           </Button>

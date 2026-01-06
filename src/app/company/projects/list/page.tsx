@@ -358,119 +358,222 @@ export default function ProjectsListPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Proyectos</h1>
-            <p className="text-gray-600 mt-1">Gestiona y monitorea todos tus proyectos activos</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Proyectos</h1>
+            <p className="text-sm text-gray-600 mt-1">Gestiona y monitorea todos tus proyectos activos</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchProjects}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualizar
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={fetchProjects} size="sm" className="flex-1 sm:flex-none">
+              <RefreshCw className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" onClick={handleExport} size="sm" className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={openCreateModal}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Proyecto
+            <Button onClick={openCreateModal} size="sm" className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nuevo Proyecto</span>
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Briefcase className="w-8 h-8 text-blue-600" />
+                <Briefcase className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{activeProjects}</div>
-              <div className="text-sm text-blue-700">Proyectos Activos</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-900">{activeProjects}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Proyectos Activos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-green-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
                 ${totalBudget >= 1000000 ? `${(totalBudget / 1000000).toFixed(1)}M` : totalBudget.toLocaleString()}
               </div>
-              <div className="text-sm text-green-700">Presupuesto Total</div>
+              <div className="text-xs sm:text-sm text-green-700">Presupuesto Total</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
                 ${totalRevenue >= 1000000 ? `${(totalRevenue / 1000000).toFixed(1)}M` : totalRevenue.toLocaleString()}
               </div>
-              <div className="text-sm text-purple-700">Ingresos Generados</div>
+              <div className="text-xs sm:text-sm text-purple-700">Ingresos Generados</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-orange-600" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">{avgCompletion.toFixed(0)}%</div>
-              <div className="text-sm text-orange-700">Progreso Promedio</div>
+              <div className="text-2xl sm:text-3xl font-bold text-orange-900">{avgCompletion.toFixed(0)}%</div>
+              <div className="text-xs sm:text-sm text-orange-700">Progreso Promedio</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="flex-1 relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar proyectos por nombre o código..."
+                  placeholder="Buscar proyectos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 sm:pl-10 text-sm"
                 />
               </div>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="planning">Planificación</option>
-                <option value="in_progress">En Progreso</option>
-                <option value="on_hold">En Espera</option>
-                <option value="completed">Completados</option>
-                <option value="cancelled">Cancelados</option>
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterPriority}
-                onChange={(e) => setFilterPriority(e.target.value)}
-              >
-                <option value="all">Todas las Prioridades</option>
-                <option value="URGENT">Urgente</option>
-                <option value="HIGH">Alta</option>
-                <option value="MEDIUM">Media</option>
-                <option value="LOW">Baja</option>
-              </select>
+              <div className="flex gap-2">
+                <select 
+                  className="flex-1 sm:flex-none px-3 py-2 text-sm border rounded-lg"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Todos</option>
+                  <option value="planning">Planificación</option>
+                  <option value="in_progress">En Progreso</option>
+                  <option value="on_hold">En Espera</option>
+                  <option value="completed">Completados</option>
+                  <option value="cancelled">Cancelados</option>
+                </select>
+                <select 
+                  className="flex-1 sm:flex-none px-3 py-2 text-sm border rounded-lg"
+                  value={filterPriority}
+                  onChange={(e) => setFilterPriority(e.target.value)}
+                >
+                  <option value="all">Prioridad</option>
+                  <option value="URGENT">Urgente</option>
+                  <option value="HIGH">Alta</option>
+                  <option value="MEDIUM">Media</option>
+                  <option value="LOW">Baja</option>
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Projects Table */}
-        <Card>
+        {/* Projects - Mobile Card View */}
+        <div className="block md:hidden space-y-3">
+          {filteredProjects.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 mb-3">No hay proyectos</p>
+                <Button onClick={openCreateModal} size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Crear Proyecto
+                </Button>
+              </CardContent>
+            </Card>
+          ) : filteredProjects.map((project) => (
+            <Card key={project.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    {getHealthIndicator(project)}
+                    {getStatusBadge(project.status)}
+                    {getPriorityBadge(project.priority)}
+                  </div>
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => openViewModal(project)}
+                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => openEditModal(project)}
+                      className="p-1.5 text-gray-600 hover:bg-gray-50 rounded"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => openDeleteModal(project)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="mb-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-xs font-semibold text-blue-600">{project.code || '-'}</span>
+                    <span className="text-sm font-semibold text-gray-900">{project.name}</span>
+                  </div>
+                  {(project.startDate || project.endDate) && (
+                    <div className="text-xs text-gray-500 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {project.startDate ? new Date(project.startDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '?'} - 
+                      {project.endDate ? new Date(project.endDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '?'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gray-500">Progreso</span>
+                    <span className="text-xs font-semibold text-gray-700">{project.progress}%</span>
+                  </div>
+                  <div className="bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${
+                        project.progress >= 80 ? 'bg-green-500' :
+                        project.progress >= 50 ? 'bg-blue-500' :
+                        project.progress >= 25 ? 'bg-orange-500' : 'bg-gray-400'
+                      }`}
+                      style={{ width: `${project.progress}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Financial Info */}
+                <div className="grid grid-cols-3 gap-2 text-center pt-3 border-t">
+                  <div>
+                    <div className="text-xs text-gray-500">Presupuesto</div>
+                    <div className="text-sm font-semibold text-gray-900">${project.budget >= 1000 ? `${(project.budget / 1000).toFixed(0)}k` : project.budget}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Costo Real</div>
+                    <div className={`text-sm font-semibold ${
+                      project.actualCost > project.budget ? 'text-red-600' :
+                      project.actualCost > project.budget * 0.9 ? 'text-orange-600' : 'text-green-600'
+                    }`}>
+                      ${project.actualCost >= 1000 ? `${(project.actualCost / 1000).toFixed(0)}k` : project.actualCost}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Ingresos</div>
+                    <div className="text-sm font-semibold text-green-600">${project.revenue >= 1000 ? `${(project.revenue / 1000).toFixed(0)}k` : project.revenue}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Projects Table - Desktop */}
+        <Card className="hidden md:block">
           <CardHeader>
             <CardTitle>Lista de Proyectos ({filteredProjects.length})</CardTitle>
           </CardHeader>
@@ -482,12 +585,12 @@ export default function ProjectsListPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Estado</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Código</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Proyecto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Centro de Costo</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 hidden lg:table-cell">Centro de Costo</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Prioridad</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Progreso</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Presupuesto</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Costo Real</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Ingresos</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 hidden lg:table-cell">Costo Real</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 hidden lg:table-cell">Ingresos</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Acciones</th>
                   </tr>
                 </thead>
@@ -528,7 +631,7 @@ export default function ProjectsListPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="flex items-center gap-2">
                           <Building className="w-4 h-4 text-gray-400" />
                           <span className="text-sm text-gray-900">{project.costCenter?.name || '-'}</span>
@@ -555,7 +658,7 @@ export default function ProjectsListPage() {
                       <td className="px-4 py-3 text-right text-sm text-gray-900">
                         ${project.budget.toLocaleString('es-MX')}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right hidden lg:table-cell">
                         <div className={`text-sm font-semibold ${
                           project.actualCost > project.budget ? 'text-red-600' :
                           project.actualCost > project.budget * 0.9 ? 'text-orange-600' : 'text-green-600'
@@ -563,7 +666,7 @@ export default function ProjectsListPage() {
                           ${project.actualCost.toLocaleString('es-MX')}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right hidden lg:table-cell">
                         <div className="text-sm font-semibold text-green-600">
                           ${project.revenue.toLocaleString('es-MX')}
                         </div>
@@ -605,9 +708,9 @@ export default function ProjectsListPage() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="qb-modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="qb-modal max-w-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="qb-modal max-w-2xl mx-4 sm:mx-auto" onClick={(e) => e.stopPropagation()}>
             <div className="qb-modal-header">
-              <h2 className="qb-modal-title">
+              <h2 className="qb-modal-title text-base sm:text-lg">
                 {selectedProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}
               </h2>
               <button onClick={() => setShowModal(false)} className="qb-modal-close">
@@ -617,7 +720,7 @@ export default function ProjectsListPage() {
             
             <form onSubmit={handleSubmit}>
               <div className="qb-modal-body space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="qb-form-group">
                     <label className="qb-label">
                       Nombre del Proyecto <span className="text-red-500">*</span>
@@ -650,7 +753,7 @@ export default function ProjectsListPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="qb-form-group">
                     <label className="qb-label">Estado</label>
                     <select
@@ -680,7 +783,7 @@ export default function ProjectsListPage() {
                   </div>
                 </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="qb-form-group">
                   <label className="qb-label">Fecha de Inicio</label>
                   <Input
@@ -699,7 +802,7 @@ export default function ProjectsListPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="qb-form-group">
                   <label className="qb-label">Presupuesto</label>
                   <Input

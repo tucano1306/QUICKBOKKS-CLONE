@@ -331,21 +331,21 @@ export default function BankTransactionsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Transacciones Bancarias</h1>
-            <p className="text-gray-600 mt-1">
-              Historial completo de movimientos bancarios
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Transacciones Bancarias</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Historial de movimientos bancarios
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => fetchTransactions()}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualizar
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => fetchTransactions()} size="sm" className="flex-1 sm:flex-none">
+              <RefreshCw className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
-            <Button variant="outline" onClick={() => {
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => {
               const csv = 'ID,Fecha,Cuenta,Tipo,Descripción,Monto,Estado\n' +
                 filteredTransactions.map(t => 
                   `${t.transactionId},${t.date},${t.account},${t.type},"${t.description}",${t.amount},${t.status}`
@@ -358,29 +358,29 @@ export default function BankTransactionsPage() {
               a.click()
               setMessage({ type: 'success', text: 'Archivo exportado exitosamente' })
             }}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => setShowNewTransactionModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Transacción
+            <Button onClick={() => setShowNewTransactionModal(true)} size="sm" className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nueva Transacción</span>
             </Button>
           </div>
         </div>
 
         {/* Messages */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+          <div className={`p-3 sm:p-4 rounded-lg flex items-center gap-2 text-sm ${
             message.type === 'success' 
               ? 'bg-green-50 border border-green-200 text-green-800' 
               : 'bg-red-50 border border-red-200 text-red-800'
           }`}>
             {message.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5" />
+              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
             ) : (
-              <AlertCircle className="w-5 h-5" />
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
             )}
-            {message.text}
+            <span className="flex-1">{message.text}</span>
             <button 
               onClick={() => setMessage(null)} 
               className="ml-auto text-gray-500 hover:text-gray-700"
@@ -391,119 +391,159 @@ export default function BankTransactionsPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <RefreshCw className="w-8 h-8 text-blue-600" />
+                <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalTransactions}</div>
-              <div className="text-sm text-blue-700">Total Transacciones</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-900">{totalTransactions}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Transacciones</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-green-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
-                ${totalDeposits.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
+                ${totalDeposits >= 10000 ? `${(totalDeposits / 1000).toFixed(0)}k` : totalDeposits.toLocaleString('es-MX')}
               </div>
-              <div className="text-sm text-green-700">Total Ingresos</div>
+              <div className="text-xs sm:text-sm text-green-700">Ingresos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingDown className="w-8 h-8 text-red-600" />
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
-                ${totalWithdrawals.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              <div className="text-lg sm:text-2xl font-bold text-red-900">
+                ${totalWithdrawals >= 10000 ? `${(totalWithdrawals / 1000).toFixed(0)}k` : totalWithdrawals.toLocaleString('es-MX')}
               </div>
-              <div className="text-sm text-red-700">Total Egresos</div>
+              <div className="text-xs sm:text-sm text-red-700">Egresos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle2 className="w-8 h-8 text-purple-600" />
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">{reconciledCount}</div>
-              <div className="text-sm text-purple-700">Conciliadas</div>
+              <div className="text-2xl sm:text-3xl font-bold text-purple-900">{reconciledCount}</div>
+              <div className="text-xs sm:text-sm text-purple-700">Conciliadas</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-3">
               <div className="relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar transacciones..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 sm:pl-10 text-sm"
                 />
               </div>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-              >
-                <option value="all">Todos los Tipos</option>
-                <option value="deposit">Depósitos</option>
-                <option value="withdrawal">Retiros</option>
-                <option value="transfer">Transferencias</option>
-                <option value="fee">Comisiones</option>
-                <option value="interest">Intereses</option>
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterAccount}
-                onChange={(e) => setFilterAccount(e.target.value)}
-              >
-                <option value="all">Todas las Cuentas</option>
-                {uniqueAccounts.map(account => (
-                  <option key={account.accountId} value={account.accountId}>
-                    {account.account}
-                  </option>
-                ))}
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="completed">Completadas</option>
-                <option value="pending">Pendientes</option>
-                <option value="reconciled">Conciliadas</option>
-                <option value="cancelled">Canceladas</option>
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                >
+                  <option value="all">Tipo</option>
+                  <option value="deposit">Depósitos</option>
+                  <option value="withdrawal">Retiros</option>
+                  <option value="transfer">Transf.</option>
+                  <option value="fee">Comisiones</option>
+                  <option value="interest">Intereses</option>
+                </select>
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterAccount}
+                  onChange={(e) => setFilterAccount(e.target.value)}
+                >
+                  <option value="all">Cuenta</option>
+                  {uniqueAccounts.map(account => (
+                    <option key={account.accountId} value={account.accountId}>
+                      {account.account}
+                    </option>
+                  ))}
+                </select>
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Estado</option>
+                  <option value="completed">Completadas</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="reconciled">Conciliadas</option>
+                  <option value="cancelled">Canceladas</option>
+                </select>
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-sm"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
-                <option value="all">Todo el Período</option>
-                <option value="week">Última Semana</option>
-                <option value="month">Último Mes</option>
-                <option value="quarter">Último Trimestre</option>
+                <option value="all">Período</option>
+                <option value="week">Semana</option>
+                <option value="month">Mes</option>
+                <option value="quarter">Trimestre</option>
               </select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Transactions Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Historial de Transacciones ({filteredTransactions.length})</CardTitle>
+        {/* Mobile Transactions View */}
+        <div className="block md:hidden space-y-3">
+          {filteredTransactions.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-500">No hay transacciones</p>
+              </CardContent>
+            </Card>
+          ) : filteredTransactions.map((transaction) => (
+            <Card key={transaction.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {getTypeBadge(transaction.type)}
+                    {getStatusBadge(transaction.status)}
+                  </div>
+                  <div className={`text-base font-bold ${
+                    transaction.type.toLowerCase() === 'deposit' || transaction.type.toLowerCase() === 'interest'
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                  }`}>
+                    {transaction.type.toLowerCase() === 'deposit' || transaction.type.toLowerCase() === 'interest' ? '+' : '-'}
+                    ${Math.abs(transaction.amount).toLocaleString('es-MX')}
+                  </div>
+                </div>
+                <div className="text-sm font-medium text-gray-900 mb-1">{transaction.description}</div>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(transaction.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                  </div>
+                  <div>{transaction.account}</div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop Transactions Table */}
+        <Card className="hidden md:block">
+          <CardHeader className="p-4">
+            <CardTitle className="text-base">Transacciones ({filteredTransactions.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -511,13 +551,13 @@ export default function BankTransactionsPage() {
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Fecha</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">ID Transacción</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Cuenta</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 hidden lg:table-cell">ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 hidden lg:table-cell">Cuenta</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Descripción</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Tipo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Categoría</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 hidden xl:table-cell">Categoría</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Monto</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Saldo</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 hidden xl:table-cell">Saldo</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Estado</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Acción</th>
                   </tr>
@@ -530,12 +570,11 @@ export default function BankTransactionsPage() {
                           <Calendar className="w-3 h-3 text-gray-400" />
                           {new Date(transaction.date).toLocaleDateString('es-MX', { 
                             day: '2-digit', 
-                            month: 'short',
-                            year: 'numeric'
+                            month: 'short'
                           })}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="font-mono text-sm font-semibold text-blue-600">
                           {transaction.transactionId}
                         </div>
@@ -545,11 +584,11 @@ export default function BankTransactionsPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
+                      <td className="px-4 py-3 text-sm text-gray-900 hidden lg:table-cell">
                         {transaction.account}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm text-gray-900 max-w-xs">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">
                           {transaction.description}
                         </div>
                         {transaction.counterparty && (
@@ -561,7 +600,7 @@ export default function BankTransactionsPage() {
                       <td className="px-4 py-3 text-center">
                         {getTypeBadge(transaction.type)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="px-4 py-3 text-sm text-gray-700 hidden xl:table-cell">
                         {transaction.category}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -571,7 +610,7 @@ export default function BankTransactionsPage() {
                           {transaction.amount >= 0 ? '+' : ''}${Math.abs(transaction.amount).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900 hidden xl:table-cell">
                         ${transaction.balance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-center">

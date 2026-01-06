@@ -280,21 +280,21 @@ export default function BankAccountsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cuentas Bancarias</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Cuentas Bancarias</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Administra tus cuentas bancarias y saldos
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => fetchBankAccounts()}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualizar
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => fetchBankAccounts()} size="sm" className="flex-1 sm:flex-none">
+              <RefreshCw className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
-            <Button variant="outline" onClick={() => {
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => {
               const csv = 'Cuenta,Banco,Tipo,Moneda,Saldo,Estado\n' +
                 filteredAccounts.map(a => 
                   `"${a.accountName}","${a.bank}",${a.type},${a.currency},${a.balance},${a.status}`
@@ -307,12 +307,12 @@ export default function BankAccountsPage() {
               link.click()
               setMessage({ type: 'success', text: 'Archivo exportado exitosamente' })
             }}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => setShowNewAccountModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Cuenta
+            <Button onClick={() => setShowNewAccountModal(true)} size="sm" className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nueva Cuenta</span>
             </Button>
           </div>
         </div>
@@ -340,58 +340,58 @@ export default function BankAccountsPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Building2 className="w-8 h-8 text-blue-600" />
+                <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalAccounts}</div>
-              <div className="text-sm text-blue-700">Cuentas Activas</div>
+              <div className="text-xl sm:text-3xl font-bold text-blue-900">{totalAccounts}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Cuentas Activas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-green-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900 truncate">
                 ${totalBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-green-700">Saldo Total</div>
+              <div className="text-xs sm:text-sm text-green-700">Saldo Total</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Wallet className="w-8 h-8 text-purple-600" />
+                <Wallet className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900 truncate">
                 ${totalAvailable.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-purple-700">Saldo Disponible</div>
+              <div className="text-xs sm:text-sm text-purple-700">Saldo Disponible</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CreditCard className="w-8 h-8 text-red-600" />
+                <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
+              <div className="text-lg sm:text-2xl font-bold text-red-900 truncate">
                 ${creditUsed.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-red-700">Crédito Utilizado</div>
+              <div className="text-xs sm:text-sm text-red-700">Crédito Utilizado</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="flex-1 relative">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
@@ -402,33 +402,35 @@ export default function BankAccountsPage() {
                   className="pl-10"
                 />
               </div>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-              >
-                <option value="all">Todos los Tipos</option>
-                <option value="checking">Cuenta Corriente</option>
-                <option value="savings">Ahorros</option>
-                <option value="credit">Crédito</option>
-                <option value="investment">Inversión</option>
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="active">Activas</option>
-                <option value="inactive">Inactivas</option>
-                <option value="frozen">Congeladas</option>
-              </select>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-4">
+                <select 
+                  className="px-3 py-2 border rounded-lg text-sm"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                >
+                  <option value="all">Todos los Tipos</option>
+                  <option value="checking">Cuenta Corriente</option>
+                  <option value="savings">Ahorros</option>
+                  <option value="credit">Crédito</option>
+                  <option value="investment">Inversión</option>
+                </select>
+                <select 
+                  className="px-3 py-2 border rounded-lg text-sm"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Todos los Estados</option>
+                  <option value="active">Activas</option>
+                  <option value="inactive">Inactivas</option>
+                  <option value="frozen">Congeladas</option>
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Accounts Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           {filteredAccounts.map((account) => (
             <Card key={account.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">

@@ -202,20 +202,20 @@ export default function CompaniesPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Empresas</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Empresas</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Administra todas tus empresas
             </p>
           </div>
           <Button
             onClick={() => setShowNewCompanyForm(!showNewCompanyForm)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4" />
-            Nueva Empresa
+            <span className="sm:inline">Nueva Empresa</span>
           </Button>
         </div>
 
@@ -394,7 +394,7 @@ export default function CompaniesPage() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {companies.map((company) => (
             <Card
               key={company.id}
@@ -406,7 +406,7 @@ export default function CompaniesPage() {
                 router.push('/company/dashboard')
               }}
             >
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {company.logo ? (
