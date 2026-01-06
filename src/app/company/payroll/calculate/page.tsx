@@ -459,15 +459,16 @@ export default function PayrollCalculatePage() {
                   <option value="paid">Pagadas</option>
                 </select>
                 <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterDepartment}
-                onChange={(e) => setFilterDepartment(e.target.value)}
-              >
-                <option value="all">Todos los Departamentos</option>
-                {uniqueDepartments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterDepartment}
+                  onChange={(e) => setFilterDepartment(e.target.value)}
+                >
+                  <option value="all">Todos Deptos</option>
+                  {uniqueDepartments.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>
