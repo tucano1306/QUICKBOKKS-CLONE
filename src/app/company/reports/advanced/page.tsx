@@ -593,18 +593,18 @@ export default function AdvancedReportsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reportes Contables Avanzados</h1>
-          <p className="text-gray-600 mt-1">Mayor analítico, balance de comprobación, libro diario legal - {activeCompany.name}</p>
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Reportes Contables Avanzados</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Mayor analítico, balance de comprobación, libro diario legal - {activeCompany.name}</p>
         </div>
 
-        <Card className="p-6">
-          <div className="space-y-6">
+        <Card className="p-3 sm:p-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Selector de tipo de reporte */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Reporte:</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Tipo de Reporte:</label>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                 {[
                   { value: 'analytical-ledger', label: 'Mayor Analítico', icon: '📖' },
                   { value: 'trial-balance', label: 'Balance de Comprobación', icon: '⚖️' },
@@ -614,14 +614,14 @@ export default function AdvancedReportsPage() {
                   <button
                     key={type.value}
                     onClick={() => setReportType(type.value as any)}
-                    className={`p-4 rounded-lg border-2 transition-all ${
+                    className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
                       reportType === type.value
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
                         : 'border-gray-200 hover:border-blue-300'
                     }`}
                   >
-                    <div className="text-2xl mb-1">{type.icon}</div>
-                    <div className="text-sm font-medium">{type.label}</div>
+                    <div className="text-xl sm:text-2xl mb-1">{type.icon}</div>
+                    <div className="text-xs sm:text-sm font-medium">{type.label}</div>
                   </button>
                 ))}
               </div>

@@ -194,19 +194,19 @@ export default function CompanySettingsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Building2 className="w-8 h-8 text-blue-600" />
-              Company Settings
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+              <span className="hidden sm:inline">Company</span> Settings
             </h1>
-            <p className="text-gray-600 mt-1">
-              Manage your company profile and business information
+            <p className="text-sm text-gray-600 mt-1">
+              Manage your company profile
             </p>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} size="sm" className="w-full sm:w-auto">
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -219,8 +219,9 @@ export default function CompanySettingsPage() {
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
+                <Save className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Save Changes</span>
+                <span className="sm:hidden">Save</span>
               </>
             )}
           </Button>
@@ -236,24 +237,25 @@ export default function CompanySettingsPage() {
 
         {/* Company Logo */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <ImageIcon className="w-5 h-5" />
               Company Logo
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-6">
-              <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Building2 className="w-16 h-16 text-white" />
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+              <div className="w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Building2 className="w-10 h-10 sm:w-16 sm:h-16 text-white" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-gray-600 mb-3">
-                  Upload your company logo. Recommended size: 512x512px, PNG or JPG format.
+              <div className="flex-1 text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-gray-600 mb-3">
+                  Upload your logo. 512x512px recommended.
                 </p>
-                <Button variant="outline">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload New Logo
+                <Button variant="outline" size="sm">
+                  <Upload className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Upload New Logo</span>
+                  <span className="sm:hidden">Upload</span>
                 </Button>
               </div>
             </div>

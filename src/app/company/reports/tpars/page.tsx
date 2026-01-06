@@ -181,27 +181,27 @@ export default function TPARSReportPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">TPARS - Taxable Payments Annual Report</h1>
-            <p className="text-gray-600 mt-1">
-              Generate and submit annual taxable payments reports for contractors and vendors
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">TPARS - Taxable Payments Annual Report</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Generate and submit annual taxable payments reports
             </p>
           </div>
         </div>
 
         {/* Info Card */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-start gap-3">
-              <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
+              <FileText className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-xs sm:text-sm">
                 <h4 className="font-medium text-blue-900">About TPARS</h4>
-                <p className="text-sm text-blue-700 mt-1">
+                <p className="text-blue-700 mt-1">
                   The Taxable Payments Annual Report summarizes all payments made to contractors and vendors during the fiscal year.
-                  This report is required for tax compliance and helps track 1099-reportable payments.
+                  This report is required for tax compliance.
                 </p>
               </div>
             </div>
@@ -210,17 +210,17 @@ export default function TPARSReportPage() {
 
         {/* Generate Report Section */}
         <Card>
-          <CardHeader>
-            <CardTitle>Generate New Report</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Generate New Report</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-4">
-              <div>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
+              <div className="flex-1 sm:flex-none">
                 <label className="text-sm font-medium">Fiscal Year</label>
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="mt-1 block border rounded-md p-2"
+                  className="mt-1 block w-full sm:w-auto border rounded-md p-2 text-sm"
                 >
                   {years.map(year => (
                     <option key={year} value={year}>{year}</option>
@@ -228,6 +228,7 @@ export default function TPARSReportPage() {
                 </select>
               </div>
               <Button 
+                size="sm"
                 className="bg-[#2CA01C] hover:bg-[#108000]"
                 onClick={generateReport}
                 disabled={generating}
@@ -239,8 +240,9 @@ export default function TPARSReportPage() {
                   </>
                 ) : (
                   <>
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Generate Report
+                    <TrendingUp className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Generate Report</span>
+                    <span className="sm:hidden">Generate</span>
                   </>
                 )}
               </Button>

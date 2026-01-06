@@ -133,75 +133,75 @@ export default function MultiCompanyPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Message Display */}
         {message && (
-          <div className={`flex items-center gap-2 p-4 rounded-lg ${
+          <div className={`flex items-center gap-2 p-3 sm:p-4 rounded-lg ${
             message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
           }`}>
-            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            <span>{message.text}</span>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+            <span className="text-sm sm:text-base">{message.text}</span>
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Building2 className="w-8 h-8 text-blue-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Gestión Multi-Empresa
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Administre múltiples empresas desde una sola cuenta
             </p>
           </div>
-          <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva Empresa
+          <Button onClick={() => setShowCreateForm(!showCreateForm)} size="sm">
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nueva Empresa</span>
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Building2 className="w-8 h-8 text-blue-600" />
+                <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">{stats.totalCompanies}</div>
-              <div className="text-sm text-blue-700">Total Empresas</div>
+              <div className="text-xl sm:text-2xl font-bold text-blue-900">{stats.totalCompanies}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Empresas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">{stats.active}</div>
-              <div className="text-sm text-green-700">Empresas Activas</div>
+              <div className="text-xl sm:text-2xl font-bold text-green-900">{stats.active}</div>
+              <div className="text-xs sm:text-sm text-green-700">Empresas Activas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-purple-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
                 ${(stats.totalRevenue / 1000).toFixed(0)}K
               </div>
-              <div className="text-sm text-purple-700">Revenue Consolidado</div>
+              <div className="text-xs sm:text-sm text-purple-700">Revenue Consolidado</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Users className="w-8 h-8 text-orange-600" />
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-900">{stats.totalUsers}</div>
-              <div className="text-sm text-orange-700">Usuarios Totales</div>
+              <div className="text-xl sm:text-2xl font-bold text-orange-900">{stats.totalUsers}</div>
+              <div className="text-xs sm:text-sm text-orange-700">Usuarios Totales</div>
             </CardContent>
           </Card>
         </div>

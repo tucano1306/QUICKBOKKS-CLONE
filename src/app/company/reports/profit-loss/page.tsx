@@ -387,20 +387,20 @@ export default function ProfitLossPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Estado de Resultados</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Estado de Resultados</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Pérdidas y Ganancias (Profit & Loss)
             </p>
-            <p className="text-sm text-blue-600 mt-1">
+            <p className="text-xs sm:text-sm text-blue-600 mt-1">
               Periodo: {dateRange.label || `${dateRange.startDate} al ${dateRange.endDate}`}
             </p>
           </div>
-          <div className="flex gap-2">
-            <div className="w-72">
+          <div className="flex flex-wrap gap-2">
+            <div className="w-full sm:w-72">
               <DateRangeSelector
                 value={dateRange}
                 onSelect={(range: DateRange) => {
@@ -408,11 +408,11 @@ export default function ProfitLossPage() {
                 }}
               />
             </div>
-            <Button variant="outline" onClick={recalculatePL} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Recalcular
+            <Button variant="outline" size="sm" onClick={recalculatePL} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Recalcular</span>
             </Button>
-            <Button variant="outline" onClick={() => {
+            <Button variant="outline" size="sm" onClick={() => {
               const csvData = generatePLCSV()
               const blob = new Blob([csvData], { type: 'text/csv' })
               const url = globalThis.URL.createObjectURL(blob)
@@ -422,14 +422,14 @@ export default function ProfitLossPage() {
               a.click()
               setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
             }}>
-              <Download className="w-4 h-4 mr-2" />
-              CSV
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">CSV</span>
             </Button>
-            <Button variant="outline" onClick={generatePDF} className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700">
-              <FileText className="w-4 h-4 mr-2" />
-              PDF
+            <Button variant="outline" size="sm" onClick={generatePDF} className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700">
+              <FileText className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">PDF</span>
             </Button>
-            <Button onClick={() => {
+            <Button size="sm" onClick={() => {
               const printWindow = window.open('', '_blank')
               if (printWindow) {
                 const ingresosRows = ingresos.map(i => `<tr><td style="padding-left: 20px;">${i.concepto}</td><td class="amount">$${i.monto.toLocaleString()}</td></tr>`).join('')
@@ -523,50 +523,50 @@ export default function ProfitLossPage() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-green-700">Total Ingresos</div>
-                <TrendingUp className="w-5 h-5 text-green-600" />
+                <div className="text-xs sm:text-sm text-green-700">Total Ingresos</div>
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900 truncate">
                 ${totalIngresos.toLocaleString()}
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-red-700">Total Gastos</div>
-                <TrendingDown className="w-5 h-5 text-red-600" />
+                <div className="text-xs sm:text-sm text-red-700">Total Gastos</div>
+                <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
+              <div className="text-lg sm:text-2xl font-bold text-red-900 truncate">
                 ${(totalGastosOp + totalOtrosGastos).toLocaleString()}
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-blue-700">Utilidad Neta</div>
-                <DollarSign className="w-5 h-5 text-blue-600" />
+                <div className="text-xs sm:text-sm text-blue-700">Utilidad Neta</div>
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900 truncate">
                 ${utilidadNeta.toLocaleString()}
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-purple-700">Margen Neto</div>
-                <TrendingUp className="w-5 h-5 text-purple-600" />
+                <div className="text-xs sm:text-sm text-purple-700">Margen Neto</div>
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
                 {margenNeto.toFixed(1)}%
               </div>
             </CardContent>
@@ -574,27 +574,29 @@ export default function ProfitLossPage() {
         </div>
 
         {/* Detailed Report */}
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {/* Ingresos */}
           <Card>
-            <CardHeader className="bg-green-50">
-              <CardTitle className="text-green-900 flex items-center justify-between">
+            <CardHeader className="bg-green-50 p-3 sm:p-6">
+              <CardTitle className="text-green-900 flex items-center justify-between text-sm sm:text-base">
                 <span>Ingresos</span>
                 <span>${totalIngresos.toLocaleString()}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-3">
+            <CardContent className="p-3 sm:p-6">
+              <div className="space-y-2 sm:space-y-3">
                 {ingresos.map((item) => (
-                  <div key={`ingreso-${item.concepto}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="text-gray-900 font-medium">{item.concepto}</div>
-                      <div className={`flex items-center gap-1 text-sm ${item.cambio >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {item.cambio >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                        {Math.abs(item.cambio)}%
-                      </div>
+                  <div key={`ingreso-${item.concepto}`} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0 flex-1">
+                      <div className="text-sm text-gray-900 font-medium truncate">{item.concepto}</div>
+                      {item.cambio !== 0 && (
+                        <div className={`flex items-center gap-1 text-xs ${item.cambio >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {item.cambio >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                          {Math.abs(item.cambio)}%
+                        </div>
+                      )}
                     </div>
-                    <div className="text-lg font-semibold text-gray-900">
+                    <div className="text-sm sm:text-lg font-semibold text-gray-900 flex-shrink-0">
                       ${item.monto.toLocaleString()}
                     </div>
                   </div>
@@ -605,26 +607,26 @@ export default function ProfitLossPage() {
 
           {/* Gastos Operativos */}
           <Card>
-            <CardHeader className="bg-orange-50">
-              <CardTitle className="text-orange-900 flex items-center justify-between">
+            <CardHeader className="bg-orange-50 p-3 sm:p-6">
+              <CardTitle className="text-orange-900 flex items-center justify-between text-sm sm:text-base">
                 <span>Gastos Operativos</span>
                 <span>-${totalGastosOp.toLocaleString()}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-3">
+            <CardContent className="p-3 sm:p-6">
+              <div className="space-y-2 sm:space-y-3">
                 {gastosOperativos.map((item) => (
-                  <div key={`gasto-op-${item.concepto}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="text-gray-900 font-medium">{item.concepto}</div>
+                  <div key={`gasto-op-${item.concepto}`} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0 flex-1">
+                      <div className="text-sm text-gray-900 font-medium truncate">{item.concepto}</div>
                       {item.cambio !== 0 && (
-                        <div className={`flex items-center gap-1 text-sm ${item.cambio >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        <div className={`flex items-center gap-1 text-xs ${item.cambio >= 0 ? 'text-red-600' : 'text-green-600'}`}>
                           {item.cambio >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                           {Math.abs(item.cambio)}%
                         </div>
                       )}
                     </div>
-                    <div className="text-lg font-semibold text-red-600">
+                    <div className="text-sm sm:text-lg font-semibold text-red-600 flex-shrink-0">
                       -${item.monto.toLocaleString()}
                     </div>
                   </div>
@@ -635,10 +637,10 @@ export default function ProfitLossPage() {
 
           {/* Utilidad Operativa */}
           <Card className="bg-blue-50">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
-                <div className="text-lg font-semibold text-blue-900">Utilidad Operativa</div>
-                <div className="text-2xl font-bold text-blue-900">
+                <div className="text-sm sm:text-lg font-semibold text-blue-900">Utilidad Operativa</div>
+                <div className="text-xl sm:text-2xl font-bold text-blue-900">
                   ${utilidadOperativa.toLocaleString()}
                 </div>
               </div>
@@ -646,46 +648,50 @@ export default function ProfitLossPage() {
           </Card>
 
           {/* Otros Gastos */}
-          <Card>
-            <CardHeader className="bg-red-50">
-              <CardTitle className="text-red-900 flex items-center justify-between">
-                <span>Otros Gastos</span>
-                <span>-${totalOtrosGastos.toLocaleString()}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-3">
-                {otrosGastos.map((item) => (
-                  <div key={`otro-gasto-${item.concepto}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="text-gray-900 font-medium">{item.concepto}</div>
-                      <div className={`flex items-center gap-1 text-sm ${item.cambio >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {item.cambio >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                        {Math.abs(item.cambio)}%
+          {otrosGastos.length > 0 && (
+            <Card>
+              <CardHeader className="bg-red-50 p-3 sm:p-6">
+                <CardTitle className="text-red-900 flex items-center justify-between text-sm sm:text-base">
+                  <span>Otros Gastos</span>
+                  <span>-${totalOtrosGastos.toLocaleString()}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6">
+                <div className="space-y-2 sm:space-y-3">
+                  {otrosGastos.map((item) => (
+                    <div key={`otro-gasto-${item.concepto}`} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0 flex-1">
+                        <div className="text-sm text-gray-900 font-medium truncate">{item.concepto}</div>
+                        {item.cambio !== 0 && (
+                          <div className={`flex items-center gap-1 text-xs ${item.cambio >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {item.cambio >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                            {Math.abs(item.cambio)}%
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-sm sm:text-lg font-semibold text-red-600 flex-shrink-0">
+                        -${item.monto.toLocaleString()}
                       </div>
                     </div>
-                    <div className="text-lg font-semibold text-red-600">
-                      -${item.monto.toLocaleString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Utilidad Neta Final */}
           <Card className={utilidadNeta >= 0 ? 'bg-gradient-to-br from-green-100 to-green-200 border-green-300' : 'bg-gradient-to-br from-red-100 to-red-200 border-red-300'}>
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
+            <CardContent className="p-4 sm:p-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div>
-                  <div className={`text-2xl font-bold mb-2 ${utilidadNeta >= 0 ? 'text-green-900' : 'text-red-900'}`}>
+                  <div className={`text-lg sm:text-2xl font-bold mb-1 sm:mb-2 ${utilidadNeta >= 0 ? 'text-green-900' : 'text-red-900'}`}>
                     Utilidad Neta
                   </div>
-                  <div className="text-sm text-gray-700">
+                  <div className="text-xs sm:text-sm text-gray-700">
                     Margen: {margenNeto.toFixed(2)}%
                   </div>
                 </div>
-                <div className={`text-4xl font-bold ${utilidadNeta >= 0 ? 'text-green-900' : 'text-red-900'}`}>
+                <div className={`text-2xl sm:text-4xl font-bold ${utilidadNeta >= 0 ? 'text-green-900' : 'text-red-900'}`}>
                   ${utilidadNeta.toLocaleString()}
                 </div>
               </div>

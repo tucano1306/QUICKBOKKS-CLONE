@@ -195,19 +195,19 @@ export default function AIAssistantPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Bot className="w-8 h-8 text-blue-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Asistente IA - {activeCompany?.name}
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-1 text-sm">
               Tu asistente contable inteligente, personalizado para tu empresa
             </p>
           </div>
-          <Badge className="bg-green-100 text-green-700">
+          <Badge className="bg-green-100 text-green-700 w-fit">
             <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
             Online
           </Badge>
@@ -274,15 +274,15 @@ export default function AIAssistantPage() {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {stats.map((stat, idx) => (
             <Card key={idx} className="bg-gradient-to-br from-gray-50 to-white">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-6">
                 <div className="flex items-center justify-between mb-2">
-                  <stat.icon className={`w-8 h-8 text-${stat.color}-600`} />
+                  <stat.icon className={`w-6 h-6 sm:w-8 sm:h-8 text-${stat.color}-600`} />
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                <div className="text-sm text-gray-600">{stat.label}</div>
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">{stat.value}</div>
+                <div className="text-xs sm:text-sm text-gray-600">{stat.label}</div>
               </CardContent>
             </Card>
           ))}
@@ -358,19 +358,19 @@ export default function AIAssistantPage() {
 
         {/* Tech Stack Info */}
         <Card className="bg-gradient-to-r from-purple-50 via-blue-50 to-purple-50 border-purple-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg">
-                <Brain className="w-8 h-8 text-white" />
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex-shrink-0">
+                <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <div>
-                <h3 className="font-semibold text-purple-900 mb-2 text-lg flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-purple-900 mb-2 text-sm sm:text-lg flex items-center gap-2">
                   🤖 Tecnología del Asistente IA
                 </h3>
-                <p className="text-purple-700 text-sm mb-3">
+                <p className="text-purple-700 text-xs sm:text-sm mb-3">
                   Nuestro asistente combina múltiples modelos de IA y Machine Learning para darte respuestas precisas y personalizadas.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <h4 className="font-semibold text-purple-900 mb-2">Procesamiento de Lenguaje:</h4>
                     <ul className="text-purple-700 text-sm space-y-1">
@@ -406,14 +406,14 @@ export default function AIAssistantPage() {
 
         {/* Privacy & Security */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-white" />
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-blue-600 rounded-lg flex-shrink-0">
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h3 className="font-semibold text-blue-900 mb-2">🔒 Privacidad y Seguridad</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-blue-900 mb-2 text-sm sm:text-base">🔒 Privacidad y Seguridad</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm text-blue-700">
                   <div>
                     <ul className="space-y-1">
                       <li>• <strong>Datos Aislados:</strong> Cada empresa tiene su propio contexto IA</li>

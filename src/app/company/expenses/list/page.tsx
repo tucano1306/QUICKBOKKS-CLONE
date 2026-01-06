@@ -432,24 +432,24 @@ export default function ExpensesListPage() {
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0D2942]">Lista de Gastos</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0D2942]">Lista de Gastos</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
               Gestiona y controla todos los gastos de tu empresa
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {/* Modo selección múltiple */}
             {selectMode ? (
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={selectAllExpenses}>
-                  <CheckSquare className="h-4 w-4 mr-2" />
-                  {selectedExpenses.size === filteredExpenses.length ? 'Deseleccionar' : 'Seleccionar Todo'}
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                <Button variant="outline" size="sm" onClick={selectAllExpenses} className="flex-1 sm:flex-none">
+                  <CheckSquare className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{selectedExpenses.size === filteredExpenses.length ? 'Deseleccionar' : 'Seleccionar Todo'}</span>
                 </Button>
                 
-                {/* Acciones de estado */}
-                <div className="flex gap-1 border-l pl-2 ml-1">
+                {/* Acciones de estado - Solo visible en desktop */}
+                <div className="hidden md:flex gap-1 border-l pl-2 ml-1">
                   <Button 
                     variant="outline"
                     size="sm"
@@ -527,61 +527,61 @@ export default function ExpensesListPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-blue-600">Total Gastado</p>
-                <p className="text-2xl font-bold text-blue-900 mt-1">
+                <p className="text-xs sm:text-sm font-medium text-blue-600">Total Gastado</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-900 mt-1 truncate">
                   ${stats.totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">{stats.total} gastos</p>
               </div>
-              <Receipt className="h-8 w-8 text-blue-600 opacity-50" />
+              <Receipt className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 opacity-50 flex-shrink-0" />
             </div>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-yellow-50 to-yellow-100">
+          <Card className="p-3 sm:p-5 bg-gradient-to-br from-yellow-50 to-yellow-100">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-yellow-600">Pendientes</p>
-                <p className="text-2xl font-bold text-yellow-900 mt-1">{stats.pending}</p>
+                <p className="text-xs sm:text-sm font-medium text-yellow-600">Pendientes</p>
+                <p className="text-lg sm:text-2xl font-bold text-yellow-900 mt-1">{stats.pending}</p>
                 <p className="text-xs text-yellow-600 mt-1">Por aprobar</p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600 opacity-50" />
+              <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600 opacity-50 flex-shrink-0" />
             </div>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100">
+          <Card className="p-3 sm:p-5 bg-gradient-to-br from-green-50 to-green-100">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-green-600">Aprobados</p>
-                <p className="text-2xl font-bold text-green-900 mt-1">{stats.approved}</p>
+                <p className="text-xs sm:text-sm font-medium text-green-600">Aprobados</p>
+                <p className="text-lg sm:text-2xl font-bold text-green-900 mt-1">{stats.approved}</p>
                 <p className="text-xs text-green-600 mt-1">Este mes</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600 opacity-50" />
+              <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 opacity-50 flex-shrink-0" />
             </div>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100">
+          <Card className="p-3 sm:p-5 bg-gradient-to-br from-purple-50 to-purple-100">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-purple-600">Deducibles</p>
-                <p className="text-2xl font-bold text-purple-900 mt-1">
+                <p className="text-xs sm:text-sm font-medium text-purple-600">Deducibles</p>
+                <p className="text-lg sm:text-2xl font-bold text-purple-900 mt-1 truncate">
                   ${stats.deductibleAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </p>
                 <p className="text-xs text-purple-600 mt-1">Para impuestos</p>
               </div>
-              <DollarSign className="h-8 w-8 text-purple-600 opacity-50" />
+              <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 opacity-50 flex-shrink-0" />
             </div>
           </Card>
         </div>
 
         {/* Filters */}
-        <Card className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
             {/* Search */}
-            <div className="relative lg:col-span-2">
+            <div className="relative sm:col-span-2 lg:col-span-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
@@ -672,13 +672,96 @@ export default function ExpensesListPage() {
           </div>
         </Card>
 
-        {/* Expenses Table */}
+        {/* Expenses List */}
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Vista Móvil - Cards */}
+          <div className="block md:hidden">
+            {!Array.isArray(filteredExpenses) || filteredExpenses.length === 0 ? (
+              <div className="p-6 text-center">
+                <Receipt className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                <p className="text-gray-600 mb-4">
+                  {searchTerm || statusFilter !== 'ALL' || categoryFilter !== 'ALL'
+                    ? 'No se encontraron gastos'
+                    : 'No hay gastos registrados'}
+                </p>
+                <Button size="sm" onClick={() => router.push('/company/expenses/new')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Crear Gasto
+                </Button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {paginatedExpenses.map(expense => (
+                  <div 
+                    key={expense.id} 
+                    className={`p-4 ${selectedExpenses.has(expense.id) ? 'bg-blue-50' : ''}`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start gap-2">
+                        {selectMode && (
+                          <input
+                            type="checkbox"
+                            checked={selectedExpenses.has(expense.id)}
+                            onChange={() => toggleSelectExpense(expense.id)}
+                            className="w-4 h-4 mt-1 text-blue-600 rounded border-gray-300"
+                          />
+                        )}
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm">{expense.description}</p>
+                          <p className="text-xs text-gray-500">{expense.vendor || 'Sin proveedor'}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">
+                          ${expense.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </p>
+                        {expense.taxDeductible && (
+                          <span className="text-xs text-green-600">Deducible</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                      <span>{new Date(expense.date).toLocaleDateString('es-MX')}</span>
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+                        {expense.category.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      {getStatusBadge(expense.status)}
+                      {!selectMode && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => router.push(`/company/expenses/${expense.id}`)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => router.push(`/company/expenses/${expense.id}/edit`)}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(expense.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Vista Desktop - Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  {/* Columna de checkbox para selección múltiple */}
                   {selectMode && (
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <input
@@ -689,25 +772,25 @@ export default function ExpensesListPage() {
                       />
                     </th>
                   )}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Fecha
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Descripción
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                     Categoría
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
                     Proveedor
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Monto
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
@@ -734,7 +817,6 @@ export default function ExpensesListPage() {
                       key={expense.id} 
                       className={`hover:bg-gray-50 ${selectedExpenses.has(expense.id) ? 'bg-blue-50' : ''}`}
                     >
-                      {/* Checkbox para selección múltiple */}
                       {selectMode && (
                         <td className="px-4 py-4 whitespace-nowrap">
                           <input
@@ -745,24 +827,24 @@ export default function ExpensesListPage() {
                           />
                         </td>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(expense.date).toLocaleDateString('es-MX')}
                       </td>
-                      <td className="px-6 py-4 text-sm">
+                      <td className="px-4 py-4 text-sm">
                         <div className="font-medium text-gray-900">{expense.description}</div>
                         {expense.reference && (
                           <div className="text-xs text-gray-500">Ref: {expense.reference}</div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap hidden lg:table-cell">
                         <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
                           {expense.category.name}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 hidden xl:table-cell">
                         {expense.vendor || '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
                         <div className="font-semibold text-gray-900">
                           ${expense.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                         </div>
@@ -770,29 +852,29 @@ export default function ExpensesListPage() {
                           <div className="text-xs text-green-600">Deducible</div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
                         {getStatusBadge(expense.status)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
                         {!selectMode && (
-                          <div className="flex justify-center gap-2">
+                          <div className="flex justify-center gap-1">
                             <button
                               onClick={() => router.push(`/company/expenses/${expense.id}`)}
-                              className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
+                              className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50"
                               title="Ver detalles"
                             >
                               <Eye className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => router.push(`/company/expenses/${expense.id}/edit`)}
-                              className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
+                              className="text-green-600 hover:text-green-800 p-1.5 rounded hover:bg-green-50"
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(expense.id)}
-                              className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                              className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-50"
                               title="Eliminar"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -807,10 +889,10 @@ export default function ExpensesListPage() {
               {filteredExpenses.length > 0 && (
                 <tfoot className="bg-gray-50 border-t-2">
                   <tr>
-                    <td colSpan={selectMode ? 5 : 4} className="px-6 py-4 text-sm font-semibold text-gray-900">
+                    <td colSpan={selectMode ? 5 : 4} className="px-4 py-4 text-sm font-semibold text-gray-900">
                       Total ({filteredExpenses.length} gastos)
                     </td>
-                    <td className="px-6 py-4 text-sm font-bold text-right text-gray-900">
+                    <td className="px-4 py-4 text-sm font-bold text-right text-gray-900">
                       ${filteredExpenses
                         .reduce((sum, e) => sum + e.amount, 0)
                         .toLocaleString('es-MX', { minimumFractionDigits: 2 })}

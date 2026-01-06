@@ -239,27 +239,27 @@ export default function PayrollReportsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reportes de Nómina</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Reportes de Nómina</h1>
+            <p className="text-gray-600 mt-1 text-sm">
               Análisis completo de costos, impuestos y distribución de nómina
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={printReport}>
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir
+            <Button variant="outline" onClick={printReport} size="sm">
+              <Printer className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Imprimir</span>
             </Button>
-            <Button variant="outline" onClick={exportAllReports} disabled={exporting}>
+            <Button variant="outline" onClick={exportAllReports} disabled={exporting} size="sm">
               {exporting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
               ) : (
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 sm:mr-2" />
               )}
-              Exportar Todos
+              <span className="hidden sm:inline">Exportar Todos</span>
             </Button>
           </div>
         </div>
@@ -286,62 +286,62 @@ export default function PayrollReportsPage() {
         })()}
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Users className="w-8 h-8 text-blue-600" />
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalEmployees}</div>
-              <div className="text-sm text-blue-700">Total Empleados</div>
+              <div className="text-xl sm:text-3xl font-bold text-blue-900">{totalEmployees}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Empleados</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-green-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
                 ${totalGrossPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-green-700">Nómina Bruta</div>
+              <div className="text-xs sm:text-sm text-green-700">Nómina Bruta</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-purple-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
                 ${totalNetPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-purple-700">Nómina Neta</div>
+              <div className="text-xs sm:text-sm text-purple-700">Nómina Neta</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingDown className="w-8 h-8 text-orange-600" />
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-lg sm:text-2xl font-bold text-orange-900">
                 ${totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-orange-700">Costo Total</div>
+              <div className="text-xs sm:text-sm text-orange-700">Costo Total</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Period Selector */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Calendar className="w-5 h-5 text-gray-400" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <Calendar className="w-5 h-5 text-gray-400 hidden sm:block" />
                 <select 
-                  className="px-4 py-2 border rounded-lg font-semibold"
+                  className="px-3 sm:px-4 py-2 border rounded-lg font-semibold text-sm w-full sm:w-auto"
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
                 >
@@ -362,31 +362,31 @@ export default function PayrollReportsPage() {
         </Card>
 
         {/* Report Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {reports.map((report) => {
             const colors = getColorClasses(report.color)
             const Icon = report.icon
             return (
               <Card key={report.id} className={`${colors.bg} ${colors.border} hover:shadow-lg transition-shadow cursor-pointer`}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 ${colors.bg} rounded-lg border ${colors.border}`}>
-                      <Icon className={`w-6 h-6 ${colors.text}`} />
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4">
+                    <div className={`p-2 sm:p-3 ${colors.bg} rounded-lg border ${colors.border}`}>
+                      <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${colors.text}`} />
                     </div>
-                    <Badge className="bg-white text-gray-700 border border-gray-300">
+                    <Badge className="bg-white text-gray-700 border border-gray-300 text-xs">
                       {report.period}
                     </Badge>
                   </div>
-                  <h3 className={`font-bold text-lg mb-2 ${colors.text}`}>{report.name}</h3>
-                  <p className="text-sm text-gray-600 mb-4">{report.description}</p>
+                  <h3 className={`font-bold text-sm sm:text-lg mb-2 ${colors.text}`}>{report.name}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">{report.description}</p>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => openReportModal(report)}>
-                      <Eye className="w-4 h-4 mr-1" />
-                      Ver
+                    <Button size="sm" variant="outline" className="flex-1 text-xs sm:text-sm" onClick={() => openReportModal(report)}>
+                      <Eye className="w-4 h-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Ver</span>
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => exportSingleReport(report)}>
-                      <Download className="w-4 h-4 mr-1" />
-                      Exportar
+                    <Button size="sm" variant="outline" className="text-xs sm:text-sm" onClick={() => exportSingleReport(report)}>
+                      <Download className="w-4 h-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Exportar</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -477,12 +477,12 @@ export default function PayrollReportsPage() {
         </Card>
 
         {/* Cost Breakdown */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-900">Desglose de Costos</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-blue-900 text-sm sm:text-base">Desglose de Costos</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6 pt-0">
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                   <span className="text-sm font-semibold text-gray-700">Sueldos y Salarios</span>

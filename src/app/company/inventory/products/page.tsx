@@ -110,36 +110,74 @@ export default function ProductsListPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Productos y Servicios</h1>
-            <p className="text-gray-600 mt-1">
-              Catálogo completo de productos
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Productos y Servicios</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Catálogo de productos
             </p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button size="sm" className="flex items-center gap-2 w-full sm:w-auto">
             <Plus className="w-4 h-4" />
-            Nuevo Producto
+            <span className="hidden sm:inline">Nuevo Producto</span>
+            <span className="sm:hidden">Nuevo</span>
           </Button>
         </div>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Lista de Productos</CardTitle>
-              <div className="flex items-center gap-2 max-w-sm">
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg">Lista de Productos</CardTitle>
+              <div className="flex items-center gap-2 w-full sm:max-w-sm">
                 <Search className="w-4 h-4 text-gray-400" />
                 <Input
-                  placeholder="Buscar productos..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-xs"
+                  className="w-full sm:max-w-xs"
                 />
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
+            {/* Mobile View - Cards */}
+            <div className="block sm:hidden space-y-3 p-3">
+              {filteredProducts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No se encontraron productos
+                </div>
+              ) : (
+                filteredProducts.map((product) => (
+                  <Card key={product.id} className="p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-sm text-gray-500">{product.sku || 'Sin SKU'}</div>
+                      </div>
+                      <Badge variant={product.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                        {product.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-bold">${product.price.toFixed(2)}</span>
+                      <span className="text-gray-500">{product.type === 'PRODUCT' ? 'Producto' : 'Servicio'}</span>
+                    </div>
+                    <div className="flex gap-2 mt-2 pt-2 border-t">
+                      <Button variant="ghost" size="sm" className="flex-1">
+                        <Edit className="w-4 h-4 mr-1" /> Editar
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(product.id)} className="text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+
+            {/* Desktop View - Table */}
+            <div className="hidden sm:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -197,6 +235,7 @@ export default function ProductsListPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

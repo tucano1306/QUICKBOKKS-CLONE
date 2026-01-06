@@ -458,85 +458,87 @@ export default function VendorPayablesPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cuentas por Pagar</h1>
-            <p className="text-gray-600 mt-1">Facturas pendientes de proveedores</p>
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Cuentas por Pagar</h1>
+            <p className="text-gray-600 mt-1 text-sm">Facturas pendientes de proveedores</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" /> Exportar
+            <Button variant="outline" onClick={handleExport} size="sm">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={openCreateModal}>
-              <Plus className="w-4 h-4 mr-2" /> Registrar Factura
+            <Button onClick={openCreateModal} size="sm">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Registrar</span> Factura
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <FileText className="w-8 h-8 text-orange-600" />
+                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-lg sm:text-2xl font-bold text-orange-900">
                 ${totalOpen.toLocaleString()}
               </div>
-              <div className="text-sm text-orange-700">Total por pagar</div>
+              <div className="text-xs sm:text-sm text-orange-700">Total por pagar</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
+              <div className="text-lg sm:text-2xl font-bold text-red-900">
                 ${metrics.overdue.toLocaleString()}
               </div>
-              <div className="text-sm text-red-700">Facturas vencidas</div>
+              <div className="text-xs sm:text-sm text-red-700">Facturas vencidas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-blue-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">
                 ${dueThisWeek.toLocaleString()}
               </div>
-              <div className="text-sm text-blue-700">Vence esta semana</div>
+              <div className="text-xs sm:text-sm text-blue-700">Vence esta semana</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
                 ${totalPaid.toLocaleString()}
               </div>
-              <div className="text-sm text-green-700">Pagado este mes</div>
+              <div className="text-xs sm:text-sm text-green-700">Pagado este mes</div>
             </CardContent>
           </Card>
         </div>
 
         <Card>
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <CardContent className="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <Input
                 placeholder="Buscar facturas..."
-                className="pl-10"
+                className="pl-9 sm:pl-10 text-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <select
-              className="px-4 py-2 border rounded-lg"
+              className="px-3 sm:px-4 py-2 border rounded-lg text-sm"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >

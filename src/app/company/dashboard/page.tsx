@@ -152,12 +152,12 @@ function StatCardComponent({ stat, index }: StatCardProps) {
       style={{ animationDelay: `${index * 100}ms` }}
     >
       <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${colorGradient}`} />
-      <CardContent className="p-6 relative">
-        <div className="flex items-center justify-between mb-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${bgColor}`}>
-            <Icon className={`w-6 h-6 ${textColor}`} />
+      <CardContent className="p-3 sm:p-6 relative">
+        <div className="flex items-center justify-between mb-2 sm:mb-4">
+          <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${bgColor}`}>
+            <Icon className={`w-4 h-4 sm:w-6 sm:h-6 ${textColor}`} />
           </div>
-          <div className={`flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full ${
+          <div className={`flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm font-semibold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full ${
             stat.trend === 'up' ? 'text-[#108000] bg-green-100' : 'text-red-700 bg-red-100'
           }`}>
             {stat.trend === 'up' ? (
@@ -168,10 +168,10 @@ function StatCardComponent({ stat, index }: StatCardProps) {
             {stat.change}
           </div>
         </div>
-        <div className="text-3xl font-bold text-[#0D2942] mb-1">
+        <div className="text-lg sm:text-3xl font-bold text-[#0D2942] mb-0.5 sm:mb-1 truncate">
           {stat.value}
         </div>
-        <div className="text-sm text-gray-500 font-medium">
+        <div className="text-xs sm:text-sm text-gray-500 font-medium truncate">
           {stat.name}
         </div>
         <div className="absolute bottom-2 right-2 opacity-30">
@@ -447,23 +447,23 @@ export default function CompanyDashboardPage() {
         </Card>
 
         {/* Estadísticas principales con animaciones */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
           {statCards.map((stat, index) => (
             <StatCardComponent key={stat.name} stat={stat} index={index} />
           ))}
         </div>
 
         {/* Gráficos principales mejorados */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Gráfico de barras animado */}
           <Card className="lg:col-span-2 overflow-hidden shadow-md">
-            <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-white">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-[#0D2942]">
-                  <BarChart3 className="w-5 h-5 text-[#2CA01C]" />
+            <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-white p-3 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base text-[#0D2942]">
+                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-[#2CA01C]" />
                   Rendimiento Mensual
                 </CardTitle>
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-2 sm:gap-4 text-xs sm:text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#2CA01C]" />
                     <span className="text-gray-600">Ingresos</span>
@@ -475,28 +475,28 @@ export default function CompanyDashboardPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               {stats && (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Resumen financiero real */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-green-50 rounded-xl">
-                      <div className="text-2xl font-bold text-[#2CA01C]">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                    <div className="text-center p-2 sm:p-4 bg-green-50 rounded-lg sm:rounded-xl">
+                      <div className="text-sm sm:text-2xl font-bold text-[#2CA01C] truncate">
                         <AnimatedCounter value={stats.revenue.current} prefix="$" decimals={0} />
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">Ingresos Totales</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Ingresos</div>
                     </div>
-                    <div className="text-center p-4 bg-red-50 rounded-xl">
-                      <div className="text-2xl font-bold text-red-600">
+                    <div className="text-center p-2 sm:p-4 bg-red-50 rounded-lg sm:rounded-xl">
+                      <div className="text-sm sm:text-2xl font-bold text-red-600 truncate">
                         <AnimatedCounter value={stats.expenses.current} prefix="$" decimals={0} />
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">Gastos Totales</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Gastos</div>
                     </div>
-                    <div className={`text-center p-4 rounded-xl ${stats.revenue.current - stats.expenses.current >= 0 ? 'bg-blue-50' : 'bg-red-50'}`}>
-                      <div className={`text-2xl font-bold ${stats.revenue.current - stats.expenses.current >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                    <div className={`text-center p-2 sm:p-4 rounded-lg sm:rounded-xl ${stats.revenue.current - stats.expenses.current >= 0 ? 'bg-blue-50' : 'bg-red-50'}`}>
+                      <div className={`text-sm sm:text-2xl font-bold truncate ${stats.revenue.current - stats.expenses.current >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                         <AnimatedCounter value={stats.revenue.current - stats.expenses.current} prefix="$" decimals={0} />
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">Utilidad Neta</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Utilidad</div>
                     </div>
                   </div>
                   
@@ -534,13 +534,13 @@ export default function CompanyDashboardPage() {
 
           {/* Resumen de cuentas */}
           <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-purple-600" />
+            <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                 Resumen de Cuentas
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               {stats && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
@@ -597,51 +597,51 @@ export default function CompanyDashboardPage() {
               Acciones Rápidas
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <CardContent className="p-3 sm:p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
               <Button
                 onClick={() => router.push('/company/invoicing/invoices')}
                 variant="outline"
-                className="h-auto py-4 flex-col gap-2 hover:bg-blue-50 hover:border-blue-300"
+                className="h-auto py-3 sm:py-4 flex-col gap-1 sm:gap-2 hover:bg-blue-50 hover:border-blue-300"
               >
-                <FileText className="w-6 h-6 text-blue-600" />
-                <span className="text-sm font-medium">Nueva Factura</span>
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                <span className="text-xs sm:text-sm font-medium">Nueva Factura</span>
               </Button>
               <Button
                 onClick={() => router.push('/company/expenses/list')}
                 variant="outline"
-                className="h-auto py-4 flex-col gap-2 hover:bg-red-50 hover:border-red-300"
+                className="h-auto py-3 sm:py-4 flex-col gap-1 sm:gap-2 hover:bg-red-50 hover:border-red-300"
               >
-                <Receipt className="w-6 h-6 text-red-600" />
-                <span className="text-sm font-medium">Nuevo Gasto</span>
+                <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+                <span className="text-xs sm:text-sm font-medium">Nuevo Gasto</span>
               </Button>
               <Button
                 onClick={() => router.push('/company/customers')}
                 variant="outline"
-                className="h-auto py-4 flex-col gap-2 hover:bg-green-50 hover:border-green-300"
+                className="h-auto py-3 sm:py-4 flex-col gap-1 sm:gap-2 hover:bg-green-50 hover:border-green-300"
               >
-                <Users className="w-6 h-6 text-green-600" />
-                <span className="text-sm font-medium">Nuevo Cliente</span>
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                <span className="text-xs sm:text-sm font-medium">Nuevo Cliente</span>
               </Button>
               <Button
                 onClick={() => router.push('/company/reports/profit-loss')}
                 variant="outline"
-                className="h-auto py-4 flex-col gap-2 hover:bg-purple-50 hover:border-purple-300"
+                className="h-auto py-3 sm:py-4 flex-col gap-1 sm:gap-2 hover:bg-purple-50 hover:border-purple-300"
               >
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-                <span className="text-sm font-medium">Ver Reportes</span>
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+                <span className="text-xs sm:text-sm font-medium">Ver Reportes</span>
               </Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Actividad reciente mejorada */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Actividad reciente */}
           <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800 dark:to-gray-800">
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-indigo-600" />
+            <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800 dark:to-gray-800 p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
                 Actividad Reciente
               </CardTitle>
             </CardHeader>
@@ -668,13 +668,13 @@ export default function CompanyDashboardPage() {
 
           {/* Calendario de vencimientos - Datos reales */}
           <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20">
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-rose-600" />
+            <CardHeader className="border-b bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600" />
                 Próximos Vencimientos
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               {stats && (stats.invoices.pending > 0 || stats.invoices.overdue > 0) ? (
                 <div className="space-y-3">
                   {stats.invoices.overdue > 0 && (
@@ -721,23 +721,24 @@ export default function CompanyDashboardPage() {
         </div>
 
         {/* Resumen de cuentas mejorado */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           {/* Cuentas por Cobrar */}
           <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 animate-shimmer" />
-            <CardHeader className="pb-2">
+            <div className="h-1 sm:h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 animate-shimmer" />
+            <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
               <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-base">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                <span className="flex items-center gap-2 text-sm sm:text-base">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
                   </div>
-                  Cuentas por Cobrar
+                  <span className="hidden sm:inline">Cuentas por Cobrar</span>
+                  <span className="sm:hidden">Por Cobrar</span>
                 </span>
                 <ArrowUpRight className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 truncate">
                 {stats ? (
                   <AnimatedCounter value={stats.receivables} prefix="$" duration={1500} />
                 ) : '$0'}

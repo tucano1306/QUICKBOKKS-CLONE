@@ -383,23 +383,24 @@ export default function JournalEntriesPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Asientos Contables</h1>
-            <p className="text-gray-600 mt-1">
-              Registro de movimientos contables - Sistema de partida doble
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Asientos Contables</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Registro de movimientos - Partida doble
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={exportToCSV} className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => setShowNewModal(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Asiento
+            <Button size="sm" onClick={() => setShowNewModal(true)} className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nuevo Asiento</span>
+              <span className="sm:hidden">Nuevo</span>
             </Button>
           </div>
         </div>
@@ -435,46 +436,46 @@ export default function JournalEntriesPage() {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <BookOpen className="w-8 h-8 text-blue-600" />
+                <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{journalEntries.length}</div>
-              <div className="text-sm text-blue-700">Total Asientos</div>
+              <div className="text-lg sm:text-3xl font-bold text-blue-900">{journalEntries.length}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">{totalPosted}</div>
-              <div className="text-sm text-green-700">Registrados</div>
+              <div className="text-lg sm:text-3xl font-bold text-green-900">{totalPosted}</div>
+              <div className="text-xs sm:text-sm text-green-700">Registrados</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-yellow-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
               </div>
-              <div className="text-3xl font-bold text-yellow-900">{totalDraft}</div>
-              <div className="text-sm text-yellow-700">Borradores</div>
+              <div className="text-lg sm:text-3xl font-bold text-yellow-900">{totalDraft}</div>
+              <div className="text-xs sm:text-sm text-yellow-700">Borradores</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <FileText className="w-8 h-8 text-purple-600" />
+                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900 truncate">
                 ${totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-purple-700">Monto Total</div>
+              <div className="text-xs sm:text-sm text-purple-700">Monto Total</div>
             </CardContent>
           </Card>
         </div>

@@ -372,23 +372,23 @@ export default function TaxReportsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reportes Fiscales</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Reportes Fiscales</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Gestión de declaraciones y obligaciones fiscales
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { setMessage({ type: 'success', text: 'Exportando reportes fiscales a PDF' }); setTimeout(() => setMessage(null), 3000); }}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={() => { setMessage({ type: 'success', text: 'Exportando reportes fiscales a PDF' }); setTimeout(() => setMessage(null), 3000); }}>
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => setShowNewModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Declaración
+            <Button size="sm" onClick={() => setShowNewModal(true)}>
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nueva Declaración</span>
             </Button>
           </div>
         </div>
@@ -599,72 +599,72 @@ export default function TaxReportsPage() {
         </Dialog>
 
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            {message.text}
+          <div className={`p-3 sm:p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+            <span className="text-sm sm:text-base">{message.text}</span>
           </div>
         )}
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-yellow-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
               </div>
-              <div className="text-3xl font-bold text-yellow-900">
+              <div className="text-xl sm:text-3xl font-bold text-yellow-900">
                 {stats.pending}
               </div>
-              <div className="text-sm text-yellow-700">Pendientes</div>
+              <div className="text-xs sm:text-sm text-yellow-700">Pendientes</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">
+              <div className="text-xl sm:text-3xl font-bold text-green-900">
                 {stats.filed}
               </div>
-              <div className="text-sm text-green-700">Presentadas</div>
+              <div className="text-xs sm:text-sm text-green-700">Presentadas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-3xl font-bold text-red-900">
+              <div className="text-xl sm:text-3xl font-bold text-red-900">
                 {stats.overdue}
               </div>
-              <div className="text-sm text-red-700">Vencidas</div>
+              <div className="text-xs sm:text-sm text-red-700">Vencidas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-blue-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">
                 ${(stats.totalTaxes / 1000000).toFixed(1)}M
               </div>
-              <div className="text-sm text-blue-700">Impuestos Pagados</div>
+              <div className="text-xs sm:text-sm text-blue-700">Impuestos Pagados</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                 Año Fiscal:
               </label>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 sm:px-4 py-2 border rounded-lg text-sm"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
               >
@@ -672,12 +672,12 @@ export default function TaxReportsPage() {
                 <option value="2024">2024</option>
                 <option value="2023">2023</option>
               </select>
-              <div className="flex-1"></div>
-              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+              <div className="hidden sm:block flex-1"></div>
+              <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                 Tipo de Impuesto:
               </label>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 sm:px-4 py-2 border rounded-lg text-sm"
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
               >

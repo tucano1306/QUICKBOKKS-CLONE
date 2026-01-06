@@ -521,46 +521,46 @@ File via EFTPS (federal) and FloridaRevenue.com (state).
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-900">Payroll Taxes</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Payroll Taxes</h1>
               <Badge className="bg-orange-100 text-orange-700 flex items-center gap-1">
                 <Flag className="w-3 h-3" /> Florida
               </Badge>
             </div>
-            <p className="text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Federal and Florida state payroll tax management
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar PDF
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar PDF</span>
             </Button>
-            <Button variant="outline" onClick={handleGenerateDeclaration}>
-              <FileText className="w-4 h-4 mr-2" />
-              Generate Forms
+            <Button variant="outline" size="sm" onClick={handleGenerateDeclaration}>
+              <FileText className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Generate Forms</span>
             </Button>
-            <Button onClick={() => setShowPaymentModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Record Payment
+            <Button size="sm" onClick={() => setShowPaymentModal(true)}>
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Record Payment</span>
             </Button>
           </div>
         </div>
 
         {/* Florida Notice */}
         <Card className="bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Flag className="w-5 h-5 text-orange-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
+                <Flag className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
               </div>
-              <div>
+              <div className="text-xs sm:text-sm">
                 <span className="font-semibold text-orange-900">Florida Tax Advantage:</span>
-                <span className="text-orange-700 ml-2">
+                <span className="text-orange-700 ml-1 sm:ml-2">
                   No state income tax! Only Federal taxes + Florida Reemployment Tax (SUTA) apply.
                 </span>
               </div>
@@ -569,88 +569,88 @@ File via EFTPS (federal) and FloridaRevenue.com (state).
         </Card>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-blue-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900 truncate">
                 ${taxSummary.totalFederalWithholding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-blue-700">Federal Income Tax</div>
+              <div className="text-xs sm:text-sm text-blue-700">Federal Income Tax</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Users className="w-8 h-8 text-green-600" />
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900 truncate">
                 ${(taxSummary.totalSocialSecurityEmployee + taxSummary.totalSocialSecurityEmployer).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-green-700">Social Security (Total)</div>
+              <div className="text-xs sm:text-sm text-green-700">Social Security</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Receipt className="w-8 h-8 text-purple-600" />
+                <Receipt className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900 truncate">
                 ${(taxSummary.totalMedicareEmployee + taxSummary.totalMedicareEmployer).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-purple-700">Medicare (Total)</div>
+              <div className="text-xs sm:text-sm text-purple-700">Medicare (Total)</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Building2 className="w-8 h-8 text-orange-600" />
+                <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-lg sm:text-2xl font-bold text-orange-900 truncate">
                 ${(taxSummary.totalFUTA + taxSummary.totalSUTA).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-orange-700">Unemployment (FUTA + SUTA)</div>
+              <div className="text-xs sm:text-sm text-orange-700">Unemployment</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Employee vs Employer Contributions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-red-700 mb-1">Total Employee Withholdings</div>
-                  <div className="text-3xl font-bold text-red-900">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs sm:text-sm text-red-700 mb-1">Total Employee Withholdings</div>
+                  <div className="text-xl sm:text-3xl font-bold text-red-900 truncate">
                     ${taxSummary.totalWithholdings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </div>
-                  <div className="text-xs text-red-600 mt-2">
+                  <div className="text-xs text-red-600 mt-2 hidden sm:block">
                     Federal W/H + Social Security + Medicare deducted from pay
                   </div>
                 </div>
-                <TrendingDown className="w-12 h-12 text-red-600 opacity-20" />
+                <TrendingDown className="w-8 h-8 sm:w-12 sm:h-12 text-red-600 opacity-20 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-indigo-700 mb-1">Total Employer Contributions</div>
-                  <div className="text-3xl font-bold text-indigo-900">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs sm:text-sm text-indigo-700 mb-1">Total Employer Contributions</div>
+                  <div className="text-xl sm:text-3xl font-bold text-indigo-900 truncate">
                     ${taxSummary.totalEmployerContributions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </div>
-                  <div className="text-xs text-indigo-600 mt-2">
+                  <div className="text-xs text-indigo-600 mt-2 hidden sm:block">
                     Matching SS + Medicare + FUTA + Florida SUTA
                   </div>
                 </div>
-                <TrendingUp className="w-12 h-12 text-indigo-600 opacity-20" />
+                <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 text-indigo-600 opacity-20 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -658,22 +658,24 @@ File via EFTPS (federal) and FloridaRevenue.com (state).
 
         {/* View Mode Toggle */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <span className="font-semibold text-gray-700">
-                  Period: <strong>Nov 16 - Nov 30, 2025</strong> (Bi-weekly)
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <Calendar className="w-5 h-5 text-gray-400 hidden sm:block" />
+                <span className="text-sm sm:text-base font-semibold text-gray-700">
+                  Period: <strong>Nov 16 - Nov 30, 2025</strong>
                 </span>
               </div>
               <div className="flex gap-2">
                 <Button 
+                  size="sm"
                   variant={viewMode === 'summary' ? 'default' : 'outline'}
                   onClick={() => setViewMode('summary')}
                 >
                   Summary
                 </Button>
                 <Button 
+                  size="sm"
                   variant={viewMode === 'individual' ? 'default' : 'outline'}
                   onClick={() => setViewMode('individual')}
                 >

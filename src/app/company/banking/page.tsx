@@ -500,25 +500,26 @@ export default function BankingManagementPage() {
         <QuickAccessBar title="Navegación Banca" links={bankingLinks} />
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión Bancaria</h1>
-            <p className="text-gray-600 mt-1">
-              Administra cuentas, transacciones y conciliación bancaria
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Gestión Bancaria</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Administra cuentas y transacciones
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowImportModal(true)}>
-              <Upload className="w-4 h-4 mr-2" />
-              Importar
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)} className="flex-1 sm:flex-none">
+              <Upload className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Importar</span>
             </Button>
-            <Button variant="outline" onClick={exportTransactions}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={exportTransactions} className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => openAccountModal()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Cuenta
+            <Button size="sm" onClick={() => openAccountModal()} className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nueva Cuenta</span>
+              <span className="sm:hidden">Cuenta</span>
             </Button>
           </div>
         </div>
@@ -532,70 +533,71 @@ export default function BankingManagementPage() {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Building2 className="w-8 h-8 text-blue-600" />
-                <Badge className="bg-blue-600">{accounts.length}</Badge>
+                <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+                <Badge className="bg-blue-600 text-xs sm:text-sm">{accounts.length}</Badge>
               </div>
-              <div className="text-3xl font-bold text-blue-900">{formatCurrency(totalBalance)}</div>
-              <div className="text-sm text-blue-700">Balance Total</div>
+              <div className="text-lg sm:text-3xl font-bold text-blue-900 truncate">{formatCurrency(totalBalance)}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Balance Total</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <ArrowDownLeft className="w-8 h-8 text-green-600" />
+                <ArrowDownLeft className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">{formatCurrency(totalIncome)}</div>
-              <div className="text-sm text-green-700">Ingresos del Período</div>
+              <div className="text-lg sm:text-3xl font-bold text-green-900 truncate">{formatCurrency(totalIncome)}</div>
+              <div className="text-xs sm:text-sm text-green-700">Ingresos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <ArrowUpRight className="w-8 h-8 text-red-600" />
+                <ArrowUpRight className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-3xl font-bold text-red-900">{formatCurrency(totalExpenses)}</div>
-              <div className="text-sm text-red-700">Egresos del Período</div>
+              <div className="text-lg sm:text-3xl font-bold text-red-900 truncate">{formatCurrency(totalExpenses)}</div>
+              <div className="text-xs sm:text-sm text-red-700">Egresos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-orange-600" />
-                <Badge className="bg-orange-600">{pendingReconciliation}</Badge>
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
+                <Badge className="bg-orange-600 text-xs sm:text-sm">{pendingReconciliation}</Badge>
               </div>
-              <div className="text-3xl font-bold text-orange-900">{pendingReconciliation}</div>
-              <div className="text-sm text-orange-700">Pendientes Conciliación</div>
+              <div className="text-lg sm:text-3xl font-bold text-orange-900">{pendingReconciliation}</div>
+              <div className="text-xs sm:text-sm text-orange-700">Pendientes</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 border-b pb-2">
+        <div className="flex flex-wrap gap-1 sm:gap-2 border-b pb-2 overflow-x-auto">
           {[
             { id: 'accounts', label: 'Cuentas', icon: Building2 },
-            { id: 'transactions', label: 'Transacciones', icon: Receipt },
-            { id: 'movements', label: 'Movimientos', icon: ArrowRightLeft },
-            { id: 'transfers', label: 'Transferencias', icon: ArrowRightLeft },
-            { id: 'reconciliation', label: 'Conciliación', icon: CheckCircle2 }
+            { id: 'transactions', label: 'Trans.', labelFull: 'Transacciones', icon: Receipt },
+            { id: 'movements', label: 'Mov.', labelFull: 'Movimientos', icon: ArrowRightLeft },
+            { id: 'transfers', label: 'Transf.', labelFull: 'Transferencias', icon: ArrowRightLeft },
+            { id: 'reconciliation', label: 'Conc.', labelFull: 'Conciliación', icon: CheckCircle2 }
           ].map(tab => (
             <Button
               key={tab.id}
+              size="sm"
               variant={activeTab === tab.id ? 'default' : 'outline'}
               onClick={() => setActiveTab(tab.id as any)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
+              <tab.icon className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="sm:hidden">{tab.label}</span>
+              <span className="hidden sm:inline">{tab.labelFull || tab.label}</span>
             </Button>
           ))}
-        </div>
 
         {/* Tab Content */}
         {activeTab === 'accounts' && (

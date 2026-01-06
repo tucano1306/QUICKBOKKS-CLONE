@@ -222,33 +222,34 @@ export default function TransactionsPage() {
     <CompanyTabsLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-wrap justify-between items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0D2942]">💰 Transacciones</h1>
-            <p className="text-sm text-gray-500">Gestiona todos los movimientos financieros</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0D2942]">💰 Transacciones</h1>
+            <p className="text-xs sm:text-sm text-gray-500">Gestiona todos los movimientos financieros</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Button 
+              size="sm"
               onClick={() => router.push('/company/transactions/new?type=INCOME')} 
-              className="bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25"
+              className="flex-1 sm:flex-none bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Ingreso
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nuevo</span> Ingreso
             </Button>
             <Button 
+              size="sm"
               onClick={() => router.push('/company/transactions/new?type=EXPENSE')} 
-              className="bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/25"
+              className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/25"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Gasto
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nuevo</span> Gasto
             </Button>
-            <Button onClick={() => setShowFilters(!showFilters)} variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filtros {hasActiveFilters && '●'}
+            <Button size="sm" onClick={() => setShowFilters(!showFilters)} variant="outline" className="flex-1 sm:flex-none">
+              <Filter className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Filtros</span> {hasActiveFilters && '●'}
             </Button>
-            <Button onClick={loadTransactions} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Actualizar
+            <Button size="sm" onClick={loadTransactions} variant="outline" className="flex-1 sm:flex-none">
+              <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -333,19 +334,19 @@ export default function TransactionsPage() {
       )}
 
       {/* Resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Card className="bg-gradient-to-br from-green-50 to-white border-green-200 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#108000] font-semibold">
+          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm text-[#108000] font-semibold">
               Ingresos {hasActiveFilters ? '(Filtrados)' : 'Totales'}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-[#2CA01C] flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#2CA01C] flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <span className="text-2xl font-bold text-[#108000]">
+              <span className="text-lg sm:text-2xl font-bold text-[#108000] truncate">
                 ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -353,17 +354,17 @@ export default function TransactionsPage() {
         </Card>
 
         <Card className="bg-gradient-to-br from-red-50 to-white border-red-200 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-red-700 font-semibold">
+          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm text-red-700 font-semibold">
               Gastos {hasActiveFilters ? '(Filtrados)' : 'Totales'}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center">
-                <TrendingDown className="h-5 w-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-red-500 flex items-center justify-center">
+                <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <span className="text-2xl font-bold text-red-700">
+              <span className="text-lg sm:text-2xl font-bold text-red-700 truncate">
                 ${totalExpense.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -371,15 +372,15 @@ export default function TransactionsPage() {
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200 shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-[#0077C5] font-semibold">Balance Neto</CardTitle>
+          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm text-[#0077C5] font-semibold">Balance Neto</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-[#0077C5] flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#0077C5] flex items-center justify-center">
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <span className={`text-2xl font-bold ${totalIncome - totalExpense >= 0 ? 'text-[#0077C5]' : 'text-red-700'}`}>
+              <span className={`text-lg sm:text-2xl font-bold truncate ${totalIncome - totalExpense >= 0 ? 'text-[#0077C5]' : 'text-red-700'}`}>
                 ${(totalIncome - totalExpense).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -388,15 +389,15 @@ export default function TransactionsPage() {
       </div>
 
       {/* Barra de acciones y filtros por tipo */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <div className="flex flex-wrap gap-2">
           <Button 
             variant={filter === 'ALL' ? 'default' : 'outline'}
             onClick={() => setFilter('ALL')}
             size="sm"
             className={filter === 'ALL' ? 'bg-[#0D2942] hover:bg-[#1a3a5c]' : ''}
           >
-            Todas ({transactions.length})
+            Todas <span className="hidden sm:inline">({transactions.length})</span>
           </Button>
           <Button 
             variant={filter === 'INCOME' ? 'default' : 'outline'}
@@ -404,7 +405,7 @@ export default function TransactionsPage() {
             size="sm"
             className={filter === 'INCOME' ? 'bg-[#2CA01C] hover:bg-[#108000]' : ''}
           >
-            💵 Ingresos ({transactions.filter(t => t.type === 'INCOME').length})
+            💵 <span className="hidden sm:inline">Ingresos ({transactions.filter(t => t.type === 'INCOME').length})</span>
           </Button>
           <Button 
             variant={filter === 'EXPENSE' ? 'default' : 'outline'}
@@ -412,7 +413,7 @@ export default function TransactionsPage() {
             size="sm"
             className={filter === 'EXPENSE' ? 'bg-red-600 hover:bg-red-700' : ''}
           >
-            💸 Gastos ({transactions.filter(t => t.type === 'EXPENSE').length})
+            💸 <span className="hidden sm:inline">Gastos ({transactions.filter(t => t.type === 'EXPENSE').length})</span>
           </Button>
         </div>
 

@@ -218,33 +218,34 @@ export default function EmployeesPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Empleados</h1>
-            <p className="text-gray-600 mt-1">
-              Gestiona el equipo y la nómina de tu empresa
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Empleados</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Gestiona el equipo y la nómina
             </p>
           </div>
-          <Button className="flex items-center gap-2" onClick={() => setShowNewEmployeeModal(true)}>
+          <Button size="sm" className="flex items-center gap-2 w-full sm:w-auto" onClick={() => setShowNewEmployeeModal(true)}>
             <Plus className="w-4 h-4" />
-            Nuevo Empleado
+            <span className="hidden sm:inline">Nuevo Empleado</span>
+            <span className="sm:hidden">Nuevo</span>
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           {stats.map((stat) => {
             const Icon = stat.icon
             return (
               <Card key={stat.label}>
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm text-gray-600">{stat.label}</div>
-                    <Icon className={`w-5 h-5 text-${stat.color}-600`} />
+                    <div className="text-xs sm:text-sm text-gray-600">{stat.label}</div>
+                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${stat.color}-600`} />
                   </div>
-                  <div className={`text-2xl font-bold text-${stat.color}-600`}>
+                  <div className={`text-lg sm:text-2xl font-bold text-${stat.color}-600 truncate`}>
                     {stat.value}
                   </div>
                 </CardContent>
@@ -255,21 +256,68 @@ export default function EmployeesPage() {
 
         {/* Employee List */}
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Directorio de Empleados</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg">Directorio de Empleados</CardTitle>
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-gray-400" />
                 <Input
-                  placeholder="Buscar empleados..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64"
+                  className="w-full sm:w-64"
                 />
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
+            {/* Mobile View - Cards */}
+            <div className="block md:hidden space-y-3 p-3">
+              {filteredEmployees.length === 0 ? (
+                <div className="text-center py-8">
+                  <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                  <p className="text-gray-500">No hay empleados</p>
+                  <Button variant="outline" size="sm" onClick={() => setShowNewEmployeeModal(true)} className="mt-2">
+                    <Plus className="w-4 h-4 mr-2" /> Agregar
+                  </Button>
+                </div>
+              ) : (
+                filteredEmployees.map((employee) => (
+                  <Card key={employee.id} className="p-3">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
+                        {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{employee.firstName} {employee.lastName}</div>
+                        <div className="text-sm text-gray-500">{employee.position}</div>
+                      </div>
+                      <Badge variant={employee.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                        {employee.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                      <div className="text-gray-500">
+                        <Mail className="w-3 h-3 inline mr-1" />
+                        <span className="truncate">{employee.email}</span>
+                      </div>
+                      <div className="font-semibold text-right">${employee.salary.toLocaleString()}</div>
+                    </div>
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button variant="ghost" size="sm" className="flex-1" onClick={() => handleEditEmployee(employee)}>
+                        <Edit className="w-4 h-4 mr-1" /> Editar
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDeleteClick(employee)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+
+            {/* Desktop View - Table */}
+            <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -373,6 +421,7 @@ export default function EmployeesPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
 

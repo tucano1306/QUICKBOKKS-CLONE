@@ -202,26 +202,26 @@ El sistema procesará automáticamente tus documentos.`
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Inbox className="w-7 h-7 text-blue-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Inbox className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
               Bandeja de Entrada
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-1 text-sm">
               Recibe documentos contables por email automáticamente
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Actualizar
+            <Button variant="outline" onClick={handleRefresh} disabled={refreshing} size="sm">
+              <RefreshCw className={`w-4 h-4 sm:mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
-            <Button onClick={copyEmailInstructions}>
-              <Copy className="w-4 h-4 mr-2" />
-              Copiar Instrucciones
+            <Button onClick={copyEmailInstructions} size="sm">
+              <Copy className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Copiar Instrucciones</span>
             </Button>
           </div>
         </div>
@@ -242,16 +242,16 @@ El sistema procesará automáticamente tus documentos.`
 
         {/* Email Instructions Card */}
         <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <Send className="w-6 h-6 text-white" />
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-blue-600 rounded-lg flex-shrink-0">
+                <Send className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-blue-900 mb-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-blue-900 mb-2 text-sm sm:text-base">
                   📧 Cómo recibir documentos por email
                 </h3>
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                   <div className="bg-white/60 rounded-lg p-3">
                     <p className="font-medium text-gray-700 mb-1">Email destino:</p>
                     <code className="bg-blue-100 px-2 py-1 rounded text-blue-800 font-mono">
@@ -329,17 +329,17 @@ El sistema procesará automáticamente tus documentos.`
         </div>
 
         {/* Email List and Detail */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Email List */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Inbox className="w-5 h-5" />
+              <CardTitle className="text-sm sm:text-lg flex items-center gap-2">
+                <Inbox className="w-4 h-4 sm:w-5 sm:h-5" />
                 Emails Recibidos
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="divide-y max-h-[600px] overflow-y-auto">
+              <div className="divide-y max-h-[400px] sm:max-h-[600px] overflow-y-auto">
                 {emails.length === 0 ? (
                   <div className="p-8 text-center text-gray-500">
                     <Mail className="w-12 h-12 mx-auto mb-3 text-gray-300" />

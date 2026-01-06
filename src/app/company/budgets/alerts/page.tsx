@@ -172,90 +172,90 @@ export default function BudgetAlertsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Alertas de Presupuesto</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Alertas de Presupuesto</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Monitoreo de variaciones y umbrales presupuestarios
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { setMessage({ type: 'success', text: 'Exportando alertas a CSV' }); setTimeout(() => setMessage(null), 3000); }}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={() => { setMessage({ type: 'success', text: 'Exportando alertas a CSV' }); setTimeout(() => setMessage(null), 3000); }}>
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => { setMessage({ type: 'success', text: 'Configurando alertas y notificaciones' }); setTimeout(() => setMessage(null), 3000); }}>
-              <Bell className="w-4 h-4 mr-2" />
-              Configurar Alertas
+            <Button size="sm" onClick={() => { setMessage({ type: 'success', text: 'Configurando alertas y notificaciones' }); setTimeout(() => setMessage(null), 3000); }}>
+              <Bell className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Configurar Alertas</span>
             </Button>
           </div>
         </div>
 
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            {message.text}
+          <div className={`p-3 sm:p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+            <span className="text-sm sm:text-base">{message.text}</span>
           </div>
         )}
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <XCircle className="w-8 h-8 text-red-600" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-3xl font-bold text-red-900">
+              <div className="text-xl sm:text-3xl font-bold text-red-900">
                 {alertCounts.critical}
               </div>
-              <div className="text-sm text-red-700">Críticas</div>
+              <div className="text-xs sm:text-sm text-red-700">Críticas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <AlertTriangle className="w-8 h-8 text-orange-600" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">
+              <div className="text-xl sm:text-3xl font-bold text-orange-900">
                 {alertCounts.high}
               </div>
-              <div className="text-sm text-orange-700">Alta Prioridad</div>
+              <div className="text-xs sm:text-sm text-orange-700">Alta</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-yellow-600" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
               </div>
-              <div className="text-3xl font-bold text-yellow-900">
+              <div className="text-xl sm:text-3xl font-bold text-yellow-900">
                 {alertCounts.medium}
               </div>
-              <div className="text-sm text-yellow-700">Media Prioridad</div>
+              <div className="text-xs sm:text-sm text-yellow-700">Media</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-blue-600" />
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hidden lg:block">
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">
+              <div className="text-xl sm:text-3xl font-bold text-blue-900">
                 {alertCounts.low}
               </div>
-              <div className="text-sm text-blue-700">Baja Prioridad</div>
+              <div className="text-xs sm:text-sm text-blue-700">Baja</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Bell className="w-8 h-8 text-purple-600" />
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hidden lg:block">
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">
+              <div className="text-xl sm:text-3xl font-bold text-purple-900">
                 {alertCounts.total}
               </div>
               <div className="text-sm text-purple-700">Total Activas</div>

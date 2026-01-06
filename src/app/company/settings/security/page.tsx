@@ -194,19 +194,19 @@ export default function SecuritySettingsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Shield className="w-8 h-8 text-blue-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Security Settings
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Configure authentication, access control, and monitoring
             </p>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button size="sm" onClick={handleSave} disabled={saving}>
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -214,13 +214,13 @@ export default function SecuritySettingsPage() {
               </>
             ) : saved ? (
               <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Saved!
+                <CheckCircle className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Saved!</span>
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Settings
+                <Save className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Save Settings</span>
               </>
             )}
           </Button>
@@ -235,52 +235,52 @@ export default function SecuritySettingsPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Shield className="w-8 h-8 text-blue-600" />
+                <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-xl sm:text-2xl font-bold text-blue-900">
                 {stats.securityScore}%
               </div>
-              <div className="text-sm text-blue-700">Security Score</div>
+              <div className="text-xs sm:text-sm text-blue-700">Security Score</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Users className="w-8 h-8 text-green-600" />
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-xl sm:text-2xl font-bold text-green-900">
                 {stats.activeSessions}
               </div>
-              <div className="text-sm text-green-700">Active Sessions</div>
+              <div className="text-xs sm:text-sm text-green-700">Active Sessions</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Activity className="w-8 h-8 text-purple-600" />
+                <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-xl sm:text-2xl font-bold text-purple-900">
                 {stats.totalLogs}
               </div>
-              <div className="text-sm text-purple-700">Recent Events</div>
+              <div className="text-xs sm:text-sm text-purple-700">Recent Events</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
+                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
+              <div className="text-xl sm:text-2xl font-bold text-red-900">
                 {stats.failedLogins}
               </div>
-              <div className="text-sm text-red-700">Failed Login Attempts</div>
+              <div className="text-xs sm:text-sm text-red-700">Failed Logins</div>
             </CardContent>
           </Card>
         </div>

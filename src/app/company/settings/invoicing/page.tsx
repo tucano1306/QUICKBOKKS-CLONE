@@ -163,33 +163,33 @@ export default function InvoicingSettingsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="w-8 h-8 text-blue-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Invoice Settings
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Configure invoice templates, payment terms, and automation
             </p>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} size="sm">
             {saving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white sm:mr-2"></div>
+                <span className="hidden sm:inline">Saving...</span>
               </>
             ) : saved ? (
               <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Saved!
+                <CheckCircle className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Saved!</span>
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Settings
+                <Save className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Save Settings</span>
               </>
             )}
           </Button>

@@ -357,18 +357,18 @@ export default function CashFlowPage() {
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Estado de Flujo de Efectivo</h1>
-            <p className="text-gray-600 mt-1">
-              Movimientos de efectivo del período
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Flujo de Efectivo</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Movimientos de efectivo
             </p>
-            <p className="text-sm text-blue-600 mt-1">
+            <p className="text-xs sm:text-sm text-blue-600 mt-1">
               Periodo: {dateRange.label || `${dateRange.startDate} al ${dateRange.endDate}`}
             </p>
           </div>
-          <div className="flex gap-2">
-            <div className="w-72">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="w-full sm:w-72">
               <DateRangeSelector
                 value={dateRange}
                 onSelect={(range: DateRange) => {
@@ -376,28 +376,29 @@ export default function CashFlowPage() {
                 }}
               />
             </div>
-            <Button variant="outline" onClick={recalculateCashFlow} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Recalcular
-            </Button>
-            <Button variant="outline" onClick={() => {
-              const csv = `Estado de Flujo de Efectivo\nEmpresa: ${activeCompany?.name}\nPeriodo: ${dateRange.startDate} al ${dateRange.endDate}\n\nActividades de Operación\n`
-              const blob = new Blob([csv], { type: 'text/csv' })
-              const url = globalThis.URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = `flujo-efectivo-${dateRange.endDate}.csv`
-              a.click()
-              setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
-            }}>
-              <Download className="w-4 h-4 mr-2" />
-              CSV
-            </Button>
-            <Button variant="outline" onClick={generatePDF} className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700">
-              <FileText className="w-4 h-4 mr-2" />
-              PDF
-            </Button>
-            <Button onClick={() => {
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={recalculateCashFlow} disabled={loading} className="flex-1 sm:flex-none">
+                <RefreshCw className={`w-4 h-4 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Recalcular</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                const csv = `Estado de Flujo de Efectivo\nEmpresa: ${activeCompany?.name}\nPeriodo: ${dateRange.startDate} al ${dateRange.endDate}\n\nActividades de Operación\n`
+                const blob = new Blob([csv], { type: 'text/csv' })
+                const url = globalThis.URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `flujo-efectivo-${dateRange.endDate}.csv`
+                a.click()
+                setMessage({ type: 'success', text: 'CSV exportado exitosamente' })
+              }} className="flex-1 sm:flex-none">
+                <Download className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">CSV</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={generatePDF} className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 flex-1 sm:flex-none">
+                <FileText className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">PDF</span>
+              </Button>
+              <Button size="sm" onClick={() => {
               const printWindow = window.open('', '_blank')
               if (printWindow) {
                 const operatingNetClass = (cashFlowData?.operating?.net || 0) >= 0 ? 'positive' : 'negative'
@@ -487,62 +488,63 @@ export default function CashFlowPage() {
                 printWindow.focus()
                 setTimeout(() => printWindow.print(), 250)
               }
-            }}>
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir
+            }} className="flex-1 sm:flex-none">
+              <Printer className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Imprimir</span>
             </Button>
+            </div>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-blue-700">Efectivo Inicial</div>
-                <DollarSign className="w-5 h-5 text-blue-600" />
+                <div className="text-xs sm:text-sm text-blue-700">Efectivo Inicial</div>
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">
+              <div className="text-lg sm:text-3xl font-bold text-blue-900 truncate">
                 ${efectivoInicial.toLocaleString()}
               </div>
             </CardContent>
           </Card>
 
           <Card className={`bg-gradient-to-br ${flujoNetoTotal >= 0 ? 'from-green-50 to-green-100 border-green-200' : 'from-red-50 to-red-100 border-red-200'}`}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <div className={`text-sm ${flujoNetoTotal >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  Flujo Neto Total
+                <div className={`text-xs sm:text-sm ${flujoNetoTotal >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  Flujo Neto
                 </div>
                 {flujoNetoTotal >= 0 ? (
-                  <TrendingUp className="w-5 h-5 text-green-600" />
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                 ) : (
-                  <TrendingDown className="w-5 h-5 text-red-600" />
+                  <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
                 )}
               </div>
-              <div className={`text-3xl font-bold ${flujoNetoTotal >= 0 ? 'text-green-900' : 'text-red-900'}`}>
+              <div className={`text-lg sm:text-3xl font-bold truncate ${flujoNetoTotal >= 0 ? 'text-green-900' : 'text-red-900'}`}>
                 ${flujoNetoTotal.toLocaleString()}
               </div>
-              <div className="flex items-center gap-1 mt-2">
+              <div className="hidden sm:flex items-center gap-1 mt-2">
                 {flujoNetoTotal >= 0 ? (
                   <ArrowUpRight className="w-4 h-4 text-green-600" />
                 ) : (
                   <ArrowDownRight className="w-4 h-4 text-red-600" />
                 )}
-                <span className={`text-sm ${flujoNetoTotal >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {Math.abs(Number.parseFloat(cambioPercentage))}% vs inicial
+                <span className={`text-xs sm:text-sm ${flujoNetoTotal >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  {Math.abs(Number.parseFloat(cambioPercentage))}%
                 </span>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-purple-700">Efectivo Final</div>
-                <DollarSign className="w-5 h-5 text-purple-600" />
+                <div className="text-xs sm:text-sm text-purple-700">Efectivo Final</div>
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">
+              <div className="text-lg sm:text-3xl font-bold text-purple-900 truncate">
                 ${efectivoFinal.toLocaleString()}
               </div>
             </CardContent>

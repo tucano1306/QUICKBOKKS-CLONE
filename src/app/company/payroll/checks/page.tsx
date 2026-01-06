@@ -262,112 +262,112 @@ export default function PayrollChecksPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Message Feedback */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+          <div className={`p-3 sm:p-4 rounded-lg flex items-center gap-2 text-sm ${
             message.type === 'success' 
               ? 'bg-green-50 text-green-800 border border-green-200' 
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}>
             {message.type === 'success' 
-              ? <CheckCircle className="h-5 w-5" /> 
-              : <AlertCircle className="h-5 w-5" />}
+              ? <CheckCircle className="h-5 w-5 flex-shrink-0" /> 
+              : <AlertCircle className="h-5 w-5 flex-shrink-0" />}
             <span>{message.text}</span>
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Receipt className="w-8 h-8 text-blue-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Receipt className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Cheques de Nómina
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Gestión y emisión de cheques de pago a empleados
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportChecks}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={exportChecks}>
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button variant="outline" onClick={printBatch}>
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir Lote
+            <Button variant="outline" size="sm" onClick={printBatch}>
+              <Printer className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Imprimir Lote</span>
             </Button>
-            <Button onClick={openNewCheckModal}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Cheque
+            <Button size="sm" onClick={openNewCheckModal}>
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nuevo Cheque</span>
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Receipt className="w-8 h-8 text-blue-600" />
+                <Receipt className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-xl sm:text-2xl font-bold text-blue-900">
                 {stats.totalChecks}
               </div>
-              <div className="text-sm text-blue-700">Total Cheques</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Cheques</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-yellow-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
               </div>
-              <div className="text-2xl font-bold text-yellow-900">
+              <div className="text-xl sm:text-2xl font-bold text-yellow-900">
                 {stats.pendingChecks}
               </div>
-              <div className="text-sm text-yellow-700">Pendientes</div>
+              <div className="text-xs sm:text-sm text-yellow-700">Pendientes</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-xl sm:text-2xl font-bold text-green-900">
                 {stats.issuedChecks}
               </div>
-              <div className="text-sm text-green-700">Emitidos</div>
+              <div className="text-xs sm:text-sm text-green-700">Emitidos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-purple-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900 truncate">
                 ${stats.totalAmount.toLocaleString()}
               </div>
-              <div className="text-sm text-purple-700">Monto Total</div>
+              <div className="text-xs sm:text-sm text-purple-700">Monto Total</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Check Number Settings */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="font-semibold text-blue-900 mb-1">Configuración de Numeración</h3>
-                <p className="text-sm text-blue-700">
-                  Próximo número de cheque disponible: <strong className="font-mono text-lg">{nextCheckNumber}</strong>
+                <h3 className="font-semibold text-blue-900 mb-1 text-sm sm:text-base">Configuración de Numeración</h3>
+                <p className="text-xs sm:text-sm text-blue-700">
+                  Próximo cheque: <strong className="font-mono text-base sm:text-lg">{nextCheckNumber}</strong>
                 </p>
               </div>
               <Button size="sm" variant="outline">
-                <Edit className="w-4 h-4 mr-2" />
-                Cambiar Numeración
+                <Edit className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Cambiar Numeración</span>
               </Button>
             </div>
           </CardContent>
@@ -375,33 +375,34 @@ export default function PayrollChecksPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="flex-1 relative">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar por número de cheque o empleado..."
+                  placeholder="Buscar cheque o empleado..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-sm"
                 />
               </div>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="pending">Pendientes</option>
-                <option value="issued">Emitidos</option>
-                <option value="cleared">Cobrados</option>
-                <option value="voided">Anulados</option>
-              </select>
-              <Button variant="outline">
-                <Filter className="w-4 h-4 mr-2" />
-                Más Filtros
-              </Button>
+              <div className="flex gap-2">
+                <select 
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Todos</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="issued">Emitidos</option>
+                  <option value="cleared">Cobrados</option>
+                  <option value="voided">Anulados</option>
+                </select>
+                <Button variant="outline" size="sm">
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

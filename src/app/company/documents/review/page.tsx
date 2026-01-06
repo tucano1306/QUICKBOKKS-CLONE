@@ -405,27 +405,27 @@ export default function DocumentReviewPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Message Display */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+          <div className={`p-3 sm:p-4 rounded-lg flex items-center gap-2 ${
             message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
             message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
             'bg-yellow-50 text-yellow-800 border border-yellow-200'
           }`}>
-            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            {message.text}
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+            <span className="text-sm sm:text-base">{message.text}</span>
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Bot className="w-8 h-8 text-purple-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               Revisión Inteligente de Documentos
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-gray-500 mt-1 text-sm">
               Los documentos procesados por IA aparecen automáticamente aquí • Reclasifica y aprueba
             </p>
           </div>
@@ -435,76 +435,76 @@ export default function DocumentReviewPage() {
               size="sm"
               onClick={() => setAutoRefresh(!autoRefresh)}
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
-              Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+              <RefreshCw className={`w-4 h-4 sm:mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Auto-refresh {autoRefresh ? 'ON' : 'OFF'}</span>
             </Button>
             <Button variant="outline" size="sm" onClick={loadProcessedDocuments}>
-              <Zap className="w-4 h-4 mr-2" />
-              Actualizar Ahora
+              <Zap className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
           </div>
         </div>
 
         {/* Stats Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6">
               <div className="text-center">
-                <FileCheck className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                <div className="text-sm text-gray-500">Total Procesados</div>
+                <FileCheck className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mx-auto mb-1 sm:mb-2" />
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</div>
+                <div className="text-xs sm:text-sm text-gray-500">Total</div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6">
               <div className="text-center">
-                <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">{stats.pending}</div>
-                <div className="text-sm text-gray-500">Pendientes</div>
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 mx-auto mb-1 sm:mb-2" />
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.pending}</div>
+                <div className="text-xs sm:text-sm text-gray-500">Pendientes</div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6">
               <div className="text-center">
-                <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">{stats.approved}</div>
-                <div className="text-sm text-gray-500">Aprobados</div>
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 mx-auto mb-1 sm:mb-2" />
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.approved}</div>
+                <div className="text-xs sm:text-sm text-gray-500">Aprobados</div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6">
               <div className="text-center">
-                <ArrowRightLeft className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">{stats.reclassified}</div>
-                <div className="text-sm text-gray-500">Reclasificados</div>
+                <ArrowRightLeft className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 mx-auto mb-1 sm:mb-2" />
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.reclassified}</div>
+                <div className="text-xs sm:text-sm text-gray-500">Reclasificados</div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6">
               <div className="text-center">
-                <DollarSign className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">
-                  ${stats.totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600 mx-auto mb-1 sm:mb-2" />
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">
+                  ${stats.totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 0 })}
                 </div>
-                <div className="text-sm text-gray-500">Monto Total</div>
+                <div className="text-xs sm:text-sm text-gray-500">Monto Total</div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6">
               <div className="text-center">
-                <Sparkles className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">{stats.avgConfidence}%</div>
-                <div className="text-sm text-gray-500">Confianza IA</div>
+                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600 mx-auto mb-1 sm:mb-2" />
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.avgConfidence}%</div>
+                <div className="text-xs sm:text-sm text-gray-500">Confianza IA</div>
               </div>
             </CardContent>
           </Card>

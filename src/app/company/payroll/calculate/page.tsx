@@ -332,27 +332,27 @@ export default function PayrollCalculatePage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cálculo de Nómina</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Cálculo de Nómina</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Calcula salarios, deducciones y pagos netos
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={exportToCSV}>
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button variant="outline" onClick={openNewPayrollModal}>
-              <Calculator className="w-4 h-4 mr-2" />
-              Calcular Todo
+            <Button variant="outline" size="sm" onClick={openNewPayrollModal}>
+              <Calculator className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Calcular Todo</span>
             </Button>
-            <Button onClick={openNewPayrollModal}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Nómina
+            <Button size="sm" onClick={openNewPayrollModal}>
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nueva Nómina</span>
             </Button>
           </div>
         </div>
@@ -368,65 +368,65 @@ export default function PayrollCalculatePage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Users className="w-8 h-8 text-blue-600" />
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalEmployees}</div>
-              <div className="text-sm text-blue-700">Total Empleados</div>
+              <div className="text-xl sm:text-3xl font-bold text-blue-900">{totalEmployees}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Empleados</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-green-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900 truncate">
                 ${totalGrossPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-green-700">Nómina Bruta</div>
+              <div className="text-xs sm:text-sm text-green-700">Nómina Bruta</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingDown className="w-8 h-8 text-red-600" />
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
+              <div className="text-lg sm:text-2xl font-bold text-red-900 truncate">
                 ${totalDeductions.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-red-700">Total Deducciones</div>
+              <div className="text-xs sm:text-sm text-red-700">Total Deducciones</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-purple-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900 truncate">
                 ${totalNetPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-sm text-purple-700">Nómina Neta</div>
+              <div className="text-xs sm:text-sm text-purple-700">Nómina Neta</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Period Info */}
         <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-bold mb-1">Período de Nómina</h3>
-                <p className="text-blue-100">16 de Noviembre - 30 de Noviembre 2025</p>
+                <h3 className="text-base sm:text-lg font-bold mb-1">Período de Nómina</h3>
+                <p className="text-blue-100 text-sm">16 de Noviembre - 30 de Noviembre 2025</p>
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold">Quincena 2</div>
-                <div className="text-sm text-blue-100">Noviembre 2025</div>
+              <div className="text-left sm:text-right">
+                <div className="text-xl sm:text-3xl font-bold">Quincena 2</div>
+                <div className="text-xs sm:text-sm text-blue-100">Noviembre 2025</div>
               </div>
             </div>
           </CardContent>
@@ -434,8 +434,8 @@ export default function PayrollCalculatePage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="flex-1 relative">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
@@ -443,21 +443,22 @@ export default function PayrollCalculatePage() {
                   placeholder="Buscar empleado..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-sm"
                 />
               </div>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="draft">Borradores</option>
-                <option value="calculated">Calculadas</option>
-                <option value="approved">Aprobadas</option>
-                <option value="paid">Pagadas</option>
-              </select>
-              <select 
+              <div className="flex gap-2">
+                <select 
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Todos</option>
+                  <option value="draft">Borradores</option>
+                  <option value="calculated">Calculadas</option>
+                  <option value="approved">Aprobadas</option>
+                  <option value="paid">Pagadas</option>
+                </select>
+                <select 
                 className="px-4 py-2 border rounded-lg"
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}

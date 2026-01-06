@@ -244,23 +244,23 @@ export default function TimesheetPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Control de Asistencia</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Control de Asistencia</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Registra y aprueba las horas trabajadas de tus empleados
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={exportToCSV}>
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={openRegisterModal}>
-              <Plus className="w-4 h-4 mr-2" />
-              Registrar Horas
+            <Button size="sm" onClick={openRegisterModal}>
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Registrar Horas</span>
             </Button>
           </div>
         </div>
@@ -276,65 +276,65 @@ export default function TimesheetPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Users className="w-8 h-8 text-blue-600" />
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalTimesheets}</div>
-              <div className="text-sm text-blue-700">Registros Esta Semana</div>
+              <div className="text-xl sm:text-3xl font-bold text-blue-900">{totalTimesheets}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Registros Esta Semana</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-orange-600" />
+                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">{pendingApproval}</div>
-              <div className="text-sm text-orange-700">Pendientes Aprobar</div>
+              <div className="text-xl sm:text-3xl font-bold text-orange-900">{pendingApproval}</div>
+              <div className="text-xs sm:text-sm text-orange-700">Pendientes Aprobar</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-green-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">{totalHoursThisWeek}</div>
-              <div className="text-sm text-green-700">Horas Totales</div>
+              <div className="text-xl sm:text-3xl font-bold text-green-900">{totalHoursThisWeek}</div>
+              <div className="text-xs sm:text-sm text-green-700">Horas Totales</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">{overtimeHoursThisWeek}</div>
-              <div className="text-sm text-purple-700">Horas Extra</div>
+              <div className="text-xl sm:text-3xl font-bold text-purple-900">{overtimeHoursThisWeek}</div>
+              <div className="text-xs sm:text-sm text-purple-700">Horas Extra</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Week Selector */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Calendar className="w-5 h-5 text-gray-400" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <Calendar className="w-5 h-5 text-gray-400 hidden sm:block" />
                 <select 
-                  className="px-4 py-2 border rounded-lg font-semibold"
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg font-semibold text-sm"
                   value={weekFilter}
                   onChange={(e) => setWeekFilter(e.target.value)}
                 >
-                  <option value="previous">Semana Anterior (Nov 10-16)</option>
-                  <option value="current">Semana Actual (Nov 17-23)</option>
-                  <option value="next">Próxima Semana (Nov 24-30)</option>
+                  <option value="previous">Semana Anterior</option>
+                  <option value="current">Semana Actual</option>
+                  <option value="next">Próxima Semana</option>
                 </select>
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-xs sm:text-sm text-gray-600">
                 Período: <strong>17 Nov - 23 Nov 2025</strong>
               </div>
             </div>
@@ -343,8 +343,8 @@ export default function TimesheetPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="flex-1 relative">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
@@ -352,30 +352,32 @@ export default function TimesheetPage() {
                   placeholder="Buscar empleado..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-sm"
                 />
               </div>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="draft">Borradores</option>
-                <option value="submitted">Enviadas</option>
-                <option value="approved">Aprobadas</option>
-                <option value="rejected">Rechazadas</option>
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterDepartment}
-                onChange={(e) => setFilterDepartment(e.target.value)}
-              >
-                <option value="all">Todos los Departamentos</option>
-                {uniqueDepartments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select 
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Todos</option>
+                  <option value="draft">Borradores</option>
+                  <option value="submitted">Enviadas</option>
+                  <option value="approved">Aprobadas</option>
+                  <option value="rejected">Rechazadas</option>
+                </select>
+                <select 
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterDepartment}
+                  onChange={(e) => setFilterDepartment(e.target.value)}
+                >
+                  <option value="all">Todos Deptos</option>
+                  {uniqueDepartments.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>

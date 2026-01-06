@@ -541,83 +541,83 @@ export default function VendorsListPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lista de Proveedores</h1>
-            <p className="text-gray-600 mt-1">
-              Directorio completo de proveedores y vendedores
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Lista de Proveedores</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Directorio de proveedores y vendedores
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => handleExportVendors('csv')}>
-              <Download className="w-4 h-4 mr-2" /> CSV
+            <Button variant="outline" size="sm" onClick={() => handleExportVendors('csv')} className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">CSV</span>
             </Button>
-            <Button variant="outline" onClick={() => handleExportVendors('excel')}>
-              <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel
+            <Button variant="outline" size="sm" onClick={() => handleExportVendors('excel')} className="flex-1 sm:flex-none">
+              <FileSpreadsheet className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Excel</span>
             </Button>
-            <Button variant="outline" onClick={handlePrintDirectory}>
-              <Printer className="w-4 h-4 mr-2" /> PDF
+            <Button variant="outline" size="sm" onClick={handlePrintDirectory} className="flex-1 sm:flex-none">
+              <Printer className="w-4 h-4" />
             </Button>
-            <Button variant="outline" onClick={fetchVendors}>
-              <RefreshCcw className="w-4 h-4 mr-2" /> Actualizar
+            <Button variant="outline" size="sm" onClick={fetchVendors} className="flex-1 sm:flex-none">
+              <RefreshCcw className="w-4 h-4" />
             </Button>
-            <Button onClick={openCreateModal}>
-              <Plus className="w-4 h-4 mr-2" /> Nuevo Proveedor
+            <Button size="sm" onClick={openCreateModal} className="w-full sm:w-auto">
+              <Plus className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Nuevo</span><span className="sm:hidden">+</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <ShoppingCart className="w-8 h-8 text-blue-600" />
+                <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalVendors}</div>
-              <div className="text-sm text-blue-700">Total Proveedores</div>
+              <div className="text-lg sm:text-3xl font-bold text-blue-900">{totalVendors}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">{activeVendors}</div>
-              <div className="text-sm text-green-700">Proveedores Activos</div>
+              <div className="text-lg sm:text-3xl font-bold text-green-900">{activeVendors}</div>
+              <div className="text-xs sm:text-sm text-green-700">Activos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-orange-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-lg sm:text-2xl font-bold text-orange-900 truncate">
                 ${totalPayables.toLocaleString()}
               </div>
-              <div className="text-sm text-orange-700">Cuentas por Pagar</div>
+              <div className="text-xs sm:text-sm text-orange-700">Por Pagar</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900 truncate">
                 ${totalSpent.toLocaleString()}
               </div>
-              <div className="text-sm text-purple-700">Total Comprado</div>
+              <div className="text-xs sm:text-sm text-purple-700">Comprado</div>
             </CardContent>
           </Card>
         </div>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex-1 relative min-w-[200px]">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="flex-1 relative">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
@@ -627,28 +627,30 @@ export default function VendorsListPage() {
                   className="pl-10"
                 />
               </div>
-              <select
-                className="px-4 py-2 border rounded-lg"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="active">Activos</option>
-                <option value="inactive">Inactivos</option>
-                <option value="blocked">Bloqueados</option>
-              </select>
-              <select
-                className="px-4 py-2 border rounded-lg"
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-              >
-                <option value="all">Todas las Categorías</option>
-                {categories.map((category) => (
-                  <option key={category} value={category ?? ''}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  className="flex-1 sm:flex-none px-3 py-2 border rounded-lg text-sm"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Estado</option>
+                  <option value="active">Activos</option>
+                  <option value="inactive">Inactivos</option>
+                  <option value="blocked">Bloqueados</option>
+                </select>
+                <select
+                  className="flex-1 sm:flex-none px-3 py-2 border rounded-lg text-sm"
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                >
+                  <option value="all">Categoría</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category ?? ''}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>

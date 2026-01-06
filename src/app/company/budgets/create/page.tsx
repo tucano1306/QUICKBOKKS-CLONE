@@ -372,27 +372,27 @@ export default function BudgetCreatePage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Crear Presupuesto</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Crear Presupuesto</h1>
+            <p className="text-gray-600 mt-1 text-sm">
               Planificación financiera y presupuesto anual por departamento
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { setMessage({ type: 'success', text: 'Copiando datos de presupuesto 2025' }); setTimeout(() => setMessage(null), 3000); }}>
-              <Copy className="w-4 h-4 mr-2" />
-              Copiar de 2025
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setMessage({ type: 'success', text: 'Copiando datos de presupuesto 2025' }); setTimeout(() => setMessage(null), 3000); }}>
+              <Copy className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Copiar de 2025</span>
             </Button>
-            <Button variant="outline" onClick={() => { setMessage({ type: 'success', text: 'Exportando presupuesto a Excel' }); setTimeout(() => setMessage(null), 3000); }}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={() => { setMessage({ type: 'success', text: 'Exportando presupuesto a Excel' }); setTimeout(() => setMessage(null), 3000); }}>
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => { setMessage({ type: 'success', text: 'Guardando presupuesto 2026' }); setTimeout(() => setMessage(null), 3000); }}>
-              <Save className="w-4 h-4 mr-2" />
-              Guardar Presupuesto
+            <Button size="sm" onClick={() => { setMessage({ type: 'success', text: 'Guardando presupuesto 2026' }); setTimeout(() => setMessage(null), 3000); }}>
+              <Save className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Guardar</span>
             </Button>
           </div>
         </div>
@@ -406,10 +406,10 @@ export default function BudgetCreatePage() {
 
         {/* Budget Configuration */}
         <Card>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="p-3 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
                   Nombre del Presupuesto
                 </label>
                 <Input
@@ -417,14 +417,15 @@ export default function BudgetCreatePage() {
                   value={budgetName}
                   onChange={(e) => setBudgetName(e.target.value)}
                   placeholder="Ej: Presupuesto Anual 2026"
+                  className="text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
                   Año Fiscal
                 </label>
                 <select 
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-3 sm:px-4 py-2 border rounded-lg text-sm"
                   value={budgetYear}
                   onChange={(e) => setBudgetYear(e.target.value)}
                 >
@@ -453,63 +454,63 @@ export default function BudgetCreatePage() {
         </Card>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-green-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
                 ${(totalRevenue / 1000000).toFixed(2)}M
               </div>
-              <div className="text-sm text-green-700">Ingresos Proyectados</div>
+              <div className="text-xs sm:text-sm text-green-700">Ingresos Proyectados</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingDown className="w-8 h-8 text-red-600" />
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
+              <div className="text-lg sm:text-2xl font-bold text-red-900">
                 ${(totalExpenses / 1000000).toFixed(2)}M
               </div>
-              <div className="text-sm text-red-700">Gastos Presupuestados</div>
+              <div className="text-xs sm:text-sm text-red-700">Gastos Presupuestados</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-blue-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">
                 ${(netProfit / 1000000).toFixed(2)}M
               </div>
-              <div className="text-sm text-blue-700">Utilidad Neta</div>
+              <div className="text-xs sm:text-sm text-blue-700">Utilidad Neta</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <FileText className="w-8 h-8 text-purple-600" />
+                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">
+              <div className="text-xl sm:text-3xl font-bold text-purple-900">
                 {profitMargin.toFixed(1)}%
               </div>
-              <div className="text-sm text-purple-700">Margen de Utilidad</div>
+              <div className="text-xs sm:text-sm text-purple-700">Margen de Utilidad</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Quarterly Breakdown */}
         <Card>
-          <CardHeader>
-            <CardTitle>Proyección Trimestral</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm sm:text-base">Proyección Trimestral</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div className="border rounded-lg p-4">
                 <div className="text-sm font-semibold text-gray-600 mb-3">Q1 2026</div>
                 <div className="space-y-2">
@@ -701,11 +702,11 @@ export default function BudgetCreatePage() {
 
         {/* Department Budget Summary */}
         <Card>
-          <CardHeader>
-            <CardTitle>Presupuesto por Centro de Costo</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm sm:text-base">Presupuesto por Centro de Costo</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {costCenters.length === 0 ? (
                 <div className="col-span-3 text-center py-6 text-gray-500">
                   <Info className="w-8 h-8 mx-auto mb-2 text-gray-400" />

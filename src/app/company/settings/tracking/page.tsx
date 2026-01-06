@@ -248,25 +248,26 @@ export default function TrackingPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Class & Location Tracking</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Class & Location Tracking</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Organize transactions by class (department) and location
             </p>
           </div>
           <Button 
             className="bg-[#2CA01C] hover:bg-[#108000]"
+            size="sm"
             onClick={() => {
               resetForms()
               setEditingItem(null)
               setShowModal(true)
             }}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add New
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add New</span>
           </Button>
         </div>
 

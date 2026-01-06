@@ -134,17 +134,17 @@ export default function BudgetVsActualPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Presupuesto vs Real</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Presupuesto vs Real</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Análisis de varianza y desempeño financiero
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => {
+            <Button variant="outline" size="sm" onClick={() => {
               const csv = 'Categoría,Presupuestado,Real,Variación,% Uso\nEjemplo de datos...'
               const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
               const url = URL.createObjectURL(blob)
@@ -154,25 +154,25 @@ export default function BudgetVsActualPage() {
               a.click()
               URL.revokeObjectURL(url)
             }}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar Reporte
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar Reporte</span>
             </Button>
-            <Button onClick={() => window.location.href = '/company/dashboard'}>
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Dashboard
+            <Button size="sm" onClick={() => window.location.href = '/company/dashboard'}>
+              <BarChart3 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Dashboard</span>
             </Button>
           </div>
         </div>
 
         {/* Period Selector */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                 Período de Análisis:
               </label>
               <select 
-                className="flex-1 px-4 py-2 border rounded-lg bg-white"
+                className="w-full sm:flex-1 px-3 sm:px-4 py-2 border rounded-lg bg-white text-sm"
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
               >
@@ -182,7 +182,7 @@ export default function BudgetVsActualPage() {
                 <option value="fy-2025">Año Fiscal 2025</option>
               </select>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 sm:px-4 py-2 border rounded-lg text-sm"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
@@ -191,7 +191,7 @@ export default function BudgetVsActualPage() {
                 <option value="expense">Gastos</option>
               </select>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 sm:px-4 py-2 border rounded-lg text-sm"
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}
               >
@@ -205,11 +205,11 @@ export default function BudgetVsActualPage() {
         </Card>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-semibold text-green-700">Ingresos</div>
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="text-xs sm:text-sm font-semibold text-green-700">Ingresos</div>
                 {revenueVariance >= 0 ? (
                   <ArrowUpRight className="w-5 h-5 text-green-600" />
                 ) : (

@@ -263,35 +263,35 @@ export default function DocumentUploadPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Message Display */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${getMessageStyle(message.type)}`}>
+          <div className={`p-3 sm:p-4 rounded-lg flex items-center gap-2 ${getMessageStyle(message.type)}`}>
             {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            {message.text}
+            <span className="text-sm sm:text-base">{message.text}</span>
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Upload className="w-8 h-8 text-blue-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Upload de Documentos con IA
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Los clientes suben documentos que se procesan y categorizan automáticamente
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={copyPortalLink}>
-              <Copy className="w-4 h-4 mr-2" />
-              Copiar Link Portal
+            <Button variant="outline" onClick={copyPortalLink} size="sm">
+              <Copy className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Copiar Link Portal</span>
             </Button>
             <label htmlFor="file-upload" className="cursor-pointer">
-              <span className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                <Upload className="w-4 h-4 mr-2" />
-                Subir Documentos
+              <span className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 py-2">
+                <Upload className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Subir Documentos</span>
               </span>
             </label>
             <input

@@ -316,34 +316,34 @@ export default function BackupsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Database className="w-7 h-7 text-blue-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Database className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
               Backups de Base de Datos
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Gestión de respaldos automáticos y restauración
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchData}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualizar
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={fetchData} size="sm">
+              <RefreshCw className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
-            <Button variant="outline" onClick={runCleanup} disabled={actionLoading === 'cleanup'}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Limpiar Antiguos
+            <Button variant="outline" onClick={runCleanup} disabled={actionLoading === 'cleanup'} size="sm">
+              <Trash2 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Limpiar Antiguos</span>
             </Button>
-            <Button onClick={createBackup} disabled={actionLoading === 'create'} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={createBackup} disabled={actionLoading === 'create'} className="bg-blue-600 hover:bg-blue-700" size="sm">
               {actionLoading === 'create' ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                <RefreshCw className="w-4 h-4 sm:mr-2 animate-spin" />
               ) : (
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 sm:mr-2" />
               )}
-              Crear Backup
+              <span className="hidden sm:inline">Crear Backup</span>
             </Button>
           </div>
         </div>
@@ -356,17 +356,17 @@ export default function BackupsPage() {
         )}
 
         {/* Health & Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Health Status */}
           <Card className={`${health?.status === 'healthy' ? 'border-green-200 bg-green-50' : health?.status === 'warning' ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50'}`}>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Estado del Sistema</span>
-                <Shield className="w-5 h-5" />
+                <span className="text-xs sm:text-sm font-medium">Estado del Sistema</span>
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               {health && getHealthBadge(health.status)}
               {health?.issues && health.issues.length > 0 && (
-                <ul className="mt-2 text-xs text-gray-600">
+                <ul className="mt-2 text-xs text-gray-600 hidden sm:block">
                   {health.issues.map((issue, i) => (
                     <li key={i}>• {issue}</li>
                   ))}

@@ -376,11 +376,82 @@ export default function ChartOfAccountsPage() {
     const isExpanded = expandedAccounts.has(account.id)
     const hasChildren = account.children && account.children.length > 0
     const indent = depth * 24
+    const mobileIndent = depth * 12
 
     return (
       <div key={account.id}>
+        {/* Vista móvil - Card */}
         <div 
-          className={`flex items-center py-3 px-4 hover:bg-green-50/50 border-b border-gray-100 transition-colors ${
+          className={`block md:hidden p-3 border-b border-gray-100 hover:bg-green-50/50 transition-colors ${
+            depth === 0 ? 'bg-gray-50/80' : ''
+          } ${selectedAccounts.has(account.id) ? 'bg-green-50 border-l-4 border-l-[#2CA01C]' : ''}`}
+          style={{ paddingLeft: `${mobileIndent + 12}px` }}
+        >
+          <div className="flex items-start gap-2">
+            {selectMode && (
+              <input
+                type="checkbox"
+                checked={selectedAccounts.has(account.id)}
+                onChange={() => toggleSelectAccount(account.id)}
+                className="w-4 h-4 mt-1 text-[#2CA01C] rounded border-gray-300 focus:ring-[#2CA01C] cursor-pointer"
+              />
+            )}
+            {hasChildren && (
+              <button
+                onClick={() => toggleExpand(account.id)}
+                className="text-gray-500 hover:text-[#2CA01C] transition-colors mt-0.5"
+              >
+                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className={`font-mono text-xs ${getTypeColor(account.type)}`}>
+                  {account.code}
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${getTypeBadge(account.type)}`}>
+                  {getTypeLabel(account.type)}
+                </span>
+              </div>
+              <div className={`text-sm truncate mt-1 ${depth === 0 ? 'font-bold text-[#0D2942]' : 'text-gray-700'}`}>
+                {account.name}
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <span className={`text-sm font-semibold ${account.balance >= 0 ? 'text-[#0D2942]' : 'text-red-600'}`}>
+                  ${Math.abs(account.balance || 0).toLocaleString()}
+                </span>
+                {!selectMode && (
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => setEditingAccount(account)}
+                      className="p-1.5 text-[#0077C5] hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => setEditingAccount(account)}
+                      className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    {!hasChildren && (
+                      <button 
+                        onClick={() => handleDeleteAccount(account.id)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Vista desktop - Fila de tabla */}
+        <div 
+          className={`hidden md:flex items-center py-3 px-4 hover:bg-green-50/50 border-b border-gray-100 transition-colors ${
             depth === 0 ? 'bg-gray-50/80 font-bold' : ''
           } ${selectedAccounts.has(account.id) ? 'bg-green-50 border-l-4 border-l-[#2CA01C]' : ''}`}
           style={{ paddingLeft: `${indent + 16}px` }}
@@ -534,48 +605,49 @@ export default function ChartOfAccountsPage() {
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0D2942]">Catálogo de Cuentas</h1>
-            <p className="text-gray-500 mt-1">Plan de cuentas contable conectado a la base de datos</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0D2942]">Catálogo de Cuentas</h1>
+            <p className="text-sm text-gray-500 mt-1">Plan de cuentas contable conectado a la base de datos</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {/* Modo selección múltiple */}
             {selectMode ? (
               <>
-                <Button variant="outline" onClick={selectAllAccounts}>
-                  <CheckSquare className="w-4 h-4 mr-2" />
-                  {selectedAccounts.size > 0 ? 'Deseleccionar' : 'Seleccionar Todo'}
+                <Button variant="outline" size="sm" onClick={selectAllAccounts}>
+                  <CheckSquare className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{selectedAccounts.size > 0 ? 'Deseleccionar' : 'Seleccionar Todo'}</span>
                 </Button>
                 <Button 
                   variant="destructive" 
+                  size="sm"
                   onClick={handleDeleteMultiple}
                   disabled={selectedAccounts.size === 0}
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Eliminar ({selectedAccounts.size})
+                  <Trash2 className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Eliminar</span> ({selectedAccounts.size})
                 </Button>
-                <Button variant="outline" onClick={cancelSelectMode}>
+                <Button variant="outline" size="sm" onClick={cancelSelectMode}>
                   Cancelar
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={() => setSelectMode(true)}>
-                  <Square className="w-4 h-4 mr-2" />
-                  Seleccionar
+                <Button variant="outline" size="sm" onClick={() => setSelectMode(true)}>
+                  <Square className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Seleccionar</span>
                 </Button>
-                <Button variant="outline" onClick={fetchAccounts}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Actualizar
+                <Button variant="outline" size="sm" onClick={fetchAccounts}>
+                  <RefreshCw className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Actualizar</span>
                 </Button>
-                <Button variant="outline" onClick={handleExport}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Exportar
+                <Button variant="outline" size="sm" onClick={handleExport}>
+                  <Download className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Exportar</span>
                 </Button>
-                <Button onClick={() => setShowNewAccountModal(true)} className="bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nueva Cuenta
+                <Button size="sm" onClick={() => setShowNewAccountModal(true)} className="bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25">
+                  <Plus className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Nueva Cuenta</span>
                 </Button>
               </>
             )}
@@ -583,55 +655,55 @@ export default function ChartOfAccountsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-[#0077C5]">
-                  <Building2 className="w-6 h-6 text-white" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-[#0077C5]">
+                  <Building2 className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-[#0D2942]">${stats.totalAssets.toLocaleString()}</div>
-                  <div className="text-sm text-gray-500">Total Activos</div>
+                  <div className="text-lg sm:text-2xl font-bold text-[#0D2942] truncate">${stats.totalAssets.toLocaleString()}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Total Activos</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-red-500">
-                  <FileText className="w-6 h-6 text-white" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-red-500">
+                  <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-[#0D2942]">${stats.totalLiabilities.toLocaleString()}</div>
-                  <div className="text-sm text-gray-500">Total Pasivos</div>
+                  <div className="text-lg sm:text-2xl font-bold text-[#0D2942] truncate">${stats.totalLiabilities.toLocaleString()}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Total Pasivos</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-purple-500">
-                  <DollarSign className="w-6 h-6 text-white" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-purple-500">
+                  <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-[#0D2942]">${stats.totalEquity.toLocaleString()}</div>
-                  <div className="text-sm text-gray-500">Capital Contable</div>
+                  <div className="text-lg sm:text-2xl font-bold text-[#0D2942] truncate">${stats.totalEquity.toLocaleString()}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Capital</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-[#2CA01C]">
-                  <BookOpen className="w-6 h-6 text-white" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-[#2CA01C]">
+                  <BookOpen className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-[#0D2942]">{stats.totalAccounts}</div>
-                  <div className="text-sm text-gray-500">Total Cuentas</div>
+                  <div className="text-lg sm:text-2xl font-bold text-[#0D2942]">{stats.totalAccounts}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Total Cuentas</div>
                 </div>
               </div>
             </CardContent>
@@ -640,20 +712,20 @@ export default function ChartOfAccountsPage() {
 
         {/* Filters */}
         <Card className="shadow-md">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <div className="flex-1 relative">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar cuenta por código o nombre..."
+                  placeholder="Buscar cuenta..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
               <select 
-                className="px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#2CA01C] focus:border-[#2CA01C] transition-all"
+                className="px-3 sm:px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#2CA01C] focus:border-[#2CA01C] transition-all text-sm"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
@@ -670,13 +742,14 @@ export default function ChartOfAccountsPage() {
 
         {/* Accounts Table */}
         <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="text-[#0D2942]">Plan de Cuentas</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg text-[#0D2942]">Plan de Cuentas</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <div className="min-w-full">
-                <div className="flex items-center py-3 px-4 bg-gray-50 border-b font-semibold text-sm text-[#0D2942]">
+                {/* Header - Solo visible en desktop */}
+                <div className="hidden md:flex items-center py-3 px-4 bg-gray-50 border-b font-semibold text-sm text-[#0D2942]">
                   <div className="w-8"></div>
                   <div className="flex-1 grid grid-cols-12 gap-4">
                     <div className="col-span-2">Código</div>
@@ -703,9 +776,9 @@ export default function ChartOfAccountsPage() {
         {/* Modal Nueva Cuenta */}
         {showNewAccountModal && (
           <div className="qb-modal-overlay" onClick={() => setShowNewAccountModal(false)}>
-            <div className="qb-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="qb-modal max-w-[95vw] sm:max-w-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="qb-modal-header">
-                <h2 className="qb-modal-title">Nueva Cuenta Contable</h2>
+                <h2 className="qb-modal-title text-base sm:text-lg">Nueva Cuenta Contable</h2>
                 <button className="qb-modal-close" onClick={() => setShowNewAccountModal(false)}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -713,7 +786,7 @@ export default function ChartOfAccountsPage() {
                 </button>
               </div>
               <div className="qb-modal-body space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="qb-form-group">
                     <label className="qb-label">Código *</label>
                     <Input 

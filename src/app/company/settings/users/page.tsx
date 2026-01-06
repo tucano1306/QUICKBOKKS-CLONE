@@ -242,21 +242,21 @@ export default function UsersSettingsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Users className="w-8 h-8 text-blue-600" />
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               User Management
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Manage users, roles, and permissions
             </p>
           </div>
-          <Button onClick={() => setShowInviteModal(true)}>
-            <UserPlus className="w-4 h-4 mr-2" />
-            Invite User
+          <Button size="sm" onClick={() => setShowInviteModal(true)}>
+            <UserPlus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Invite User</span>
           </Button>
         </div>
 
@@ -359,52 +359,52 @@ export default function UsersSettingsPage() {
         </Dialog>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Users className="w-8 h-8 text-blue-600" />
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-xl sm:text-2xl font-bold text-blue-900">
                 {stats.totalUsers}
               </div>
-              <div className="text-sm text-blue-700">Total Users</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Users</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-xl sm:text-2xl font-bold text-green-900">
                 {stats.activeUsers}
               </div>
-              <div className="text-sm text-green-700">Active Users</div>
+              <div className="text-xs sm:text-sm text-green-700">Active Users</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-yellow-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
               </div>
-              <div className="text-2xl font-bold text-yellow-900">
+              <div className="text-xl sm:text-2xl font-bold text-yellow-900">
                 {stats.pendingUsers}
               </div>
-              <div className="text-sm text-yellow-700">Pending Invites</div>
+              <div className="text-xs sm:text-sm text-yellow-700">Pending Invites</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Shield className="w-8 h-8 text-purple-600" />
+                <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-xl sm:text-2xl font-bold text-purple-900">
                 {stats.totalRoles}
               </div>
-              <div className="text-sm text-purple-700">Roles Configured</div>
+              <div className="text-xs sm:text-sm text-purple-700">Roles Configured</div>
             </CardContent>
           </Card>
         </div>
@@ -438,29 +438,29 @@ export default function UsersSettingsPage() {
           <>
             {/* Search and Filters */}
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex-1 min-w-[250px]">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search by name, email, or department..."
-                        className="pl-10"
+                        placeholder="Search users..."
+                        className="pl-10 text-sm"
                       />
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-600">Role:</span>
+                  <div className="flex items-center gap-2 overflow-x-auto">
+                    <Filter className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">Role:</span>
                     <div className="flex gap-1">
                       {['All', ...roles.map(r => r.name)].map(role => (
                         <button
                           key={role}
                           onClick={() => setSelectedRole(role)}
-                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                          className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
                             selectedRole === role
                               ? 'bg-blue-600 text-white'
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -479,36 +479,36 @@ export default function UsersSettingsPage() {
             <div className="space-y-3">
               {filteredUsers.map((user) => (
                 <Card key={user.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                          <span className="text-white font-bold text-lg">
+                  <CardContent className="p-3 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold text-sm sm:text-lg">
                             {user.name.split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
                         
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-gray-900">{user.name}</h3>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
+                            <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">{user.name}</h3>
                             {getStatusBadge(user.status)}
-                            <Badge variant="outline">{user.role}</Badge>
+                            <Badge variant="outline" className="text-xs">{user.role}</Badge>
                           </div>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <Mail className="w-4 h-4" />
-                              {user.email}
+                          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-3 text-xs sm:text-sm text-gray-600">
+                            <div className="flex items-center gap-1 truncate">
+                              <Mail className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                              <span className="truncate">{user.email}</span>
                             </div>
                             {user.title && (
-                              <div className="flex items-center gap-1">
-                                <Shield className="w-4 h-4" />
+                              <div className="flex items-center gap-1 truncate hidden sm:flex">
+                                <Shield className="w-4 h-4 flex-shrink-0" />
                                 {user.title} • {user.department}
                               </div>
                             )}
                             {user.status === 'Active' && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
+                              <div className="flex items-center gap-1 hidden sm:flex">
+                                <Clock className="w-4 h-4 flex-shrink-0" />
                                 Last login: {user.lastLogin}
                               </div>
                             )}
@@ -516,7 +516,7 @@ export default function UsersSettingsPage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 justify-end">
                         <Button size="sm" variant="outline">
                           <Edit className="w-4 h-4 mr-1" />
                           Edit

@@ -1123,10 +1123,10 @@ export default function FloridaPayrollPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Nómina Florida - Sistema Completo</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Nómina Florida - Sistema Completo</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">
             Cálculo automático con retenciones federales + Formularios RT-6, 941, 940, W-2, W-3, 1099-NEC, 1099-MISC, 1096
           </p>
         </div>
@@ -1149,27 +1149,27 @@ export default function FloridaPayrollPage() {
               Porcentajes de Retención - Florida 2025
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h3 className="font-semibold text-blue-900">Federal - Empleado</h3>
-                <ul className="mt-2 space-y-1 text-sm">
+          <CardContent className="p-3 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="p-3 sm:p-4 bg-blue-50 rounded-lg">
+                <h3 className="font-semibold text-blue-900 text-sm sm:text-base">Federal - Empleado</h3>
+                <ul className="mt-2 space-y-1 text-xs sm:text-sm">
                   <li>• Social Security: <strong>6.2%</strong> (hasta $168,600)</li>
                   <li>• Medicare: <strong>1.45%</strong> (+ 0.9% si {'>'}$200k)</li>
                   <li>• Federal Income Tax: <strong>Variable</strong> (según W-4)</li>
                 </ul>
               </div>
-              <div className="p-4 bg-green-50 rounded-lg">
-                <h3 className="font-semibold text-green-900">Federal - Empleador</h3>
-                <ul className="mt-2 space-y-1 text-sm">
+              <div className="p-3 sm:p-4 bg-green-50 rounded-lg">
+                <h3 className="font-semibold text-green-900 text-sm sm:text-base">Federal - Empleador</h3>
+                <ul className="mt-2 space-y-1 text-xs sm:text-sm">
                   <li>• Social Security: <strong>6.2%</strong> (match)</li>
                   <li>• Medicare: <strong>1.45%</strong> (match)</li>
                   <li>• FUTA: <strong>0.6%</strong> (hasta $7,000/empleado)</li>
                 </ul>
               </div>
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <h3 className="font-semibold text-purple-900">Florida - Empleador</h3>
-                <ul className="mt-2 space-y-1 text-sm">
+              <div className="p-3 sm:p-4 bg-purple-50 rounded-lg">
+                <h3 className="font-semibold text-purple-900 text-sm sm:text-base">Florida - Empleador</h3>
+                <ul className="mt-2 space-y-1 text-xs sm:text-sm">
                   <li>• SUTA: <strong>2.75%</strong> (hasta $7,000/empleado)</li>
                   <li>• State Income Tax: <strong>0%</strong> ✅</li>
                   <li className="text-xs text-gray-600">Florida NO tiene impuesto estatal sobre ingresos</li>
@@ -1184,17 +1184,17 @@ export default function FloridaPayrollPage() {
           <CardHeader>
             <CardTitle>Seleccionar Período de Nómina</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="p-3 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Input
                 type="text"
                 placeholder="Ej: Q4 2025, Noviembre 2025"
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
               />
-              <Button onClick={calculatePayroll} className="w-full">
+              <Button onClick={calculatePayroll} className="w-full" size="sm">
                 <Calculator className="w-4 h-4 mr-2" />
-                Calcular Nómina
+                <span className="hidden sm:inline">Calcular</span> Nómina
               </Button>
             </div>
           </CardContent>
@@ -1307,28 +1307,28 @@ export default function FloridaPayrollPage() {
               Generar Formularios Fiscales
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <Button onClick={generateRT6} variant="outline" className="justify-start">
-                  <FileText className="w-4 h-4 mr-2" />
-                  RT-6 (Florida Reemployment Tax)
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                <Button onClick={generateRT6} variant="outline" className="justify-start text-xs sm:text-sm" size="sm">
+                  <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">RT-6 (Florida)</span>
                 </Button>
-                <Button onClick={generateForm941} variant="outline" className="justify-start">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Form 941 (Quarterly Federal)
+                <Button onClick={generateForm941} variant="outline" className="justify-start text-xs sm:text-sm" size="sm">
+                  <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">Form 941 (Federal)</span>
                 </Button>
-                <Button onClick={generateForm940} variant="outline" className="justify-start">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Form 940 (FUTA Annual)
+                <Button onClick={generateForm940} variant="outline" className="justify-start text-xs sm:text-sm" size="sm">
+                  <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">Form 940 (FUTA)</span>
                 </Button>
-                <Button onClick={generateW3} variant="outline" className="justify-start">
-                  <FileText className="w-4 h-4 mr-2" />
-                  W-3 (Transmittal of W-2s)
+                <Button onClick={generateW3} variant="outline" className="justify-start text-xs sm:text-sm" size="sm">
+                  <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">W-3 (Transmittal)</span>
                 </Button>
-                <Button onClick={generate1096} variant="outline" className="justify-start">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Form 1096 (Transmittal of 1099s)
+                <Button onClick={generate1096} variant="outline" className="justify-start text-xs sm:text-sm" size="sm">
+                  <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">Form 1096 (1099s)</span>
                 </Button>
               </div>
 
@@ -1370,11 +1370,11 @@ export default function FloridaPayrollPage() {
 
         {/* Info Card */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-              <div className="space-y-2 text-sm">
-                <h3 className="font-semibold text-blue-900">Información Importante - Florida Payroll</h3>
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0 mt-1" />
+              <div className="space-y-2 text-xs sm:text-sm">
+                <h3 className="font-semibold text-blue-900 text-sm sm:text-base">Información Importante - Florida Payroll</h3>
                 <ul className="space-y-1 text-blue-800">
                   <li>✅ <strong>Florida NO tiene State Income Tax</strong> - No se retiene impuesto estatal sobre ingresos</li>
                   <li>📋 <strong>RT-6:</strong> Presentar trimestralmente al Florida Department of Revenue (SUTA)</li>
