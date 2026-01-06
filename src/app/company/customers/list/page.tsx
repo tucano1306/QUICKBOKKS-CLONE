@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, Edit, Trash2, Mail, Phone, Building } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Mail, Phone, Building, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Customer {
