@@ -32,7 +32,20 @@ import {
   Server,
   GitBranch,
   FileCode,
-  Loader2
+  Loader2,
+  Workflow,
+  Box,
+  Layers,
+  PlayCircle,
+  PauseCircle,
+  History,
+  FolderTree,
+  FileText,
+  Users,
+  Zap,
+  Target,
+  Package,
+  Cog
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -77,18 +90,79 @@ interface TerminalLine {
   timestamp: Date
 }
 
+// Jenkins interfaces
+interface JenkinsPipeline {
+  id: string
+  name: string
+  status: 'success' | 'failed' | 'running' | 'pending' | 'cancelled'
+  branch: string
+  commit: string
+  duration: string
+  timestamp: Date
+  stages: JenkinsStage[]
+}
+
+interface JenkinsStage {
+  name: string
+  status: 'success' | 'failed' | 'running' | 'pending' | 'skipped'
+  duration: string
+}
+
+interface JenkinsJob {
+  name: string
+  lastBuild: number
+  lastSuccess: string
+  lastFailure: string
+  health: number
+}
+
+// Puppet interfaces
+interface PuppetAgent {
+  hostname: string
+  status: 'active' | 'inactive' | 'failed' | 'unresponsive'
+  environment: string
+  lastRun: Date
+  changes: number
+  failures: number
+}
+
+interface PuppetModule {
+  name: string
+  version: string
+  source: string
+  installed: boolean
+}
+
+// Ansible interfaces
+interface AnsiblePlaybook {
+  name: string
+  hosts: string
+  tasks: number
+  lastRun: Date
+  status: 'success' | 'failed' | 'running' | 'never'
+  duration: string
+}
+
+interface AnsibleHost {
+  hostname: string
+  ip: string
+  group: string
+  status: 'reachable' | 'unreachable'
+  lastPing: Date
+}
+
 export default function DevOpsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
   const { activeCompany } = useCompany()
-  const [activeTab, setActiveTab] = useState<'terminal' | 'sonarqube' | 'prometheus'>('terminal')
+  const [activeTab, setActiveTab] = useState<'terminal' | 'sonarqube' | 'prometheus' | 'jenkins' | 'puppet' | 'ansible'>('terminal')
   const [loading, setLoading] = useState(false)
 
   // Read tab from URL params
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab === 'sonarqube' || tab === 'prometheus' || tab === 'terminal') {
+    if (tab === 'sonarqube' || tab === 'prometheus' || tab === 'terminal' || tab === 'jenkins' || tab === 'puppet' || tab === 'ansible') {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -149,6 +223,116 @@ export default function DevOpsPage() {
   })
   const [prometheusConnected, setPrometheusConnected] = useState(false)
   const [prometheusUrl, setPrometheusUrl] = useState('')
+
+  // Jenkins state
+  const [jenkinsConnected, setJenkinsConnected] = useState(false)
+  const [jenkinsUrl, setJenkinsUrl] = useState('')
+  const [jenkinsUser, setJenkinsUser] = useState('')
+  const [jenkinsToken, setJenkinsToken] = useState('')
+  const [jenkinsLoading, setJenkinsLoading] = useState(false)
+  const [jenkinsPipelines, setJenkinsPipelines] = useState<JenkinsPipeline[]>([
+    {
+      id: '1',
+      name: 'computoplus-main',
+      status: 'success',
+      branch: 'main',
+      commit: 'a1b2c3d',
+      duration: '5m 23s',
+      timestamp: new Date(Date.now() - 3600000),
+      stages: [
+        { name: 'Checkout', status: 'success', duration: '12s' },
+        { name: 'Install', status: 'success', duration: '1m 45s' },
+        { name: 'Lint', status: 'success', duration: '32s' },
+        { name: 'Test', status: 'success', duration: '2m 15s' },
+        { name: 'Build', status: 'success', duration: '45s' },
+        { name: 'Deploy', status: 'success', duration: '34s' },
+      ]
+    },
+    {
+      id: '2',
+      name: 'computoplus-develop',
+      status: 'running',
+      branch: 'develop',
+      commit: 'e4f5g6h',
+      duration: '2m 10s',
+      timestamp: new Date(),
+      stages: [
+        { name: 'Checkout', status: 'success', duration: '10s' },
+        { name: 'Install', status: 'success', duration: '1m 30s' },
+        { name: 'Lint', status: 'running', duration: '...' },
+        { name: 'Test', status: 'pending', duration: '-' },
+        { name: 'Build', status: 'pending', duration: '-' },
+        { name: 'Deploy', status: 'pending', duration: '-' },
+      ]
+    },
+    {
+      id: '3',
+      name: 'computoplus-feature',
+      status: 'failed',
+      branch: 'feature/new-dashboard',
+      commit: 'i7j8k9l',
+      duration: '3m 45s',
+      timestamp: new Date(Date.now() - 7200000),
+      stages: [
+        { name: 'Checkout', status: 'success', duration: '11s' },
+        { name: 'Install', status: 'success', duration: '1m 40s' },
+        { name: 'Lint', status: 'success', duration: '28s' },
+        { name: 'Test', status: 'failed', duration: '1m 26s' },
+        { name: 'Build', status: 'skipped', duration: '-' },
+        { name: 'Deploy', status: 'skipped', duration: '-' },
+      ]
+    },
+  ])
+  const [jenkinsJobs, setJenkinsJobs] = useState<JenkinsJob[]>([
+    { name: 'Build-Main', lastBuild: 156, lastSuccess: '1 hour ago', lastFailure: '3 days ago', health: 95 },
+    { name: 'Build-Develop', lastBuild: 234, lastSuccess: 'Running', lastFailure: '2 hours ago', health: 78 },
+    { name: 'Deploy-Staging', lastBuild: 89, lastSuccess: '30 min ago', lastFailure: '1 week ago', health: 100 },
+    { name: 'Deploy-Production', lastBuild: 45, lastSuccess: '2 days ago', lastFailure: '1 month ago', health: 100 },
+    { name: 'Nightly-Tests', lastBuild: 67, lastSuccess: 'Yesterday', lastFailure: '5 days ago', health: 88 },
+  ])
+
+  // Puppet state
+  const [puppetConnected, setPuppetConnected] = useState(false)
+  const [puppetUrl, setPuppetUrl] = useState('')
+  const [puppetToken, setPuppetToken] = useState('')
+  const [puppetLoading, setPuppetLoading] = useState(false)
+  const [puppetAgents, setPuppetAgents] = useState<PuppetAgent[]>([
+    { hostname: 'web-server-01', status: 'active', environment: 'production', lastRun: new Date(Date.now() - 1800000), changes: 0, failures: 0 },
+    { hostname: 'web-server-02', status: 'active', environment: 'production', lastRun: new Date(Date.now() - 2100000), changes: 2, failures: 0 },
+    { hostname: 'db-server-01', status: 'active', environment: 'production', lastRun: new Date(Date.now() - 900000), changes: 0, failures: 0 },
+    { hostname: 'staging-01', status: 'active', environment: 'staging', lastRun: new Date(Date.now() - 3600000), changes: 5, failures: 0 },
+    { hostname: 'dev-server-01', status: 'failed', environment: 'development', lastRun: new Date(Date.now() - 7200000), changes: 0, failures: 3 },
+    { hostname: 'backup-server', status: 'unresponsive', environment: 'production', lastRun: new Date(Date.now() - 86400000), changes: 0, failures: 0 },
+  ])
+  const [puppetModules, setPuppetModules] = useState<PuppetModule[]>([
+    { name: 'puppetlabs-apache', version: '8.4.0', source: 'Puppet Forge', installed: true },
+    { name: 'puppetlabs-mysql', version: '14.0.0', source: 'Puppet Forge', installed: true },
+    { name: 'puppetlabs-postgresql', version: '9.2.0', source: 'Puppet Forge', installed: true },
+    { name: 'puppetlabs-nginx', version: '4.4.0', source: 'Puppet Forge', installed: true },
+    { name: 'puppetlabs-firewall', version: '5.0.0', source: 'Puppet Forge', installed: true },
+    { name: 'puppetlabs-docker', version: '6.1.0', source: 'Puppet Forge', installed: false },
+  ])
+
+  // Ansible state
+  const [ansibleConnected, setAnsibleConnected] = useState(false)
+  const [ansibleControlNode, setAnsibleControlNode] = useState('')
+  const [ansibleLoading, setAnsibleLoading] = useState(false)
+  const [ansiblePlaybooks, setAnsiblePlaybooks] = useState<AnsiblePlaybook[]>([
+    { name: 'deploy-app.yml', hosts: 'webservers', tasks: 15, lastRun: new Date(Date.now() - 3600000), status: 'success', duration: '2m 34s' },
+    { name: 'configure-nginx.yml', hosts: 'loadbalancers', tasks: 8, lastRun: new Date(Date.now() - 7200000), status: 'success', duration: '1m 12s' },
+    { name: 'database-backup.yml', hosts: 'dbservers', tasks: 5, lastRun: new Date(Date.now() - 1800000), status: 'running', duration: '...' },
+    { name: 'security-updates.yml', hosts: 'all', tasks: 12, lastRun: new Date(Date.now() - 86400000), status: 'success', duration: '5m 45s' },
+    { name: 'monitoring-setup.yml', hosts: 'monitoring', tasks: 20, lastRun: new Date(Date.now() - 172800000), status: 'failed', duration: '3m 22s' },
+    { name: 'new-server-provision.yml', hosts: 'new_servers', tasks: 25, lastRun: new Date(), status: 'never', duration: '-' },
+  ])
+  const [ansibleHosts, setAnsibleHosts] = useState<AnsibleHost[]>([
+    { hostname: 'web-01.computoplus.com', ip: '10.0.1.10', group: 'webservers', status: 'reachable', lastPing: new Date() },
+    { hostname: 'web-02.computoplus.com', ip: '10.0.1.11', group: 'webservers', status: 'reachable', lastPing: new Date() },
+    { hostname: 'db-01.computoplus.com', ip: '10.0.2.10', group: 'dbservers', status: 'reachable', lastPing: new Date() },
+    { hostname: 'lb-01.computoplus.com', ip: '10.0.3.10', group: 'loadbalancers', status: 'reachable', lastPing: new Date() },
+    { hostname: 'monitor-01.computoplus.com', ip: '10.0.4.10', group: 'monitoring', status: 'unreachable', lastPing: new Date(Date.now() - 3600000) },
+    { hostname: 'backup-01.computoplus.com', ip: '10.0.5.10', group: 'backup', status: 'reachable', lastPing: new Date() },
+  ])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -580,6 +764,141 @@ Build completed in 45.2s`,
     }
   }
 
+  // Connect to Jenkins
+  const connectJenkins = async () => {
+    setJenkinsLoading(true)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setJenkinsConnected(true)
+      toast.success('Conectado a Jenkins')
+    } catch (error) {
+      toast.error('Error al conectar con Jenkins')
+    } finally {
+      setJenkinsLoading(false)
+    }
+  }
+
+  // Trigger Jenkins build
+  const triggerJenkinsBuild = async (pipelineName: string) => {
+    toast.loading(`Iniciando build para ${pipelineName}...`)
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    toast.dismiss()
+    toast.success(`Build iniciado: ${pipelineName}`)
+  }
+
+  // Connect to Puppet
+  const connectPuppet = async () => {
+    setPuppetLoading(true)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setPuppetConnected(true)
+      toast.success('Conectado a Puppet Master')
+    } catch (error) {
+      toast.error('Error al conectar con Puppet')
+    } finally {
+      setPuppetLoading(false)
+    }
+  }
+
+  // Run Puppet agent
+  const runPuppetAgent = async (hostname: string) => {
+    toast.loading(`Ejecutando Puppet en ${hostname}...`)
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    toast.dismiss()
+    toast.success(`Puppet aplicado en ${hostname}`)
+    setPuppetAgents(prev => prev.map(agent => 
+      agent.hostname === hostname 
+        ? { ...agent, lastRun: new Date(), changes: Math.floor(Math.random() * 5) }
+        : agent
+    ))
+  }
+
+  // Connect to Ansible
+  const connectAnsible = async () => {
+    setAnsibleLoading(true)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setAnsibleConnected(true)
+      toast.success('Conectado al Control Node de Ansible')
+    } catch (error) {
+      toast.error('Error al conectar con Ansible')
+    } finally {
+      setAnsibleLoading(false)
+    }
+  }
+
+  // Run Ansible playbook
+  const runAnsiblePlaybook = async (playbookName: string) => {
+    toast.loading(`Ejecutando playbook ${playbookName}...`)
+    setAnsiblePlaybooks(prev => prev.map(pb => 
+      pb.name === playbookName ? { ...pb, status: 'running' as const, lastRun: new Date(), duration: '...' } : pb
+    ))
+    await new Promise(resolve => setTimeout(resolve, 4000))
+    toast.dismiss()
+    const success = Math.random() > 0.2
+    setAnsiblePlaybooks(prev => prev.map(pb => 
+      pb.name === playbookName 
+        ? { ...pb, status: success ? 'success' as const : 'failed' as const, duration: `${Math.floor(Math.random() * 5) + 1}m ${Math.floor(Math.random() * 59)}s` }
+        : pb
+    ))
+    if (success) {
+      toast.success(`Playbook ${playbookName} completado`)
+    } else {
+      toast.error(`Playbook ${playbookName} falló`)
+    }
+  }
+
+  // Ping Ansible host
+  const pingAnsibleHost = async (hostname: string) => {
+    toast.loading(`Verificando ${hostname}...`)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    toast.dismiss()
+    const reachable = Math.random() > 0.1
+    setAnsibleHosts(prev => prev.map(host => 
+      host.hostname === hostname 
+        ? { ...host, status: reachable ? 'reachable' as const : 'unreachable' as const, lastPing: new Date() }
+        : host
+    ))
+    if (reachable) {
+      toast.success(`${hostname} está accesible`)
+    } else {
+      toast.error(`${hostname} no responde`)
+    }
+  }
+
+  // Helper functions for status
+  const getJenkinsStatusColor = (status: string) => {
+    switch (status) {
+      case 'success': return 'bg-green-500'
+      case 'failed': return 'bg-red-500'
+      case 'running': return 'bg-blue-500'
+      case 'pending': return 'bg-gray-400'
+      case 'cancelled': return 'bg-orange-500'
+      case 'skipped': return 'bg-gray-300'
+      default: return 'bg-gray-500'
+    }
+  }
+
+  const getPuppetStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'text-green-600 bg-green-100'
+      case 'inactive': return 'text-gray-600 bg-gray-100'
+      case 'failed': return 'text-red-600 bg-red-100'
+      case 'unresponsive': return 'text-orange-600 bg-orange-100'
+      default: return 'text-gray-600 bg-gray-100'
+    }
+  }
+
+  const getAnsibleStatusColor = (status: string) => {
+    switch (status) {
+      case 'success': return 'text-green-600 bg-green-100'
+      case 'failed': return 'text-red-600 bg-red-100'
+      case 'running': return 'text-blue-600 bg-blue-100'
+      case 'never': return 'text-gray-600 bg-gray-100'
+      default: return 'text-gray-600 bg-gray-100'
+    }
+  }
+
   if (status === 'loading') {
     return (
       <CompanyTabsLayout>
@@ -601,10 +920,22 @@ Build completed in 45.2s`,
               DevOps & Monitoreo
             </h1>
             <p className="text-sm text-gray-600 mt-1">
-              Terminal, análisis de código y métricas en tiempo real
+              Terminal, CI/CD, análisis de código, gestión de configuración y monitoreo
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className={jenkinsConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+              <Workflow className="w-3 h-3 mr-1" />
+              Jenkins {jenkinsConnected ? 'ON' : 'OFF'}
+            </Badge>
+            <Badge className={puppetConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+              <Box className="w-3 h-3 mr-1" />
+              Puppet {puppetConnected ? 'ON' : 'OFF'}
+            </Badge>
+            <Badge className={ansibleConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+              <Zap className="w-3 h-3 mr-1" />
+              Ansible {ansibleConnected ? 'ON' : 'OFF'}
+            </Badge>
             <Badge className={prometheusConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
               <Activity className="w-3 h-3 mr-1" />
               Prometheus {prometheusConnected ? 'ON' : 'OFF'}
@@ -625,6 +956,31 @@ Build completed in 45.2s`,
           >
             <Terminal className="w-4 h-4 mr-2" />
             Terminal
+          </Button>
+          <Button
+            variant={activeTab === 'jenkins' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('jenkins')}
+            className={jenkinsConnected ? '' : ''}
+          >
+            <Workflow className="w-4 h-4 mr-2" />
+            Jenkins
+          </Button>
+          <Button
+            variant={activeTab === 'puppet' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('puppet')}
+          >
+            <Box className="w-4 h-4 mr-2" />
+            Puppet
+          </Button>
+          <Button
+            variant={activeTab === 'ansible' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('ansible')}
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            Ansible
           </Button>
           <Button
             variant={activeTab === 'sonarqube' ? 'default' : 'outline'}
@@ -1125,6 +1481,576 @@ Build completed in 45.2s`,
                   <Activity className="w-3 h-3 inline animate-pulse text-green-500" /> 
                   {' '}Actualizando cada 2 segundos
                 </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Jenkins Tab */}
+        {activeTab === 'jenkins' && (
+          <div className="space-y-4">
+            {/* Connection Card */}
+            {!jenkinsConnected && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Workflow className="w-5 h-5 text-orange-500" />
+                    Conectar a Jenkins
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">URL del Servidor</label>
+                      <Input
+                        value={jenkinsUrl}
+                        onChange={(e) => setJenkinsUrl(e.target.value)}
+                        placeholder="https://jenkins.example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Usuario</label>
+                      <Input
+                        value={jenkinsUser}
+                        onChange={(e) => setJenkinsUser(e.target.value)}
+                        placeholder="admin"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">API Token</label>
+                      <Input
+                        type="password"
+                        value={jenkinsToken}
+                        onChange={(e) => setJenkinsToken(e.target.value)}
+                        placeholder="Token de API"
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={connectJenkins} disabled={jenkinsLoading}>
+                    {jenkinsLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Workflow className="w-4 h-4 mr-2" />}
+                    Conectar
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Pipeline Status Overview */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="p-4 text-center">
+                  <CheckCircle className="w-8 h-8 mx-auto text-green-600 mb-2" />
+                  <div className="text-2xl font-bold text-green-700">
+                    {jenkinsPipelines.filter(p => p.status === 'success').length}
+                  </div>
+                  <div className="text-xs text-green-600">Exitosos</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4 text-center">
+                  <Loader2 className="w-8 h-8 mx-auto text-blue-600 mb-2 animate-spin" />
+                  <div className="text-2xl font-bold text-blue-700">
+                    {jenkinsPipelines.filter(p => p.status === 'running').length}
+                  </div>
+                  <div className="text-xs text-blue-600">En Ejecución</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-red-50 border-red-200">
+                <CardContent className="p-4 text-center">
+                  <XCircle className="w-8 h-8 mx-auto text-red-600 mb-2" />
+                  <div className="text-2xl font-bold text-red-700">
+                    {jenkinsPipelines.filter(p => p.status === 'failed').length}
+                  </div>
+                  <div className="text-xs text-red-600">Fallidos</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-50 border-gray-200">
+                <CardContent className="p-4 text-center">
+                  <Clock className="w-8 h-8 mx-auto text-gray-600 mb-2" />
+                  <div className="text-2xl font-bold text-gray-700">
+                    {jenkinsPipelines.filter(p => p.status === 'pending').length}
+                  </div>
+                  <div className="text-xs text-gray-600">Pendientes</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Pipelines */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="w-5 h-5" />
+                    Pipelines Recientes
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => toast.success('Actualizando...')}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Actualizar
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {jenkinsPipelines.map((pipeline) => (
+                    <div key={pipeline.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${getJenkinsStatusColor(pipeline.status)} ${pipeline.status === 'running' ? 'animate-pulse' : ''}`} />
+                          <div>
+                            <div className="font-medium">{pipeline.name}</div>
+                            <div className="text-xs text-gray-500">
+                              {pipeline.branch} • {pipeline.commit} • {pipeline.duration}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={pipeline.status === 'success' ? 'default' : pipeline.status === 'failed' ? 'destructive' : 'secondary'}>
+                            {pipeline.status.toUpperCase()}
+                          </Badge>
+                          <Button size="sm" variant="ghost" onClick={() => triggerJenkinsBuild(pipeline.name)}>
+                            <Play className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Pipeline Stages */}
+                      <div className="flex gap-1">
+                        {pipeline.stages.map((stage, idx) => (
+                          <div key={idx} className="flex-1">
+                            <div className={`h-2 rounded ${getJenkinsStatusColor(stage.status)} ${stage.status === 'running' ? 'animate-pulse' : ''}`} />
+                            <div className="text-xs text-center mt-1 text-gray-500 truncate">{stage.name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Jobs Health */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Salud de Jobs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {jenkinsJobs.map((job, idx) => (
+                    <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium">{job.name}</div>
+                        <div className="text-xs text-gray-500">
+                          Build #{job.lastBuild} • Último éxito: {job.lastSuccess}
+                        </div>
+                      </div>
+                      <div className="w-32">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span>Health</span>
+                          <span className={job.health >= 80 ? 'text-green-600' : job.health >= 50 ? 'text-yellow-600' : 'text-red-600'}>
+                            {job.health}%
+                          </span>
+                        </div>
+                        <div className="bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${job.health >= 80 ? 'bg-green-500' : job.health >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                            style={{ width: `${job.health}%` }}
+                          />
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => triggerJenkinsBuild(job.name)}>
+                        <PlayCircle className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Puppet Tab */}
+        {activeTab === 'puppet' && (
+          <div className="space-y-4">
+            {/* Connection Card */}
+            {!puppetConnected && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Box className="w-5 h-5 text-orange-500" />
+                    Conectar a Puppet Master
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">URL del Puppet Master</label>
+                      <Input
+                        value={puppetUrl}
+                        onChange={(e) => setPuppetUrl(e.target.value)}
+                        placeholder="https://puppet.example.com:8140"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Token de Autenticación</label>
+                      <Input
+                        type="password"
+                        value={puppetToken}
+                        onChange={(e) => setPuppetToken(e.target.value)}
+                        placeholder="Token de PE"
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={connectPuppet} disabled={puppetLoading}>
+                    {puppetLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Box className="w-4 h-4 mr-2" />}
+                    Conectar
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Agent Status Overview */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="p-4 text-center">
+                  <CheckCircle className="w-8 h-8 mx-auto text-green-600 mb-2" />
+                  <div className="text-2xl font-bold text-green-700">
+                    {puppetAgents.filter(a => a.status === 'active').length}
+                  </div>
+                  <div className="text-xs text-green-600">Activos</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-red-50 border-red-200">
+                <CardContent className="p-4 text-center">
+                  <XCircle className="w-8 h-8 mx-auto text-red-600 mb-2" />
+                  <div className="text-2xl font-bold text-red-700">
+                    {puppetAgents.filter(a => a.status === 'failed').length}
+                  </div>
+                  <div className="text-xs text-red-600">Fallidos</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-orange-50 border-orange-200">
+                <CardContent className="p-4 text-center">
+                  <AlertTriangle className="w-8 h-8 mx-auto text-orange-600 mb-2" />
+                  <div className="text-2xl font-bold text-orange-700">
+                    {puppetAgents.filter(a => a.status === 'unresponsive').length}
+                  </div>
+                  <div className="text-xs text-orange-600">Sin Respuesta</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4 text-center">
+                  <Package className="w-8 h-8 mx-auto text-blue-600 mb-2" />
+                  <div className="text-2xl font-bold text-blue-700">
+                    {puppetModules.filter(m => m.installed).length}
+                  </div>
+                  <div className="text-xs text-blue-600">Módulos Instalados</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Puppet Agents */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-5 h-5" />
+                    Agentes Puppet
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => toast.success('Sincronizando agentes...')}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Sincronizar
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-3">Hostname</th>
+                        <th className="text-left py-2 px-3">Estado</th>
+                        <th className="text-left py-2 px-3">Entorno</th>
+                        <th className="text-left py-2 px-3">Última Ejecución</th>
+                        <th className="text-center py-2 px-3">Cambios</th>
+                        <th className="text-center py-2 px-3">Fallos</th>
+                        <th className="text-center py-2 px-3">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {puppetAgents.map((agent, idx) => (
+                        <tr key={idx} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-3 font-medium">{agent.hostname}</td>
+                          <td className="py-2 px-3">
+                            <Badge className={getPuppetStatusColor(agent.status)}>
+                              {agent.status}
+                            </Badge>
+                          </td>
+                          <td className="py-2 px-3">{agent.environment}</td>
+                          <td className="py-2 px-3 text-gray-500">
+                            {new Date(agent.lastRun).toLocaleString()}
+                          </td>
+                          <td className="py-2 px-3 text-center">
+                            <Badge variant={agent.changes > 0 ? 'default' : 'secondary'}>
+                              {agent.changes}
+                            </Badge>
+                          </td>
+                          <td className="py-2 px-3 text-center">
+                            <Badge variant={agent.failures > 0 ? 'destructive' : 'secondary'}>
+                              {agent.failures}
+                            </Badge>
+                          </td>
+                          <td className="py-2 px-3 text-center">
+                            <Button size="sm" variant="ghost" onClick={() => runPuppetAgent(agent.hostname)}>
+                              <Play className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Puppet Modules */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Layers className="w-5 h-5" />
+                  Módulos Puppet
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {puppetModules.map((module, idx) => (
+                    <div key={idx} className={`p-3 border rounded-lg ${module.installed ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">{module.name}</div>
+                          <div className="text-xs text-gray-500">v{module.version} • {module.source}</div>
+                        </div>
+                        {module.installed ? (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => toast.success(`Instalando ${module.name}...`)}>
+                            Instalar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Ansible Tab */}
+        {activeTab === 'ansible' && (
+          <div className="space-y-4">
+            {/* Connection Card */}
+            {!ansibleConnected && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-red-500" />
+                    Conectar a Ansible Control Node
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Control Node (SSH)</label>
+                    <Input
+                      value={ansibleControlNode}
+                      onChange={(e) => setAnsibleControlNode(e.target.value)}
+                      placeholder="user@ansible-control.example.com"
+                    />
+                  </div>
+                  <Button onClick={connectAnsible} disabled={ansibleLoading}>
+                    {ansibleLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
+                    Conectar
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Playbook Status Overview */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="p-4 text-center">
+                  <CheckCircle className="w-8 h-8 mx-auto text-green-600 mb-2" />
+                  <div className="text-2xl font-bold text-green-700">
+                    {ansiblePlaybooks.filter(p => p.status === 'success').length}
+                  </div>
+                  <div className="text-xs text-green-600">Exitosos</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4 text-center">
+                  <Loader2 className="w-8 h-8 mx-auto text-blue-600 mb-2 animate-spin" />
+                  <div className="text-2xl font-bold text-blue-700">
+                    {ansiblePlaybooks.filter(p => p.status === 'running').length}
+                  </div>
+                  <div className="text-xs text-blue-600">En Ejecución</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-red-50 border-red-200">
+                <CardContent className="p-4 text-center">
+                  <XCircle className="w-8 h-8 mx-auto text-red-600 mb-2" />
+                  <div className="text-2xl font-bold text-red-700">
+                    {ansiblePlaybooks.filter(p => p.status === 'failed').length}
+                  </div>
+                  <div className="text-xs text-red-600">Fallidos</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-purple-50 border-purple-200">
+                <CardContent className="p-4 text-center">
+                  <Users className="w-8 h-8 mx-auto text-purple-600 mb-2" />
+                  <div className="text-2xl font-bold text-purple-700">
+                    {ansibleHosts.filter(h => h.status === 'reachable').length}/{ansibleHosts.length}
+                  </div>
+                  <div className="text-xs text-purple-600">Hosts Activos</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Playbooks */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Playbooks
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => toast.success('Escaneando playbooks...')}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Escanear
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {ansiblePlaybooks.map((playbook, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                      <div className="flex items-center gap-3">
+                        <FileCode className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <div className="font-medium">{playbook.name}</div>
+                          <div className="text-xs text-gray-500">
+                            Hosts: {playbook.hosts} • {playbook.tasks} tasks • {playbook.duration}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getAnsibleStatusColor(playbook.status)}>
+                          {playbook.status === 'running' && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                          {playbook.status}
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => runAnsiblePlaybook(playbook.name)}
+                          disabled={playbook.status === 'running'}
+                        >
+                          <PlayCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Inventory */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FolderTree className="w-5 h-5" />
+                    Inventario de Hosts
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    ansibleHosts.forEach(h => pingAnsibleHost(h.hostname))
+                  }}>
+                    <Wifi className="w-4 h-4 mr-2" />
+                    Ping All
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-3">Hostname</th>
+                        <th className="text-left py-2 px-3">IP</th>
+                        <th className="text-left py-2 px-3">Grupo</th>
+                        <th className="text-left py-2 px-3">Estado</th>
+                        <th className="text-left py-2 px-3">Último Ping</th>
+                        <th className="text-center py-2 px-3">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ansibleHosts.map((host, idx) => (
+                        <tr key={idx} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-3 font-medium">{host.hostname}</td>
+                          <td className="py-2 px-3 font-mono text-gray-600">{host.ip}</td>
+                          <td className="py-2 px-3">
+                            <Badge variant="outline">{host.group}</Badge>
+                          </td>
+                          <td className="py-2 px-3">
+                            <Badge className={host.status === 'reachable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                              {host.status === 'reachable' ? (
+                                <><CheckCircle className="w-3 h-3 mr-1" /> Accesible</>
+                              ) : (
+                                <><XCircle className="w-3 h-3 mr-1" /> Sin Conexión</>
+                              )}
+                            </Badge>
+                          </td>
+                          <td className="py-2 px-3 text-gray-500 text-xs">
+                            {new Date(host.lastPing).toLocaleString()}
+                          </td>
+                          <td className="py-2 px-3 text-center">
+                            <Button size="sm" variant="ghost" onClick={() => pingAnsibleHost(host.hostname)}>
+                              <Wifi className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Commands */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Cog className="w-5 h-5" />
+                  Comandos Rápidos (Ad-hoc)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Button variant="outline" className="h-auto py-3 flex-col" onClick={() => toast.success('Ejecutando: ansible all -m ping')}>
+                    <Wifi className="w-5 h-5 mb-1" />
+                    <span className="text-xs">Ping All</span>
+                  </Button>
+                  <Button variant="outline" className="h-auto py-3 flex-col" onClick={() => toast.success('Ejecutando: ansible all -m setup')}>
+                    <Database className="w-5 h-5 mb-1" />
+                    <span className="text-xs">Gather Facts</span>
+                  </Button>
+                  <Button variant="outline" className="h-auto py-3 flex-col" onClick={() => toast.success('Ejecutando: ansible all -m shell -a "uptime"')}>
+                    <Clock className="w-5 h-5 mb-1" />
+                    <span className="text-xs">Uptime</span>
+                  </Button>
+                  <Button variant="outline" className="h-auto py-3 flex-col" onClick={() => toast.success('Ejecutando: ansible all -m shell -a "df -h"')}>
+                    <HardDrive className="w-5 h-5 mb-1" />
+                    <span className="text-xs">Disk Space</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
