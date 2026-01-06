@@ -614,7 +614,8 @@ model ChartOfAccounts {
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   companyId           String?
-  budgets             Budget[]
+  budgets             Budget[]           @relation("BudgetAccount")
+  budgetItems         BudgetItem[]
   parent              ChartOfAccounts?   @relation("AccountHierarchy", fields: [parentId], references: [id])
   children            ChartOfAccounts[]  @relation("AccountHierarchy")
   journalEntries      JournalEntryLine[]
@@ -670,6 +671,62 @@ model JournalEntryLine {
   @@map("journal_entry_lines")
 }
 
+// Budget Plan - El presupuesto principal/anual
+model BudgetPlan {
+  id           String           @id @default(cuid())
+  name         String
+  description  String?
+  fiscalYear   Int
+  startDate    DateTime
+  endDate      DateTime
+  status       BudgetPlanStatus @default(DRAFT)
+  totalRevenue Float            @default(0)
+  totalExpense Float            @default(0)
+  netProfit    Float            @default(0)
+  notes        String?
+  createdBy    String?
+  approvedBy   String?
+  approvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  companyId    String?
+  items        BudgetItem[]
+
+  @@map("budget_plans")
+}
+
+// Budget Item - Líneas individuales del presupuesto
+model BudgetItem {
+  id           String         @id @default(cuid())
+  budgetPlanId String
+  category     String
+  subcategory  String?
+  type         BudgetItemType
+  department   String?
+  costCenterId String?
+  accountId    String?
+  q1Budget     Float          @default(0)
+  q2Budget     Float          @default(0)
+  q3Budget     Float          @default(0)
+  q4Budget     Float          @default(0)
+  annualBudget Float          @default(0)
+  q1Actual     Float          @default(0)
+  q2Actual     Float          @default(0)
+  q3Actual     Float          @default(0)
+  q4Actual     Float          @default(0)
+  annualActual Float          @default(0)
+  variance     Float          @default(0)
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  companyId    String?
+  budgetPlan   BudgetPlan     @relation(fields: [budgetPlanId], references: [id], onDelete: Cascade)
+  costCenter   CostCenter?    @relation(fields: [costCenterId], references: [id])
+  account      ChartOfAccounts? @relation(fields: [accountId], references: [id])
+
+  @@map("budget_items")
+}
+
 model Budget {
   id           String          @id @default(cuid())
   name         String
@@ -687,8 +744,8 @@ model Budget {
   updatedAt    DateTime        @updatedAt
   companyId    String?
   periods      BudgetPeriod[]
-  account      ChartOfAccounts @relation(fields: [accountId], references: [id])
-  costCenter   CostCenter?     @relation(fields: [costCenterId], references: [id])
+  account      ChartOfAccounts @relation("BudgetAccount", fields: [accountId], references: [id])
+  costCenter   CostCenter?     @relation("BudgetCostCenter", fields: [costCenterId], references: [id])
 
   @@map("budgets")
 }
@@ -801,7 +858,8 @@ model CostCenter {
   updatedAt      DateTime       @updatedAt
   companyId      String?
   assets         Asset[]
-  budgets        Budget[]
+  budgets        Budget[]       @relation("BudgetCostCenter")
+  budgetItems    BudgetItem[]
   parent         CostCenter?    @relation("CostCenterHierarchy", fields: [parentId], references: [id])
   children       CostCenter[]   @relation("CostCenterHierarchy")
   expenses       Expense[]
@@ -2425,6 +2483,20 @@ enum BudgetStatus {
   ACTIVE
   CLOSED
   EXCEEDED
+}
+
+enum BudgetPlanStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ACTIVE
+  CLOSED
+  CANCELLED
+}
+
+enum BudgetItemType {
+  REVENUE
+  EXPENSE
 }
 
 enum AssetCategory {
