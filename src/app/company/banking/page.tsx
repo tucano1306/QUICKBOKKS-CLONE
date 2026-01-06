@@ -598,6 +598,7 @@ export default function BankingManagementPage() {
               <span className="hidden sm:inline">{tab.labelFull || tab.label}</span>
             </Button>
           ))}
+        </div>
 
         {/* Tab Content */}
         {activeTab === 'accounts' && (
