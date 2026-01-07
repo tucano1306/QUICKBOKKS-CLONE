@@ -381,7 +381,7 @@ export default function DocumentReviewPage() {
     reclassified: documents.filter(d => d.status === 'reclassified').length,
     rejected: documents.filter(d => d.status === 'rejected').length,
     totalAmount: documents.reduce((sum, d) => sum + d.amount, 0),
-    avgConfidence: Math.round(documents.reduce((sum, d) => sum + d.aiConfidence, 0) / documents.length)
+    avgConfidence: documents.length > 0 ? Math.round(documents.reduce((sum, d) => sum + d.aiConfidence, 0) / documents.length) : 0
   }
 
   const filteredDocs = documents.filter(doc => 

@@ -93,7 +93,7 @@ export default function ReportGroupsPage() {
     if (!activeCompany?.id) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/report-groups?companyId=${activeCompany.id}`)
+      const res = await fetch(`/api/report-groups?companyId=${activeCompany.id}&type=groups`)
       if (res.ok) {
         const data = await res.json()
         setGroups(data)
@@ -155,8 +155,8 @@ export default function ReportGroupsPage() {
       const url = '/api/report-groups'
       const method = editingGroup ? 'PUT' : 'POST'
       const body = editingGroup 
-        ? { ...formData, id: editingGroup.id }
-        : { ...formData, companyId: activeCompany.id }
+        ? { ...formData, id: editingGroup.id, type: 'group' }
+        : { ...formData, companyId: activeCompany.id, type: 'group' }
 
       const res = await fetch(url, {
         method,
@@ -203,7 +203,7 @@ export default function ReportGroupsPage() {
       const res = await fetch('/api/report-groups', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: group.id, isDefault: true })
+        body: JSON.stringify({ id: group.id, isDefault: true, type: 'group' })
       })
 
       if (res.ok) {

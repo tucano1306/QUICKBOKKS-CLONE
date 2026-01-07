@@ -77,7 +77,10 @@ export async function POST(request: NextRequest) {
           name: data.name,
           description: data.description || null,
           color: data.color || '#0077C5',
-          icon: data.icon || 'folder'
+          icon: data.icon || 'folder',
+          reportTypes: data.reportTypes || [],
+          isDefault: data.isDefault || false,
+          order: data.order || 0
         }
       })
       return NextResponse.json(group, { status: 201 })
