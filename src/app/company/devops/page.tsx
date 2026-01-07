@@ -159,6 +159,14 @@ export default function DevOpsPage() {
   const [activeTab, setActiveTab] = useState<'terminal' | 'sonarqube' | 'prometheus' | 'jenkins' | 'puppet' | 'ansible'>('terminal')
   const [loading, setLoading] = useState(false)
 
+  // Verificar que el usuario sea DEVELOPER
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.role !== 'DEVELOPER') {
+      toast.error('No tienes acceso a esta sección')
+      router.push('/company/dashboard')
+    }
+  }, [status, session, router])
+
   // Read tab from URL params
   useEffect(() => {
     const tab = searchParams.get('tab')

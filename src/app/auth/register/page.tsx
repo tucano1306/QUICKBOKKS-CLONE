@@ -77,8 +77,8 @@ export default function RegisterPage() {
         <CardHeader className="space-y-1 text-center pb-6">
           <div className="mb-4">
             <h1 className="text-3xl font-extrabold">
-              <span className="text-[#0D2942]">Quick</span>
-              <span className="text-[#2CA01C]">Books</span>
+              <span className="text-[#0D2942]">Computo</span>
+              <span className="text-[#2CA01C]">Plus</span>
             </h1>
           </div>
           <CardTitle className="text-xl font-semibold text-gray-900">

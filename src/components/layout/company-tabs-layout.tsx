@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -315,9 +316,19 @@ const tabSections: TabSection[] = [
 
 export default function CompanyTabsLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { activeCompany } = useCompany()
+  const { data: session } = useSession()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
+  
+  // Filtrar las secciones de tabs basado en el rol del usuario
+  const filteredTabSections = tabSections.filter(tab => {
+    // Mostrar DevOps solo si el usuario es DEVELOPER
+    if (tab.id === 'devops') {
+      return session?.user?.role === 'DEVELOPER'
+    }
+    return true
+  })
   
   // Construir la URL completa con query params para comparar
   const currentUrl = searchParams.toString() 
@@ -336,14 +347,14 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
     // Primero verificar rutas especiales
     for (const [routePrefix, tabId] of Object.entries(specialRouteMappings)) {
       if (pathname?.startsWith(routePrefix)) {
-        return tabSections.find(tab => tab.id === tabId)
+        return filteredTabSections.find(tab => tab.id === tabId)
       }
     }
     // Luego buscar por el patrón estándar /company/{tabId}
-    return tabSections.find(tab => pathname?.startsWith(`/company/${tab.id}`))
+    return filteredTabSections.find(tab => pathname?.startsWith(`/company/${tab.id}`))
   }
   
-  const currentTab = findCurrentTab() || tabSections[0]
+  const currentTab = findCurrentTab() || filteredTabSections[0]
 
   const currentTabId = currentTab?.id || 'dashboard'
   
@@ -380,7 +391,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
   ]
 
 
-  const activeSection = tabSections.find(tab => tab.id === activeTab) || currentTab || tabSections[0]
+  const activeSection = filteredTabSections.find(tab => tab.id === activeTab) || currentTab || filteredTabSections[0]
 
   // Sincronizar activeTab con la URL actual
   useEffect(() => {
@@ -492,7 +503,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
             
             {/* Navigation */}
             <nav className="p-2">
-              {tabSections.map((tab) => {
+              {filteredTabSections.map((tab) => {
                 const Icon = tab.icon
                 const isExpanded = mobileExpandedTab === tab.id
                 const isActiveTab = currentTab.id === tab.id
@@ -847,7 +858,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
       <div className="bg-white border-b border-gray-200 hidden lg:block">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
           <nav className="flex space-x-1 px-4 py-2" aria-label="Tabs">
-              {tabSections.map((tab) => {
+              {filteredTabSections.map((tab) => {
                 const Icon = tab.icon
                 const isActive = currentTab.id === tab.id
                 const isSubmenuOpen = showSubmenu[tab.id] || false
