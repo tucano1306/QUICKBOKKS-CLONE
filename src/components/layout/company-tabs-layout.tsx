@@ -451,38 +451,38 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
           />
           
           {/* Sidebar */}
-          <div className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-white shadow-xl overflow-y-auto">
+          <div className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-white shadow-xl flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-[#0D2942]">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-[#0D2942] flex-shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
                 {activeCompany.logo ? (
                   <Image
                     src={activeCompany.logo}
                     alt={activeCompany.name}
                     width={40}
                     height={40}
-                    className="w-10 h-10 rounded-lg object-cover"
+                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2CA01C] to-[#108000] flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2CA01C] to-[#108000] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {activeCompany.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
-                <div>
-                  <h3 className="text-white font-bold text-sm truncate max-w-[180px]">{activeCompany.name}</h3>
+                <div className="min-w-0">
+                  <h3 className="text-white font-bold text-sm truncate">{activeCompany.name}</h3>
                   <p className="text-white/60 text-xs">Menu</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowMobileMenu(false)}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
             
             {/* Quick Actions */}
-            <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <div className="p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
               <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Acciones Rápidas</p>
               <div className="grid grid-cols-3 gap-2">
                 {quickCreateItems.slice(0, 3).map((item) => (
@@ -495,14 +495,14 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                     className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-gray-200 hover:border-[#2CA01C] hover:shadow-sm transition-all"
                   >
                     <item.icon className={cn('w-5 h-5', item.color)} />
-                    <span className="text-xs font-medium text-gray-700">{item.name}</span>
+                    <span className="text-xs font-medium text-gray-700 text-center leading-tight">{item.name}</span>
                   </button>
                 ))}
               </div>
             </div>
             
-            {/* Navigation */}
-            <nav className="p-2">
+            {/* Navigation - Scrollable */}
+            <nav className="flex-1 overflow-y-auto p-2">
               {filteredTabSections.map((tab) => {
                 const Icon = tab.icon
                 const isExpanded = mobileExpandedTab === tab.id
@@ -557,28 +557,28 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
               })}
             </nav>
             
-            {/* Bottom Actions */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
+            {/* Bottom Actions - Fixed */}
+            <div className="flex-shrink-0 p-4 bg-white border-t border-gray-200">
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     router.push('/company/settings/company')
                     setShowMobileMenu(false)
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-colors"
                 >
-                  <Settings className="w-4 h-4" />
-                  Settings
+                  <Settings className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">Settings</span>
                 </button>
                 <button
                   onClick={() => {
                     router.push('/dashboard')
                     setShowMobileMenu(false)
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-[#0D2942] text-white rounded-lg font-medium text-sm hover:bg-[#1a3a5c] transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-[#0D2942] text-white rounded-lg font-medium text-sm hover:bg-[#1a3a5c] transition-colors"
                 >
-                  <Home className="w-4 h-4" />
-                  Main Menu
+                  <Home className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">Main Menu</span>
                 </button>
               </div>
             </div>
