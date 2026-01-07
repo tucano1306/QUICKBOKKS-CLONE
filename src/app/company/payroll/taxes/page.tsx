@@ -63,61 +63,6 @@ interface TaxSummary {
   employees: number
 }
 
-// Datos de ejemplo para Florida
-const sampleEmployees: TaxRecord[] = [
-  {
-    id: '1',
-    employee: 'Laura Sánchez Díaz',
-    employeeId: 'EMP-001',
-    period: 'Nov 16-30, 2025',
-    periodStart: '2025-11-16',
-    periodEnd: '2025-11-30',
-    grossPay: 2500,
-    federalWithholding: 275,
-    socialSecurity: 155,
-    medicare: 36.25,
-    futaEmployer: 15,
-    sutaEmployer: 68.75,
-    totalWithholdings: 466.25,
-    employerContributions: 274,
-    status: 'calculated'
-  },
-  {
-    id: '2',
-    employee: 'Roberto Martínez Cruz',
-    employeeId: 'EMP-002',
-    period: 'Nov 16-30, 2025',
-    periodStart: '2025-11-16',
-    periodEnd: '2025-11-30',
-    grossPay: 2884.62,
-    federalWithholding: 345,
-    socialSecurity: 178.85,
-    medicare: 41.83,
-    futaEmployer: 17.31,
-    sutaEmployer: 79.33,
-    totalWithholdings: 565.68,
-    employerContributions: 317.32,
-    status: 'calculated'
-  },
-  {
-    id: '3',
-    employee: 'Ana García López',
-    employeeId: 'EMP-003',
-    period: 'Nov 16-30, 2025',
-    periodStart: '2025-11-16',
-    periodEnd: '2025-11-30',
-    grossPay: 3269.23,
-    federalWithholding: 425,
-    socialSecurity: 202.69,
-    medicare: 47.4,
-    futaEmployer: 19.62,
-    sutaEmployer: 89.9,
-    totalWithholdings: 675.09,
-    employerContributions: 359.61,
-    status: 'pending'
-  }
-]
-
 export default function PayrollTaxesPage() {
   const router = useRouter()
   const { status } = useSession()
@@ -139,6 +84,19 @@ export default function PayrollTaxesPage() {
   })
 
   const [taxRecords, setTaxRecords] = useState<TaxRecord[]>([])
+  const [taxSummary, setTaxSummary] = useState<TaxSummary>({
+    period: '',
+    totalFederalWithholding: 0,
+    totalSocialSecurityEmployee: 0,
+    totalSocialSecurityEmployer: 0,
+    totalMedicareEmployee: 0,
+    totalMedicareEmployer: 0,
+    totalFUTA: 0,
+    totalSUTA: 0,
+    totalWithholdings: 0,
+    totalEmployerContributions: 0,
+    employees: 0
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -150,20 +108,29 @@ export default function PayrollTaxesPage() {
     if (!activeCompany?.id) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/payroll/taxes?companyId=${activeCompany.id}`)
+      const res = await fetch(`/api/payroll/taxes-florida?companyId=${activeCompany.id}`)
       if (res.ok) {
         const data = await res.json()
-        if (data.records && data.records.length > 0) {
-          setTaxRecords(data.records)
-        } else {
-          setTaxRecords(sampleEmployees)
-        }
+        setTaxRecords(data.records || [])
+        setTaxSummary(data.summary || {
+          period: '',
+          totalFederalWithholding: 0,
+          totalSocialSecurityEmployee: 0,
+          totalSocialSecurityEmployer: 0,
+          totalMedicareEmployee: 0,
+          totalMedicareEmployer: 0,
+          totalFUTA: 0,
+          totalSUTA: 0,
+          totalWithholdings: 0,
+          totalEmployerContributions: 0,
+          employees: 0
+        })
       } else {
-        setTaxRecords(sampleEmployees)
+        toast.error('Error loading tax data')
       }
     } catch (error) {
       console.error('Error loading tax data:', error)
-      setTaxRecords(sampleEmployees)
+      toast.error('Error loading tax data')
     }
     setLoading(false)
   }, [activeCompany?.id])
@@ -203,21 +170,6 @@ export default function PayrollTaxesPage() {
         !tax.employeeId.toLowerCase().includes(searchTerm.toLowerCase())) return false
     return true
   })
-
-  // Calcular totales para Florida/USA
-  const taxSummary: TaxSummary = {
-    period: 'Nov 16-30, 2025',
-    totalFederalWithholding: taxRecords.reduce((sum, t) => sum + t.federalWithholding, 0),
-    totalSocialSecurityEmployee: taxRecords.reduce((sum, t) => sum + t.socialSecurity, 0),
-    totalSocialSecurityEmployer: taxRecords.reduce((sum, t) => sum + t.socialSecurity, 0),
-    totalMedicareEmployee: taxRecords.reduce((sum, t) => sum + t.medicare, 0),
-    totalMedicareEmployer: taxRecords.reduce((sum, t) => sum + t.medicare, 0),
-    totalFUTA: taxRecords.reduce((sum, t) => sum + t.futaEmployer, 0),
-    totalSUTA: taxRecords.reduce((sum, t) => sum + t.sutaEmployer, 0),
-    totalWithholdings: taxRecords.reduce((sum, t) => sum + t.totalWithholdings, 0),
-    totalEmployerContributions: taxRecords.reduce((sum, t) => sum + t.employerContributions, 0),
-    employees: taxRecords.length
-  }
 
   // Función para exportar datos a PDF
   const handleExport = () => {
@@ -519,6 +471,40 @@ File via EFTPS (federal) and FloridaRevenue.com (state).
     )
   }
 
+  if (!loading && taxRecords.length === 0) {
+    return (
+      <CompanyTabsLayout>
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-gray-900">Payroll Taxes</h1>
+                <Badge className="bg-orange-100 text-orange-700 flex items-center gap-1">
+                  <Flag className="w-3 h-3" /> Florida
+                </Badge>
+              </div>
+              <p className="text-gray-600 mt-1">
+                Federal and Florida state payroll tax management
+              </p>
+            </div>
+          </div>
+
+          <Card className="p-12 text-center">
+            <Receipt className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No Payroll Tax Records</h3>
+            <p className="text-gray-500 mb-6">
+              No payroll data found for the current period. Process payroll first to see tax calculations.
+            </p>
+            <Button onClick={() => router.push('/company/payroll/florida')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Go to Payroll Processing
+            </Button>
+          </Card>
+        </div>
+      </CompanyTabsLayout>
+    )
+  }
+
   return (
     <CompanyTabsLayout>
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
@@ -663,7 +649,7 @@ File via EFTPS (federal) and FloridaRevenue.com (state).
               <div className="flex items-center gap-2 sm:gap-4">
                 <Calendar className="w-5 h-5 text-gray-400 hidden sm:block" />
                 <span className="text-sm sm:text-base font-semibold text-gray-700">
-                  Period: <strong>Nov 16 - Nov 30, 2025</strong>
+                  Period: <strong>{taxSummary.period || 'Current Period'}</strong>
                 </span>
               </div>
               <div className="flex gap-2">
