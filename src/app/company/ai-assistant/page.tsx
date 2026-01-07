@@ -195,15 +195,15 @@ export default function AIAssistantPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="p-3 sm:p-6 space-y-3 sm:space-y-4 max-h-screen overflow-y-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Asistente IA - {activeCompany?.name}
             </h1>
-            <p className="text-gray-600 mt-1 text-sm">
+            <p className="text-gray-600 mt-1 text-xs sm:text-sm">
               Tu asistente contable inteligente, personalizado para tu empresa
             </p>
           </div>
@@ -215,224 +215,167 @@ export default function AIAssistantPage() {
 
         {/* Message Feedback */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+          <div className={`p-3 rounded-lg flex items-center gap-2 text-sm ${
             message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
             message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
             'bg-blue-50 text-blue-700 border border-blue-200'
           }`}>
-            {message.type === 'success' && <CheckCircle className="w-5 h-5" />}
-            {message.type === 'error' && <AlertCircle className="w-5 h-5" />}
-            {message.type === 'info' && <Bot className="w-5 h-5" />}
+            {message.type === 'success' && <CheckCircle className="w-4 h-4" />}
+            {message.type === 'error' && <AlertCircle className="w-4 h-4" />}
+            {message.type === 'info' && <Bot className="w-4 h-4" />}
             <span>{message.text}</span>
           </div>
         )}
 
-        {/* Hero Card */}
+        {/* Hero Card - Compacto */}
         <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
-          <CardContent className="p-8 relative z-10">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                    <Sparkles className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">Asistente IA Personalizado</h2>
-                    <p className="text-blue-100">Potenciado por GPT-4 + Machine Learning</p>
-                  </div>
+          <CardContent className="p-4 sm:p-6 relative z-10">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
+                  <Sparkles className="w-6 h-6 sm:w-8 sm:h-8" />
                 </div>
-                <p className="text-lg mb-6 text-blue-50">
-                  Haz preguntas sobre tus finanzas, obtén insights automáticos y recibe recomendaciones
-                  personalizadas. El asistente aprende de tu empresa y mejora continuamente.
-                </p>
-                <div className="flex gap-3">
-                  <Button 
-                    onClick={() => openFloatingChat()}
-                    className="bg-white text-blue-600 hover:bg-blue-50"
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Abrir Chat
-                  </Button>
-                  <Button 
-                    onClick={showTutorial}
-                    variant="outline" 
-                    className="border-white text-white hover:bg-white/20"
-                  >
-                    Ver Tutorial
-                  </Button>
+                <div>
+                  <h2 className="text-base sm:text-xl font-bold">Asistente IA Personalizado</h2>
+                  <p className="text-xs sm:text-sm text-blue-100">GPT-4 + Machine Learning</p>
                 </div>
               </div>
-              <div className="hidden lg:block">
-                <div className="p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
-                  <Bot className="w-32 h-32 text-white/80" />
-                </div>
-              </div>
+              <Button 
+                onClick={() => openFloatingChat()}
+                className="bg-white text-blue-600 hover:bg-blue-50 flex-shrink-0"
+                size="sm"
+              >
+                <MessageSquare className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Abrir Chat</span>
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Stats - Grid compacto */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {stats.map((stat, idx) => (
             <Card key={idx} className="bg-gradient-to-br from-gray-50 to-white">
-              <CardContent className="p-3 sm:p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <stat.icon className={`w-6 h-6 sm:w-8 sm:h-8 text-${stat.color}-600`} />
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${stat.color}-600`} />
+                  <div className="text-sm sm:text-lg font-bold text-gray-900">{stat.value}</div>
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900">{stat.value}</div>
-                <div className="text-xs sm:text-sm text-gray-600">{stat.label}</div>
+                <div className="text-xs text-gray-600">{stat.label}</div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Recent Insights */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="w-6 h-6 text-purple-600" />
-              Insights Recientes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {recentInsights.map((insight, idx) => (
-              <div 
-                key={idx}
-                className={`p-4 rounded-lg border-l-4 ${
-                  insight.type === 'success' ? 'bg-green-50 border-green-500' :
-                  insight.type === 'warning' ? 'bg-yellow-50 border-yellow-500' :
-                  'bg-blue-50 border-blue-500'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <insight.icon className={`w-5 h-5 mt-0.5 ${
-                    insight.type === 'success' ? 'text-green-600' :
-                    insight.type === 'warning' ? 'text-yellow-600' :
-                    'text-blue-600'
-                  }`} />
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-1">{insight.title}</h4>
-                    <p className="text-sm text-gray-700 mb-2">{insight.message}</p>
-                    <p className="text-xs text-gray-500">{insight.date}</p>
+        {/* Recent Insights - Compacto */}
+        {recentInsights.length > 0 && (
+          <Card>
+            <CardHeader className="p-3 sm:p-4">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Brain className="w-5 h-5 text-purple-600" />
+                Insights Recientes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 p-3 sm:p-4 pt-0">
+              {recentInsights.slice(0, 3).map((insight, idx) => (
+                <div 
+                  key={idx}
+                  className={`p-3 rounded-lg border-l-4 ${
+                    insight.type === 'success' ? 'bg-green-50 border-green-500' :
+                    insight.type === 'warning' ? 'bg-yellow-50 border-yellow-500' :
+                    'bg-blue-50 border-blue-500'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <insight.icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                      insight.type === 'success' ? 'text-green-600' :
+                      insight.type === 'warning' ? 'text-yellow-600' :
+                      'text-blue-600'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 text-sm">{insight.title}</h4>
+                      <p className="text-xs text-gray-700 line-clamp-2">{insight.message}</p>
+                    </div>
                   </div>
-                  <Button size="sm" variant="ghost">
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Capabilities Grid */}
+        {/* Capabilities Grid - Compacto */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">¿Qué puedo hacer por ti?</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">¿Qué puedo hacer por ti?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {capabilities.map((capability, idx) => (
               <Card key={idx} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className={`p-3 bg-${capability.color}-50 rounded-lg w-fit mb-4`}>
-                    <capability.icon className={`w-6 h-6 text-${capability.color}-600`} />
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className={`p-2 bg-${capability.color}-50 rounded-lg flex-shrink-0`}>
+                      <capability.icon className={`w-5 h-5 text-${capability.color}-600`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 text-sm mb-1">{capability.title}</h4>
+                      <p className="text-xs text-gray-600 line-clamp-2">{capability.description}</p>
+                    </div>
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">{capability.title}</h4>
-                  <p className="text-sm text-gray-600 mb-4">{capability.description}</p>
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-gray-700">Ejemplos:</p>
-                    {capability.examples.map((example, exIdx) => (
-                      <button
-                        key={exIdx}
-                        onClick={() => openFloatingChat(example)}
-                        className="block w-full text-left text-xs p-2 rounded bg-gray-50 hover:bg-blue-100 hover:text-blue-700 text-gray-700 transition-colors cursor-pointer"
-                      >
-                        • {example}
-                      </button>
-                    ))}
-                  </div>
+                  <details className="group">
+                    <summary className="text-xs font-semibold text-gray-700 cursor-pointer hover:text-blue-600 flex items-center gap-1">
+                      Ver ejemplos
+                      <ArrowRight className="w-3 h-3 transition-transform group-open:rotate-90" />
+                    </summary>
+                    <div className="space-y-1 mt-2">
+                      {capability.examples.map((example, exIdx) => (
+                        <button
+                          key={exIdx}
+                          onClick={() => openFloatingChat(example)}
+                          className="block w-full text-left text-xs p-2 rounded bg-gray-50 hover:bg-blue-100 hover:text-blue-700 text-gray-700 transition-colors cursor-pointer"
+                        >
+                          • {example}
+                        </button>
+                      ))}
+                    </div>
+                  </details>
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
 
-        {/* Tech Stack Info */}
-        <Card className="bg-gradient-to-r from-purple-50 via-blue-50 to-purple-50 border-purple-200">
-          <CardContent className="p-3 sm:p-6">
-            <div className="flex items-start gap-3 sm:gap-4">
-              <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex-shrink-0">
-                <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-purple-900 mb-2 text-sm sm:text-lg flex items-center gap-2">
-                  🤖 Tecnología del Asistente IA
-                </h3>
-                <p className="text-purple-700 text-xs sm:text-sm mb-3">
-                  Nuestro asistente combina múltiples modelos de IA y Machine Learning para darte respuestas precisas y personalizadas.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                  <div>
-                    <h4 className="font-semibold text-purple-900 mb-2">Procesamiento de Lenguaje:</h4>
-                    <ul className="text-purple-700 text-sm space-y-1">
-                      <li>• OpenAI GPT-4 Turbo</li>
-                      <li>• Comprensión contextual</li>
-                      <li>• Respuestas en español nativo</li>
-                      <li>• Memoria de conversación</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-purple-900 mb-2">Análisis Predictivo:</h4>
-                    <ul className="text-purple-700 text-sm space-y-1">
-                      <li>• TensorFlow + PyTorch</li>
-                      <li>• Predicción de flujo de caja</li>
-                      <li>• Detección de anomalías</li>
-                      <li>• Forecasting de ventas</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-purple-900 mb-2">Integración de Datos:</h4>
-                    <ul className="text-purple-700 text-sm space-y-1">
-                      <li>• Acceso en tiempo real a BD</li>
-                      <li>• Análisis de históricos</li>
-                      <li>• Benchmarking industria</li>
-                      <li>• Aislamiento por empresa</li>
-                    </ul>
-                  </div>
+        {/* Tech Stack + Privacy - Combinado y Compacto */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg">
+                  <Brain className="w-5 h-5 text-white" />
                 </div>
+                <h3 className="font-semibold text-purple-900 text-sm">🤖 Tecnología IA</h3>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="space-y-2 text-xs text-purple-700">
+                <p><strong>LLM:</strong> GPT-4 Turbo + Memoria contextual</p>
+                <p><strong>ML:</strong> TensorFlow para predicciones</p>
+                <p><strong>Datos:</strong> Tiempo real desde tu BD</p>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Privacy & Security */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-3 sm:p-6">
-            <div className="flex items-start gap-3 sm:gap-4">
-              <div className="p-2 sm:p-3 bg-blue-600 rounded-lg flex-shrink-0">
-                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-blue-900 mb-2 text-sm sm:text-base">🔒 Privacidad y Seguridad</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm text-blue-700">
-                  <div>
-                    <ul className="space-y-1">
-                      <li>• <strong>Datos Aislados:</strong> Cada empresa tiene su propio contexto IA</li>
-                      <li>• <strong>Sin Compartir:</strong> Tus datos NUNCA se usan para entrenar modelos públicos</li>
-                      <li>• <strong>Encriptación:</strong> Todas las conversaciones están encriptadas (AES-256)</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <ul className="space-y-1">
-                      <li>• <strong>Compliance:</strong> GDPR + LFPDPPP (México) compliant</li>
-                      <li>• <strong>Auditoría:</strong> Todas las consultas quedan registradas</li>
-                      <li>• <strong>Control Total:</strong> Puedes borrar tu historial cuando quieras</li>
-                    </ul>
-                  </div>
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-white" />
                 </div>
+                <h3 className="font-semibold text-blue-900 text-sm">🔒 Privacidad</h3>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="space-y-2 text-xs text-blue-700">
+                <p><strong>Aislamiento:</strong> Datos por empresa</p>
+                <p><strong>Seguridad:</strong> Encriptación AES-256</p>
+                <p><strong>Compliance:</strong> GDPR + LFPDPPP</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </CompanyTabsLayout>
   )
