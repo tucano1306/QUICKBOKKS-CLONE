@@ -40,7 +40,25 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'desc' },
     });
 
-    return NextResponse.json(entries);
+    // Calcular totalDebit y totalCredit desde las líneas
+    const entriesWithTotals = entries.map(entry => {
+      const totalDebit = entry.lines.reduce((sum, line) => sum + (line.debit?.toNumber() || 0), 0);
+      const totalCredit = entry.lines.reduce((sum, line) => sum + (line.credit?.toNumber() || 0), 0);
+      return {
+        ...entry,
+        totalDebit,
+        totalCredit,
+        lines: entry.lines.map(line => ({
+          ...line,
+          debit: line.debit?.toNumber() || 0,
+          credit: line.credit?.toNumber() || 0,
+          accountCode: line.account?.code || '',
+          accountName: line.account?.name || '',
+        })),
+      };
+    });
+
+    return NextResponse.json(entriesWithTotals);
   } catch (error) {
     console.error('Error fetching journal entries:', error);
     return NextResponse.json({ error: 'Error al obtener asientos contables' }, { status: 500 });
