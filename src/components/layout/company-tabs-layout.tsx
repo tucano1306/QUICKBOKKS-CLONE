@@ -395,13 +395,14 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
 
   const activeSection = filteredTabSections.find(tab => tab.id === activeTab) || currentTab || filteredTabSections[0]
 
-  // Sincronizar activeTab con la URL actual
+  // Sincronizar activeTab con la URL actual - SIEMPRE que cambie la URL
   useEffect(() => {
-    if (currentTabId) {
+    if (currentTabId && currentTabId !== activeTab) {
       setActiveTab(currentTabId)
       setShowSubmenu({ [currentTabId]: true })
+      setMobileExpandedTab(currentTabId)
     }
-  }, [currentTabId])
+  }, [currentTabId, activeTab])
 
   // Función para cambiar de categoría y navegar al primer submenú
   const handleTabChange = (tab: TabSection) => {
@@ -866,35 +867,44 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
       </div>
 
       {/* Barra de pestañas horizontal - Hidden on mobile */}
-      <div className="bg-white border-b border-gray-200 hidden lg:block">
-        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
-          <nav className="flex space-x-1 px-4 py-2" aria-label="Tabs">
+      <div className="bg-gradient-to-r from-[#0D2942] to-[#1a3a5c] hidden lg:block shadow-lg">
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-500/30 scrollbar-track-transparent">
+          <nav className="flex space-x-0.5 px-4 py-1.5" aria-label="Tabs">
               {filteredTabSections.map((tab) => {
                 const Icon = tab.icon
                 const isActive = currentTab.id === tab.id
-                const isSubmenuOpen = showSubmenu[tab.id] || false
                 
                 return (
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab)}
                     className={cn(
-                      'group relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 whitespace-nowrap',
+                      'group relative flex items-center gap-2 px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap',
                       isActive
-                        ? 'bg-[#2CA01C] text-white shadow-lg shadow-green-500/25'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-[#0D2942]'
+                        ? 'bg-white text-[#0D2942] shadow-md'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
                     )}
                   >
+                    {/* Indicador activo superior */}
+                    {isActive && (
+                      <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-[#2CA01C] rounded-full" />
+                    )}
+                    
                     <Icon className={cn(
-                      'w-4 h-4 transition-transform duration-200',
-                      isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#2CA01C] group-hover:scale-110'
+                      'w-4 h-4 transition-all duration-200',
+                      isActive ? 'text-[#2CA01C]' : 'text-white/70 group-hover:text-white'
                     )} />
                     <span className="hidden xl:inline">{tab.name}</span>
-                    <ChevronDown className={cn(
-                      'w-3 h-3 transition-transform duration-200 hidden xl:block',
-                      isSubmenuOpen ? 'rotate-180' : '',
-                      isActive ? 'text-white/80' : 'text-gray-400'
-                    )} />
+                    
+                    {/* Badge de submenús */}
+                    <span className={cn(
+                      'hidden xl:inline text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
+                      isActive 
+                        ? 'bg-[#2CA01C]/10 text-[#2CA01C]' 
+                        : 'bg-white/10 text-white/60'
+                    )}>
+                      {tab.submenus.length}
+                    </span>
                   </button>
                 )
               })}
@@ -904,14 +914,26 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
 
         {/* Submenú desplegable con diseño mejorado - Hidden on mobile */}
         {showSubmenu[activeTab] && (
-          <div className="border-t border-gray-100 bg-white shadow-lg hidden lg:block">
-            {/* Título de la sección actual */}
-            <div className="px-6 pt-4 pb-2 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <activeSection.icon className="w-5 h-5 text-[#2CA01C]" />
-                <span className="text-sm font-bold text-[#0D2942]">{activeSection.name}</span>
-                <span className="text-xs text-gray-400">•</span>
-                <span className="text-xs text-gray-500">{activeSection.submenus.length} opciones</span>
+          <div className="border-t-2 border-[#2CA01C] bg-white shadow-xl hidden lg:block">
+            {/* Título de la sección actual - Más destacado */}
+            <div className="px-6 py-3 bg-gradient-to-r from-green-50 to-white border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[#2CA01C]/10">
+                    <activeSection.icon className="w-5 h-5 text-[#2CA01C]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#0D2942]">{activeSection.name}</h3>
+                    <p className="text-xs text-gray-500">{activeSection.submenus.length} opciones disponibles</p>
+                  </div>
+                </div>
+                {/* Breadcrumb actual */}
+                <div className="hidden md:flex items-center gap-2 text-sm">
+                  <span className="text-gray-400">Estás en:</span>
+                  <span className="font-semibold text-[#2CA01C] bg-green-50 px-3 py-1 rounded-full">
+                    {activeSection.submenus.find(s => currentUrl === s.href || pathname === s.href)?.name || 'Seleccionar opción'}
+                  </span>
+                </div>
               </div>
             </div>
             
@@ -927,14 +949,14 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                       className={cn(
                         'group relative p-2 lg:p-3 rounded-xl border-2 transition-all duration-200',
                         isCurrentPage
-                          ? 'bg-green-50 border-[#2CA01C] ring-2 ring-green-200 shadow-md transform scale-[1.02]'
+                          ? 'bg-[#2CA01C] border-[#2CA01C] text-white shadow-lg shadow-green-500/30 transform scale-[1.02]'
                           : 'bg-white border-gray-200 hover:border-[#2CA01C] hover:shadow-md hover:scale-[1.01]'
                       )}
                     >
                       {/* Indicador de página actual */}
                       {isCurrentPage && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center bg-[#2CA01C]">
-                          <span className="text-white text-[10px] font-bold">✓</span>
+                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center bg-white shadow-md">
+                          <CheckCircle className="w-4 h-4 text-[#2CA01C]" />
                         </div>
                       )}
                       
@@ -942,8 +964,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                       <span className={cn(
                         'absolute top-2 left-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
                         isCurrentPage 
-                          ? 'text-[#108000] bg-white/60'
-                          : 'text-gray-400 bg-gray-100 group-hover:bg-green-100 group-hover:text-[#2CA01C]'
+                          ? 'text-white bg-white/20'
+                          : 'text-gray-400 bg-gray-100 group-hover:bg-[#2CA01C]/10 group-hover:text-[#2CA01C]'
                       )}>
                         {index + 1}
                       </span>
@@ -951,7 +973,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                       <div className={cn(
                         'text-xs lg:text-sm font-semibold mb-1 mt-3',
                         isCurrentPage 
-                          ? 'text-[#108000]'
+                          ? 'text-white'
                           : 'text-gray-800 group-hover:text-[#2CA01C]'
                       )}>
                         {submenu.name}
@@ -959,7 +981,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                       {submenu.description && (
                         <div className={cn(
                           'text-xs leading-tight',
-                          isCurrentPage ? 'text-gray-600' : 'text-gray-500'
+                          isCurrentPage ? 'text-white/80' : 'text-gray-500'
                         )}>
                           {submenu.description}
                         </div>
@@ -972,14 +994,16 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
           </div>
         )}
 
-      {/* Mobile: Current page indicator */}
-      <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center gap-2 text-sm">
-          <currentTab.icon className="w-4 h-4 text-[#2CA01C]" />
-          <span className="text-gray-500">{currentTab.name}</span>
-          <ChevronRight className="w-3 h-3 text-gray-400" />
-          <span className="font-medium text-[#0D2942] truncate">
-            {activeSection.submenus.find(s => currentUrl === s.href || pathname === s.href)?.name || 'Seleccionar'}
+      {/* Mobile: Current page indicator - Mejorado */}
+      <div className="lg:hidden bg-gradient-to-r from-[#0D2942] to-[#1a3a5c] px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-1.5">
+            <currentTab.icon className="w-4 h-4 text-[#2CA01C]" />
+            <span className="text-white/80 text-sm font-medium">{currentTab.name}</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-white/40" />
+          <span className="font-semibold text-white text-sm truncate flex-1 bg-[#2CA01C] px-3 py-1.5 rounded-lg">
+            {activeSection.submenus.find(s => currentUrl === s.href || pathname === s.href)?.name || 'Menú'}
           </span>
         </div>
       </div>
