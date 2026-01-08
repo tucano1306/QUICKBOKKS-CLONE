@@ -83,6 +83,7 @@ const tabSections: TabSection[] = [
       { name: 'Reclasificación Masiva', href: '/company/accounting/mass-reclassification', description: 'Cambio de cuentas en lote' },
       { name: 'Conciliación Bancaria', href: '/company/accounting/reconciliation', description: 'Cuadrar cuentas bancarias' },
       { name: 'Asientos Contables', href: '/company/accounting/journal-entries', description: 'Registros manuales' },
+      { name: '🚗 Depreciación de Activos', href: '/company/accounting/depreciation', description: 'Calcular depreciación de vehículos y activos' },
       { name: 'Sincronización Bancaria', href: '/company/accounting/bank-sync', description: 'Conectar bancos y tarjetas' }
     ]
   },
