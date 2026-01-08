@@ -34,6 +34,9 @@ import {
   Database,
   BarChart3,
   HardDrive,
+  Car,
+  TrendingDown,
+  Calculator,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -228,6 +231,57 @@ const accountingMenuItems: SubMenu[] = [
         name: 'Exportar asientos',
         icon: Download,
         href: '/company/accounting/journal-entries?action=export',
+      },
+    ],
+  },
+  {
+    title: 'Depreciación de Activos',
+    icon: Car,
+    href: '/company/accounting/depreciation',
+    items: [
+      {
+        name: 'Ver vehículos',
+        icon: Car,
+        href: '/company/accounting/depreciation',
+      },
+      {
+        name: 'Agregar vehículo',
+        icon: PlusCircle,
+        href: '/company/accounting/depreciation?action=add',
+        variant: 'primary',
+      },
+      {
+        name: 'Calcular depreciación',
+        icon: Calculator,
+        href: '/company/accounting/depreciation?action=calculate',
+      },
+      {
+        name: 'Ver historial',
+        icon: TrendingDown,
+        href: '/company/accounting/depreciation?action=history',
+      },
+      {
+        name: 'Exportar reporte',
+        icon: Download,
+        href: '/company/accounting/depreciation?action=export',
+      },
+    ],
+  },
+  {
+    title: 'Sincronización Bancaria',
+    icon: Building2,
+    href: '/company/accounting/bank-sync',
+    items: [
+      {
+        name: 'Conectar bancos',
+        icon: LinkIcon,
+        href: '/company/accounting/bank-sync',
+        variant: 'primary',
+      },
+      {
+        name: 'Sincronizar cuentas',
+        icon: RefreshCw,
+        href: '/company/accounting/bank-sync?action=sync',
       },
     ],
   },
