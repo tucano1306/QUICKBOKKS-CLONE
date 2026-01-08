@@ -205,10 +205,6 @@ export default function CustomerTransactionsPage() {
             <span className="hidden sm:inline">Exportar</span>
           </Button>
         </div>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar Reporte
-          </Button>
-        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
