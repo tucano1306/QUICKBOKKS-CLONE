@@ -248,19 +248,19 @@ export default function TaxExportPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tax Data Export</h1>
-            <p className="text-gray-600 mt-1">Export accounting data for tax software and filing</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tax Data Export</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Export accounting data for tax software and filing</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={fetchExportData}>
-              <RefreshCw className="w-4 h-4 mr-2" />Refresh
+              <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button onClick={() => handleExport(selectedFormat)} disabled={exporting}>
-              {exporting ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-              Export Selected
+              {exporting ? <RefreshCw className="w-4 h-4 sm:mr-2 animate-spin" /> : <Download className="w-4 h-4 sm:mr-2" />}
+              <span className="hidden sm:inline">Export Selected</span>
             </Button>
           </div>
         </div>
@@ -272,36 +272,60 @@ export default function TaxExportPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <FileDown className="w-8 h-8 text-blue-600 mb-2" />
-              <div className="text-2xl font-bold text-blue-900">{exportStats?.transactionCount || 0}</div>
-              <div className="text-sm text-blue-700">Transactions Available</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-blue-100 to-blue-50 border-0 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute -top-8 -right-8 w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full opacity-20"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg">
+                  <FileDown className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full font-medium">Available</span>
+              </div>
+              <div className="text-xl sm:text-3xl font-bold text-blue-900 mb-1">{exportStats?.transactionCount || 0}</div>
+              <div className="text-xs sm:text-sm text-blue-700 font-medium">Transactions</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <CheckCircle className="w-8 h-8 text-green-600 mb-2" />
-              <div className="text-2xl font-bold text-green-900">{exportStats?.invoiceCount || 0}</div>
-              <div className="text-sm text-green-700">Invoices</div>
+          <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 via-green-100 to-green-50 border-0 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute -top-8 -right-8 w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full opacity-20"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg">
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full font-medium">Ready</span>
+              </div>
+              <div className="text-xl sm:text-3xl font-bold text-green-900 mb-1">{exportStats?.invoiceCount || 0}</div>
+              <div className="text-xs sm:text-sm text-green-700 font-medium">Invoices</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
-              <Database className="w-8 h-8 text-purple-600 mb-2" />
-              <div className="text-2xl font-bold text-purple-900">{exportStats?.expenseCount || 0}</div>
-              <div className="text-sm text-purple-700">Expenses</div>
+          <Card className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-purple-100 to-purple-50 border-0 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute -top-8 -right-8 w-24 h-24 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full opacity-20"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg">
+                  <Database className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="px-2 py-1 bg-purple-200 text-purple-800 text-xs rounded-full font-medium">Data</span>
+              </div>
+              <div className="text-xl sm:text-3xl font-bold text-purple-900 mb-1">{exportStats?.expenseCount || 0}</div>
+              <div className="text-xs sm:text-sm text-purple-700 font-medium">Expenses</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
-              <Calendar className="w-8 h-8 text-orange-600 mb-2" />
-              <div className="text-xl font-bold text-orange-900">{exportStats?.employeeCount || 0}</div>
-              <div className="text-sm text-orange-700">Employees (W-2)</div>
+          <Card className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-orange-50 border-0 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute -top-8 -right-8 w-24 h-24 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full opacity-20"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg">
+                  <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="px-2 py-1 bg-orange-200 text-orange-800 text-xs rounded-full font-medium">W-2</span>
+              </div>
+              <div className="text-xl sm:text-3xl font-bold text-orange-900 mb-1">{exportStats?.employeeCount || 0}</div>
+              <div className="text-xs sm:text-sm text-orange-700 font-medium">Employees</div>
             </CardContent>
           </Card>
         </div>

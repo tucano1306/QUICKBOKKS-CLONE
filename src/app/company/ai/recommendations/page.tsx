@@ -163,115 +163,118 @@ export default function AIRecommendationsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Sparkles className="w-8 h-8 text-yellow-600" />
-              AI Recommendations
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
+              <span>AI <span className="hidden sm:inline">Recommendations</span></span>
             </h1>
-            <p className="text-gray-600 mt-1">
-              Smart suggestions to optimize your business performance
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              <span className="hidden sm:inline">Smart suggestions to optimize your business</span>
+              <span className="sm:hidden">Optimize your business</span>
             </p>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Lightbulb className="w-8 h-8 text-blue-600" />
+                <Lightbulb className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-xl sm:text-2xl font-bold text-blue-900">
                 {stats.totalRecommendations}
               </div>
-              <div className="text-sm text-blue-700">Active Recommendations</div>
+              <div className="text-xs sm:text-sm text-blue-700">Active <span className="hidden sm:inline">Recommendations</span></div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingDown className="w-8 h-8 text-green-600" />
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-xl sm:text-2xl font-bold text-green-900">
                 ${(stats.potentialSavings / 1000).toFixed(0)}K
               </div>
-              <div className="text-sm text-green-700">Potential Savings</div>
+              <div className="text-xs sm:text-sm text-green-700">Potential <span className="hidden sm:inline">Savings</span></div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-xl sm:text-2xl font-bold text-purple-900">
                 ${(stats.potentialRevenue / 1000).toFixed(0)}K
               </div>
-              <div className="text-sm text-purple-700">Revenue Opportunity</div>
+              <div className="text-xs sm:text-sm text-purple-700">Revenue <span className="hidden sm:inline">Opportunity</span></div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Target className="w-8 h-8 text-orange-600" />
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-xl sm:text-2xl font-bold text-orange-900">
                 {stats.avgROI.toFixed(0)}%
               </div>
-              <div className="text-sm text-orange-700">Average ROI</div>
+              <div className="text-xs sm:text-sm text-orange-700">Average ROI</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4 flex-wrap">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-600" />
-                <span className="text-sm font-semibold text-gray-700">Filters:</span>
+                <span className="text-xs sm:text-sm font-semibold text-gray-700">Filters:</span>
               </div>
               
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Category:</span>
-                <div className="flex gap-1 flex-wrap">
-                  {categories.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                        selectedCategory === cat
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+              <div className="w-full sm:flex-1 space-y-2 sm:space-y-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="text-xs sm:text-sm text-gray-600">Category:</span>
+                  <div className="flex gap-1 flex-wrap">
+                    {categories.slice(0, 4).map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                          selectedCategory === cat
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Impact:</span>
-                <div className="flex gap-1">
-                  {impactLevels.map(level => (
-                    <button
-                      key={level}
-                      onClick={() => setSelectedImpact(level)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                        selectedImpact === level
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm text-gray-600">Impact:</span>
+                  <div className="flex gap-1">
+                    {impactLevels.map(level => (
+                      <button
+                        key={level}
+                        onClick={() => setSelectedImpact(level)}
+                        className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                          selectedImpact === level
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -417,32 +420,6 @@ export default function AIRecommendationsPage() {
             </Card>
           ))}
         </div>
-
-        {/* Info */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <Info className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-blue-900 mb-2">About AI Recommendations</h3>
-                <p className="text-blue-700 text-sm mb-2">
-                  Our AI analyzes your financial data, industry benchmarks, and best practices to provide personalized recommendations for improving your business.
-                </p>
-                <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• <strong>Data-Driven:</strong> Recommendations based on analysis of your transactions, vendors, customers, and financial patterns</li>
-                  <li>• <strong>Impact Assessment:</strong> Each recommendation includes estimated financial impact and implementation effort</li>
-                  <li>• <strong>Actionable Steps:</strong> Clear implementation plans with specific steps to follow</li>
-                  <li>• <strong>ROI Calculation:</strong> Return on investment calculated for each recommendation where applicable</li>
-                  <li>• <strong>Priority Ranking:</strong> Recommendations sorted by potential impact and ease of implementation</li>
-                  <li>• <strong>Continuous Learning:</strong> AI improves recommendations based on your feedback and actions taken</li>
-                  <li>• <strong>Best Practice:</strong> Always consult with your accountant or financial advisor before major decisions</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </CompanyTabsLayout>
   )

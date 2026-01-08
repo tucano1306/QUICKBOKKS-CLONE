@@ -179,13 +179,16 @@ export default function CustomerTransactionsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Historial de Transacciones</h1>
-            <p className="text-gray-600 mt-1">
-              Todas las facturas y pagos de tus clientes
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Receipt className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+              Transacciones de Clientes
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Historial completo de facturas y pagos
             </p>
           </div>
           <Button variant="outline" onClick={() => {
@@ -197,7 +200,11 @@ export default function CustomerTransactionsPage() {
             a.download = `transacciones-clientes-${new Date().toISOString().split('T')[0]}.csv`
             a.click()
             URL.revokeObjectURL(url)
-          }}>
+          }} size="sm" className="w-full sm:w-auto">
+            <Download className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Exportar</span>
+          </Button>
+        </div>
             <Download className="w-4 h-4 mr-2" />
             Exportar Reporte
           </Button>
@@ -205,49 +212,71 @@ export default function CustomerTransactionsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <ArrowUpRight className="w-8 h-8 text-blue-600" />
+          <Card className="relative overflow-hidden border-blue-200 bg-gradient-to-br from-blue-50 to-white hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-blue-100 rounded-full opacity-20"></div>
+              <div className="relative flex items-start justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
               </div>
-              <div className="text-2xl font-bold text-blue-900">
-                ${totalInvoiced.toLocaleString()}
+              <div className="relative">
+                <div className="text-xl sm:text-2xl font-bold text-blue-900 mb-1">
+                  ${totalInvoiced.toLocaleString()}
+                </div>
+                <div className="text-xs sm:text-sm text-blue-700 font-medium">Total Facturado</div>
               </div>
-              <div className="text-sm text-blue-700">Total Facturado</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <ArrowDownRight className="w-8 h-8 text-green-600" />
+          <Card className="relative overflow-hidden border-green-200 bg-gradient-to-br from-green-50 to-white hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-green-100 rounded-full opacity-20"></div>
+              <div className="relative flex items-start justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
+                  <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
               </div>
-              <div className="text-2xl font-bold text-green-900">
-                ${totalReceived.toLocaleString()}
+              <div className="relative">
+                <div className="text-xl sm:text-2xl font-bold text-green-900 mb-1">
+                  ${totalReceived.toLocaleString()}
+                </div>
+                <div className="text-xs sm:text-sm text-green-700 font-medium">Total Cobrado</div>
               </div>
-              <div className="text-sm text-green-700">Total Cobrado</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-orange-600" />
+          <Card className="relative overflow-hidden border-orange-200 bg-gradient-to-br from-orange-50 to-white hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-100 rounded-full opacity-20"></div>
+              <div className="relative flex items-start justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
               </div>
-              <div className="text-2xl font-bold text-orange-900">
-                ${totalPending.toLocaleString()}
+              <div className="relative">
+                <div className="text-xl sm:text-2xl font-bold text-orange-900 mb-1">
+                  ${totalPending.toLocaleString()}
+                </div>
+                <div className="text-xs sm:text-sm text-orange-700 font-medium">Saldo Pendiente</div>
               </div>
-              <div className="text-sm text-orange-700">Saldo Pendiente</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+          <Card className="relative overflow-hidden border-red-200 bg-gradient-to-br from-red-50 to-white hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-red-100 rounded-full opacity-20"></div>
+              <div className="relative flex items-start justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg">
+                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-red-900">{overdueCount}</div>
-              <div className="text-sm text-red-700">Facturas Vencidas</div>
+              <div className="relative">
+                <div className="text-xl sm:text-2xl font-bold text-red-900 mb-1">
+                  {overdueCount}
+                </div>
+                <div className="text-xs sm:text-sm text-red-700 font-medium">Facturas Vencidas</div>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -222,20 +222,20 @@ export default function PaymentsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <DollarSign className="w-8 h-8 text-green-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               Pagos Recibidos
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Gestiona todos los pagos de tus clientes
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => {
+            <Button size="sm" variant="outline" onClick={() => {
               const csv = 'Número,Factura,Cliente,Fecha,Monto,Método,Estado\nDatos pagos...'
               const blob = new Blob([csv], { type: 'text/csv' })
               const a = document.createElement('a')
@@ -243,13 +243,13 @@ export default function PaymentsPage() {
               a.download = `pagos-${new Date().toISOString().split('T')[0]}.csv`
               a.click()
               toast.success('📥 Exportando pagos...')
-            }}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            }} className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => router.push('/company/invoicing/payments/new')}>
-              <Plus className="w-4 h-4 mr-2" />
-              Registrar Pago
+            <Button size="sm" onClick={() => router.push('/company/invoicing/payments/new')} className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Registrar</span> Pago
             </Button>
           </div>
         </div>
@@ -268,16 +268,16 @@ export default function PaymentsPage() {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
                 ${totalAmount.toLocaleString()}
               </div>
-              <div className="text-sm text-green-700">Total Cobrado</div>
+              <div className="text-xs sm:text-sm text-green-700">Total Cobrado</div>
             </CardContent>
           </Card>
 
@@ -338,20 +338,20 @@ export default function PaymentsPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex-1 min-w-[200px] relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+              <div className="flex-1 min-w-0 relative">
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Buscar pagos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 sm:pl-10 text-sm"
                 />
               </div>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 sm:px-4 py-2 border rounded-lg text-sm"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
@@ -362,7 +362,7 @@ export default function PaymentsPage() {
                 <option value="refunded">Reembolsados</option>
               </select>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 sm:px-4 py-2 border rounded-lg text-sm"
                 value={filterMethod}
                 onChange={(e) => setFilterMethod(e.target.value)}
               >
@@ -380,11 +380,61 @@ export default function PaymentsPage() {
 
         {/* Payments Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Historial de Pagos</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Historial de Pagos</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile View - Cards */}
+            <div className="md:hidden space-y-3 p-3">
+              {filteredPayments.map((payment) => (
+                <div key={payment.id} className="p-3 border rounded-lg bg-gray-50">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono text-sm font-bold text-blue-600">{payment.paymentNumber}</p>
+                      <p className="text-sm font-medium text-gray-900 mt-0.5">{payment.customer}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <FileText className="w-3 h-3 text-gray-400" />
+                        <span className="text-xs text-gray-600 font-mono">{payment.invoice}</span>
+                      </div>
+                    </div>
+                    <div className="ml-2">{getStatusBadge(payment.status)}</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                    <div className="flex items-center gap-1 text-gray-600">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(payment.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                    </div>
+                    <div className="text-right">{getMethodBadge(payment.method)}</div>
+                    <div className="font-semibold text-gray-900">${payment.amount.toLocaleString()}</div>
+                    {payment.fee && (
+                      <div className="text-right text-red-600 text-xs">Comisión: -${payment.fee.toLocaleString()}</div>
+                    )}
+                  </div>
+                  
+                  {payment.reference && (
+                    <div className="text-xs text-gray-500 mb-2">Ref: {payment.reference}</div>
+                  )}
+                  
+                  <div className="flex gap-1 pt-2 border-t">
+                    <button className="flex-1 p-1.5 text-blue-600 hover:bg-blue-50 rounded text-xs">
+                      <Eye className="w-3.5 h-3.5 mx-auto" />
+                    </button>
+                    <button className="flex-1 p-1.5 text-gray-600 hover:bg-gray-100 rounded text-xs">
+                      <Download className="w-3.5 h-3.5 mx-auto" />
+                    </button>
+                    {payment.status === 'completed' && (
+                      <button className="flex-1 p-1.5 text-purple-600 hover:bg-purple-50 rounded text-xs">
+                        <LinkIcon className="w-3.5 h-3.5 mx-auto" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View - Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -476,17 +526,17 @@ export default function PaymentsPage() {
 
         {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <CreditCard className="w-6 h-6 text-white" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-blue-600 rounded-lg flex-shrink-0">
+                <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-blue-900 mb-2">Gestión de Pagos</h3>
-                <p className="text-blue-700 text-sm mb-2">
+                <h3 className="text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Gestión de Pagos</h3>
+                <p className="text-blue-700 text-xs sm:text-sm mb-2">
                   Registra y monitorea todos los pagos recibidos de tus clientes.
                 </p>
-                <ul className="text-blue-700 text-sm space-y-1">
+                <ul className="text-blue-700 text-xs sm:text-sm space-y-1">
                   <li>• <strong>Múltiples métodos:</strong> Efectivo, transferencias, tarjetas, cheques, PayPal, Stripe</li>
                   <li>• <strong>Aplicación automática:</strong> Vincula pagos con facturas automáticamente</li>
                   <li>• <strong>Seguimiento de comisiones:</strong> Controla las comisiones de procesamiento</li>

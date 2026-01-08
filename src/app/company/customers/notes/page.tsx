@@ -310,16 +310,19 @@ export default function CustomerNotesPage() {
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Notas y Seguimiento</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <StickyNote className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+              Notas y Seguimiento
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               CRM básico para gestión de relaciones con clientes
             </p>
           </div>
-          <Button onClick={handleNewNote}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva Nota
+          <Button onClick={handleNewNote} size="sm" className="w-full sm:w-auto">
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nueva Nota</span>
           </Button>
         </div>
 
@@ -338,43 +341,71 @@ export default function CustomerNotesPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <StickyNote className="w-8 h-8 text-blue-600" />
+          <Card className="relative overflow-hidden border-blue-200 bg-gradient-to-br from-blue-50 to-white hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-blue-100 rounded-full opacity-20"></div>
+              <div className="relative flex items-start justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <StickyNote className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalNotes}</div>
-              <div className="text-sm text-blue-700">Total de Notas</div>
+              <div className="relative">
+                <div className="text-xl sm:text-2xl font-bold text-blue-900 mb-1">
+                  {totalNotes}
+                </div>
+                <div className="text-xs sm:text-sm text-blue-700 font-medium">Total de Notas</div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Pin className="w-8 h-8 text-purple-600" />
+          <Card className="relative overflow-hidden border-purple-200 bg-gradient-to-br from-purple-50 to-white hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-purple-100 rounded-full opacity-20"></div>
+              <div className="relative flex items-start justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <Pin className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-purple-900">{pinnedNotes}</div>
-              <div className="text-sm text-purple-700">Notas Fijadas</div>
+              <div className="relative">
+                <div className="text-xl sm:text-2xl font-bold text-purple-900 mb-1">
+                  {pinnedNotes}
+                </div>
+                <div className="text-xs sm:text-sm text-purple-700 font-medium">Notas Fijadas</div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+          <Card className="relative overflow-hidden border-red-200 bg-gradient-to-br from-red-50 to-white hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-red-100 rounded-full opacity-20"></div>
+              <div className="relative flex items-start justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg">
+                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-red-900">{urgentNotes}</div>
-              <div className="text-sm text-red-700">Notas Urgentes</div>
+              <div className="relative">
+                <div className="text-xl sm:text-2xl font-bold text-red-900 mb-1">
+                  {urgentNotes}
+                </div>
+                <div className="text-xs sm:text-sm text-red-700 font-medium">Notas Urgentes</div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-green-600" />
+          <Card className="relative overflow-hidden border-green-200 bg-gradient-to-br from-green-50 to-white hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-green-100 rounded-full opacity-20"></div>
+              <div className="relative flex items-start justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-green-900">{thisWeekNotes}</div>
-              <div className="text-sm text-green-700">Esta Semana</div>
+              <div className="relative">
+                <div className="text-xl sm:text-2xl font-bold text-green-900 mb-1">
+                  {thisWeekNotes}
+                </div>
+                <div className="text-xs sm:text-sm text-green-700 font-medium">Esta Semana</div>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -222,26 +222,26 @@ export default function AIPredictionsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Brain className="w-8 h-8 text-purple-600" />
-              Predicciones y Pronósticos IA
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
+              <span>Predicciones <span className="hidden sm:inline">y Pronósticos</span> IA</span>
             </h1>
-            <p className="text-gray-600 mt-1">
-              Predicciones inteligentes basadas en tus datos reales
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Predicciones inteligentes basadas en tus datos
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleUpdateModels} disabled={updatingModels}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${updatingModels ? 'animate-spin' : ''}`} />
-              {updatingModels ? 'Actualizando...' : 'Update Models'}
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={handleUpdateModels} disabled={updatingModels} className="flex-1 sm:flex-none text-sm">
+              <RefreshCw className={`w-4 h-4 sm:mr-2 ${updatingModels ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{updatingModels ? 'Actualizando...' : 'Update Models'}</span>
             </Button>
-            <Button onClick={handleExportForecast} disabled={exporting || predictions.length === 0}>
-              <Download className="w-4 h-4 mr-2" />
-              {exporting ? 'Exportando...' : 'Export Forecast'}
+            <Button onClick={handleExportForecast} disabled={exporting || predictions.length === 0} className="flex-1 sm:flex-none text-sm">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">{exporting ? 'Exportando...' : 'Export Forecast'}</span>
             </Button>
           </div>
         </div>
@@ -261,52 +261,52 @@ export default function AIPredictionsPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Target className="w-8 h-8 text-purple-600" />
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-xl sm:text-2xl font-bold text-purple-900">
                 {stats.totalPredictions}
               </div>
-              <div className="text-sm text-purple-700">Active Predictions</div>
+              <div className="text-xs sm:text-sm text-purple-700">Active <span className="hidden sm:inline">Predictions</span></div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Zap className="w-8 h-8 text-blue-600" />
+                <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-xl sm:text-2xl font-bold text-blue-900">
                 {stats.avgConfidence.toFixed(0)}%
               </div>
-              <div className="text-sm text-blue-700">Avg Confidence</div>
+              <div className="text-xs sm:text-sm text-blue-700">Avg <span className="hidden sm:inline">Confidence</span></div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-xl sm:text-2xl font-bold text-green-900">
                 {stats.avgAccuracy.toFixed(1)}%
               </div>
-              <div className="text-sm text-green-700">Avg Accuracy</div>
+              <div className="text-xs sm:text-sm text-green-700">Avg <span className="hidden sm:inline">Accuracy</span></div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Brain className="w-8 h-8 text-orange-600" />
+                <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-xl sm:text-2xl font-bold text-orange-900">
                 {stats.modelsActive}
               </div>
-              <div className="text-sm text-orange-700">ML Models Active</div>
+              <div className="text-xs sm:text-sm text-orange-700">ML Models <span className="hidden sm:inline">Active</span></div>
             </CardContent>
           </Card>
         </div>
@@ -503,32 +503,6 @@ export default function AIPredictionsPage() {
             </Card>
           ))}
         </div>
-
-        {/* Info */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <Info className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-blue-900 mb-2">About AI Predictions</h3>
-                <p className="text-blue-700 text-sm mb-2">
-                  Our AI prediction models use machine learning algorithms trained on your historical data to forecast future financial outcomes with high accuracy.
-                </p>
-                <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• <strong>Machine Learning:</strong> Models trained on 3+ years of your financial data and industry benchmarks</li>
-                  <li>• <strong>Confidence Levels:</strong> Higher confidence (90%+) means more reliable predictions based on consistent patterns</li>
-                  <li>• <strong>Accuracy Tracking:</strong> We compare predictions to actual results to continuously improve models</li>
-                  <li>• <strong>Forecast Range:</strong> Upper and lower bounds show the likely range of outcomes (confidence intervals)</li>
-                  <li>• <strong>Seasonal Patterns:</strong> Models account for recurring seasonal trends in your business</li>
-                  <li>• <strong>Update Frequency:</strong> Predictions refresh daily as new transaction data is processed</li>
-                  <li>• <strong>Best Practice:</strong> Use predictions for planning, but always validate with your business knowledge</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </CompanyTabsLayout>
   )

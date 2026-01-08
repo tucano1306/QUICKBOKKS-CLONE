@@ -483,87 +483,179 @@ export default function TransactionsPage() {
               {paginatedTransactions.map((t) => (
                 <div 
                   key={t.id} 
-                  className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
+                  className={`p-3 sm:p-4 rounded-lg border transition-all ${
                     t.type === 'INCOME' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                   } ${selectedIds.has(t.id) ? 'ring-2 ring-blue-500' : ''}`}
                 >
-                  {/* Checkbox */}
-                  <Checkbox
-                    checked={selectedIds.has(t.id)}
-                    onCheckedChange={() => toggleSelect(t.id)}
-                    className="h-5 w-5"
-                  />
-                  
-                  {/* Icono */}
-                  <div className={`p-2 rounded-full flex-shrink-0 ${
-                    t.type === 'INCOME' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    {t.type === 'INCOME' ? (
-                      <TrendingUp className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <TrendingDown className="h-5 w-5 text-red-600" />
-                    )}
-                  </div>
-                  
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{t.description || t.category}</p>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {(() => {
-                          // Parsear la fecha como UTC y ajustar a local para evitar desplazamiento de día
-                          const dateStr = t.date.split('T')[0]; // Obtener solo YYYY-MM-DD
-                          const [year, month, day] = dateStr.split('-').map(Number);
-                          const localDate = new Date(year, month - 1, day);
-                          return localDate.toLocaleDateString('es-ES', { 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          });
-                        })()}
-                      </span>
-                      <Badge variant="outline" className="text-xs">{t.category}</Badge>
+                  {/* Layout Mobile */}
+                  <div className="flex items-start gap-2 sm:hidden">
+                    {/* Checkbox */}
+                    <Checkbox
+                      checked={selectedIds.has(t.id)}
+                      onCheckedChange={() => toggleSelect(t.id)}
+                      className="h-5 w-5 mt-0.5 flex-shrink-0"
+                    />
+                    
+                    {/* Icono */}
+                    <div className={`p-1.5 rounded-full flex-shrink-0 ${
+                      t.type === 'INCOME' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
+                      {t.type === 'INCOME' ? (
+                        <TrendingUp className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-red-600" />
+                      )}
                     </div>
-                    {t.notes && <p className="text-xs text-gray-400 mt-1 truncate">{t.notes}</p>}
+                    
+                    {/* Contenido principal mobile */}
+                    <div className="flex-1 min-w-0">
+                      {/* Descripción y monto */}
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="font-semibold text-sm text-gray-900 line-clamp-2 flex-1">
+                          {t.description || t.category}
+                        </p>
+                        <div className={`text-base font-bold whitespace-nowrap ${
+                          t.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {t.type === 'INCOME' ? '+' : '-'}${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                      
+                      {/* Fecha y categoría */}
+                      <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {(() => {
+                            const dateStr = t.date.split('T')[0];
+                            const [year, month, day] = dateStr.split('-').map(Number);
+                            const localDate = new Date(year, month - 1, day);
+                            return localDate.toLocaleDateString('es-ES', { 
+                              day: '2-digit',
+                              month: 'short'
+                            });
+                          })()}
+                        </span>
+                        <span className="text-gray-400">•</span>
+                        <Badge variant="outline" className="text-xs py-0 h-5">{t.category}</Badge>
+                      </div>
+                      
+                      {/* Notas si existen */}
+                      {t.notes && (
+                        <p className="text-xs text-gray-500 mb-2 line-clamp-1">{t.notes}</p>
+                      )}
+                      
+                      {/* Botones de acción mobile */}
+                      <div className="flex items-center gap-1 pt-2 border-t border-gray-200">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/company/transactions/${t.id}`)}
+                          className="flex-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 h-8 text-xs"
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1" />
+                          Ver
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/company/transactions/${t.id}/edit`)}
+                          className="flex-1 text-green-600 hover:text-green-800 hover:bg-green-100 h-8 text-xs"
+                        >
+                          <Edit className="h-3.5 w-3.5 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteTransaction(t.id)}
+                          className="flex-1 text-red-600 hover:text-red-800 hover:bg-red-100 h-8 text-xs"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  
-                  {/* Monto */}
-                  <div className={`text-lg font-bold whitespace-nowrap ${
-                    t.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {t.type === 'INCOME' ? '+' : '-'}${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </div>
-                  
-                  {/* Botones de acción */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => router.push(`/company/transactions/${t.id}`)}
-                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2"
-                      title="Ver detalles"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => router.push(`/company/transactions/${t.id}/edit`)}
-                      className="text-green-600 hover:text-green-800 hover:bg-green-50 p-2"
-                      title="Editar"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteTransaction(t.id)}
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+
+                  {/* Layout Desktop */}
+                  <div className="hidden sm:flex items-center gap-3">
+                    {/* Checkbox */}
+                    <Checkbox
+                      checked={selectedIds.has(t.id)}
+                      onCheckedChange={() => toggleSelect(t.id)}
+                      className="h-5 w-5"
+                    />
+                    
+                    {/* Icono */}
+                    <div className={`p-2 rounded-full flex-shrink-0 ${
+                      t.type === 'INCOME' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
+                      {t.type === 'INCOME' ? (
+                        <TrendingUp className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <TrendingDown className="h-5 w-5 text-red-600" />
+                      )}
+                    </div>
+                    
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{t.description || t.category}</p>
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {(() => {
+                            const dateStr = t.date.split('T')[0];
+                            const [year, month, day] = dateStr.split('-').map(Number);
+                            const localDate = new Date(year, month - 1, day);
+                            return localDate.toLocaleDateString('es-ES', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            });
+                          })()}
+                        </span>
+                        <Badge variant="outline" className="text-xs">{t.category}</Badge>
+                      </div>
+                      {t.notes && <p className="text-xs text-gray-400 mt-1 truncate">{t.notes}</p>}
+                    </div>
+                    
+                    {/* Monto */}
+                    <div className={`text-lg font-bold whitespace-nowrap ${
+                      t.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {t.type === 'INCOME' ? '+' : '-'}${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </div>
+                    
+                    {/* Botones de acción */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push(`/company/transactions/${t.id}`)}
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2"
+                        title="Ver detalles"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push(`/company/transactions/${t.id}/edit`)}
+                        className="text-green-600 hover:text-green-800 hover:bg-green-50 p-2"
+                        title="Editar"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteTransaction(t.id)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -152,56 +152,92 @@ export default function TaxDeductionsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tax Deductions Tracker</h1>
-            <p className="text-gray-600 mt-1">Track and optimize business tax deductions</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tax Deductions Tracker</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Track and optimize business deductions</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchDeductions}>
-              <RefreshCw className="w-4 h-4 mr-2" />Refresh
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={fetchDeductions} size="sm">
+              <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Refresh</span>
             </Button>
-            <Button variant="outline" onClick={() => router.push('/company/taxes/export')}>
+            <Button variant="outline" onClick={() => router.push('/company/taxes/export')} size="sm" className="hidden sm:flex">
               <Download className="w-4 h-4 mr-2" />Exportar
             </Button>
-            <Button onClick={() => setShowAddModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />Nueva Deducción
+            <Button onClick={() => setShowAddModal(true)} size="sm" className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Nueva Deducción</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <DollarSign className="w-8 h-8 text-blue-600 mb-2" />
-              <div className="text-2xl font-bold text-blue-900">${(totalDeductions / 1000).toFixed(0)}K</div>
-              <div className="text-sm text-blue-700">Total Expenses</div>
-            </CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-blue-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">${(totalDeductions / 1000).toFixed(0)}K</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">Total Expenses</span>
+                </div>
+              </div>
+            </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <CheckCircle className="w-8 h-8 text-green-600 mb-2" />
-              <div className="text-2xl font-bold text-green-900">${(totalDeductible / 1000).toFixed(0)}K</div>
-              <div className="text-sm text-green-700">Tax Deductible</div>
-            </CardContent>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/20 to-emerald-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">${(totalDeductible / 1000).toFixed(0)}K</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">Deductible</span>
+                </div>
+              </div>
+            </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
-              <AlertCircle className="w-8 h-8 text-red-600 mb-2" />
-              <div className="text-3xl font-bold text-red-900">{needsDocumentation}</div>
-              <div className="text-sm text-red-700">Needs Documentation</div>
-            </CardContent>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400/20 to-red-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg">
+                  <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{needsDocumentation}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">Needs Docs</span>
+                </div>
+              </div>
+            </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
-              <Receipt className="w-8 h-8 text-purple-600 mb-2" />
-              <div className="text-3xl font-bold text-purple-900">{uniqueCategories.length}</div>
-              <div className="text-sm text-purple-700">Categories</div>
-            </CardContent>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-purple-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <Receipt className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{uniqueCategories.length}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">Categories</span>
+                </div>
+              </div>
+            </div>
           </Card>
         </div>
 

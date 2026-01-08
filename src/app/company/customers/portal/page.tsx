@@ -286,58 +286,97 @@ export default function CustomerPortalPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Portal del Cliente</h1>
-            <p className="text-gray-600 mt-1">
-              Gestiona el acceso de tus clientes a sus datos
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Globe className="w-6 h-6 sm:w-8 sm:w-8 text-blue-600" />
+              Portal del Cliente
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Gestiona el acceso de tus clientes
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowSettingsModal(true)}>
-              <Settings className="w-4 h-4 mr-2" />
-              Configuración Portal
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => setShowSettingsModal(true)} size="sm" className="flex-1 sm:flex-none">
+              <Settings className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Config</span>
             </Button>
-            <Button onClick={() => setShowInviteModal(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Invitar Cliente
+            <Button onClick={() => setShowInviteModal(true)} className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none" size="sm">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Invitar</span>
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <Globe className="w-8 h-8 text-blue-600 mb-2" />
-              <div className="text-3xl font-bold text-blue-900">{totalActive}</div>
-              <div className="text-sm text-blue-700">Portales Activos</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-blue-600/20 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <Globe className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{totalActive}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">Portales Activos</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
-              <Clock className="w-8 h-8 text-yellow-600 mb-2" />
-              <div className="text-3xl font-bold text-yellow-900">{totalPending}</div>
-              <div className="text-sm text-yellow-700">Invitaciones Pendientes</div>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg">
+                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{totalPending}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">Pendientes</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <UserCheck className="w-8 h-8 text-green-600 mb-2" />
-              <div className="text-3xl font-bold text-green-900">{totalAccess}</div>
-              <div className="text-sm text-green-700">Total Accesos</div>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/20 to-emerald-600/20 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                  <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{totalAccess}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">Total Accesos</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
-              <Shield className="w-8 h-8 text-purple-600 mb-2" />
-              <div className="text-3xl font-bold text-purple-900">{customerPortals.length}</div>
-              <div className="text-sm text-purple-700">Total Clientes</div>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-purple-600/20 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{customerPortals.length}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">Total Clientes</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

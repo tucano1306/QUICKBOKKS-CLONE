@@ -174,56 +174,92 @@ export default function TaxEstimatesPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Estimated Tax Calculator</h1>
-            <p className="text-gray-600 mt-1">Quarterly estimated tax payments and safe harbor calculations</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Estimated Tax Calculator</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Quarterly payments & safe harbor</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push('/company/taxes/export')}>
-              <Download className="w-4 h-4 mr-2" />Export Schedule
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => router.push('/company/taxes/export')} size="sm" className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Export</span>
             </Button>
-            <Button onClick={handleRecalculate} disabled={calculating}>
-              {calculating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Calculator className="w-4 h-4 mr-2" />}
-              Recalculate
+            <Button onClick={handleRecalculate} disabled={calculating} size="sm" className="flex-1 sm:flex-none">
+              {calculating ? <RefreshCw className="w-4 h-4 sm:mr-2 animate-spin" /> : <Calculator className="w-4 h-4 sm:mr-2" />}
+              <span className="hidden sm:inline">Recalculate</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <DollarSign className="w-8 h-8 text-blue-600 mb-2" />
-              <div className="text-2xl font-bold text-blue-900">${((taxEstimate?.totalTax || 0) / 1000).toFixed(0)}K</div>
-              <div className="text-sm text-blue-700">Est. Total Tax {selectedYear}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <CheckCircle className="w-8 h-8 text-green-600 mb-2" />
-              <div className="text-2xl font-bold text-green-900">${(stats.totalPaid / 1000).toFixed(0)}K</div>
-              <div className="text-sm text-green-700">Paid Year-to-Date</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
-              <Clock className="w-8 h-8 text-yellow-600 mb-2" />
-              <div className="text-2xl font-bold text-yellow-900">${(stats.totalDue / 1000).toFixed(0)}K</div>
-              <div className="text-sm text-yellow-700">Remaining Due</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
-              <Calendar className="w-8 h-8 text-purple-600 mb-2" />
-              <div className="text-xl font-bold text-purple-900">
-                {stats.nextPayment ? new Date(stats.nextPayment.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-blue-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
               </div>
-              <div className="text-sm text-purple-700">Next Payment Due</div>
-            </CardContent>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">${((taxEstimate?.totalTax || 0) / 1000).toFixed(0)}K</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">Est. {selectedYear}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/20 to-emerald-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">${(stats.totalPaid / 1000).toFixed(0)}K</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">Paid YTD</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg">
+                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">${(stats.totalDue / 1000).toFixed(0)}K</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">Remaining</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-purple-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                  {stats.nextPayment ? new Date(stats.nextPayment.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                </p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">Next Due</span>
+                </div>
+              </div>
+            </div>
           </Card>
         </div>
 

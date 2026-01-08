@@ -222,26 +222,26 @@ export default function RemindersPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Bell className="w-8 h-8 text-blue-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Recordatorios de Pago
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Automatiza el envío de recordatorios y notificaciones
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => toast('⚙️ Configuración de recordatorios...')}>
-              <Settings className="w-4 h-4 mr-2" />
-              Configuración
+            <Button size="sm" variant="outline" onClick={() => toast('⚙️ Configuración de recordatorios...')} className="flex-1 sm:flex-none">
+              <Settings className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Configuración</span>
             </Button>
-            <Button onClick={() => router.push('/company/invoicing/reminders/new')}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Recordatorio
+            <Button size="sm" onClick={() => router.push('/company/invoicing/reminders/new')} className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nuevo</span> Recordatorio
             </Button>
           </div>
         </div>
@@ -260,17 +260,17 @@ export default function RemindersPage() {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Bell className="w-8 h-8 text-blue-600" />
+                <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                 <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full font-medium">
                   Activos
                 </span>
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalActive}</div>
-              <div className="text-sm text-blue-700">Recordatorios Activos</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-900">{totalActive}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Recordatorios Activos</div>
             </CardContent>
           </Card>
 

@@ -196,19 +196,19 @@ export default function TurboTaxPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">TurboTax Integration</h1>
-            <p className="text-gray-600 mt-1">Direct import to TurboTax Business for seamless tax filing</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">TurboTax Integration</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Direct import to TurboTax Business for seamless tax filing</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={fetchTurboTaxData}>
-              <RefreshCw className="w-4 h-4 mr-2" />Refresh
+              <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button onClick={handleSync} disabled={syncing}>
-              {syncing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
-              {syncing ? 'Syncing...' : 'Start Import'}
+              {syncing ? <RefreshCw className="w-4 h-4 sm:mr-2 animate-spin" /> : <Zap className="w-4 h-4 sm:mr-2" />}
+              <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Start Import'}</span>
             </Button>
           </div>
         </div>
@@ -220,31 +220,46 @@ export default function TurboTaxPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-blue-100 to-blue-50 border-0 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute -top-8 -right-8 w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full opacity-20"></div>
+            <CardContent className="p-4 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <LinkIcon className="w-8 h-8 text-blue-600" />
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg">
+                  <LinkIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
                 <Badge className={connectionStatus === 'connected' ? 'bg-green-600' : 'bg-red-600'}>{connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}</Badge>
               </div>
-              <div className="text-xl font-bold text-blue-900">TurboTax {selectedYear}</div>
-              <div className="text-sm text-blue-700">Business Edition</div>
+              <div className="text-lg sm:text-xl font-bold text-blue-900">TurboTax {selectedYear}</div>
+              <div className="text-xs sm:text-sm text-blue-700 font-medium">Business Edition</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <CheckCircle className="w-8 h-8 text-green-600 mb-2" />
-              <div className="text-2xl font-bold text-green-900">{stats.accountsMapped}</div>
-              <div className="text-sm text-green-700">Accounts Mapped</div>
+          <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 via-green-100 to-green-50 border-0 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute -top-8 -right-8 w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full opacity-20"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg">
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full font-medium">Mapped</span>
+              </div>
+              <div className="text-xl sm:text-3xl font-bold text-green-900 mb-1">{stats.accountsMapped}</div>
+              <div className="text-xs sm:text-sm text-green-700 font-medium">Accounts Mapped</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
-              <AlertTriangle className="w-8 h-8 text-yellow-600 mb-2" />
-              <div className="text-2xl font-bold text-yellow-900">{stats.needsReview}</div>
-              <div className="text-sm text-yellow-700">Need Review</div>
+          <Card className="relative overflow-hidden bg-gradient-to-br from-yellow-50 via-yellow-100 to-yellow-50 border-0 shadow-lg hover:shadow-xl transition-all">
+            <div className="absolute -top-8 -right-8 w-24 h-24 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full opacity-20"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg">
+                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <span className="px-2 py-1 bg-yellow-200 text-yellow-800 text-xs rounded-full font-medium">Review</span>
+              </div>
+              <div className="text-xl sm:text-3xl font-bold text-yellow-900 mb-1">{stats.needsReview}</div>
+              <div className="text-xs sm:text-sm text-yellow-700 font-medium">Need Review</div>
             </CardContent>
           </Card>
 

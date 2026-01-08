@@ -577,66 +577,66 @@ export default function AIAssistPage() {
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col bg-white">
           {/* Chat Header */}
-          <div className="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="px-3 sm:px-6 py-3 sm:py-4 border-b bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
               >
                 <MessageSquare className="w-5 h-5" />
               </button>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div>
-                <h1 className="font-bold text-gray-900">Asistente Contable IA</h1>
-                <p className="text-xs text-gray-500">Conectado a {activeCompany?.name || 'tu empresa'}</p>
+                <h1 className="font-bold text-sm sm:text-base text-gray-900">Asistente <span className="hidden sm:inline">Contable</span> IA</h1>
+                <p className="text-xs text-gray-500 hidden sm:block">Conectado a {activeCompany?.name || 'tu empresa'}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-green-100 text-green-700 border-green-200">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Badge className="bg-green-100 text-green-700 border-green-200 hidden sm:flex">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse" aria-hidden="true"></span>{' '}
                 Activo
               </Badge>
               <Button variant="ghost" size="sm" onClick={handleNewChat}>
-                <Plus className="w-4 h-4 mr-1" />
-                Nuevo
+                <Plus className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">Nuevo</span>
               </Button>
             </div>
           </div>
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+            <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
               {/* Show Quick Actions only at start */}
               {messages.length === 1 && (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div className="text-center">
-                    <h2 className="text-lg font-semibold text-gray-700 mb-1">
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-1">
                       ¿Qué te gustaría saber?
                     </h2>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-gray-500">
                       Selecciona una acción rápida o escribe tu pregunta
                     </p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                     {quickActions.map((action) => (
                       <button
                         key={action.id}
                         onClick={() => handleQuickAction(action.prompt)}
-                        className="group p-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-blue-300 hover:shadow-lg transition-all duration-300 text-left"
+                        className="group p-3 sm:p-4 bg-white border-2 border-gray-100 rounded-xl sm:rounded-2xl hover:border-blue-300 hover:shadow-lg transition-all duration-300 text-left"
                       >
                         <div className={cn(
-                          "w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center mb-3 text-white shadow-md group-hover:scale-110 transition-transform",
+                          "w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br flex items-center justify-center mb-2 sm:mb-3 text-white shadow-md group-hover:scale-110 transition-transform",
                           action.color
                         )}>
                           {action.icon}
                         </div>
-                        <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
                           {action.title}
                         </h3>
-                        <p className="text-sm text-gray-500">{action.description}</p>
-                        <div className="flex items-center gap-1 mt-3 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-xs sm:text-sm text-gray-500">{action.description}</p>
+                        <div className="flex items-center gap-1 mt-2 sm:mt-3 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
                           <span>Preguntar</span>
                           <ArrowRight className="w-3 h-3" />
                         </div>
@@ -761,17 +761,17 @@ export default function AIAssistPage() {
           </div>
 
           {/* Input Area */}
-          <div className="border-t bg-gradient-to-t from-gray-50 to-white p-4">
+          <div className="border-t bg-gradient-to-t from-gray-50 to-white p-2 sm:p-4">
             <div className="max-w-4xl mx-auto">
-              <div className="relative bg-white border-2 border-gray-200 rounded-2xl shadow-lg focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-100 transition-all">
+              <div className="relative bg-white border-2 border-gray-200 rounded-xl sm:rounded-2xl shadow-lg focus-within:border-blue-400 focus-within:ring-2 sm:focus-within:ring-4 focus-within:ring-blue-100 transition-all">
                 <textarea
                   ref={inputRef}
                   value={inputMessage}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="Escribe tu pregunta aquí... (Enter para enviar, Shift+Enter para nueva línea)"
+                  placeholder="Escribe tu pregunta aquí..."
                   rows={1}
-                  className="w-full px-5 py-4 pr-32 bg-transparent resize-none focus:outline-none text-gray-900 placeholder-gray-400"
+                  className="w-full px-3 sm:px-5 py-3 sm:py-4 pr-20 sm:pr-32 bg-transparent resize-none focus:outline-none text-sm sm:text-base text-gray-900 placeholder-gray-400"
                   style={{ maxHeight: '200px' }}
                 />
                 
@@ -799,13 +799,13 @@ export default function AIAssistPage() {
               </div>
               
               {/* Quick Suggestions */}
-              <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
-                <span className="text-xs text-gray-400">Sugerencias:</span>
+              <div className="flex items-center justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 flex-wrap">
+                <span className="text-xs text-gray-400 hidden sm:inline">Sugerencias:</span>
                 {['Balance actual', 'Facturas pendientes', 'Gastos del mes'].map((suggestion) => (
                   <button
                     key={suggestion}
                     onClick={() => setInputMessage(suggestion)}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-blue-100 hover:text-blue-700 rounded-full transition-colors"
+                    className="px-2 sm:px-3 py-1 text-xs bg-gray-100 hover:bg-blue-100 hover:text-blue-700 rounded-full transition-colors"
                   >
                     {suggestion}
                   </button>

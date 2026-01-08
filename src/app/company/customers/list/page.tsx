@@ -131,31 +131,38 @@ export default function CustomersListPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="space-y-4 sm:space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[#0D2942]">Clientes</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0D2942] flex items-center gap-2">
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-[#2CA01C]" />
+              Clientes
+            </h1>
+            <p className="text-sm sm:text-base text-gray-500 mt-1">
               Gestiona tu directorio de clientes
             </p>
           </div>
-          <Button className="flex items-center justify-center gap-2 bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25 w-full sm:w-auto">
-            <Plus className="w-4 h-4" />
-            Nuevo Cliente
+          <Button 
+            onClick={() => router.push('/company/customers/new')} 
+            className="bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25 w-full sm:w-auto"
+            size="sm"
+          >
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nuevo</span> Cliente
           </Button>
         </div>
 
-        <Card className="shadow-md">
-          <CardHeader className="p-3 sm:p-6">
+        <Card className="shadow-md border-0">
+          <CardHeader className="p-3 sm:p-6 pb-3 sm:pb-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <CardTitle className="text-[#0D2942] text-base sm:text-lg">Lista de Clientes</CardTitle>
+              <CardTitle className="text-[#0D2942] text-base sm:text-lg">Lista de Clientes ({filteredCustomers.length})</CardTitle>
               <div className="relative w-full sm:w-auto sm:max-w-sm">
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
                   placeholder="Buscar clientes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full"
+                  className="pl-10 w-full text-sm"
                 />
               </div>
             </div>

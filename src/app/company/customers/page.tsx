@@ -302,13 +302,16 @@ export default function CustomersPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="space-y-4 sm:space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Clientes</h1>
-            <p className="text-sm text-gray-600 mt-1">Gestiona tu directorio de clientes</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+              Clientes
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Gestiona tu directorio de clientes</p>
           </div>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button variant="outline" onClick={exportToExcel} size="sm" className="flex-1 sm:flex-none">
               <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Excel</span>
@@ -319,73 +322,91 @@ export default function CustomersPage() {
             </Button>
             <Button onClick={() => setShowAddModal(true)} size="sm" className="flex-1 sm:flex-none">
               <Plus className="h-4 w-4 sm:mr-2" />
-              <span className="sm:hidden">Nuevo</span>
-              <span className="hidden sm:inline">Nuevo Cliente</span>
+              <span className="hidden sm:inline">Nuevo</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Total Clientes</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.total}</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-blue-600/20 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
-                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.total}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">Total Clientes</span>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Activos</p>
-                  <p className="text-lg sm:text-2xl font-bold text-green-600">{stats.active}</p>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/20 to-emerald-600/20 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                  <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
-                <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.active}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">Activos</span>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Con Portal</p>
-                  <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.portal}</p>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-purple-600/20 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
-                <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.portal}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">Con Portal</span>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Inactivos</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-600">{stats.inactive}</p>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/20 to-gray-600/20 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl shadow-lg">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
-                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.inactive}</p>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full font-medium">Inactivos</span>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
-          <CardContent className="p-3 sm:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="sm:col-span-2">
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-3 sm:p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3\">\n              <div className="sm:col-span-2 lg:col-span-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Buscar por nombre, email o empresa..."
+                    placeholder="Buscar..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 text-sm"
                   />
                 </div>
               </div>

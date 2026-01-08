@@ -148,13 +148,18 @@ export default function ExpensesListPage() {
   useEffect(() => {
     let filtered = expenses
 
-    // Search filter
+    // Search filter - búsqueda inteligente en múltiples campos
     if (searchTerm) {
+      const term = searchTerm.toLowerCase()
       filtered = filtered.filter(
         e =>
-          e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          e.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          e.category.name.toLowerCase().includes(searchTerm.toLowerCase())
+          e.description.toLowerCase().includes(term) ||
+          e.vendor?.toLowerCase().includes(term) ||
+          e.category.name.toLowerCase().includes(term) ||
+          e.employee?.name?.toLowerCase().includes(term) ||
+          e.reference?.toLowerCase().includes(term) ||
+          e.paymentMethod?.toLowerCase().includes(term) ||
+          e.amount.toString().includes(term)
       )
     }
 
@@ -183,6 +188,7 @@ export default function ExpensesListPage() {
     }
 
     setFilteredExpenses(filtered)
+    calculateStats(filtered) // Actualizar estadísticas con datos filtrados
     setCurrentPage(1) // Reset a página 1 cuando cambian los filtros
   }, [searchTerm, statusFilter, categoryFilter, dateFrom, dateTo, expenses])
 
@@ -527,52 +533,96 @@ export default function ExpensesListPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-          <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-blue-600">Total Gastado</p>
-                <p className="text-lg sm:text-2xl font-bold text-blue-900 mt-1 truncate">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-blue-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <Receipt className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div className="text-right">
+                  <p className="text-xs sm:text-sm font-medium text-gray-500">Total Gastado</p>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900 truncate">
                   ${stats.totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-xs text-blue-600 mt-1">{stats.total} gastos</p>
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
+                    {stats.total} gastos
+                  </span>
+                </div>
               </div>
-              <Receipt className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 opacity-50 flex-shrink-0" />
             </div>
           </Card>
 
-          <Card className="p-3 sm:p-5 bg-gradient-to-br from-yellow-50 to-yellow-100">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-yellow-600">Pendientes</p>
-                <p className="text-lg sm:text-2xl font-bold text-yellow-900 mt-1">{stats.pending}</p>
-                <p className="text-xs text-yellow-600 mt-1">Por aprobar</p>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg">
+                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div className="text-right">
+                  <p className="text-xs sm:text-sm font-medium text-gray-500">Pendientes</p>
+                </div>
               </div>
-              <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600 opacity-50 flex-shrink-0" />
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.pending}</p>
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">
+                    Por aprobar
+                  </span>
+                </div>
+              </div>
             </div>
           </Card>
 
-          <Card className="p-3 sm:p-5 bg-gradient-to-br from-green-50 to-green-100">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-green-600">Aprobados</p>
-                <p className="text-lg sm:text-2xl font-bold text-green-900 mt-1">{stats.approved}</p>
-                <p className="text-xs text-green-600 mt-1">Este mes</p>
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400/20 to-emerald-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div className="text-right">
+                  <p className="text-xs sm:text-sm font-medium text-gray-500">Aprobados</p>
+                </div>
               </div>
-              <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 opacity-50 flex-shrink-0" />
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.approved}</p>
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+                    Este mes
+                  </span>
+                </div>
+              </div>
             </div>
           </Card>
 
-          <Card className="p-3 sm:p-5 bg-gradient-to-br from-purple-50 to-purple-100">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-purple-600">Deducibles</p>
-                <p className="text-lg sm:text-2xl font-bold text-purple-900 mt-1 truncate">
+          <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-purple-600/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div className="text-right">
+                  <p className="text-xs sm:text-sm font-medium text-gray-500">Deducibles</p>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl sm:text-3xl font-bold text-gray-900 truncate">
                   ${stats.deductibleAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-xs text-purple-600 mt-1">Para impuestos</p>
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">
+                    Para impuestos
+                  </span>
+                </div>
               </div>
-              <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 opacity-50 flex-shrink-0" />
             </div>
           </Card>
         </div>
