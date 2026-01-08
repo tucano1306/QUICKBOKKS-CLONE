@@ -21,8 +21,6 @@ import {
   Info,
   ThumbsUp,
   ThumbsDown,
-  Bookmark,
-  Share2,
   Filter,
   TrendingUp,
   Users,
@@ -66,6 +64,8 @@ export default function AIRecommendationsPage() {
     avgROI: 0
   })
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
+  const [selectedRec, setSelectedRec] = useState<Recommendation | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -107,6 +107,35 @@ export default function AIRecommendationsPage() {
       fetchRecommendations()
     }
   }, [status, activeCompany])
+
+  const handleStartImplementation = (rec: Recommendation) => {
+    // Actualizar estado de la recomendación
+    setRecommendations(prev => 
+      prev.map(r => r.id === rec.id ? { ...r, status: 'In Progress' as const } : r)
+    )
+    setMessage({ type: 'success', text: `Implementación iniciada: "${rec.title}"` })
+    setTimeout(() => setMessage(null), 3000)
+  }
+
+  const handleViewProgress = (rec: Recommendation) => {
+    setSelectedRec(rec)
+  }
+
+  const handleFeedback = (rec: Recommendation, isHelpful: boolean) => {
+    setMessage({ 
+      type: 'info', 
+      text: isHelpful ? 'Gracias por tu feedback positivo!' : 'Gracias, ajustaremos las recomendaciones' 
+    })
+    setTimeout(() => setMessage(null), 3000)
+  }
+
+  const handleDismiss = (recId: string) => {
+    setRecommendations(prev => 
+      prev.map(r => r.id === recId ? { ...r, status: 'Dismissed' as const } : r)
+    )
+    setMessage({ type: 'info', text: 'Recomendación descartada' })
+    setTimeout(() => setMessage(null), 3000)
+  }
 
   const categories = ['All', 'Cost Optimization', 'Tax Planning', 'Cash Flow', 'Revenue Growth', 'Process Improvement', 'Vendor Management', 'Collections', 'Pricing Strategy', 'Risk Management']
   const impactLevels = ['All', 'High', 'Medium', 'Low']
@@ -387,31 +416,34 @@ export default function AIRecommendationsPage() {
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-2">
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleFeedback(rec, true)}>
                         <ThumbsUp className="w-4 h-4 mr-1" />
                         Helpful
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleFeedback(rec, false)}>
                         <ThumbsDown className="w-4 h-4 mr-1" />
                         Not Relevant
                       </Button>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        <Bookmark className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Share2 className="w-4 h-4" />
+                      <Button size="sm" variant="outline" onClick={() => handleDismiss(rec.id)} title="Descartar">
+                        <XCircle className="w-4 h-4" />
                       </Button>
                       {rec.status === 'New' && (
-                        <Button size="sm">
+                        <Button size="sm" onClick={() => handleStartImplementation(rec)}>
                           Start Implementation
                         </Button>
                       )}
                       {rec.status === 'In Progress' && (
-                        <Button size="sm">
+                        <Button size="sm" onClick={() => handleViewProgress(rec)}>
                           View Progress
                         </Button>
+                      )}
+                      {rec.status === 'Completed' && (
+                        <Badge className="bg-green-100 text-green-700">Completado</Badge>
+                      )}
+                      {rec.status === 'Dismissed' && (
+                        <Badge className="bg-gray-100 text-gray-500">Descartado</Badge>
                       )}
                     </div>
                   </div>
@@ -420,6 +452,89 @@ export default function AIRecommendationsPage() {
             </Card>
           ))}
         </div>
+
+        {/* Toast Message */}
+        {message && (
+          <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 flex items-center gap-2 ${
+            message.type === 'success' ? 'bg-green-100 border border-green-300 text-green-800' :
+            message.type === 'error' ? 'bg-red-100 border border-red-300 text-red-800' :
+            'bg-blue-100 border border-blue-300 text-blue-800'
+          }`}>
+            {message.type === 'success' && <CheckCircle className="w-5 h-5" />}
+            {message.type === 'error' && <XCircle className="w-5 h-5" />}
+            {message.type === 'info' && <Info className="w-5 h-5" />}
+            {message.text}
+          </div>
+        )}
+
+        {/* Modal de Progreso */}
+        {selectedRec && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{selectedRec.title}</h3>
+                    <Badge className="mt-2 bg-blue-100 text-blue-700">En Progreso</Badge>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedRec(null)}>
+                    ✕
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-semibold mb-3">Progreso de Implementación</h4>
+                    <div className="space-y-3">
+                      {selectedRec.steps.map((step, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            idx === 0 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
+                          }`}>
+                            {idx === 0 ? '✓' : idx + 1}
+                          </div>
+                          <span className={idx === 0 ? 'line-through text-gray-400' : 'text-gray-700'}>
+                            {step}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-green-50 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {selectedRec.potentialSavings ? `$${selectedRec.potentialSavings.toLocaleString()}` : 
+                         selectedRec.potentialRevenue ? `$${selectedRec.potentialRevenue.toLocaleString()}` : 'N/A'}
+                      </div>
+                      <div className="text-xs text-green-700">Impacto Esperado</div>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-blue-600">{selectedRec.timeToImplement}</div>
+                      <div className="text-xs text-blue-700">Tiempo Estimado</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setSelectedRec(null)}>
+                    Cerrar
+                  </Button>
+                  <Button onClick={() => {
+                    setRecommendations(prev => 
+                      prev.map(r => r.id === selectedRec.id ? { ...r, status: 'Completed' as const } : r)
+                    )
+                    setSelectedRec(null)
+                    setMessage({ type: 'success', text: 'Recomendación marcada como completada!' })
+                    setTimeout(() => setMessage(null), 3000)
+                  }}>
+                    Marcar Completado
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

@@ -108,65 +108,9 @@ export default function FloridaPayrollPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [calculatedPayroll, setCalculatedPayroll] = useState<any>(null)
 
-  // Empleados de ejemplo para Florida Payroll
-  const sampleEmployees: Employee[] = [
-    {
-      id: '1',
-      name: 'Laura Sánchez Díaz',
-      checkNumber: '1001',
-      ssn: '***-**-1234',
-      filingStatus: 'single',
-      allowances: 1,
-      hourlyRate: 31.25,
-      regularHours: 80,
-      overtimeHours: 0,
-      ytdGross: 65000,
-      ytdFederalTax: 14300,
-      ytdSocialSecurity: 4030,
-      ytdMedicare: 942.5,
-      ytdSuta: 189,
-      type: 'W2'
-    },
-    {
-      id: '2',
-      name: 'Roberto Martínez Cruz',
-      checkNumber: '1002',
-      ssn: '***-**-5678',
-      filingStatus: 'married',
-      allowances: 2,
-      hourlyRate: 36.06,
-      regularHours: 80,
-      overtimeHours: 5,
-      ytdGross: 75000,
-      ytdFederalTax: 16500,
-      ytdSocialSecurity: 4650,
-      ytdMedicare: 1087.5,
-      ytdSuta: 189,
-      type: 'W2'
-    },
-    {
-      id: '3',
-      name: 'Ana García López',
-      checkNumber: '1003',
-      ssn: '***-**-9012',
-      filingStatus: 'head_of_household',
-      allowances: 2,
-      hourlyRate: 40.87,
-      regularHours: 80,
-      overtimeHours: 0,
-      ytdGross: 85000,
-      ytdFederalTax: 18700,
-      ytdSocialSecurity: 5270,
-      ytdMedicare: 1232.5,
-      ytdSuta: 189,
-      type: 'W2'
-    }
-  ]
-
   const loadEmployees = useCallback(async () => {
     if (!activeCompany) {
-      // Si no hay compañía activa, usar empleados de ejemplo
-      setEmployees(sampleEmployees)
+      setEmployees([])
       setLoading(false)
       return
     }
@@ -194,35 +138,25 @@ export default function FloridaPayrollPage() {
           type: emp.employeeType === 'CONTRACTOR' ? '1099-NEC' : 'W2'
         }))
         
-        // Si no hay empleados en la base de datos, usar los de ejemplo
-        if (empList.length === 0) {
-          setEmployees(sampleEmployees)
-        } else {
-          setEmployees(empList)
-        }
+        setEmployees(empList)
       } else {
-        // Si hay error, usar empleados de ejemplo
-        setEmployees(sampleEmployees)
+        setEmployees([])
       }
     } catch (error) {
       console.error('Error loading employees:', error)
-      // En caso de error, usar empleados de ejemplo
-      setEmployees(sampleEmployees)
+      setEmployees([])
     } finally {
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCompany])
 
   useEffect(() => {
     if (status === 'authenticated') {
       loadEmployees()
     } else if (status === 'unauthenticated') {
-      // Para usuarios no autenticados, mostrar empleados de ejemplo
-      setEmployees(sampleEmployees)
+      setEmployees([])
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, activeCompany, loadEmployees])
 
   const calculateFederalWithholding = (grossPay: number, filingStatus: string, allowances: number) => {

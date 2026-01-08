@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   Plus,
   Edit,
@@ -119,22 +120,34 @@ export default function CategoriesPage() {
     setShowModal(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar esta categoría? Los gastos asociados quedarán sin categoría.')) return
+  const handleDelete = async (category: Category) => {
+    const expenseCount = category._count?.expenses || 0
+    
+    // Si tiene gastos asociados, mostrar mensaje de error y no continuar
+    if (expenseCount > 0) {
+      setMessage({ 
+        type: 'error', 
+        text: `No se puede eliminar "${category.name}". Tiene ${expenseCount} gasto(s) asociados. Mueve los gastos a otra categoría primero.` 
+      })
+      setTimeout(() => setMessage(null), 5000)
+      return
+    }
+    
+    if (!confirm(`¿Eliminar la categoría "${category.name}"? Esta acción no se puede deshacer.`)) return
 
     try {
-      const response = await fetch(`/api/expenses/categories?id=${id}`, {
+      const response = await fetch(`/api/expenses/categories?id=${category.id}`, {
         method: 'DELETE'
       })
 
       if (response.ok) {
-        setCategories(categories.filter(c => c.id !== id))
-        setMessage({ type: 'success', text: 'Categoría eliminada' })
+        setCategories(categories.filter(c => c.id !== category.id))
+        setMessage({ type: 'success', text: 'Categoría eliminada exitosamente' })
         setTimeout(() => setMessage(null), 3000)
       } else {
         const error = await response.json()
         setMessage({ type: 'error', text: error.message || 'Error al eliminar la categoría' })
-        setTimeout(() => setMessage(null), 3000)
+        setTimeout(() => setMessage(null), 5000)
       }
     } catch (error) {
       console.error('Error:', error)
@@ -261,15 +274,23 @@ export default function CategoriesPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(category)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors"
                       title="Editar"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(category.id)}
-                      className="text-red-600 hover:text-red-800"
-                      title="Eliminar"
+                      onClick={() => handleDelete(category)}
+                      className={cn(
+                        "p-1 rounded transition-colors",
+                        (category._count?.expenses || 0) > 0
+                          ? "text-gray-400 cursor-not-allowed"
+                          : "text-red-600 hover:text-red-800 hover:bg-red-50"
+                      )}
+                      title={(category._count?.expenses || 0) > 0 
+                        ? `No se puede eliminar: ${category._count?.expenses} gastos asociados`
+                        : "Eliminar"
+                      }
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

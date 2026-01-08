@@ -28,6 +28,7 @@ import {
   Home,
   Wrench,
   ArrowLeftRight,
+  ArrowLeft,
   Plus,
   Search,
   Bell,
@@ -591,13 +592,22 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-full px-3 md:px-4 py-2 md:py-3">
           <div className="flex items-center justify-between gap-2 md:gap-4">
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setShowMobileMenu(true)}
-              className="lg:hidden p-2 -ml-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
+            {/* Mobile: Back Button + Menu Button */}
+            <div className="flex items-center lg:hidden">
+              <button
+                onClick={() => router.back()}
+                className="p-2 -ml-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Volver"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setShowMobileMenu(true)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+            </div>
             
             {/* Left: Company info */}
             <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">

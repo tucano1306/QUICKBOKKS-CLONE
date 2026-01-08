@@ -58,6 +58,7 @@ export default function AIPredictionsPage() {
   const [currentMetrics, setCurrentMetrics] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [updatingModels, setUpdatingModels] = useState(false)
+  const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null)
   const [exporting, setExporting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
@@ -494,7 +495,7 @@ export default function AIPredictionsPage() {
                   {/* Status Badge */}
                   <div className="flex justify-between items-center">
                     {getConfidenceBadge(prediction.confidence)}
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => setSelectedPrediction(prediction)}>
                       View Details
                     </Button>
                   </div>
@@ -503,6 +504,112 @@ export default function AIPredictionsPage() {
             </Card>
           ))}
         </div>
+
+        {/* Modal de Detalles */}
+        {selectedPrediction && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{selectedPrediction.title}</h3>
+                    <p className="text-sm text-gray-600">{selectedPrediction.timeframe}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedPrediction(null)}>
+                    ✕
+                  </Button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Valor Predicho */}
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-1">Valor Predicho</div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-3xl font-bold ${selectedPrediction.prediction >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${Math.abs(selectedPrediction.prediction).toLocaleString('es-MX')}
+                      </span>
+                      {getTrendBadge(selectedPrediction.trend)}
+                    </div>
+                  </div>
+
+                  {/* Métricas de Confianza */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <div className="text-sm text-gray-600 mb-2">Nivel de Confianza</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-3">
+                          <div
+                            className={`h-3 rounded-full ${
+                              selectedPrediction.confidence >= 80 ? 'bg-green-600' :
+                              selectedPrediction.confidence >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${selectedPrediction.confidence}%` }}
+                          />
+                        </div>
+                        <span className="text-lg font-bold">{selectedPrediction.confidence}%</span>
+                      </div>
+                    </div>
+                    {selectedPrediction.accuracy && (
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <div className="text-sm text-gray-600 mb-2">Precisión Histórica</div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 rounded-full h-3">
+                            <div
+                              className="bg-blue-600 h-3 rounded-full"
+                              style={{ width: `${selectedPrediction.accuracy}%` }}
+                            />
+                          </div>
+                          <span className="text-lg font-bold">{selectedPrediction.accuracy}%</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Insights Detallados */}
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Brain className="w-5 h-5 text-yellow-600" />
+                      <span className="font-semibold text-yellow-900">Análisis IA Detallado</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {selectedPrediction.insights.map((insight, idx) => (
+                        <li key={idx} className="text-sm text-yellow-800 flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                          <span>{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Información Adicional */}
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Info className="w-5 h-5 text-blue-600" />
+                      <span className="font-semibold text-blue-900">Metodología</span>
+                    </div>
+                    <p className="text-sm text-blue-800">
+                      Esta predicción se basa en el análisis de datos históricos de {activeCompany?.name || 'la empresa'}, 
+                      utilizando modelos de machine learning que consideran tendencias estacionales, 
+                      patrones de comportamiento y factores macroeconómicos.
+                    </p>
+                  </div>
+
+                  {/* Disclaimer */}
+                  <div className="text-xs text-gray-500 text-center">
+                    <AlertTriangle className="w-4 h-4 inline mr-1" />
+                    Las predicciones son estimaciones basadas en datos históricos y no constituyen garantías de resultados futuros.
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setSelectedPrediction(null)}>
+                    Cerrar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </CompanyTabsLayout>
   )

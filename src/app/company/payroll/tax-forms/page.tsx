@@ -61,43 +61,6 @@ interface TaxFormData {
   icon: React.ReactNode
 }
 
-// Datos de ejemplo para los empleados de Florida
-const sampleEmployees: Employee[] = [
-  {
-    id: '1',
-    firstName: 'Laura',
-    lastName: 'Sánchez Díaz',
-    email: 'laura.sanchez@empresa.com',
-    position: 'Contadora Senior',
-    department: 'Finanzas',
-    taxId: '***-**-1234',
-    salary: 65000,
-    status: 'ACTIVE'
-  },
-  {
-    id: '2',
-    firstName: 'Roberto',
-    lastName: 'Martínez Cruz',
-    email: 'roberto.martinez@empresa.com',
-    position: 'Desarrollador',
-    department: 'Tecnología',
-    taxId: '***-**-5678',
-    salary: 75000,
-    status: 'ACTIVE'
-  },
-  {
-    id: '3',
-    firstName: 'Ana',
-    lastName: 'García López',
-    email: 'ana.garcia@empresa.com',
-    position: 'Gerente de Ventas',
-    department: 'Ventas',
-    taxId: '***-**-9012',
-    salary: 85000,
-    status: 'ACTIVE'
-  }
-]
-
 // Información de formularios fiscales
 const taxForms: TaxFormData[] = [
   {
@@ -159,7 +122,7 @@ export default function TaxFormsPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
   const [selectedYear, setSelectedYear] = useState<number>(2024)
   const [selectedQuarter, setSelectedQuarter] = useState<number>(4)
-  const [employees, setEmployees] = useState<Employee[]>(sampleEmployees)
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [previewData, setPreviewData] = useState<any>(null)
   const [showPreview, setShowPreview] = useState(false)
 
@@ -176,7 +139,7 @@ export default function TaxFormsPage() {
       if (response.ok) {
         const result = await response.json()
         const data = result.data || result
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setEmployees(data)
         }
       }

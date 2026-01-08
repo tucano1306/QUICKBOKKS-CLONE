@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -57,6 +57,9 @@ export default function CompanySettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -152,6 +155,38 @@ export default function CompanySettingsPage() {
     setSaving(false)
   }
 
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPG, GIF)')
+      return
+    }
+
+    // Validar tamaño (máx 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image size should be less than 2MB')
+      return
+    }
+
+    setUploadingLogo(true)
+    
+    // Crear preview
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setLogoPreview(e.target?.result as string)
+      setCompanyInfo(prev => ({ ...prev, logoUrl: e.target?.result as string }))
+      setUploadingLogo(false)
+    }
+    reader.onerror = () => {
+      alert('Error reading file')
+      setUploadingLogo(false)
+    }
+    reader.readAsDataURL(file)
+  }
+
   const businessTypes = [
     'Sole Proprietorship',
     'Partnership',
@@ -245,17 +280,46 @@ export default function CompanySettingsPage() {
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-              <div className="w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Building2 className="w-10 h-10 sm:w-16 sm:h-16 text-white" />
+              <div className="w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {logoPreview || companyInfo.logoUrl ? (
+                  <img 
+                    src={logoPreview || companyInfo.logoUrl} 
+                    alt="Company Logo" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Building2 className="w-10 h-10 sm:w-16 sm:h-16 text-white" />
+                )}
               </div>
               <div className="flex-1 text-center sm:text-left">
                 <p className="text-xs sm:text-sm text-gray-600 mb-3">
-                  Upload your logo. 512x512px recommended.
+                  Upload your logo. 512x512px recommended. Max 2MB.
                 </p>
-                <Button variant="outline" size="sm">
-                  <Upload className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Upload New Logo</span>
-                  <span className="sm:hidden">Upload</span>
+                <input
+                  type="file"
+                  ref={logoInputRef}
+                  onChange={handleLogoUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                >
+                  {uploadingLogo ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Upload New Logo</span>
+                      <span className="sm:hidden">Upload</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
