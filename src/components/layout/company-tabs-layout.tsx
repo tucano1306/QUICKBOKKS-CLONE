@@ -395,24 +395,25 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
 
   const activeSection = filteredTabSections.find(tab => tab.id === activeTab) || currentTab || filteredTabSections[0]
 
-  // Sincronizar activeTab con la URL actual - SIEMPRE que cambie la URL
+  // Sincronizar activeTab con la URL actual cuando cambia la ruta
   useEffect(() => {
-    if (currentTabId && currentTabId !== activeTab) {
+    // Solo sincronizar si la URL cambió a un tab diferente
+    if (currentTabId !== activeTab) {
       setActiveTab(currentTabId)
       setShowSubmenu({ [currentTabId]: true })
       setMobileExpandedTab(currentTabId)
     }
-  }, [currentTabId, activeTab])
+  }, [currentTabId]) // Solo depende de currentTabId, NO de activeTab
 
   // Función para cambiar de categoría y navegar al primer submenú
   const handleTabChange = (tab: TabSection) => {
     // Si es la misma pestaña, solo toggle el submenú
     if (activeTab === tab.id) {
-      setShowSubmenu(prev => ({ [tab.id]: !prev[tab.id] }))
+      setShowSubmenu(prev => ({ ...prev, [tab.id]: !prev[tab.id] }))
       return
     }
     
-    // Cambiar a la nueva pestaña y navegar al primer submenú
+    // Cambiar a la nueva pestaña
     setActiveTab(tab.id)
     setShowSubmenu({ [tab.id]: true })
     
