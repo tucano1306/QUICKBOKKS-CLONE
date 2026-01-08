@@ -334,21 +334,21 @@ export default function PaymentLinksPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <LinkIcon className="w-8 h-8 text-blue-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <LinkIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Links de Pago en Facturas
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Genere links únicos de pago para facilitar el cobro de facturas
             </p>
           </div>
-          <Button onClick={() => setShowLinkGenerator(!showLinkGenerator)}>
-            <Zap className="w-4 h-4 mr-2" />
-            Generar Nuevo Link
+          <Button size="sm" onClick={() => setShowLinkGenerator(!showLinkGenerator)} className="w-full sm:w-auto">
+            <Zap className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Generar Nuevo</span> Link
           </Button>
         </div>
 
@@ -366,14 +366,14 @@ export default function PaymentLinksPage() {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <LinkIcon className="w-8 h-8 text-blue-600" />
+                <LinkIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">{stats.totalLinks}</div>
-              <div className="text-sm text-blue-700">Total Links</div>
+              <div className="text-xl sm:text-2xl font-bold text-blue-900">{stats.totalLinks}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Links</div>
             </CardContent>
           </Card>
 

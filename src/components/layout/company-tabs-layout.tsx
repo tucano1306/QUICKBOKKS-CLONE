@@ -482,9 +482,9 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
             </div>
             
             {/* Quick Actions */}
-            <div className="p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-              <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Acciones Rápidas</p>
-              <div className="grid grid-cols-3 gap-2">
+            <div className="p-2 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">Acciones Rápidas</p>
+              <div className="grid grid-cols-3 gap-1.5">
                 {quickCreateItems.slice(0, 3).map((item) => (
                   <button
                     key={item.name}
@@ -492,10 +492,10 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                       router.push(item.href)
                       setShowMobileMenu(false)
                     }}
-                    className="flex flex-col items-center gap-1 p-3 bg-white rounded-lg border border-gray-200 hover:border-[#2CA01C] hover:shadow-sm transition-all"
+                    className="flex flex-col items-center gap-0.5 p-2 bg-white rounded-lg border border-gray-200 hover:border-[#2CA01C] hover:shadow-sm transition-all"
                   >
-                    <item.icon className={cn('w-5 h-5', item.color)} />
-                    <span className="text-xs font-medium text-gray-700 text-center leading-tight">{item.name}</span>
+                    <item.icon className={cn('w-4 h-4', item.color)} />
+                    <span className="text-[10px] font-medium text-gray-700 text-center leading-tight">{item.name}</span>
                   </button>
                 ))}
               </div>
@@ -558,14 +558,14 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
             </nav>
             
             {/* Bottom Actions - Fixed */}
-            <div className="flex-shrink-0 p-4 bg-white border-t border-gray-200">
-              <div className="flex gap-2">
+            <div className="flex-shrink-0 p-2 bg-white border-t border-gray-200">
+              <div className="flex gap-1.5">
                 <button
                   onClick={() => {
                     router.push('/company/settings/company')
                     setShowMobileMenu(false)
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs hover:bg-gray-200 transition-colors"
                 >
                   <Settings className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate">Settings</span>
@@ -575,7 +575,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                     router.push('/dashboard')
                     setShowMobileMenu(false)
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-[#0D2942] text-white rounded-lg font-medium text-sm hover:bg-[#1a3a5c] transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-[#0D2942] text-white rounded-lg font-medium text-xs hover:bg-[#1a3a5c] transition-colors"
                 >
                   <Home className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate">Main Menu</span>

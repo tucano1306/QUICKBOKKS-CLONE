@@ -297,18 +297,19 @@ export default function BankSyncPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Sincronización Bancaria</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">🏦 Sincronización Bancaria</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Conecta y sincroniza tus cuentas bancarias automáticamente
             </p>
           </div>
           <div className="flex gap-2">
             <Button 
               variant="outline"
+              size="sm"
               onClick={async () => {
                 setSyncing(true)
                 await fetchBankAccounts()
@@ -316,22 +317,23 @@ export default function BankSyncPage() {
                 setMessage({ type: 'success', text: '✅ Sincronización completada' })
               }}
               disabled={syncing || processing}
+              className="flex-1 sm:flex-none"
             >
               {syncing ? (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Sincronizando...
+                  <RefreshCw className="w-4 h-4 sm:mr-2 animate-spin" />
+                  <span className="hidden sm:inline">Sincronizando...</span>
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sincronizar Todo
+                  <RefreshCw className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Sincronizar Todo</span>
                 </>
               )}
             </Button>
-            <Button onClick={() => setShowBankModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Conectar Banco
+            <Button size="sm" onClick={() => setShowBankModal(true)} className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Conectar</span> Banco
             </Button>
           </div>
         </div>
@@ -361,66 +363,66 @@ export default function BankSyncPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Building2 className="w-8 h-8 text-blue-600" />
+                <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalConnected}</div>
-              <div className="text-sm text-blue-700">Bancos Conectados</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-900">{totalConnected}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Bancos Conectados</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-green-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-xl sm:text-2xl font-bold text-green-900">
                 ${totalBalance.toLocaleString()}
               </div>
-              <div className="text-sm text-green-700">Balance Total</div>
+              <div className="text-xs sm:text-sm text-green-700">Balance Total</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-orange-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">{newTransactions}</div>
-              <div className="text-sm text-orange-700">Transacciones Nuevas</div>
+              <div className="text-2xl sm:text-3xl font-bold text-orange-900">{newTransactions}</div>
+              <div className="text-xs sm:text-sm text-orange-700">Transacciones Nuevas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Zap className="w-8 h-8 text-purple-600" />
+                <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">{categorizationRate}%</div>
-              <div className="text-sm text-purple-700">Auto-Categorización</div>
+              <div className="text-2xl sm:text-3xl font-bold text-purple-900">{categorizationRate}%</div>
+              <div className="text-xs sm:text-sm text-purple-700">Auto-Categorización</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Bank Connections */}
         <Card>
-          <CardHeader>
-            <CardTitle>Cuentas Bancarias Conectadas</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Cuentas Bancarias Conectadas</CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CardContent className="p-3 sm:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {bankConnections.map((bank) => (
                 <Card key={bank.id} className={`hover:shadow-lg transition ${bank.isPrimary ? 'ring-2 ring-blue-500' : ''}`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="text-4xl">{bank.logo}</div>
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex items-start justify-between mb-3 sm:mb-4">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="text-2xl sm:text-4xl">{bank.logo}</div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{bank.bankName}</h3>
-                          <p className="text-sm text-gray-600">{bank.accountNumber}</p>
+                          <h3 className="text-sm sm:text-base font-semibold text-gray-900">{bank.bankName}</h3>
+                          <p className="text-xs sm:text-sm text-gray-600">{bank.accountNumber}</p>
                           {bank.isPrimary && (
                             <Badge className="bg-blue-100 text-blue-700 text-xs mt-1">Principal</Badge>
                           )}
@@ -429,22 +431,22 @@ export default function BankSyncPage() {
                       {getStatusBadge(bank.status)}
                     </div>
 
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Cuenta:</span>
-                        <span className="font-medium">{bank.accountName}</span>
+                        <span className="font-medium truncate ml-2">{bank.accountName}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Tipo:</span>
                         <span className="font-medium">{bank.accountType}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Balance:</span>
                         <span className="font-semibold text-gray-900">
                           ${bank.balance.toLocaleString()} {bank.currency}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Última sync:</span>
                         <span className="text-gray-700">{getTimeAgo(bank.lastSync)}</span>
                       </div>
@@ -480,17 +482,17 @@ export default function BankSyncPage() {
                 className="border-2 border-dashed border-gray-300 hover:border-blue-400 transition cursor-pointer"
                 onClick={() => setShowBankModal(true)}
               >
-                <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[240px]">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                    <Plus className="w-8 h-8 text-blue-600" />
+                <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center h-full min-h-[200px] sm:min-h-[240px]">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                    <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Conectar Nuevo Banco</h3>
-                  <p className="text-sm text-gray-600 text-center mb-4">
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-2">Conectar Nuevo Banco</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 text-center mb-3 sm:mb-4 px-2">
                     Agrega una nueva cuenta bancaria para sincronizar automáticamente
                   </p>
-                  <Button onClick={() => setShowBankModal(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Agregar Banco
+                  <Button size="sm" onClick={() => setShowBankModal(true)}>
+                    <Plus className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Agregar Banco</span>
                   </Button>
                 </CardContent>
               </Card>
@@ -500,17 +502,61 @@ export default function BankSyncPage() {
 
         {/* Recent Transactions */}
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Transacciones Recientes</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+              <CardTitle className="text-base sm:text-lg">Transacciones Recientes</CardTitle>
               <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Ver Todas
+                <Download className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Ver Todas</span>
               </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile View - Cards */}
+            <div className="md:hidden space-y-3 p-3">
+              {recentTransactions.map((txn) => (
+                <div key={txn.id} className="p-3 border rounded-lg bg-gray-50">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {txn.type === 'credit' ? (
+                        <div className="p-1.5 bg-green-100 rounded-lg">
+                          <ArrowUpRight className="w-4 h-4 text-green-600" />
+                        </div>
+                      ) : (
+                        <div className="p-1.5 bg-red-100 rounded-lg">
+                          <ArrowDownRight className="w-4 h-4 text-red-600" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">{txn.description}</p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(txn.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`text-sm font-semibold whitespace-nowrap ml-2 ${
+                      txn.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      ${txn.amount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                    {txn.category ? (
+                      <span className="text-xs text-gray-600">{txn.category}</span>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">Sin categoría</span>
+                    )}
+                    <div>
+                      {getTransactionStatusBadge(txn.status)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View - Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -600,16 +646,16 @@ export default function BankSyncPage() {
         </Card>
 
         {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-600 rounded-lg">
-                  <Zap className="w-6 h-6 text-white" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-blue-600 rounded-lg flex-shrink-0">
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-blue-900 mb-2">Sincronización Automática</h3>
-                  <p className="text-blue-700 text-sm">
+                  <h3 className="text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Sincronización Automática</h3>
+                  <p className="text-blue-700 text-xs sm:text-sm">
                     Las transacciones se sincronizan automáticamente cada 6 horas. Puedes sincronizar 
                     manualmente en cualquier momento para obtener los movimientos más recientes.
                   </p>
@@ -619,14 +665,14 @@ export default function BankSyncPage() {
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-purple-600 rounded-lg">
-                  <Zap className="w-6 h-6 text-white" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 bg-purple-600 rounded-lg flex-shrink-0">
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-purple-900 mb-2">Categorización Inteligente</h3>
-                  <p className="text-purple-700 text-sm">
+                  <h3 className="text-sm sm:text-base font-semibold text-purple-900 mb-1 sm:mb-2">Categorización Inteligente</h3>
+                  <p className="text-purple-700 text-xs sm:text-sm">
                     Nuestra IA aprende de tus patrones y categoriza automáticamente las transacciones 
                     con alta precisión, ahorrándote tiempo en la contabilidad.
                   </p>
@@ -638,12 +684,12 @@ export default function BankSyncPage() {
 
         {/* Security Notice */}
         <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-green-900 mb-2">🔒 Conexión Segura</h3>
-                <p className="text-green-700 text-sm">
+                <h3 className="text-sm sm:text-base font-semibold text-green-900 mb-1 sm:mb-2">🔒 Conexión Segura</h3>
+                <p className="text-green-700 text-xs sm:text-sm">
                   Todas las conexiones bancarias utilizan encriptación de nivel bancario (256-bit SSL). 
                   Nunca almacenamos tus credenciales bancarias. La conexión se realiza directamente con tu banco 
                   a través de APIs oficiales y seguras.
