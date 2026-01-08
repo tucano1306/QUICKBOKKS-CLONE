@@ -42,16 +42,16 @@ export async function GET(request: NextRequest) {
 
     // Calcular totalDebit y totalCredit desde las líneas
     const entriesWithTotals = entries.map(entry => {
-      const totalDebit = entry.lines.reduce((sum, line) => sum + (line.debit?.toNumber() || 0), 0);
-      const totalCredit = entry.lines.reduce((sum, line) => sum + (line.credit?.toNumber() || 0), 0);
+      const totalDebit = entry.lines.reduce((sum, line) => sum + (Number(line.debit) || 0), 0);
+      const totalCredit = entry.lines.reduce((sum, line) => sum + (Number(line.credit) || 0), 0);
       return {
         ...entry,
         totalDebit,
         totalCredit,
         lines: entry.lines.map(line => ({
           ...line,
-          debit: line.debit?.toNumber() || 0,
-          credit: line.credit?.toNumber() || 0,
+          debit: Number(line.debit) || 0,
+          credit: Number(line.credit) || 0,
           accountCode: line.account?.code || '',
           accountName: line.account?.name || '',
         })),
