@@ -34,6 +34,9 @@ import {
   Database,
   BarChart3,
   HardDrive,
+  Car,
+  TrendingDown,
+  Calculator,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -228,6 +231,39 @@ const accountingMenuItems: SubMenu[] = [
         name: 'Exportar asientos',
         icon: Download,
         href: '/company/accounting/journal-entries?action=export',
+      },
+    ],
+  },
+  {
+    title: 'Depreciación de Activos',
+    icon: Car,
+    href: '/company/accounting/depreciation',
+    items: [
+      {
+        name: 'Ver vehículos',
+        icon: Car,
+        href: '/company/accounting/depreciation',
+      },
+      {
+        name: 'Agregar vehículo',
+        icon: PlusCircle,
+        href: '/company/accounting/depreciation?action=add',
+        variant: 'primary',
+      },
+      {
+        name: 'Calcular depreciación',
+        icon: Calculator,
+        href: '/company/accounting/depreciation?action=calculate',
+      },
+      {
+        name: 'Ver depreciación acumulada',
+        icon: TrendingDown,
+        href: '/company/accounting/depreciation?action=accumulated',
+      },
+      {
+        name: 'Exportar reporte',
+        icon: Download,
+        href: '/company/accounting/depreciation?action=export',
       },
     ],
   },
