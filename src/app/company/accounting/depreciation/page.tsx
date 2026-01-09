@@ -267,6 +267,32 @@ export default function VehicleDepreciationPage() {
               asset.estimatedLifetimeMiles && asset.estimatedLifetimeMiles > 0)
   }
 
+  // DEPRECIACIÓN POR MILLA (Unit of Production Method - Florida)
+  // Esta función debe estar primero porque otras la usan
+  const calculateDepreciationPerMile = (asset: Asset): number => {
+    if (!asset.estimatedLifetimeMiles || asset.estimatedLifetimeMiles === 0) return 0
+    const depreciableAmount = asset.purchasePrice - asset.salvageValue
+    return depreciableAmount / asset.estimatedLifetimeMiles
+  }
+
+  // DEPRECIACIÓN ACUMULADA POR MILLAS
+  // Esta función debe estar antes de las funciones mensuales/semanales
+  const calculateMileageBasedDepreciation = (asset: Asset): number => {
+    if (!asset.currentMileage) return 0
+    const purchaseMileage = asset.purchaseMileage || 0
+    const milesUsed = Math.max(0, asset.currentMileage - purchaseMileage)
+    const depPerMile = calculateDepreciationPerMile(asset)
+    const maxDep = asset.purchasePrice - asset.salvageValue
+    return Math.min(milesUsed * depPerMile, maxDep)
+  }
+
+  // VALOR ACTUAL POR MILLAS
+  const calculateCurrentValueByMileage = (asset: Asset): number => {
+    const mileageDepreciation = calculateMileageBasedDepreciation(asset)
+    const currentValue = asset.purchasePrice - mileageDepreciation
+    return Math.max(currentValue, asset.salvageValue)
+  }
+
   // Calcular meses transcurridos desde la compra
   const calculateMonthsOwned = (purchaseDate: string): number => {
     const purchase = new Date(purchaseDate)
@@ -283,7 +309,16 @@ export default function VehicleDepreciationPage() {
   }
 
   // DEPRECIACIÓN LÍNEA RECTA MENSUAL (Método estándar Florida/IRS)
+  // Para vehículos con millas, calcula basado en millas usadas promedio por mes
   const calculateMonthlyDepreciation = (asset: Asset): number => {
+    // Si tiene datos de millas, calcular basado en uso mensual promedio
+    if (hasMileageData(asset)) {
+      const monthsOwned = calculateMonthsOwned(asset.purchaseDate)
+      if (monthsOwned === 0) return 0
+      const totalMileageDepreciation = calculateMileageBasedDepreciation(asset)
+      return totalMileageDepreciation / monthsOwned
+    }
+    // Fallback: línea recta por tiempo
     const depreciableAmount = asset.purchasePrice - asset.salvageValue
     const totalMonths = asset.usefulLife * 12
     if (totalMonths === 0) return 0
@@ -298,6 +333,15 @@ export default function VehicleDepreciationPage() {
 
   // DEPRECIACIÓN DIARIA
   const calculateDailyDepreciation = (asset: Asset): number => {
+    // Si tiene datos de millas, calcular basado en uso diario promedio
+    if (hasMileageData(asset)) {
+      const monthsOwned = calculateMonthsOwned(asset.purchaseDate)
+      const daysOwned = monthsOwned * 30.44 // Promedio de días por mes
+      if (daysOwned === 0) return 0
+      const totalMileageDepreciation = calculateMileageBasedDepreciation(asset)
+      return totalMileageDepreciation / daysOwned
+    }
+    // Fallback: línea recta por tiempo
     const depreciableAmount = asset.purchasePrice - asset.salvageValue
     const totalDays = asset.usefulLife * 365
     if (totalDays === 0) return 0
@@ -314,30 +358,6 @@ export default function VehicleDepreciationPage() {
     const accumulatedDep = (depreciableAmount / totalMonths) * monthsToDepreciate
     
     return Math.min(accumulatedDep, depreciableAmount) // No exceder el monto depreciable
-  }
-
-  // DEPRECIACIÓN POR MILLA (Unit of Production Method - Florida)
-  const calculateDepreciationPerMile = (asset: Asset): number => {
-    if (!asset.estimatedLifetimeMiles || asset.estimatedLifetimeMiles === 0) return 0
-    const depreciableAmount = asset.purchasePrice - asset.salvageValue
-    return depreciableAmount / asset.estimatedLifetimeMiles
-  }
-
-  // DEPRECIACIÓN ACUMULADA POR MILLAS
-  const calculateMileageBasedDepreciation = (asset: Asset): number => {
-    if (!asset.currentMileage) return 0
-    const purchaseMileage = asset.purchaseMileage || 0
-    const milesUsed = Math.max(0, asset.currentMileage - purchaseMileage)
-    const depPerMile = calculateDepreciationPerMile(asset)
-    const maxDep = asset.purchasePrice - asset.salvageValue
-    return Math.min(milesUsed * depPerMile, maxDep)
-  }
-
-  // VALOR ACTUAL POR MILLAS
-  const calculateCurrentValueByMileage = (asset: Asset): number => {
-    const mileageDepreciation = calculateMileageBasedDepreciation(asset)
-    const currentValue = asset.purchasePrice - mileageDepreciation
-    return Math.max(currentValue, asset.salvageValue)
   }
 
   // DEPRECIACIÓN ACUMULADA - USA MILLAS SI ESTÁN DISPONIBLES
