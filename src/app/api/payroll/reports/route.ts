@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
         deptData.grossPay += record.grossSalary || 0
         deptData.deductions += record.deductions || 0
         deptData.netPay += record.netSalary || 0
-        // Estimate employer costs as ~13.7% of gross (Mexican IMSS + Infonavit average)
-        const employerCost = (record.grossSalary || 0) * 0.137
+        // Estimate employer costs as ~10.65% of gross (US: 6.2% SS + 1.45% Medicare + 2.7% SUTA + 0.3% FUTA estimate)
+        const employerCost = (record.grossSalary || 0) * 0.1065
         deptData.employerCosts += employerCost
         deptData.totalCost += (record.grossSalary || 0) + employerCost
       }
@@ -107,43 +107,43 @@ export async function GET(request: NextRequest) {
       {
         id: 'payroll-summary',
         type: 'summary',
-        name: 'Resumen de Nómina',
-        description: 'Reporte consolidado de percepciones, deducciones y pagos netos',
+        name: 'Payroll Summary',
+        description: 'Consolidated report of earnings, deductions, and net pay',
         color: 'blue'
       },
       {
         id: 'tax-report',
         type: 'tax',
-        name: 'Reporte de Impuestos',
-        description: 'ISR, IMSS e INFONAVIT - Retenciones y aportaciones',
+        name: 'Tax Report',
+        description: 'FICA (Social Security & Medicare), Federal & State Taxes',
         color: 'red'
       },
       {
         id: 'department-costs',
         type: 'costs',
-        name: 'Costos por Departamento',
-        description: 'Análisis de costo total de nómina por área',
+        name: 'Department Costs',
+        description: 'Total payroll cost analysis by department',
         color: 'purple'
       },
       {
         id: 'deductions-report',
         type: 'deductions',
-        name: 'Reporte de Deducciones',
-        description: 'Detalle de todas las deducciones aplicadas',
+        name: 'Deductions Report',
+        description: 'Detailed breakdown of all applied deductions',
         color: 'orange'
       },
       {
         id: 'overtime-report',
         type: 'overtime',
-        name: 'Reporte de Horas Extra',
-        description: 'Análisis de tiempo extra y tiempo doble',
+        name: 'Overtime Report',
+        description: 'Time and a half & double time analysis',
         color: 'green'
       },
       {
         id: 'employee-cost',
         type: 'employee',
-        name: 'Costo por Empleado',
-        description: 'Detalle individual del costo total por empleado',
+        name: 'Employee Cost',
+        description: 'Individual employee total cost breakdown',
         color: 'indigo'
       }
     ]
@@ -155,6 +155,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching payroll reports:', error)
-    return NextResponse.json({ error: 'Error al obtener reportes' }, { status: 500 })
+    return NextResponse.json({ error: 'Error fetching reports' }, { status: 500 })
   }
 }

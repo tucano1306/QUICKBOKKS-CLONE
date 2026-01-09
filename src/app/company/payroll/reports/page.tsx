@@ -91,7 +91,7 @@ export default function PayrollReportsPage() {
         const data = await response.json()
         // Add icons and period to reports
         const now = new Date()
-        const periodStr = `${now.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}, ${now.getFullYear()}`
+        const periodStr = `${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${now.getFullYear()}`
         setReports((data.reports || []).map((r: PayrollReport) => ({
           ...r,
           icon: iconMap[r.type] || FileText,
@@ -146,22 +146,22 @@ export default function PayrollReportsPage() {
     const filename = `${report.id}-${new Date().toISOString().split('T')[0]}.csv`
     
     if (report.type === 'costs') {
-      csvContent = 'Departamento,Empleados,Salario Bruto,Deducciones,Salario Neto,Costos Patronales,Costo Total\n'
+      csvContent = 'Department,Employees,Gross Pay,Deductions,Net Pay,Employer Costs,Total Cost\n'
       departmentCosts.forEach(dept => {
         csvContent += `${dept.department},${dept.employees},${dept.grossPay},${dept.deductions},${dept.netPay},${dept.employerCosts},${dept.totalCost}\n`
       })
     } else {
-      csvContent = `Reporte: ${report.name}\n`
-      csvContent += `Tipo: ${report.type}\n`
-      csvContent += `Período: ${report.period}\n`
-      csvContent += `Descripción: ${report.description}\n\n`
-      csvContent += 'Métrica,Valor\n'
-      csvContent += `Total Empleados,${totalEmployees}\n`
-      csvContent += `Salario Bruto Total,$${totalGrossPay.toFixed(2)}\n`
-      csvContent += `Total Deducciones,$${totalDeductions.toFixed(2)}\n`
-      csvContent += `Salario Neto Total,$${totalNetPay.toFixed(2)}\n`
-      csvContent += `Costos Patronales,$${totalEmployerCosts.toFixed(2)}\n`
-      csvContent += `Costo Total,$${totalCost.toFixed(2)}\n`
+      csvContent = `Report: ${report.name}\n`
+      csvContent += `Type: ${report.type}\n`
+      csvContent += `Period: ${report.period}\n`
+      csvContent += `Description: ${report.description}\n\n`
+      csvContent += 'Metric,Value\n'
+      csvContent += `Total Employees,${totalEmployees}\n`
+      csvContent += `Total Gross Pay,$${totalGrossPay.toFixed(2)}\n`
+      csvContent += `Total Deductions,$${totalDeductions.toFixed(2)}\n`
+      csvContent += `Total Net Pay,$${totalNetPay.toFixed(2)}\n`
+      csvContent += `Employer Costs,$${totalEmployerCosts.toFixed(2)}\n`
+      csvContent += `Total Cost,$${totalCost.toFixed(2)}\n`
     }
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -177,23 +177,23 @@ export default function PayrollReportsPage() {
     setExporting(true)
     
     try {
-      // Generar CSV consolidado con todos los reportes
-      let csvContent = 'REPORTES CONSOLIDADOS DE NÓMINA\n'
-      csvContent += `Empresa: ${activeCompany?.name || 'Mi Empresa'}\n`
-      csvContent += `Fecha de exportación: ${new Date().toLocaleDateString('es-MX')}\n\n`
+      // Generate consolidated CSV with all reports
+      let csvContent = 'CONSOLIDATED PAYROLL REPORTS\n'
+      csvContent += `Company: ${activeCompany?.name || 'My Company'}\n`
+      csvContent += `Export Date: ${new Date().toLocaleDateString('en-US')}\n\n`
       
-      // Resumen general
-      csvContent += '=== RESUMEN GENERAL ===\n'
-      csvContent += `Total Empleados,${totalEmployees}\n`
-      csvContent += `Salario Bruto Total,$${totalGrossPay.toFixed(2)}\n`
-      csvContent += `Total Deducciones,$${totalDeductions.toFixed(2)}\n`
-      csvContent += `Salario Neto Total,$${totalNetPay.toFixed(2)}\n`
-      csvContent += `Costos Patronales,$${totalEmployerCosts.toFixed(2)}\n`
-      csvContent += `Costo Total Nómina,$${totalCost.toFixed(2)}\n\n`
+      // General summary
+      csvContent += '=== GENERAL SUMMARY ===\n'
+      csvContent += `Total Employees,${totalEmployees}\n`
+      csvContent += `Total Gross Pay,$${totalGrossPay.toFixed(2)}\n`
+      csvContent += `Total Deductions,$${totalDeductions.toFixed(2)}\n`
+      csvContent += `Total Net Pay,$${totalNetPay.toFixed(2)}\n`
+      csvContent += `Employer Costs,$${totalEmployerCosts.toFixed(2)}\n`
+      csvContent += `Total Payroll Cost,$${totalCost.toFixed(2)}\n\n`
       
-      // Costos por departamento
-      csvContent += '=== COSTOS POR DEPARTAMENTO ===\n'
-      csvContent += 'Departamento,Empleados,Salario Bruto,Deducciones,Salario Neto,Costos Patronales,Costo Total\n'
+      // Costs by department
+      csvContent += '=== COSTS BY DEPARTMENT ===\n'
+      csvContent += 'Department,Employees,Gross Pay,Deductions,Net Pay,Employer Costs,Total Cost\n'
       departmentCosts.forEach(dept => {
         csvContent += `${dept.department},${dept.employees},$${dept.grossPay.toFixed(2)},$${dept.deductions.toFixed(2)},$${dept.netPay.toFixed(2)},$${dept.employerCosts.toFixed(2)},$${dept.totalCost.toFixed(2)}\n`
       })
@@ -293,7 +293,7 @@ export default function PayrollReportsPage() {
                 <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
               <div className="text-xl sm:text-3xl font-bold text-blue-900">{totalEmployees}</div>
-              <div className="text-xs sm:text-sm text-blue-700">Total Empleados</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Employees</div>
             </CardContent>
           </Card>
 
@@ -303,9 +303,9 @@ export default function PayrollReportsPage() {
                 <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
               <div className="text-lg sm:text-2xl font-bold text-green-900">
-                ${totalGrossPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                ${totalGrossPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-xs sm:text-sm text-green-700">Nómina Bruta</div>
+              <div className="text-xs sm:text-sm text-green-700">Gross Payroll</div>
             </CardContent>
           </Card>
 
@@ -315,9 +315,9 @@ export default function PayrollReportsPage() {
                 <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
               <div className="text-lg sm:text-2xl font-bold text-purple-900">
-                ${totalNetPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                ${totalNetPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-xs sm:text-sm text-purple-700">Nómina Neta</div>
+              <div className="text-xs sm:text-sm text-purple-700">Net Payroll</div>
             </CardContent>
           </Card>
 
@@ -327,9 +327,9 @@ export default function PayrollReportsPage() {
                 <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
               <div className="text-lg sm:text-2xl font-bold text-orange-900">
-                ${totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-xs sm:text-sm text-orange-700">Costo Total</div>
+              <div className="text-xs sm:text-sm text-orange-700">Total Cost</div>
             </CardContent>
           </Card>
         </div>
@@ -345,9 +345,9 @@ export default function PayrollReportsPage() {
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
                 >
-                  <option value="current">Período Actual (Nov 16-30, 2025)</option>
-                  <option value="previous">Período Anterior (Nov 1-15, 2025)</option>
-                  <option value="october-q2">Octubre 2025 - Quincena 2</option>
+                  <option value="current">Current Period (Nov 16-30, 2025)</option>
+                  <option value="previous">Previous Period (Nov 1-15, 2025)</option>
+                  <option value="october-q2">October 2025 - Period 2</option>
                   <option value="october-q1">Octubre 2025 - Quincena 1</option>
                   <option value="month">Todo Noviembre 2025</option>
                   <option value="quarter">Q4 2025</option>
@@ -417,8 +417,8 @@ export default function PayrollReportsPage() {
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Deducciones</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Nómina Neta</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Costos Patronales</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Costo Total</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">% del Total</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Total Cost</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">% of Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -431,19 +431,19 @@ export default function PayrollReportsPage() {
                         {dept.employees}
                       </td>
                       <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
-                        ${dept.grossPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${dept.grossPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-right text-sm font-semibold text-red-600">
-                        -${dept.deductions.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        -${dept.deductions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-right text-sm font-semibold text-green-600">
-                        ${dept.netPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${dept.netPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-right text-sm font-semibold text-purple-600">
-                        ${dept.employerCosts.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${dept.employerCosts.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-right text-base font-bold text-blue-600">
-                        ${dept.totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${dept.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-700">
                         {totalCost > 0 ? ((dept.totalCost / totalCost) * 100).toFixed(1) : '0.0'}%
@@ -454,19 +454,19 @@ export default function PayrollReportsPage() {
                     <td className="px-4 py-3 text-sm text-gray-900">TOTAL</td>
                     <td className="px-4 py-3 text-center text-sm text-gray-900">{totalEmployees}</td>
                     <td className="px-4 py-3 text-right text-sm text-gray-900">
-                      ${totalGrossPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      ${totalGrossPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-red-600">
-                      -${totalDeductions.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      -${totalDeductions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-green-600">
-                      ${totalNetPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      ${totalNetPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-purple-600">
-                      ${totalEmployerCosts.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      ${totalEmployerCosts.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3 text-right text-base text-blue-600">
-                      ${totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-gray-900">100.0%</td>
                   </tr>
@@ -480,32 +480,32 @@ export default function PayrollReportsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardHeader className="pb-2">
-              <CardTitle className="text-blue-900 text-sm sm:text-base">Desglose de Costos</CardTitle>
+              <CardTitle className="text-blue-900 text-sm sm:text-base">Cost Breakdown</CardTitle>
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-white rounded-lg">
-                  <span className="text-sm font-semibold text-gray-700">Sueldos y Salarios</span>
+                  <span className="text-sm font-semibold text-gray-700">Wages & Salaries</span>
                   <span className="text-base font-bold text-green-600">
-                    ${totalGrossPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    ${totalGrossPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-white rounded-lg">
-                  <span className="text-sm font-semibold text-gray-700">IMSS Patronal</span>
+                  <span className="text-sm font-semibold text-gray-700">Employer FICA (SS + Medicare)</span>
                   <span className="text-base font-bold text-purple-600">
-                    ${(totalEmployerCosts * 0.65).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    ${(totalEmployerCosts * 0.72).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-white rounded-lg">
-                  <span className="text-sm font-semibold text-gray-700">INFONAVIT Patronal</span>
+                  <span className="text-sm font-semibold text-gray-700">FUTA + Florida SUTA</span>
                   <span className="text-base font-bold text-orange-600">
-                    ${(totalEmployerCosts * 0.35).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    ${(totalEmployerCosts * 0.28).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-blue-600 text-white rounded-lg mt-2">
-                  <span className="text-base font-bold">Costo Total de Nómina</span>
+                  <span className="text-base font-bold">Total Payroll Cost</span>
                   <span className="text-xl font-bold">
-                    ${totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -555,16 +555,16 @@ export default function PayrollReportsPage() {
                 <BarChart3 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-blue-900 mb-2">Reportes de Nómina</h3>
+                <h3 className="font-semibold text-blue-900 mb-2">Payroll Reports</h3>
                 <p className="text-blue-700 text-sm mb-2">
-                  Análisis completo y detallado de todos los aspectos de tu nómina para toma de decisiones y cumplimiento fiscal.
+                  Complete and detailed analysis of all aspects of your payroll for decision making and tax compliance.
                 </p>
                 <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• <strong>Resumen de Nómina:</strong> Vista consolidada de percepciones, deducciones y pagos netos</li>
-                  <li>• <strong>Reporte Fiscal:</strong> ISR, IMSS e INFONAVIT para declaraciones mensuales</li>
-                  <li>• <strong>Análisis por Departamento:</strong> Distribución de costos para presupuestación</li>
-                  <li>• <strong>Costos Totales:</strong> Incluye nómina bruta + aportaciones patronales (IMSS 8% + INFONAVIT 5%)</li>
-                  <li>• <strong>Exportación:</strong> Formatos Excel, PDF y XML para contabilidad y auditoría</li>
+                  <li>• <strong>Payroll Summary:</strong> Consolidated view of earnings, deductions, and net pay</li>
+                  <li>• <strong>Tax Report:</strong> FICA (Social Security & Medicare), Federal & State taxes for quarterly filings</li>
+                  <li>• <strong>Department Analysis:</strong> Cost distribution for budgeting purposes</li>
+                  <li>• <strong>Total Costs:</strong> Includes gross payroll + employer contributions (FICA 7.65% + FUTA/SUTA ~3%)</li>
+                  <li>• <strong>Export:</strong> Excel, PDF and CSV formats for accounting and auditing</li>
                 </ul>
               </div>
             </div>
@@ -619,8 +619,8 @@ export default function PayrollReportsPage() {
                         <p className="text-2xl font-bold text-purple-600">${totalEmployerCosts.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
                       </div>
                       <div className="p-4 bg-indigo-50 rounded-lg">
-                        <p className="text-sm text-gray-600">Costo Total</p>
-                        <p className="text-2xl font-bold text-indigo-600">${totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm text-gray-600">Total Cost</p>
+                        <p className="text-2xl font-bold text-indigo-600">${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                       </div>
                     </div>
                   </div>
@@ -628,25 +628,25 @@ export default function PayrollReportsPage() {
 
                 {selectedReport.type === 'tax' && (
                   <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Retenciones e Impuestos</h3>
+                    <h3 className="font-semibold text-lg">Tax Withholdings & Contributions</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                        <p className="text-sm text-gray-600">ISR Retenido</p>
-                        <p className="text-2xl font-bold text-red-600">${(totalDeductions * 0.6).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm text-gray-600">Federal Tax Withheld</p>
+                        <p className="text-2xl font-bold text-red-600">${(totalDeductions * 0.5).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                       </div>
                       <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-gray-600">Cuotas IMSS (Empleado)</p>
-                        <p className="text-2xl font-bold text-blue-600">${(totalDeductions * 0.25).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm text-gray-600">Social Security (Employee)</p>
+                        <p className="text-2xl font-bold text-blue-600">${(totalDeductions * 0.32).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                       </div>
                       <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                        <p className="text-sm text-gray-600">Aportaciones INFONAVIT</p>
-                        <p className="text-2xl font-bold text-green-600">${(totalDeductions * 0.15).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm text-gray-600">Medicare (Employee)</p>
+                        <p className="text-2xl font-bold text-green-600">${(totalDeductions * 0.18).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                       </div>
                     </div>
                     <div className="p-4 bg-purple-100 rounded-lg">
                       <div className="flex justify-between items-center">
-                        <p className="font-semibold text-purple-900">Total Aportaciones Patronales</p>
-                        <p className="text-xl font-bold text-purple-600">${totalEmployerCosts.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                        <p className="font-semibold text-purple-900">Total Employer Contributions (FICA + FUTA + SUTA)</p>
+                        <p className="text-xl font-bold text-purple-600">${totalEmployerCosts.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                       </div>
                     </div>
                   </div>

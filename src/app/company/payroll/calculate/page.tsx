@@ -48,9 +48,9 @@ interface PayrollCalculation {
   bonuses: number
   commissions: number
   grossPay: number
-  isrTax: number
-  imss: number
-  infonavit: number
+  federalWithholding: number
+  socialSecurity: number
+  medicare: number
   otherDeductions: number
   totalDeductions: number
   netPay: number
@@ -196,15 +196,17 @@ export default function PayrollCalculatePage() {
       const dailySalary = (emp.salary || 0) / 30
       const grossSalary = dailySalary * daysInPeriod
       
-      const isr = grossSalary * 0.10
-      const imss = grossSalary * 0.03
-      const netSalary = grossSalary - isr - imss
+      // US Tax calculations (Florida - no state income tax)
+      const federalWithholding = grossSalary * 0.12  // Estimated federal rate
+      const socialSecurity = grossSalary * 0.062     // 6.2% employee portion
+      const medicare = grossSalary * 0.0145          // 1.45% employee portion
+      const netSalary = grossSalary - federalWithholding - socialSecurity - medicare
       
       return {
         employeeId: emp.id,
         employee: emp,
         grossSalary,
-        deductions: { isr, imss, other: 0 },
+        deductions: { federalWithholding, socialSecurity, medicare, other: 0 },
         netSalary
       }
     }).filter(Boolean)
@@ -246,25 +248,26 @@ export default function PayrollCalculatePage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'MXN'
+      currency: 'USD'
     }).format(amount)
   }
 
   const getTotalGross = () => calculations.reduce((sum, c) => sum + (c?.grossSalary || 0), 0)
-  const getTotalDeductions = () => calculations.reduce((sum, c) => sum + (c?.deductions?.isr || 0) + (c?.deductions?.imss || 0), 0)
+  const getTotalDeductions = () => calculations.reduce((sum, c) => sum + (c?.deductions?.federalWithholding || 0) + (c?.deductions?.socialSecurity || 0) + (c?.deductions?.medicare || 0), 0)
   const getTotalNet = () => calculations.reduce((sum, c) => sum + (c?.netSalary || 0), 0)
 
   const exportToCSV = () => {
-    const headers = ['Empleado', 'Departamento', 'Período', 'Salario Bruto', 'ISR', 'IMSS', 'Deducciones', 'Salario Neto', 'Estado']
+    const headers = ['Employee', 'Department', 'Period', 'Gross Pay', 'Federal Tax', 'Social Security', 'Medicare', 'Deductions', 'Net Pay', 'Status']
     const rows = payrollCalculations.map(p => [
       p.employee,
       p.department,
       p.period,
       p.grossPay,
-      p.isrTax,
-      p.imss,
+      p.federalWithholding,
+      p.socialSecurity,
+      p.medicare,
       p.totalDeductions,
       p.netPay,
       p.status
@@ -278,7 +281,7 @@ export default function PayrollCalculatePage() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `nomina-${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `payroll-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
   }
 
@@ -286,19 +289,19 @@ export default function PayrollCalculatePage() {
     switch (status) {
       case 'draft':
         return <Badge className="bg-gray-100 text-gray-700 flex items-center gap-1">
-          <Edit className="w-3 h-3" /> Borrador
+          <Edit className="w-3 h-3" /> Draft
         </Badge>
       case 'calculated':
         return <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
-          <Calculator className="w-3 h-3" /> Calculada
+          <Calculator className="w-3 h-3" /> Calculated
         </Badge>
       case 'approved':
         return <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
-          <CheckCircle2 className="w-3 h-3" /> Aprobada
+          <CheckCircle2 className="w-3 h-3" /> Approved
         </Badge>
       case 'paid':
         return <Badge className="bg-purple-100 text-purple-700 flex items-center gap-1">
-          <DollarSign className="w-3 h-3" /> Pagada
+          <DollarSign className="w-3 h-3" /> Paid
         </Badge>
       default:
         return null
@@ -336,9 +339,9 @@ export default function PayrollCalculatePage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Cálculo de Nómina</h1>
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Payroll Calculation</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">
-              Calcula salarios, deducciones y pagos netos
+              Calculate wages, deductions, and net pay
             </p>
           </div>
           <div className="flex gap-2">
@@ -375,7 +378,7 @@ export default function PayrollCalculatePage() {
                 <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
               <div className="text-xl sm:text-3xl font-bold text-blue-900">{totalEmployees}</div>
-              <div className="text-xs sm:text-sm text-blue-700">Total Empleados</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Employees</div>
             </CardContent>
           </Card>
 
@@ -385,9 +388,9 @@ export default function PayrollCalculatePage() {
                 <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
               <div className="text-lg sm:text-2xl font-bold text-green-900 truncate">
-                ${totalGrossPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                ${totalGrossPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-xs sm:text-sm text-green-700">Nómina Bruta</div>
+              <div className="text-xs sm:text-sm text-green-700">Gross Payroll</div>
             </CardContent>
           </Card>
 
@@ -397,9 +400,9 @@ export default function PayrollCalculatePage() {
                 <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
               <div className="text-lg sm:text-2xl font-bold text-red-900 truncate">
-                ${totalDeductions.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                ${totalDeductions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-xs sm:text-sm text-red-700">Total Deducciones</div>
+              <div className="text-xs sm:text-sm text-red-700">Total Deductions</div>
             </CardContent>
           </Card>
 
@@ -409,9 +412,9 @@ export default function PayrollCalculatePage() {
                 <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
               <div className="text-lg sm:text-2xl font-bold text-purple-900 truncate">
-                ${totalNetPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                ${totalNetPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-xs sm:text-sm text-purple-700">Nómina Neta</div>
+              <div className="text-xs sm:text-sm text-purple-700">Net Payroll</div>
             </CardContent>
           </Card>
         </div>
@@ -421,12 +424,12 @@ export default function PayrollCalculatePage() {
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-base sm:text-lg font-bold mb-1">Período de Nómina</h3>
-                <p className="text-blue-100 text-sm">16 de Noviembre - 30 de Noviembre 2025</p>
+                <h3 className="text-base sm:text-lg font-bold mb-1">Payroll Period</h3>
+                <p className="text-blue-100 text-sm">November 16 - November 30, 2025</p>
               </div>
               <div className="text-left sm:text-right">
-                <div className="text-xl sm:text-3xl font-bold">Quincena 2</div>
-                <div className="text-xs sm:text-sm text-blue-100">Noviembre 2025</div>
+                <div className="text-xl sm:text-3xl font-bold">Pay Period 2</div>
+                <div className="text-xs sm:text-sm text-blue-100">November 2025</div>
               </div>
             </div>
           </CardContent>
@@ -440,7 +443,7 @@ export default function PayrollCalculatePage() {
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar empleado..."
+                  placeholder="Search employee..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 text-sm"
@@ -452,18 +455,18 @@ export default function PayrollCalculatePage() {
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
-                  <option value="all">Todos</option>
-                  <option value="draft">Borradores</option>
-                  <option value="calculated">Calculadas</option>
-                  <option value="approved">Aprobadas</option>
-                  <option value="paid">Pagadas</option>
+                  <option value="all">All</option>
+                  <option value="draft">Drafts</option>
+                  <option value="calculated">Calculated</option>
+                  <option value="approved">Approved</option>
+                  <option value="paid">Paid</option>
                 </select>
                 <select 
                   className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg text-sm"
                   value={filterDepartment}
                   onChange={(e) => setFilterDepartment(e.target.value)}
                 >
-                  <option value="all">Todos Deptos</option>
+                  <option value="all">All Depts</option>
                   {uniqueDepartments.map(dept => (
                     <option key={dept} value={dept}>{dept}</option>
                   ))}
@@ -476,23 +479,23 @@ export default function PayrollCalculatePage() {
         {/* Payroll Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Cálculos de Nómina ({filteredPayroll.length})</CardTitle>
+            <CardTitle>Payroll Calculations ({filteredPayroll.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Empleado</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Departamento</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Salario Base</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Extras</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Bonos/Com.</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Nómina Bruta</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Deducciones</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Nómina Neta</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Estado</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Acciones</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Employee</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Department</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Base Salary</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Overtime</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Bonuses/Comm.</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Gross Pay</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Deductions</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Net Pay</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Status</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -517,10 +520,10 @@ export default function PayrollCalculatePage() {
                         {(payroll.overtimePay + payroll.doubleTimePay) > 0 ? (
                           <>
                             <div className="text-sm font-semibold text-orange-600">
-                              ${(payroll.overtimePay + payroll.doubleTimePay).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                              ${(payroll.overtimePay + payroll.doubleTimePay).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {payroll.overtimeHours}h + {payroll.doubleTimeHours}h doble
+                              {payroll.overtimeHours}h + {payroll.doubleTimeHours}h double
                             </div>
                           </>
                         ) : (
@@ -538,20 +541,20 @@ export default function PayrollCalculatePage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="text-base font-bold text-blue-600">
-                          ${payroll.grossPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${payroll.grossPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="text-sm font-semibold text-red-600">
-                          -${payroll.totalDeductions.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          -${payroll.totalDeductions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </div>
                         <div className="text-xs text-gray-500">
-                          ISR + IMSS + INF
+                          FICA + Fed Tax
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="text-base font-bold text-green-600">
-                          ${payroll.netPay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${payroll.netPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -598,16 +601,16 @@ export default function PayrollCalculatePage() {
                 <Calculator className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-blue-900 mb-2">Cálculo de Nómina</h3>
+                <h3 className="font-semibold text-blue-900 mb-2">Payroll Calculation</h3>
                 <p className="text-blue-700 text-sm mb-2">
-                  Sistema automatizado de cálculo de nómina conforme a la legislación laboral y fiscal mexicana.
+                  Automated payroll calculation system compliant with US federal and Florida state labor laws.
                 </p>
                 <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• <strong>Percepciones:</strong> Salario base + horas extra (200%) + tiempo doble (300%) + bonos + comisiones</li>
-                  <li>• <strong>ISR:</strong> Cálculo según tabla Art. 96 LISR (retención mensual)</li>
-                  <li>• <strong>IMSS:</strong> Cuota obrera (3% aprox) según LSS Art. 25, 106, 107</li>
-                  <li>• <strong>INFONAVIT:</strong> Descuento 5% sobre salario base (créditos vigentes)</li>
-                  <li>• <strong>Integración automática:</strong> Datos desde control de asistencia</li>
+                  <li>• <strong>Earnings:</strong> Base salary + overtime (1.5x) + double time (2x) + bonuses + commissions</li>
+                  <li>• <strong>Federal Withholding:</strong> Calculated based on W-4 and IRS tax brackets</li>
+                  <li>• <strong>Social Security:</strong> 6.2% employee + 6.2% employer (up to $168,600 wage base)</li>
+                  <li>• <strong>Medicare:</strong> 1.45% employee + 1.45% employer (no wage base limit)</li>
+                  <li>• <strong>Florida:</strong> No state income tax (employer pays SUTA ~2.7%)</li>
                 </ul>
               </div>
             </div>
@@ -621,11 +624,11 @@ export default function PayrollCalculatePage() {
               {/* Modal Header */}
               <div className="flex items-center justify-between p-6 border-b">
                 <div>
-                  <h2 className="text-xl font-bold">Nueva Nómina</h2>
+                  <h2 className="text-xl font-bold">New Payroll</h2>
                   <p className="text-sm text-gray-500">
-                    {modalStep === 'config' && 'Paso 1: Configurar período y empleados'}
-                    {modalStep === 'preview' && 'Paso 2: Revisar cálculos'}
-                    {modalStep === 'complete' && 'Paso 3: Nómina procesada'}
+                    {modalStep === 'config' && 'Step 1: Configure period and employees'}
+                    {modalStep === 'preview' && 'Step 2: Review calculations'}
+                    {modalStep === 'complete' && 'Step 3: Payroll processed'}
                   </p>
                 </div>
                 <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -642,10 +645,10 @@ export default function PayrollCalculatePage() {
                     <div className="space-y-4">
                       <h3 className="font-semibold flex items-center gap-2">
                         <Calendar className="h-5 w-5 text-blue-600" />
-                        Período de Nómina
+                        Payroll Period
                       </h3>
                       <div>
-                        <label className="block text-sm font-medium mb-1">Fecha Inicio</label>
+                        <label className="block text-sm font-medium mb-1">Start Date</label>
                         <Input
                           type="date"
                           value={periodStart}
@@ -653,7 +656,7 @@ export default function PayrollCalculatePage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">Fecha Fin</label>
+                        <label className="block text-sm font-medium mb-1">End Date</label>
                         <Input
                           type="date"
                           value={periodEnd}
@@ -661,7 +664,7 @@ export default function PayrollCalculatePage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">Fecha de Pago</label>
+                        <label className="block text-sm font-medium mb-1">Payment Date</label>
                         <Input
                           type="date"
                           value={paymentDate}
@@ -675,10 +678,10 @@ export default function PayrollCalculatePage() {
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold flex items-center gap-2">
                           <Users className="h-5 w-5 text-blue-600" />
-                          Empleados ({selectedEmployees.length}/{employees.length})
+                          Employees ({selectedEmployees.length}/{employees.length})
                         </h3>
                         <Button variant="outline" size="sm" onClick={selectAllEmployees}>
-                          {selectedEmployees.length === employees.length ? 'Deseleccionar' : 'Seleccionar'} Todos
+                          {selectedEmployees.length === employees.length ? 'Deselect' : 'Select'} All
                         </Button>
                       </div>
                       
@@ -708,7 +711,7 @@ export default function PayrollCalculatePage() {
                             </div>
                           ))}
                           {employees.length === 0 && (
-                            <p className="text-center text-gray-500 py-4">No hay empleados activos</p>
+                            <p className="text-center text-gray-500 py-4">No active employees</p>
                           )}
                         </div>
                       )}
@@ -744,11 +747,12 @@ export default function PayrollCalculatePage() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left py-3 px-2">Empleado</th>
-                            <th className="text-right py-3 px-2">Salario Bruto</th>
-                            <th className="text-right py-3 px-2">ISR (10%)</th>
-                            <th className="text-right py-3 px-2">IMSS (3%)</th>
-                            <th className="text-right py-3 px-2">Salario Neto</th>
+                            <th className="text-left py-3 px-2">Employee</th>
+                            <th className="text-right py-3 px-2">Gross Salary</th>
+                            <th className="text-right py-3 px-2">Fed Tax (12%)</th>
+                            <th className="text-right py-3 px-2">Social Security (6.2%)</th>
+                            <th className="text-right py-3 px-2">Medicare (1.45%)</th>
+                            <th className="text-right py-3 px-2">Net Salary</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -758,8 +762,9 @@ export default function PayrollCalculatePage() {
                                 <p className="font-medium">{calc.employee.firstName} {calc.employee.lastName}</p>
                               </td>
                               <td className="py-3 px-2 text-right">{formatCurrency(calc.grossSalary)}</td>
-                              <td className="py-3 px-2 text-right text-red-600">-{formatCurrency(calc.deductions.isr)}</td>
-                              <td className="py-3 px-2 text-right text-red-600">-{formatCurrency(calc.deductions.imss)}</td>
+                              <td className="py-3 px-2 text-right text-red-600">-{formatCurrency(calc.deductions.federalWithholding)}</td>
+                              <td className="py-3 px-2 text-right text-red-600">-{formatCurrency(calc.deductions.socialSecurity)}</td>
+                              <td className="py-3 px-2 text-right text-red-600">-{formatCurrency(calc.deductions.medicare)}</td>
                               <td className="py-3 px-2 text-right font-bold text-green-600">{formatCurrency(calc.netSalary)}</td>
                             </tr>
                           ))}
@@ -777,8 +782,8 @@ export default function PayrollCalculatePage() {
                         <CheckCircle2 className="h-8 w-8 text-green-600" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-green-900">¡Nómina Procesada Exitosamente!</h3>
-                        <p className="text-green-700">Se han creado {payrollResults.length} registros de nómina</p>
+                        <h3 className="text-xl font-bold text-green-900">Payroll Processed Successfully!</h3>
+                        <p className="text-green-700">{payrollResults.length} payroll records have been created</p>
                       </div>
                     </div>
 
@@ -787,10 +792,10 @@ export default function PayrollCalculatePage() {
                         <thead>
                           <tr className="border-b">
                             <th className="text-left py-3 px-2">ID</th>
-                            <th className="text-left py-3 px-2">Período</th>
-                            <th className="text-right py-3 px-2">Salario Base</th>
-                            <th className="text-right py-3 px-2">Pago Neto</th>
-                            <th className="text-left py-3 px-2">Estado</th>
+                            <th className="text-left py-3 px-2">Period</th>
+                            <th className="text-right py-3 px-2">Base Salary</th>
+                            <th className="text-right py-3 px-2">Net Pay</th>
+                            <th className="text-left py-3 px-2">Status</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -817,25 +822,25 @@ export default function PayrollCalculatePage() {
               {/* Modal Footer */}
               <div className="flex justify-between p-6 border-t bg-gray-50">
                 <Button variant="outline" onClick={modalStep === 'preview' ? () => setModalStep('config') : closeModal}>
-                  {modalStep === 'preview' ? 'Modificar' : 'Cancelar'}
+                  {modalStep === 'preview' ? 'Modify' : 'Cancel'}
                 </Button>
                 
                 {modalStep === 'config' && (
                   <Button onClick={calculatePayroll} disabled={selectedEmployees.length === 0}>
-                    Calcular Nómina
+                    Calculate Payroll
                   </Button>
                 )}
                 
                 {modalStep === 'preview' && (
                   <Button onClick={processPayroll} disabled={processing}>
                     {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Procesar Nómina
+                    Process Payroll
                   </Button>
                 )}
                 
                 {modalStep === 'complete' && (
                   <Button onClick={closeModal}>
-                    Cerrar
+                    Close
                   </Button>
                 )}
               </div>
