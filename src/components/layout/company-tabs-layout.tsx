@@ -395,6 +395,21 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
 
   const activeSection = filteredTabSections.find(tab => tab.id === activeTab) || currentTab || filteredTabSections[0]
 
+  // Encontrar el submenu actual para breadcrumbs
+  const findCurrentSubmenu = () => {
+    for (const tab of filteredTabSections) {
+      const submenu = tab.submenus.find(sub => 
+        currentUrl === sub.href || pathname === sub.href || pathname?.startsWith(sub.href.split('?')[0])
+      )
+      if (submenu) {
+        return { tab, submenu }
+      }
+    }
+    return null
+  }
+  
+  const currentBreadcrumb = findCurrentSubmenu()
+
   // Sincronizar activeTab con la URL actual cuando cambia la ruta
   useEffect(() => {
     // Solo sincronizar si la URL cambió a un tab diferente
@@ -597,22 +612,38 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
             {/* Mobile: Back Button + Menu Button */}
             <div className="flex items-center lg:hidden">
               <button
-                onClick={() => router.back()}
-                className="p-2 -ml-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Volver"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <button
                 onClick={() => setShowMobileMenu(true)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 -ml-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Menu className="w-6 h-6" />
               </button>
             </div>
             
-            {/* Left: Company info */}
-            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            {/* Mobile Breadcrumbs - Clickeable */}
+            {currentBreadcrumb && (
+              <div className="flex items-center gap-1 lg:hidden min-w-0 flex-1 overflow-hidden">
+                <button
+                  onClick={() => {
+                    // Ir al primer item de la sección
+                    router.push(currentBreadcrumb.tab.submenus[0].href)
+                  }}
+                  className="flex items-center gap-1 text-sm font-medium text-[#2CA01C] hover:text-[#108000] active:scale-95 transition-all flex-shrink-0"
+                >
+                  <currentBreadcrumb.tab.icon className="w-4 h-4" />
+                  <span>{currentBreadcrumb.tab.name}</span>
+                </button>
+                <ChevronRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-700 truncate">
+                  {currentBreadcrumb.submenu.name.replace(/^[🚗📊📖⚖️📒📁📋🏷️🖥️🔍]+\s*/, '')}
+                </span>
+              </div>
+            )}
+            
+            {/* Left: Company info - Hidden on mobile when breadcrumbs shown */}
+            <div className={cn(
+              "flex items-center gap-2 md:gap-3 min-w-0 flex-1",
+              currentBreadcrumb && "hidden lg:flex"
+            )}>
               {activeCompany.logo ? (
                 <Image
                   src={activeCompany.logo}
