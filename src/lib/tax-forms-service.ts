@@ -7,6 +7,8 @@
  * - RT-6: Florida Quarterly Reemployment Tax Report
  * - W-2: Wage and Tax Statement (Individual)
  * - W-3: Transmittal of Wage and Tax Statements
+ * - Form 1099-NEC: Nonemployee Compensation
+ * - Form 1096: Annual Summary and Transmittal of U.S. Information Returns
  */
 
 import { prisma } from './prisma';
@@ -107,6 +109,36 @@ export interface W3Data {
   totalMedicareTaxWithheld: number;
   totalStateWages: number;
   totalStateIncomeTaxWithheld: number;
+}
+
+export interface Form1099NECData {
+  year: number;
+  payerName: string;
+  payerEIN: string;
+  payerAddress: string;
+  recipientName: string;
+  recipientTIN: string;
+  recipientAddress: string;
+  box1NonemployeeCompensation: number;
+  box4FederalTaxWithheld: number;
+  box5StateTaxWithheld: number;
+  box6StateIncome: number;
+  stateName: string;
+  statePayerNumber: string;
+}
+
+export interface Form1096Data {
+  year: number;
+  payerName: string;
+  payerEIN: string;
+  payerAddress: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  formType: string;
+  totalForms: number;
+  totalAmount: number;
+  form1099Ids: string[];
 }
 
 // ============== FORM 941 - QUARTERLY FEDERAL TAX ==============
@@ -824,5 +856,287 @@ export async function getAllW2ForYear(companyId: string, year: number) {
 export async function getW3ForYear(companyId: string, year: number) {
   return await prisma.taxFormW3.findFirst({
     where: { companyId, year },
+  });
+}
+
+// ============== FORM 1099-NEC - NONEMPLOYEE COMPENSATION ==============
+
+export async function generate1099NEC(
+  companyId: string,
+  vendorId: string,
+  year: number
+): Promise<Form1099NECData> {
+  // Obtener datos de la empresa
+  const company = await prisma.company.findUnique({
+    where: { id: companyId }
+  });
+
+  if (!company) {
+    throw new Error('Empresa no encontrada');
+  }
+
+  // Obtener datos del vendor/contractor
+  const vendor = await prisma.vendor.findUnique({
+    where: { id: vendorId }
+  });
+
+  if (!vendor) {
+    throw new Error('Proveedor/Contratista no encontrado');
+  }
+
+  // Calcular el año fiscal
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31, 23, 59, 59);
+
+  // Obtener todos los pagos al vendor durante el año
+  const payments = await prisma.vendorPayable.findMany({
+    where: {
+      vendorId,
+      status: 'PAID',
+      issueDate: {
+        gte: yearStart,
+        lte: yearEnd
+      }
+    }
+  });
+
+  // También buscar en gastos si aplica
+  const expenses = await prisma.expense.findMany({
+    where: {
+      companyId,
+      date: {
+        gte: yearStart,
+        lte: yearEnd
+      },
+      status: 'APPROVED',
+      // Filtrar por vendor name o descripción si hay relación
+      description: {
+        contains: vendor.name,
+        mode: 'insensitive'
+      }
+    }
+  });
+
+  // Calcular total de compensación no-empleado
+  let totalCompensation = 0;
+  
+  // Sumar pagos a proveedores
+  payments.forEach(payment => {
+    totalCompensation += payment.total;
+  });
+
+  // Sumar gastos relacionados
+  expenses.forEach(expense => {
+    totalCompensation += expense.amount;
+  });
+
+  // Solo se requiere 1099-NEC si el total es >= $600
+  if (totalCompensation < 600) {
+    console.log(`Vendor ${vendor.name} tiene pagos menores a $600 (${totalCompensation}), 1099-NEC no requerido`);
+  }
+
+  const form1099: Form1099NECData = {
+    year,
+    payerName: company.name,
+    payerEIN: company.taxId || 'XX-XXXXXXX',
+    payerAddress: `${company.address || ''}, ${company.city || ''}, ${company.state || ''} ${company.zipCode || ''}`.trim(),
+    recipientName: vendor.name,
+    recipientTIN: vendor.taxId || 'XXX-XX-XXXX',
+    recipientAddress: `${vendor.address || ''}, ${vendor.city || ''}, ${vendor.state || ''} ${vendor.country || ''}`.trim(),
+    box1NonemployeeCompensation: totalCompensation,
+    box4FederalTaxWithheld: 0, // Normalmente no hay retención para contractors
+    box5StateTaxWithheld: 0,
+    box6StateIncome: totalCompensation,
+    stateName: company.state || 'FL',
+    statePayerNumber: company.taxId || ''
+  };
+
+  // Guardar o actualizar en la base de datos
+  await prisma.taxForm1099.upsert({
+    where: {
+      // No hay unique constraint, así que usamos create/update manualmente
+      id: `${companyId}-${vendorId}-${year}-NEC`
+    },
+    update: {
+      payerName: form1099.payerName,
+      payerEIN: form1099.payerEIN,
+      payerAddress: company.address || '',
+      payerCity: company.city || '',
+      payerState: company.state || 'FL',
+      payerZip: company.zipCode || '',
+      recipientName: form1099.recipientName,
+      recipientTIN: form1099.recipientTIN,
+      recipientAddress: vendor.address || '',
+      recipientCity: vendor.city || '',
+      recipientState: vendor.state || '',
+      recipientZip: vendor.country || '',
+      box1Amount: form1099.box1NonemployeeCompensation,
+      box4Amount: form1099.box4FederalTaxWithheld,
+      taxYear: year,
+    },
+    create: {
+      id: `${companyId}-${vendorId}-${year}-NEC`,
+      userId: companyId, // Usar companyId como userId por ahora
+      companyId,
+      payerName: form1099.payerName,
+      payerEIN: form1099.payerEIN,
+      payerAddress: company.address || '',
+      payerCity: company.city || '',
+      payerState: company.state || 'FL',
+      payerZip: company.zipCode || '',
+      recipientName: form1099.recipientName,
+      recipientTIN: form1099.recipientTIN,
+      recipientAddress: vendor.address || '',
+      recipientCity: vendor.city || '',
+      recipientState: vendor.state || '',
+      recipientZip: vendor.country || '',
+      recipientEmail: vendor.email,
+      formType: 'NEC',
+      taxYear: year,
+      box1Amount: form1099.box1NonemployeeCompensation,
+      box4Amount: form1099.box4FederalTaxWithheld,
+      filingRequired: totalCompensation >= 600,
+      status: 'DRAFT',
+    },
+  });
+
+  return form1099;
+}
+
+// ============== FORM 1096 - TRANSMITTAL OF 1099s ==============
+
+export async function generate1096(
+  companyId: string,
+  year: number
+): Promise<Form1096Data> {
+  // Obtener datos de la empresa
+  const company = await prisma.company.findUnique({
+    where: { id: companyId }
+  });
+
+  if (!company) {
+    throw new Error('Empresa no encontrada');
+  }
+
+  // Obtener todos los 1099s de la empresa para el año
+  const form1099s = await prisma.taxForm1099.findMany({
+    where: {
+      companyId,
+      taxYear: year,
+      filingRequired: true
+    }
+  });
+
+  // Si no hay 1099s existentes, intentar generar para vendors que califiquen
+  if (form1099s.length === 0) {
+    // Obtener todos los vendors
+    const vendors = await prisma.vendor.findMany({
+      where: { companyId }
+    });
+
+    // Generar 1099 para cada vendor que califique
+    for (const vendor of vendors) {
+      try {
+        await generate1099NEC(companyId, vendor.id, year);
+      } catch (error) {
+        console.error(`Error generando 1099 para vendor ${vendor.name}:`, error);
+      }
+    }
+
+    // Volver a obtener los 1099s generados
+    const generatedForms = await prisma.taxForm1099.findMany({
+      where: {
+        companyId,
+        taxYear: year,
+        filingRequired: true
+      }
+    });
+
+    // Usar los generados
+    form1099s.push(...generatedForms);
+  }
+
+  // Calcular totales
+  let totalAmount = 0;
+  const form1099Ids: string[] = [];
+
+  form1099s.forEach(form => {
+    totalAmount += form.box1Amount;
+    form1099Ids.push(form.id);
+  });
+
+  const form1096: Form1096Data = {
+    year,
+    payerName: company.name,
+    payerEIN: company.taxId || 'XX-XXXXXXX',
+    payerAddress: `${company.address || ''}, ${company.city || ''}, ${company.state || ''} ${company.zipCode || ''}`.trim(),
+    contactName: company.name,
+    contactPhone: company.phone || '',
+    contactEmail: company.email || '',
+    formType: '1099-NEC',
+    totalForms: form1099s.length,
+    totalAmount,
+    form1099Ids
+  };
+
+  // Guardar o actualizar en la base de datos
+  await prisma.taxForm1096.upsert({
+    where: {
+      companyId_taxYear_formType: {
+        companyId,
+        taxYear: year,
+        formType: '1099-NEC'
+      }
+    },
+    update: {
+      totalForms: form1096.totalForms,
+      totalAmount: form1096.totalAmount,
+      payerName: form1096.payerName,
+      payerEIN: form1096.payerEIN,
+      payerAddress: company.address || '',
+      payerCity: company.city || '',
+      payerState: company.state || 'FL',
+      payerZip: company.zipCode || '',
+      contactName: form1096.contactName,
+      contactPhone: form1096.contactPhone,
+      contactEmail: form1096.contactEmail,
+      form1099Ids: form1096.form1099Ids,
+    },
+    create: {
+      userId: companyId,
+      companyId,
+      taxYear: year,
+      formType: '1099-NEC',
+      totalForms: form1096.totalForms,
+      totalAmount: form1096.totalAmount,
+      payerName: form1096.payerName,
+      payerEIN: form1096.payerEIN,
+      payerAddress: company.address || '',
+      payerCity: company.city || '',
+      payerState: company.state || 'FL',
+      payerZip: company.zipCode || '',
+      contactName: form1096.contactName,
+      contactPhone: form1096.contactPhone,
+      contactEmail: form1096.contactEmail,
+      form1099Ids: form1096.form1099Ids,
+      status: 'DRAFT',
+    },
+  });
+
+  return form1096;
+}
+
+// ============== HELPER FUNCTIONS FOR 1099 & 1096 ==============
+
+export async function getAll1099ForYear(companyId: string, year: number) {
+  return await prisma.taxForm1099.findMany({
+    where: { companyId, taxYear: year },
+    orderBy: { recipientName: 'asc' },
+  });
+}
+
+export async function get1096ForYear(companyId: string, year: number) {
+  return await prisma.taxForm1096.findFirst({
+    where: { companyId, taxYear: year },
   });
 }

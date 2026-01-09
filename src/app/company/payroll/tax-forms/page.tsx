@@ -467,7 +467,26 @@ export default function TaxFormsPage() {
           }
           break
         case '1096':
-          data = generateForm1096Data()
+          data = {
+            formType: 'Form 1096',
+            title: 'ANNUAL SUMMARY AND TRANSMITTAL OF U.S. INFORMATION RETURNS',
+            period: `Año ${selectedYear}`,
+            companyInfo: {
+              name: apiData.payerName || activeCompany?.name,
+              ein: apiData.payerEIN || 'XX-XXXXXXX',
+              address: apiData.payerAddress || ''
+            },
+            data: {
+              formType1099: apiData.formType || '1099-NEC',
+              numberOfForms: (apiData.totalForms || 0).toString(),
+              totalAmount: (apiData.totalAmount || 0).toFixed(2),
+              federalIncomeTaxWithheld: '0.00',
+              contactName: apiData.contactName || '',
+              contactPhone: apiData.contactPhone || '',
+              contactEmail: apiData.contactEmail || '',
+              note: 'Este formulario resume todos los 1099 emitidos a contratistas independientes'
+            }
+          }
           break
         case 'w2':
           if (Array.isArray(apiData) && apiData.length > 0) {
@@ -665,7 +684,19 @@ export default function TaxFormsPage() {
           filename = 'FormW3_Transmittal'
           break
         case '1096':
-          data = generateForm1096Data()
+          data = {
+            formType: 'Form 1096',
+            period: `Año ${selectedYear}`,
+            companyInfo: {
+              name: apiData.payerName || activeCompany?.name,
+              ein: apiData.payerEIN || 'XX-XXXXXXX',
+            },
+            data: {
+              formType1099: apiData.formType || '1099-NEC',
+              numberOfForms: (apiData.totalForms || 0).toString(),
+              totalAmount: (apiData.totalAmount || 0).toFixed(2),
+            }
+          }
           filename = 'Form1096_Transmittal'
           break
         case 'w2':

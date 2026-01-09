@@ -7,10 +7,14 @@ import {
   generateRT6,
   generateW2,
   generateW3,
+  generate1099NEC,
+  generate1096,
   getQuarterlyForms941,
   getAnnualForm940,
   getQuarterlyRT6,
   getAllW2ForYear,
+  getAll1099ForYear,
+  get1096ForYear,
 } from '@/lib/tax-forms-service';
 
 export const dynamic = 'force-dynamic'
@@ -62,6 +66,15 @@ export async function GET(request: NextRequest) {
       case 'w3':
         const w3 = await generateW3(session.user.id, year);
         return NextResponse.json(w3);
+
+      case '1099':
+      case '1099nec':
+        const form1099s = await getAll1099ForYear(session.user.id, year);
+        return NextResponse.json(form1099s);
+
+      case '1096':
+        const form1096 = await generate1096(session.user.id, year);
+        return NextResponse.json(form1096);
 
       default:
         return NextResponse.json({ error: 'Tipo de formulario no válido' }, { status: 400 });
@@ -124,6 +137,18 @@ export async function POST(request: NextRequest) {
       case 'w3':
         const w3 = await generateW3(session.user.id, year);
         return NextResponse.json(w3, { status: 201 });
+
+      case '1099':
+      case '1099nec':
+        if (!body.vendorId) {
+          return NextResponse.json({ error: 'Se requiere el ID del vendor/contratista' }, { status: 400 });
+        }
+        const form1099 = await generate1099NEC(session.user.id, body.vendorId, year);
+        return NextResponse.json(form1099, { status: 201 });
+
+      case '1096':
+        const form1096Post = await generate1096(session.user.id, year);
+        return NextResponse.json(form1096Post, { status: 201 });
 
       default:
         return NextResponse.json({ error: 'Tipo de formulario no válido' }, { status: 400 });

@@ -1549,6 +1549,7 @@ model StockAlert {
 model TaxForm1099 {
   id               String        @id @default(cuid())
   userId           String
+  companyId        String?
   payerName        String
   payerEIN         String
   payerAddress     String
@@ -1564,10 +1565,10 @@ model TaxForm1099 {
   recipientEmail   String?
   formType         Form1099Type
   taxYear          Int
-  box1Amount       Float         @default(0)
+  box1Amount       Float         @default(0)  // Nonemployee compensation (NEC)
   box2Amount       Float         @default(0)
   box3Amount       Float         @default(0)
-  box4Amount       Float         @default(0)
+  box4Amount       Float         @default(0)  // Federal income tax withheld
   box5Amount       Float         @default(0)
   box6Amount       Float         @default(0)
   box7Amount       Float         @default(0)
@@ -1589,6 +1590,7 @@ model TaxForm1099 {
   updatedAt        DateTime      @updatedAt
 
   @@index([userId])
+  @@index([companyId])
   @@index([recipientTIN])
   @@index([taxYear])
   @@index([status])
@@ -1628,12 +1630,13 @@ model W9Information {
 }
 
 model TaxForm1096 {
-  id                 String    @id @default(cuid())
+  id                 String         @id @default(cuid())
   userId             String
+  companyId          String?
   taxYear            Int
-  formType           String
-  totalForms         Int
-  totalAmount        Float
+  formType           String         @default("1099-NEC")  // Type of 1099s being transmitted
+  totalForms         Int            @default(0)
+  totalAmount        Float          @default(0)
   payerName          String
   payerEIN           String
   payerAddress       String
@@ -1644,14 +1647,18 @@ model TaxForm1096 {
   contactPhone       String
   contactEmail       String
   filedDate          DateTime?
-  filedWithIRS       Boolean   @default(false)
+  filedWithIRS       Boolean        @default(false)
   confirmationNumber String?
   form1099Ids        String[]
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  status             TaxFormStatus  @default(DRAFT)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
+  @@unique([companyId, taxYear, formType])
   @@index([userId])
+  @@index([companyId])
   @@index([taxYear])
+  @@index([status])
   @@map("tax_form_1096")
 }
 
