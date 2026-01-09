@@ -196,15 +196,15 @@ export default function ProjectProfitabilityPage() {
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Rentabilidad de Proyectos</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Rentabilidad de Proyectos</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Análisis de márgenes, ROI y rentabilidad por proyecto
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => {
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => {
               if (projects.length === 0) return
               const headers = ['Código', 'Proyecto', 'Cliente', 'Ingresos', 'Costos', 'Utilidad', 'Margen %', 'ROI %']
               const csvContent = [
@@ -226,71 +226,71 @@ export default function ProjectProfitabilityPage() {
               link.download = `rentabilidad-proyectos_${new Date().toISOString().split('T')[0]}.csv`
               link.click()
             }}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar Análisis
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={loadProfitability}>
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Actualizar
+            <Button onClick={loadProfitability} size="sm" className="flex-1 sm:flex-none">
+              <BarChart3 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
           </div>
         </div>
 
         {/* Global Stats with Animations */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-green-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={projects.slice(0, 6).map(p => p.actualRevenue)} color="#22c55e" height={25} width={50} />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projects.slice(0, 6).map(p => p.actualRevenue)} color="#22c55e" height={25} width={50} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
                 <AnimatedCounter value={totalRevenue / 1000000} prefix="$" suffix="M" decimals={2} duration={1500} />
               </div>
-              <div className="text-sm text-green-700">Ingresos Totales</div>
-              <AnimatedProgress value={100} color="green" height={4} showValue={false} className="mt-3" />
+              <div className="text-xs sm:text-sm text-green-700">Ingresos Totales</div>
+              <AnimatedProgress value={100} color="green" height={4} showValue={false} className="mt-3 hidden sm:block" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={projects.slice(0, 6).map(p => p.netProfit)} color="#3b82f6" height={25} width={50} />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projects.slice(0, 6).map(p => p.netProfit)} color="#3b82f6" height={25} width={50} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">
                 <AnimatedCounter value={totalProfit / 1000000} prefix="$" suffix="M" decimals={2} duration={1500} />
               </div>
-              <div className="text-sm text-blue-700">Utilidad Neta</div>
-              <AnimatedProgress value={Math.round((totalProfit / totalRevenue) * 100)} color="blue" height={4} showValue={false} className="mt-3" />
+              <div className="text-xs sm:text-sm text-blue-700">Utilidad Neta</div>
+              <AnimatedProgress value={Math.round((totalProfit / totalRevenue) * 100)} color="blue" height={4} showValue={false} className="mt-3 hidden sm:block" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <PieChart className="w-8 h-8 text-purple-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={projects.slice(0, 6).map(p => p.netMarginPercent)} color="#a855f7" height={25} width={50} />
+                <PieChart className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projects.slice(0, 6).map(p => p.netMarginPercent)} color="#a855f7" height={25} width={50} className="hidden sm:block" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">
+              <div className="text-xl sm:text-3xl font-bold text-purple-900">
                 <AnimatedCounter value={avgMargin} suffix="%" decimals={1} duration={1500} />
               </div>
-              <div className="text-sm text-purple-700">Margen Promedio</div>
-              <AnimatedProgress value={Math.min(100, avgMargin)} color="purple" height={4} showValue={false} className="mt-3" />
+              <div className="text-xs sm:text-sm text-purple-700">Margen Prom.</div>
+              <AnimatedProgress value={Math.min(100, avgMargin)} color="purple" height={4} showValue={false} className="mt-3 hidden sm:block" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <Target className="w-8 h-8 text-orange-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={projects.slice(0, 6).map(p => p.roi)} color="#f97316" height={25} width={50} />
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projects.slice(0, 6).map(p => p.roi)} color="#f97316" height={25} width={50} className="hidden sm:block" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">
+              <div className="text-xl sm:text-3xl font-bold text-orange-900">
                 <AnimatedCounter value={avgROI} suffix="%" decimals={1} duration={1500} />
               </div>
-              <div className="text-sm text-orange-700">ROI Promedio</div>
-              <AnimatedProgress value={Math.min(100, avgROI)} color="orange" height={4} showValue={false} className="mt-3" />
+              <div className="text-xs sm:text-sm text-orange-700">ROI Prom.</div>
+              <AnimatedProgress value={Math.min(100, avgROI)} color="orange" height={4} showValue={false} className="mt-3 hidden sm:block" />
             </CardContent>
           </Card>
         </div>
@@ -360,49 +360,49 @@ export default function ProjectProfitabilityPage() {
 
         {/* Selected Project Detail */}
         <Card className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-xl font-bold mb-1">{selectedProjectData.projectName}</h3>
-                <p className="text-emerald-100">Cliente: {selectedProjectData.client} | Código: {selectedProjectData.projectCode}</p>
+                <h3 className="text-lg sm:text-xl font-bold mb-1">{selectedProjectData.projectName}</h3>
+                <p className="text-xs sm:text-sm text-emerald-100">Cliente: {selectedProjectData.client} | {selectedProjectData.projectCode}</p>
               </div>
               {getStatusBadge(selectedProjectData.status)}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mt-4">
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-emerald-100 mb-1">Ingresos</div>
-                <div className="text-xl font-bold">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4 mt-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-emerald-100 mb-1">Ingresos</div>
+                <div className="text-sm sm:text-xl font-bold">
                   ${(selectedProjectData.actualRevenue / 1000).toLocaleString('es-MX')}K
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-emerald-100 mb-1">Costos</div>
-                <div className="text-xl font-bold">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-emerald-100 mb-1">Costos</div>
+                <div className="text-sm sm:text-xl font-bold">
                   ${(selectedProjectData.totalCosts / 1000).toLocaleString('es-MX')}K
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-emerald-100 mb-1">Utilidad</div>
-                <div className="text-xl font-bold">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-emerald-100 mb-1">Utilidad</div>
+                <div className="text-sm sm:text-xl font-bold">
                   ${(selectedProjectData.netProfit / 1000).toLocaleString('es-MX')}K
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-emerald-100 mb-1">Margen Neto</div>
-                <div className="text-xl font-bold">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-emerald-100 mb-1">Margen</div>
+                <div className="text-sm sm:text-xl font-bold">
                   {selectedProjectData.netMarginPercent.toFixed(1)}%
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-emerald-100 mb-1">ROI</div>
-                <div className="text-xl font-bold">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-emerald-100 mb-1">ROI</div>
+                <div className="text-sm sm:text-xl font-bold">
                   {selectedProjectData.roi.toFixed(1)}%
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-emerald-100 mb-1">Eficiencia</div>
-                <div className="text-xl font-bold">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-emerald-100 mb-1">Eficiencia</div>
+                <div className="text-sm sm:text-xl font-bold">
                   {selectedProjectData.budgetEfficiency.toFixed(1)}%
                 </div>
               </div>
@@ -608,21 +608,21 @@ export default function ProjectProfitabilityPage() {
         {/* All Projects Comparison */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Comparativo de Rentabilidad - Todos los Proyectos</CardTitle>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg">Comparativo de Rentabilidad</CardTitle>
+              <div className="grid grid-cols-2 gap-2">
                 <select 
-                  className="px-4 py-2 border rounded-lg text-sm"
+                  className="px-3 py-2 border rounded-lg text-xs sm:text-sm"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                 >
-                  <option value="roi">Ordenar por ROI</option>
-                  <option value="margin">Ordenar por Margen</option>
-                  <option value="revenue">Ordenar por Ingresos</option>
-                  <option value="profit">Ordenar por Utilidad</option>
+                  <option value="roi">Por ROI</option>
+                  <option value="margin">Por Margen</option>
+                  <option value="revenue">Por Ingresos</option>
+                  <option value="profit">Por Utilidad</option>
                 </select>
                 <select 
-                  className="px-4 py-2 border rounded-lg text-sm"
+                  className="px-3 py-2 border rounded-lg text-xs sm:text-sm"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
@@ -634,7 +634,60 @@ export default function ProjectProfitabilityPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="block md:hidden divide-y">
+              {filteredProjects.map((project) => (
+                <div key={project.projectId} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-xs font-semibold text-blue-600">
+                          {project.projectCode}
+                        </span>
+                        {getProfitabilityBadge(project.netMarginPercent)}
+                      </div>
+                      <div className="text-sm font-semibold text-gray-900">{project.projectName}</div>
+                      <div className="text-xs text-gray-500">{project.client}</div>
+                    </div>
+                    <button 
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                      onClick={() => setSelectedProject(project.projectId)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-gray-50 p-2 rounded">
+                      <div className="text-gray-500">Ingresos</div>
+                      <div className="font-semibold">${project.actualRevenue.toLocaleString('es-MX')}</div>
+                    </div>
+                    <div className="bg-gray-50 p-2 rounded">
+                      <div className="text-gray-500">Costos</div>
+                      <div className="font-semibold">${project.totalCosts.toLocaleString('es-MX')}</div>
+                    </div>
+                    <div className="bg-green-50 p-2 rounded">
+                      <div className="text-gray-500">Utilidad</div>
+                      <div className="font-semibold text-green-600">${project.netProfit.toLocaleString('es-MX')}</div>
+                    </div>
+                    <div className="bg-blue-50 p-2 rounded">
+                      <div className="text-gray-500">Margen / ROI</div>
+                      <div className="font-semibold">
+                        <span className={project.netMarginPercent >= 20 ? 'text-green-600' : 'text-orange-600'}>
+                          {project.netMarginPercent.toFixed(1)}%
+                        </span>
+                        {' / '}
+                        <span className={project.roi >= 30 ? 'text-green-600' : 'text-blue-600'}>
+                          {project.roi.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -712,23 +765,23 @@ export default function ProjectProfitabilityPage() {
 
         {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <Target className="w-6 h-6 text-white" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-blue-600 rounded-lg">
+                <Target className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-blue-900 mb-2">Análisis de Rentabilidad de Proyectos</h3>
-                <p className="text-blue-700 text-sm mb-2">
-                  Sistema avanzado para medir y optimizar la rentabilidad de cada proyecto de la empresa.
+                <h3 className="font-semibold text-blue-900 mb-2 text-sm sm:text-base">Análisis de Rentabilidad de Proyectos</h3>
+                <p className="text-blue-700 text-xs sm:text-sm mb-2">
+                  Sistema avanzado para medir y optimizar la rentabilidad de cada proyecto.
                 </p>
-                <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• <strong>Margen Bruto:</strong> (Ingresos - Costos Directos) / Ingresos × 100. Mide rentabilidad antes de gastos generales</li>
-                  <li>• <strong>Margen Neto:</strong> (Ingresos - Todos los Costos) / Ingresos × 100. Rentabilidad final después de todos los gastos</li>
-                  <li>• <strong>ROI:</strong> (Utilidad Neta / Costos Totales) × 100. Retorno por cada peso invertido en el proyecto</li>
-                  <li>• <strong>Eficiencia Presupuestal:</strong> Grado de cumplimiento del presupuesto original (100% = en presupuesto)</li>
-                  <li>• <strong>Realización de Ingresos:</strong> Porcentaje de ingresos estimados ya cobrados o facturados</li>
-                  <li>• <strong>Clasificación:</strong> Excelente (≥30%), Bueno (20-30%), Aceptable (10-20%), Bajo (&lt;10%)</li>
+                <ul className="text-blue-700 text-xs sm:text-sm space-y-1">
+                  <li>• <strong>Margen Bruto:</strong> Rentabilidad antes de gastos generales</li>
+                  <li>• <strong>Margen Neto:</strong> Rentabilidad después de todos los gastos</li>
+                  <li>• <strong>ROI:</strong> Retorno por cada peso invertido</li>
+                  <li>• <strong>Eficiencia:</strong> Cumplimiento de presupuesto (100% = en presupuesto)</li>
+                  <li className="hidden sm:list-item">• <strong>Realización:</strong> Porcentaje de ingresos estimados ya cobrados</li>
+                  <li className="hidden sm:list-item">• <strong>Clasificación:</strong> Excelente (≥30%), Bueno (20-30%), Aceptable (10-20%), Bajo (&lt;10%)</li>
                 </ul>
               </div>
             </div>

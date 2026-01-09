@@ -269,46 +269,110 @@ export default function BankRulesPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Bank Rules</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bank Rules</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Create rules to automatically categorize bank transactions
             </p>
           </div>
           <Button 
             className="bg-[#2CA01C] hover:bg-[#108000]"
+            size="sm"
             onClick={() => {
               resetForm()
               setEditingRule(null)
               setShowAddModal(true)
             }}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Rule
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Create Rule</span>
           </Button>
         </div>
 
         {/* Info Card */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Zap className="w-5 h-5 text-blue-600 mt-0.5" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5" />
               <div>
-                <h4 className="font-medium text-blue-900">How Bank Rules Work</h4>
-                <p className="text-sm text-blue-700 mt-1">
+                <h4 className="font-medium text-blue-900 text-sm sm:text-base">How Bank Rules Work</h4>
+                <p className="text-xs sm:text-sm text-blue-700 mt-1">
                   When you import or sync bank transactions, rules are applied automatically in priority order.
-                  The first matching rule will categorize the transaction. Higher priority rules are checked first.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Rules List */}
-        <Card>
+        {/* Mobile Rules View */}
+        <div className="block md:hidden space-y-3">
+          {rules.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Settings className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm mb-3">No rules created yet</p>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    resetForm()
+                    setShowAddModal(true)
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Create First Rule
+                </Button>
+              </CardContent>
+            </Card>
+          ) : rules.map(rule => (
+            <Card key={rule.id} className={`hover:shadow-md transition-shadow ${!rule.isActive ? 'opacity-60' : ''}`}>
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {rule.isActive ? (
+                      <Badge className="bg-green-100 text-green-800 text-xs">Active</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">Disabled</Badge>
+                    )}
+                    <Badge variant="outline" className="text-xs">P:{rule.priority}</Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => toggleRuleActive(rule)}>
+                      {rule.isActive ? <X className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3 text-green-600" />}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(rule)}>
+                      <Edit className="w-3 h-3 text-blue-600" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleDelete(rule.id)}>
+                      <Trash2 className="w-3 h-3 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="font-semibold text-gray-900 text-sm mb-1">{rule.name}</div>
+                <div className="text-xs text-gray-600 mb-2">
+                  If <strong>{rule.conditionField}</strong> {rule.conditionType.replace('_', ' ')} &quot;{rule.conditionValue}&quot;
+                </div>
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  <Tag className="w-3 h-3 text-green-600" />
+                  {rule.actionType === 'categorize' && 'Categorize'}
+                  {rule.actionType === 'tag' && `Tags: ${rule.tags.join(', ')}`}
+                  {rule.actionType === 'rename' && `Rename to: ${rule.memo}`}
+                </div>
+                {rule.matchCount > 0 && (
+                  <div className="text-xs text-gray-400 mt-1">
+                    {rule.matchCount} matches
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop Rules List */}
+        <Card className="hidden md:block">
           <CardHeader>
             <CardTitle>Active Rules ({rules.filter(r => r.isActive).length})</CardTitle>
           </CardHeader>

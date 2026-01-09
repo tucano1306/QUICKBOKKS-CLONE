@@ -503,43 +503,48 @@ export default function BankReconciliationPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Conciliación Bancaria</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Conciliación Bancaria</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Reconcilia tus cuentas con los estados de cuenta bancarios
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline" 
               onClick={autoReconcile}
               disabled={autoReconciling}
+              size="sm"
+              className="flex-1 sm:flex-none"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${autoReconciling ? 'animate-spin' : ''}`} />
-              Conciliar Auto
+              <RefreshCw className={`w-4 h-4 sm:mr-2 ${autoReconciling ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Conciliar Auto</span>
             </Button>
             <Button 
               variant="outline" 
               onClick={finishReconciliation}
               disabled={reconciledItems.size === 0 && !currentPeriod.id}
+              size="sm"
+              className="flex-1 sm:flex-none"
             >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Finalizar ({reconciledItems.size}/{reconciliationItems.length})
+              <CheckCircle2 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Finalizar</span>
+              <span className="sm:hidden ml-1">{reconciledItems.size}/{reconciliationItems.length}</span>
             </Button>
-            <Button variant="outline" onClick={exportReport}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
+            <Button variant="outline" onClick={exportReport} size="sm" className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button variant="outline" onClick={() => setShowImportModal(true)}>
-              <Upload className="w-4 h-4 mr-2" />
-              Importar Estado
+            <Button variant="outline" onClick={() => setShowImportModal(true)} size="sm" className="flex-1 sm:flex-none">
+              <Upload className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Importar</span>
             </Button>
-            <Button onClick={() => setShowNewModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Conciliación
+            <Button onClick={() => setShowNewModal(true)} size="sm" className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nueva</span>
             </Button>
           </div>
         </div>
@@ -554,23 +559,23 @@ export default function BankReconciliationPage() {
 
         {/* Reconciliation Period Summary */}
         <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {reconciliations.length > 0 && (
-              <p className="text-blue-100 text-sm mb-2">
+              <p className="text-blue-100 text-xs sm:text-sm mb-2">
                 {reconciliations.length} conciliaciones registradas
               </p>
             )}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
-                <h3 className="text-xl font-bold mb-1">{currentPeriod.accountName || 'Seleccione una cuenta'}</h3>
-                <p className="text-blue-100">
+                <h3 className="text-lg sm:text-xl font-bold mb-1">{currentPeriod.accountName || 'Seleccione una cuenta'}</h3>
+                <p className="text-blue-100 text-xs sm:text-sm">
                   Período: {new Date(currentPeriod.periodStart).toLocaleDateString('es-MX', { 
                     day: '2-digit', 
-                    month: 'long',
+                    month: 'short',
                     year: 'numeric'
                   })} - {new Date(currentPeriod.periodEnd).toLocaleDateString('es-MX', { 
                     day: '2-digit', 
-                    month: 'long',
+                    month: 'short',
                     year: 'numeric'
                   })}
                 </p>
@@ -578,37 +583,37 @@ export default function BankReconciliationPage() {
               {getReconciliationStatusBadge(currentPeriod.status)}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-blue-100 mb-1">Saldo Inicial</div>
-                <div className="text-xl font-bold">
-                  {formatCurrency(currentPeriod.openingBalance)}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 mt-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-blue-100 mb-1">Saldo Inicial</div>
+                <div className="text-sm sm:text-xl font-bold">
+                  ${(currentPeriod.openingBalance / 1000).toFixed(0)}k
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-blue-100 mb-1">Saldo Sistema</div>
-                <div className="text-xl font-bold">
-                  {formatCurrency(currentPeriod.closingBalance)}
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-blue-100 mb-1">Saldo Sistema</div>
+                <div className="text-sm sm:text-xl font-bold">
+                  ${(currentPeriod.closingBalance / 1000).toFixed(0)}k
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-blue-100 mb-1">Saldo Estado</div>
-                <div className="text-xl font-bold">
-                  {formatCurrency(currentPeriod.statementBalance)}
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-blue-100 mb-1">Saldo Estado</div>
+                <div className="text-sm sm:text-xl font-bold">
+                  ${(currentPeriod.statementBalance / 1000).toFixed(0)}k
                 </div>
               </div>
-              <div className={`backdrop-blur-sm rounded-lg p-4 ${
+              <div className={`backdrop-blur-sm rounded-lg p-2 sm:p-4 ${
                 Math.abs(currentPeriod.difference) < 100 ? 'bg-green-500/30' : 'bg-red-500/30'
               }`}>
-                <div className="text-sm text-blue-100 mb-1">Diferencia</div>
-                <div className="text-xl font-bold">
-                  {formatCurrency(Math.abs(currentPeriod.difference))}
+                <div className="text-xs text-blue-100 mb-1">Diferencia</div>
+                <div className="text-sm sm:text-xl font-bold">
+                  ${Math.abs(currentPeriod.difference).toLocaleString('es-MX')}
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-blue-100 mb-1">Progreso</div>
-                <div className="text-xl font-bold">
-                  {reconciliationProgress.toFixed(1)}%
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-blue-100 mb-1">Progreso</div>
+                <div className="text-sm sm:text-xl font-bold">
+                  {reconciliationProgress.toFixed(0)}%
                 </div>
               </div>
             </div>
@@ -616,68 +621,68 @@ export default function BankReconciliationPage() {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">{matchedItems}</div>
-              <div className="text-sm text-green-700">Transacciones Conciliadas</div>
+              <div className="text-2xl sm:text-3xl font-bold text-green-900">{matchedItems}</div>
+              <div className="text-xs sm:text-sm text-green-700">Conciliadas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-orange-600" />
+                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">{discrepancyItems}</div>
-              <div className="text-sm text-orange-700">Discrepancias</div>
+              <div className="text-2xl sm:text-3xl font-bold text-orange-900">{discrepancyItems}</div>
+              <div className="text-xs sm:text-sm text-orange-700">Discrepancias</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-blue-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
-                {formatCurrency(currentPeriod.totalDeposits || reconciliationItems.filter(i => i.amount > 0).reduce((sum, i) => sum + i.amount, 0))}
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">
+                ${((currentPeriod.totalDeposits || reconciliationItems.filter(i => i.amount > 0).reduce((sum, i) => sum + i.amount, 0)) / 1000).toFixed(0)}k
               </div>
-              <div className="text-sm text-blue-700">Total Depósitos</div>
+              <div className="text-xs sm:text-sm text-blue-700">Depósitos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-red-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
-                {formatCurrency(Math.abs(currentPeriod.totalWithdrawals || reconciliationItems.filter(i => i.amount < 0).reduce((sum, i) => sum + i.amount, 0)))}
+              <div className="text-lg sm:text-2xl font-bold text-red-900">
+                ${(Math.abs(currentPeriod.totalWithdrawals || reconciliationItems.filter(i => i.amount < 0).reduce((sum, i) => sum + i.amount, 0)) / 1000).toFixed(0)}k
               </div>
-              <div className="text-sm text-red-700">Total Retiros</div>
+              <div className="text-xs sm:text-sm text-red-700">Retiros</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-3">
+              <div className="relative">
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Buscar transacciones..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 sm:pl-10 text-sm"
                 />
               </div>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-2 sm:px-4 py-2 border rounded-lg text-sm"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
@@ -691,8 +696,49 @@ export default function BankReconciliationPage() {
           </CardContent>
         </Card>
 
-        {/* Reconciliation Items Table */}
-        <Card>
+        {/* Mobile Reconciliation Items View */}
+        <div className="block md:hidden space-y-3">
+          {filteredItems.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-500">No hay transacciones para conciliar</p>
+              </CardContent>
+            </Card>
+          ) : filteredItems.map((item) => (
+            <Card key={item.id} className={`hover:shadow-md transition-shadow ${
+              item.status === 'discrepancy' ? 'border-red-200 bg-red-50' :
+              item.status === 'missing-system' ? 'border-orange-200 bg-orange-50' :
+              item.status === 'missing-statement' ? 'border-blue-200 bg-blue-50' : ''
+            }`}>
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between mb-2">
+                  {getStatusBadge(item.status)}
+                  <div className={`text-base font-bold ${
+                    item.amount >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {item.amount >= 0 ? '+' : ''}${Math.abs(item.amount).toLocaleString('es-MX')}
+                  </div>
+                </div>
+                <div className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">{item.description}</div>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(item.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                  </div>
+                  <div className="font-mono text-blue-600">{item.transactionId}</div>
+                </div>
+                {item.status !== 'matched' && (
+                  <Button size="sm" variant="outline" className="w-full mt-2 text-green-600">
+                    <CheckCircle2 className="w-4 h-4 mr-1" /> Conciliar
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop Reconciliation Items Table */}
+        <Card className="hidden md:block">
           <CardHeader>
             <CardTitle>Detalle de Conciliación ({filteredItems.length} transacciones)</CardTitle>
           </CardHeader>

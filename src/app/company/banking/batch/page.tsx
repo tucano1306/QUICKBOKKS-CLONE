@@ -181,17 +181,17 @@ export default function BatchTransactionsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Batch Operations</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Batch Operations</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Process multiple transactions at once
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-lg py-1 px-3">
+            <Badge variant="outline" className="text-sm sm:text-lg py-1 px-2 sm:px-3">
               {selectedIds.size} selected
             </Badge>
           </div>
@@ -199,65 +199,125 @@ export default function BatchTransactionsPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Filter className="w-4 h-4 text-gray-500" />
-                <span className="text-sm font-medium">Filter:</span>
+                <span className="text-xs sm:text-sm font-medium">Filter:</span>
               </div>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 sm:flex gap-2">
                 {['all', 'uncategorized', 'unreconciled', 'reconciled'].map(f => (
                   <Button
                     key={f}
                     size="sm"
                     variant={filterStatus === f ? 'default' : 'outline'}
                     onClick={() => setFilterStatus(f)}
-                    className={filterStatus === f ? 'bg-[#2CA01C] hover:bg-[#108000]' : ''}
+                    className={`text-xs sm:text-sm ${filterStatus === f ? 'bg-[#2CA01C] hover:bg-[#108000]' : ''}`}
                   >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f === 'all' ? 'Todos' : f === 'uncategorized' ? 'Sin Cat.' : f === 'unreconciled' ? 'Sin Conc.' : 'Conciliados'}
                   </Button>
                 ))}
               </div>
-              <div className="flex-1" />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => openAction('categorize')}
                   disabled={selectedIds.size === 0}
+                  className="flex-1 sm:flex-none"
                 >
-                  <Tag className="w-4 h-4 mr-1" />
-                  Categorize
+                  <Tag className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Categorize</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => openAction('reconcile')}
                   disabled={selectedIds.size === 0}
+                  className="flex-1 sm:flex-none"
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-1" />
-                  Reconcile
+                  <CheckCircle2 className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Reconcile</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => openAction('delete')}
                   disabled={selectedIds.size === 0}
-                  className="text-red-600 hover:text-red-700"
+                  className="text-red-600 hover:text-red-700 flex-1 sm:flex-none"
                 >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
+                  <Trash2 className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Delete</span>
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Transactions List */}
-        <Card>
-          <CardHeader>
+        {/* Mobile Transactions View */}
+        <div className="block md:hidden space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Transactions ({filteredTransactions.length})</span>
+            <Button variant="ghost" size="sm" onClick={selectAll}>
+              {selectedIds.size === filteredTransactions.length ? (
+                <><CheckSquare className="w-4 h-4 mr-1" /> Desel.</>
+              ) : (
+                <><Square className="w-4 h-4 mr-1" /> Sel. All</>
+              )}
+            </Button>
+          </div>
+          {filteredTransactions.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Layers className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">No transactions found</p>
+              </CardContent>
+            </Card>
+          ) : filteredTransactions.map(transaction => (
+            <Card 
+              key={transaction.id} 
+              className={`hover:shadow-md transition-shadow cursor-pointer ${selectedIds.has(transaction.id) ? 'ring-2 ring-blue-400 bg-blue-50' : ''}`}
+              onClick={() => toggleSelect(transaction.id)}
+            >
+              <CardContent className="p-3">
+                <div className="flex items-start gap-3">
+                  <Checkbox 
+                    checked={selectedIds.has(transaction.id)}
+                    onCheckedChange={() => toggleSelect(transaction.id)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-medium text-gray-900 text-sm truncate">
+                        {transaction.description}
+                      </span>
+                      <div className={`font-bold text-sm ${transaction.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'}`}>
+                        {transaction.type === 'CREDIT' ? '+' : '-'}${Math.abs(transaction.amount).toLocaleString('en-US')}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{new Date(transaction.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
+                      <div className="flex items-center gap-1">
+                        {transaction.isReconciled && <CheckCircle2 className="w-3 h-3 text-green-600" />}
+                        {transaction.category ? (
+                          <Badge variant="secondary" className="text-xs">{transaction.category}</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-orange-600">Sin cat.</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop Transactions List */}
+        <Card className="hidden md:block">
+          <CardHeader className="p-4">
             <div className="flex items-center justify-between">
-              <CardTitle>Transactions ({filteredTransactions.length})</CardTitle>
+              <CardTitle className="text-base">Transactions ({filteredTransactions.length})</CardTitle>
               <Button variant="ghost" size="sm" onClick={selectAll}>
                 {selectedIds.size === filteredTransactions.length ? (
                   <>

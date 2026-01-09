@@ -222,17 +222,17 @@ export default function ProjectCostingPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Costeo de Proyectos</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Costeo de Proyectos</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Análisis detallado de costos por proyecto y categoría
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => {
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => {
               if (projectCosts.length === 0) return
               const headers = ['Código', 'Proyecto', 'Cliente', 'Presupuesto', 'Costo Real', 'Varianza', '% Varianza', 'Completado']
               const csvContent = [
@@ -254,12 +254,12 @@ export default function ProjectCostingPage() {
               link.download = `costeo-proyectos_${new Date().toISOString().split('T')[0]}.csv`
               link.click()
             }}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar Reporte
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar Reporte</span>
             </Button>
-            <Button onClick={loadProjectCosts}>
-              <Calculator className="w-4 h-4 mr-2" />
-              Actualizar
+            <Button onClick={loadProjectCosts} size="sm" className="flex-1 sm:flex-none">
+              <Calculator className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
           </div>
         </div>
@@ -283,60 +283,60 @@ export default function ProjectCostingPage() {
         )}
 
         {/* Stats with Animations */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={projectCosts.slice(0, 6).map(p => p.totalBudget)} color="#3b82f6" height={25} width={50} />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projectCosts.slice(0, 6).map(p => p.totalBudget)} color="#3b82f6" height={25} width={50} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">
                 <AnimatedCounter value={totalBudget / 1000000} prefix="$" suffix="M" decimals={2} duration={1500} />
               </div>
-              <div className="text-sm text-blue-700">Presupuesto Total</div>
-              <AnimatedProgress value={100} color="blue" height={4} showValue={false} className="mt-3" />
+              <div className="text-xs sm:text-sm text-blue-700">Presupuesto Total</div>
+              <AnimatedProgress value={100} color="blue" height={4} showValue={false} className="mt-3 hidden sm:block" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-purple-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={projectCosts.slice(0, 6).map(p => p.totalActualCost)} color="#a855f7" height={25} width={50} />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projectCosts.slice(0, 6).map(p => p.totalActualCost)} color="#a855f7" height={25} width={50} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
                 <AnimatedCounter value={totalActual / 1000000} prefix="$" suffix="M" decimals={2} duration={1500} />
               </div>
-              <div className="text-sm text-purple-700">Costo Real Actual</div>
-              <AnimatedProgress value={Math.round((totalActual / totalBudget) * 100)} color="purple" height={4} showValue={false} className="mt-3" />
+              <div className="text-xs sm:text-sm text-purple-700">Costo Real</div>
+              <AnimatedProgress value={Math.round((totalActual / totalBudget) * 100)} color="purple" height={4} showValue={false} className="mt-3 hidden sm:block" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <Calculator className="w-8 h-8 text-green-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={projectCosts.slice(0, 6).map(p => p.costVariance)} color="#22c55e" height={25} width={50} />
+                <Calculator className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projectCosts.slice(0, 6).map(p => p.costVariance)} color="#22c55e" height={25} width={50} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
                 <AnimatedCounter value={totalVariance / 1000000} prefix="$" suffix="M" decimals={2} duration={1500} />
               </div>
-              <div className="text-sm text-green-700">Varianza Restante</div>
-              <AnimatedProgress value={Math.round((totalVariance / totalBudget) * 100)} color="green" height={4} showValue={false} className="mt-3" />
+              <div className="text-xs sm:text-sm text-green-700">Varianza</div>
+              <AnimatedProgress value={Math.round((totalVariance / totalBudget) * 100)} color="green" height={4} showValue={false} className="mt-3 hidden sm:block" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <PieChart className="w-8 h-8 text-orange-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={projectCosts.slice(0, 6).map(p => p.costVariancePercent)} color="#f97316" height={25} width={50} />
+                <PieChart className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={projectCosts.slice(0, 6).map(p => p.costVariancePercent)} color="#f97316" height={25} width={50} className="hidden sm:block" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">
+              <div className="text-xl sm:text-3xl font-bold text-orange-900">
                 <AnimatedCounter value={avgVariancePercent} suffix="%" decimals={1} duration={1500} />
               </div>
-              <div className="text-sm text-orange-700">Varianza Promedio</div>
-              <AnimatedProgress value={Math.min(100, Math.abs(avgVariancePercent))} color="orange" height={4} showValue={false} className="mt-3" />
+              <div className="text-xs sm:text-sm text-orange-700">Varianza Prom.</div>
+              <AnimatedProgress value={Math.min(100, Math.abs(avgVariancePercent))} color="orange" height={4} showValue={false} className="mt-3 hidden sm:block" />
             </CardContent>
           </Card>
         </div>
@@ -395,13 +395,13 @@ export default function ProjectCostingPage() {
 
         {/* Project Selector */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                Seleccionar Proyecto:
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
+                Proyecto:
               </label>
               <select 
-                className="flex-1 px-4 py-2 border rounded-lg bg-white"
+                className="flex-1 px-3 py-2 border rounded-lg bg-white text-sm"
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
               >
@@ -417,11 +417,11 @@ export default function ProjectCostingPage() {
 
         {/* Selected Project Overview */}
         <Card className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
-                <h3 className="text-xl font-bold mb-1">{selectedProjectData.projectName}</h3>
-                <p className="text-indigo-100">Cliente: {selectedProjectData.client} | Código: {selectedProjectData.projectCode}</p>
+                <h3 className="text-lg sm:text-xl font-bold mb-1">{selectedProjectData.projectName}</h3>
+                <p className="text-indigo-100 text-xs sm:text-sm">Cliente: {selectedProjectData.client} | Código: {selectedProjectData.projectCode}</p>
               </div>
               <Badge className={`${
                 selectedProjectData.status === 'active' ? 'bg-blue-600' :
@@ -432,30 +432,30 @@ export default function ProjectCostingPage() {
               </Badge>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-indigo-100 mb-1">Presupuesto Total</div>
-                <div className="text-xl font-bold">
-                  ${selectedProjectData.totalBudget.toLocaleString('es-MX')}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mt-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-indigo-100 mb-1">Presupuesto</div>
+                <div className="text-sm sm:text-xl font-bold">
+                  ${(selectedProjectData.totalBudget / 1000).toFixed(0)}k
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-indigo-100 mb-1">Costo Real</div>
-                <div className="text-xl font-bold">
-                  ${selectedProjectData.totalActualCost.toLocaleString('es-MX')}
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-indigo-100 mb-1">Costo Real</div>
+                <div className="text-sm sm:text-xl font-bold">
+                  ${(selectedProjectData.totalActualCost / 1000).toFixed(0)}k
                 </div>
               </div>
-              <div className={`backdrop-blur-sm rounded-lg p-4 ${
+              <div className={`backdrop-blur-sm rounded-lg p-2 sm:p-4 ${
                 selectedProjectData.totalActualCost > selectedProjectData.totalBudget ? 'bg-red-500/30' : 'bg-green-500/30'
               }`}>
-                <div className="text-sm text-indigo-100 mb-1">Varianza</div>
-                <div className="text-xl font-bold">
-                  ${Math.abs(selectedProjectData.totalBudget - selectedProjectData.totalActualCost).toLocaleString('es-MX')}
+                <div className="text-xs text-indigo-100 mb-1">Varianza</div>
+                <div className="text-sm sm:text-xl font-bold">
+                  ${(Math.abs(selectedProjectData.totalBudget - selectedProjectData.totalActualCost) / 1000).toFixed(0)}k
                 </div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-sm text-indigo-100 mb-1">% Completado</div>
-                <div className="text-xl font-bold">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-4">
+                <div className="text-xs text-indigo-100 mb-1">Completado</div>
+                <div className="text-sm sm:text-xl font-bold">
                   {selectedProjectData.completionPercent}%
                 </div>
               </div>
@@ -466,10 +466,97 @@ export default function ProjectCostingPage() {
         {/* Cost Breakdown by Category */}
         <Card>
           <CardHeader>
-            <CardTitle>Desglose de Costos por Categoría</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Desglose de Costos por Categoría</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="block md:hidden divide-y">
+              {costBreakdown.map((item) => {
+                const Icon = item.icon
+                const percentOfBudget = (item.budgeted / selectedProjectData.totalBudget) * 100
+                const utilizationPercent = (item.actual / item.budgeted) * 100
+                
+                return (
+                  <div key={item.category} className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-5 h-5 text-gray-500" />
+                        <span className="text-sm font-semibold text-gray-900">{item.category}</span>
+                      </div>
+                      {getVarianceBadge(item.variance, item.variancePercent)}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                      <div className="bg-gray-50 p-2 rounded">
+                        <div className="text-gray-500">Presupuesto</div>
+                        <div className="font-semibold">${item.budgeted.toLocaleString('es-MX')}</div>
+                      </div>
+                      <div className={`p-2 rounded ${
+                        item.actual > item.budgeted ? 'bg-red-50' : 'bg-green-50'
+                      }`}>
+                        <div className="text-gray-500">Costo Real</div>
+                        <div className={`font-semibold ${
+                          item.actual > item.budgeted ? 'text-red-600' : 'text-green-600'
+                        }`}>${item.actual.toLocaleString('es-MX')}</div>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded">
+                        <div className="text-gray-500">Varianza</div>
+                        <div className={`font-semibold ${
+                          item.variance < 0 ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {item.variance >= 0 ? '+' : ''}${item.variance.toLocaleString('es-MX')}
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded">
+                        <div className="text-gray-500">% Presup.</div>
+                        <div className="font-semibold">{percentOfBudget.toFixed(1)}%</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            utilizationPercent > 100 ? 'bg-red-500' :
+                            utilizationPercent > 90 ? 'bg-orange-500' :
+                            'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(utilizationPercent, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-600">
+                        {utilizationPercent.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+              {/* Total Row */}
+              <div className="p-4 bg-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-bold text-gray-900">TOTAL</span>
+                  {getVarianceBadge(
+                    selectedProjectData.totalBudget - selectedProjectData.totalActualCost,
+                    ((selectedProjectData.totalActualCost / selectedProjectData.totalBudget - 1) * 100)
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="bg-white p-2 rounded">
+                    <div className="text-gray-500">Presupuesto</div>
+                    <div className="font-bold">${selectedProjectData.totalBudget.toLocaleString('es-MX')}</div>
+                  </div>
+                  <div className="bg-white p-2 rounded">
+                    <div className="text-gray-500">Costo Real</div>
+                    <div className="font-bold">${selectedProjectData.totalActualCost.toLocaleString('es-MX')}</div>
+                  </div>
+                  <div className="bg-white p-2 rounded">
+                    <div className="text-gray-500">Varianza</div>
+                    <div className="font-bold">${(selectedProjectData.totalBudget - selectedProjectData.totalActualCost).toLocaleString('es-MX')}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -574,24 +661,88 @@ export default function ProjectCostingPage() {
         {/* All Projects Summary */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Resumen de Todos los Proyectos</CardTitle>
-              <div className="flex items-center gap-2">
-                <select 
-                  className="px-4 py-2 border rounded-lg text-sm"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="all">Todos</option>
-                  <option value="active">Activos</option>
-                  <option value="completed">Completados</option>
-                  <option value="on-hold">En Espera</option>
-                </select>
-              </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg">Resumen de Todos los Proyectos</CardTitle>
+              <select 
+                className="px-3 py-2 border rounded-lg text-xs sm:text-sm"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="all">Todos</option>
+                <option value="active">Activos</option>
+                <option value="completed">Completados</option>
+                <option value="on-hold">En Espera</option>
+              </select>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="block md:hidden divide-y">
+              {filteredProjects.map((project) => {
+                const variance = project.totalBudget - project.totalActualCost
+                const variancePercent = ((project.totalActualCost / project.totalBudget - 1) * 100)
+                
+                return (
+                  <div key={project.projectId} className="p-4 hover:bg-gray-50">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="font-mono text-xs font-semibold text-blue-600 mb-1">
+                          {project.projectCode}
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">{project.projectName}</div>
+                        <div className="text-xs text-gray-500">{project.client}</div>
+                      </div>
+                      <button 
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        onClick={() => setSelectedProject(project.projectId)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                      <div className="bg-gray-50 p-2 rounded">
+                        <div className="text-gray-500">Presupuesto</div>
+                        <div className="font-semibold">${project.totalBudget.toLocaleString('es-MX')}</div>
+                      </div>
+                      <div className={`p-2 rounded ${
+                        project.totalActualCost > project.totalBudget ? 'bg-red-50' : 'bg-green-50'
+                      }`}>
+                        <div className="text-gray-500">Costo Real</div>
+                        <div className={`font-semibold ${
+                          project.totalActualCost > project.totalBudget ? 'text-red-600' : 'text-green-600'
+                        }`}>${project.totalActualCost.toLocaleString('es-MX')}</div>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded">
+                        <div className="text-gray-500">Varianza</div>
+                        <div className={`font-semibold ${
+                          variance < 0 ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {variance >= 0 ? '+' : ''}${variance.toLocaleString('es-MX')}
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded">
+                        <div className="text-gray-500">Completado</div>
+                        <div className="font-semibold">{project.completionPercent}%</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            project.completionPercent >= 80 ? 'bg-green-500' :
+                            project.completionPercent >= 50 ? 'bg-blue-500' : 'bg-orange-500'
+                          }`}
+                          style={{ width: `${project.completionPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -680,23 +831,23 @@ export default function ProjectCostingPage() {
 
         {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <Calculator className="w-6 h-6 text-white" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-blue-600 rounded-lg">
+                <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-blue-900 mb-2">Sistema de Costeo de Proyectos</h3>
-                <p className="text-blue-700 text-sm mb-2">
-                  Metodología integral para rastrear y analizar costos reales vs presupuestados en cada proyecto.
+                <h3 className="font-semibold text-blue-900 mb-2 text-sm sm:text-base">Sistema de Costeo de Proyectos</h3>
+                <p className="text-blue-700 text-xs sm:text-sm mb-2">
+                  Metodología integral para rastrear y analizar costos reales vs presupuestados.
                 </p>
-                <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• <strong>Mano de Obra:</strong> Costos de personal interno asignado (salarios, prestaciones, horas trabajadas)</li>
-                  <li>• <strong>Materiales:</strong> Insumos, licencias de software, consumibles directos del proyecto</li>
-                  <li>• <strong>Equipamiento:</strong> Hardware, servidores, herramientas especializadas necesarias</li>
-                  <li>• <strong>Gastos Generales:</strong> Overhead asignado (renta, servicios, administración prorrateada)</li>
-                  <li>• <strong>Subcontratistas:</strong> Servicios externos contratados para tareas específicas</li>
-                  <li>• <strong>Varianza:</strong> Diferencia entre presupuesto y costo real; verde (bajo), naranja (alerta), rojo (sobrecosto)</li>
+                <ul className="text-blue-700 text-xs sm:text-sm space-y-1">
+                  <li>• <strong>Mano de Obra:</strong> Costos de personal asignado</li>
+                  <li>• <strong>Materiales:</strong> Insumos y licencias directas</li>
+                  <li>• <strong>Equipamiento:</strong> Hardware y herramientas</li>
+                  <li className="hidden sm:list-item">• <strong>Gastos Generales:</strong> Overhead asignado (renta, servicios)</li>
+                  <li className="hidden sm:list-item">• <strong>Subcontratistas:</strong> Servicios externos contratados</li>
+                  <li className="hidden sm:list-item">• <strong>Varianza:</strong> Diferencia entre presupuesto y costo real</li>
                 </ul>
               </div>
             </div>

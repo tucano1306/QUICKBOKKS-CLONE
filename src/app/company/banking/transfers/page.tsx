@@ -375,27 +375,27 @@ const getTypeBadge = (type: string) => {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Transferencias Bancarias</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Transferencias Bancarias</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Gestiona transferencias entre cuentas y hacia terceros
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportTransfers}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={exportTransfers} size="sm" className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button variant="outline" onClick={() => openTransferModal('internal')}>
-              <ArrowRightLeft className="w-4 h-4 mr-2" />
-              Entre Cuentas
+            <Button variant="outline" onClick={() => openTransferModal('internal')} size="sm" className="flex-1 sm:flex-none">
+              <ArrowRightLeft className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Entre Cuentas</span>
             </Button>
-            <Button onClick={() => openTransferModal('external')}>
-              <Globe className="w-4 h-4 mr-2" />
-              Externa
+            <Button onClick={() => openTransferModal('external')} size="sm" className="flex-1 sm:flex-none">
+              <Globe className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Externa</span>
             </Button>
           </div>
         </div>
@@ -409,92 +409,136 @@ const getTypeBadge = (type: string) => {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <ArrowRightLeft className="w-8 h-8 text-blue-600" />
+                <ArrowRightLeft className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalTransfers}</div>
-              <div className="text-sm text-blue-700">Total Transferencias</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-900">{totalTransfers}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Transferencias</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">{completedTransfers}</div>
-              <div className="text-sm text-green-700">Completadas</div>
+              <div className="text-2xl sm:text-3xl font-bold text-green-900">{completedTransfers}</div>
+              <div className="text-xs sm:text-sm text-green-700">Completadas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-purple-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
-                ${totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
+                ${totalAmount >= 10000 ? `${(totalAmount / 1000).toFixed(0)}k` : totalAmount.toLocaleString('es-MX')}
               </div>
-              <div className="text-sm text-purple-700">Monto Total</div>
+              <div className="text-xs sm:text-sm text-purple-700">Monto Total</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Calendar className="w-8 h-8 text-orange-600" />
+                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">{scheduledTransfers}</div>
-              <div className="text-sm text-orange-700">Programadas</div>
+              <div className="text-2xl sm:text-3xl font-bold text-orange-900">{scheduledTransfers}</div>
+              <div className="text-xs sm:text-sm text-orange-700">Programadas</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-3">
+              <div className="relative">
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Buscar transferencias..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 sm:pl-10 text-sm"
                 />
               </div>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-              >
-                <option value="all">Todos los Tipos</option>
-                <option value="internal">Internas</option>
-                <option value="external">Externas</option>
-                <option value="international">Internacionales</option>
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="completed">Completadas</option>
-                <option value="pending">Pendientes</option>
-                <option value="scheduled">Programadas</option>
-                <option value="failed">Fallidas</option>
-                <option value="cancelled">Canceladas</option>
-              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                >
+                  <option value="all">Tipo</option>
+                  <option value="internal">Internas</option>
+                  <option value="external">Externas</option>
+                  <option value="international">Internac.</option>
+                </select>
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Estado</option>
+                  <option value="completed">Completadas</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="scheduled">Programadas</option>
+                  <option value="failed">Fallidas</option>
+                  <option value="cancelled">Canceladas</option>
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Transfers Table */}
-        <Card>
+        {/* Mobile Transfers View */}
+        <div className="block md:hidden space-y-3">
+          {filteredTransfers.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-500">No hay transferencias</p>
+              </CardContent>
+            </Card>
+          ) : filteredTransfers.map((transfer) => (
+            <Card key={transfer.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {getTypeBadge(transfer.type)}
+                    {getStatusBadge(transfer.status)}
+                  </div>
+                  <div className="text-base font-bold text-gray-900">
+                    ${transfer.amount.toLocaleString('es-MX')}
+                  </div>
+                </div>
+                <div className="text-sm font-medium text-gray-900 mb-2">
+                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                    <span>{transfer.fromAccount}</span>
+                    <ArrowRight className="w-3 h-3" />
+                    <span>{transfer.toAccount}</span>
+                  </div>
+                </div>
+                {transfer.description && (
+                  <p className="text-xs text-gray-500 mb-2 line-clamp-2">{transfer.description}</p>
+                )}
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(transfer.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                  </div>
+                  <div className="font-mono text-blue-600 text-xs">{transfer.transferId}</div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop Transfers Table */}
+        <Card className="hidden md:block">
           <CardHeader>
             <CardTitle>Historial de Transferencias ({filteredTransfers.length})</CardTitle>
           </CardHeader>
@@ -615,23 +659,20 @@ const getTypeBadge = (type: string) => {
 
         {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <ArrowRightLeft className="w-6 h-6 text-white" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-blue-600 rounded-lg">
+                <ArrowRightLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
                 <h3 className="font-semibold text-blue-900 mb-2">Transferencias Bancarias</h3>
                 <p className="text-blue-700 text-sm mb-2">
                   Sistema completo para gestionar transferencias entre cuentas propias, externas e internacionales.
                 </p>
-                <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• <strong>Transferencias Internas:</strong> Entre cuentas propias, sin comisión, inmediatas</li>
-                  <li>• <strong>Transferencias Externas:</strong> SPEI a terceros, comisión mínima, mismo día</li>
-                  <li>• <strong>Transferencias Internacionales:</strong> Wire transfers, conversión de divisas automática</li>
-                  <li>• <strong>Programación:</strong> Agenda transferencias futuras (nómina, pagos recurrentes)</li>
-                  <li>• <strong>Tipo de cambio:</strong> Conversión automática MXN-USD con TC en tiempo real</li>
-                  <li>• <strong>Comisiones:</strong> Registro automático de costos bancarios por servicio</li>
+                <ul className="text-blue-700 text-xs sm:text-sm space-y-1">
+                  <li>• <strong>Internas:</strong> Entre cuentas propias, sin comisión</li>
+                  <li>• <strong>Externas:</strong> SPEI a terceros, mismo día</li>
+                  <li>• <strong>Internacionales:</strong> Wire transfers, divisas</li>
                 </ul>
               </div>
             </div>
@@ -641,19 +682,19 @@ const getTypeBadge = (type: string) => {
         {/* Account Balances */}
         {accounts.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 Saldos de Cuentas
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {accounts.map(account => (
-                  <div key={account.id} className="border rounded-lg p-4 bg-gray-50">
-                    <h4 className="font-semibold text-gray-900">{account.accountName}</h4>
-                    <p className="text-sm text-gray-500">{account.bankName}</p>
-                    <p className={`text-2xl font-bold mt-2 ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <div key={account.id} className="border rounded-lg p-3 sm:p-4 bg-gray-50">
+                    <h4 className="font-semibold text-gray-900 text-sm sm:text-base">{account.accountName}</h4>
+                    <p className="text-xs sm:text-sm text-gray-500">{account.bankName}</p>
+                    <p className={`text-lg sm:text-2xl font-bold mt-2 ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatCurrency(account.balance)}
                     </p>
                   </div>

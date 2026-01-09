@@ -288,130 +288,183 @@ export default function BillableTimePage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tiempo Facturable</h1>
-            <p className="text-gray-600 mt-1">Registra y gestiona las horas trabajadas en proyectos</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tiempo Facturable</h1>
+            <p className="text-sm text-gray-600 mt-1">Registra y gestiona las horas trabajadas en proyectos</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={loadTimeEntries}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualizar
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={loadTimeEntries} size="sm" className="flex-1 sm:flex-none">
+              <RefreshCw className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" onClick={handleExport} size="sm" className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={openModal}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Entrada
+            <Button onClick={openModal} size="sm" className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nueva Entrada</span>
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-blue-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalHours.toFixed(1)}h</div>
-              <div className="text-sm text-blue-700">Total Horas</div>
+              <div className="text-xl sm:text-3xl font-bold text-blue-900">{totalHours.toFixed(1)}h</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Horas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">{billableHours.toFixed(1)}h</div>
-              <div className="text-sm text-green-700">Horas Facturables</div>
+              <div className="text-xl sm:text-3xl font-bold text-green-900">{billableHours.toFixed(1)}h</div>
+              <div className="text-xs sm:text-sm text-green-700">Facturables</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-purple-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
-                ${totalBillableAmount.toLocaleString()}
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
+                ${totalBillableAmount >= 10000 ? `${(totalBillableAmount / 1000).toFixed(0)}k` : totalBillableAmount.toLocaleString()}
               </div>
-              <div className="text-sm text-purple-700">Monto Facturable</div>
+              <div className="text-xs sm:text-sm text-purple-700">Monto Facturable</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-orange-600" />
+                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">{pendingApproval}</div>
-              <div className="text-sm text-orange-700">Pendientes Aprobar</div>
+              <div className="text-xl sm:text-3xl font-bold text-orange-900">{pendingApproval}</div>
+              <div className="text-xs sm:text-sm text-orange-700">Pendientes</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 col-span-2 sm:col-span-1">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-indigo-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" />
               </div>
-              <div className="text-2xl font-bold text-indigo-900">${avgHourlyRate.toFixed(0)}</div>
-              <div className="text-sm text-indigo-700">Tarifa Promedio/h</div>
+              <div className="text-lg sm:text-2xl font-bold text-indigo-900">${avgHourlyRate.toFixed(0)}</div>
+              <div className="text-xs sm:text-sm text-indigo-700">Tarifa Prom./h</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-3">
+              <div className="relative">
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar por empleado, proyecto o descripción..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 sm:pl-10 text-sm"
                 />
               </div>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterProject}
-                onChange={(e) => setFilterProject(e.target.value)}
-              >
-                <option value="all">Todos los Proyectos</option>
-                {uniqueProjects.map(projectId => {
-                  const entry = timeEntries.find(e => e.projectId === projectId)
-                  return (
-                    <option key={projectId} value={projectId}>
-                      {entry?.projectName}
-                    </option>
-                  )
-                })}
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterBillable}
-                onChange={(e) => setFilterBillable(e.target.value)}
-              >
-                <option value="all">Todos</option>
-                <option value="billable">Facturable</option>
-                <option value="non-billable">No Facturable</option>
-              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterProject}
+                  onChange={(e) => setFilterProject(e.target.value)}
+                >
+                  <option value="all">Proyecto</option>
+                  {uniqueProjects.map(projectId => {
+                    const entry = timeEntries.find(e => e.projectId === projectId)
+                    return (
+                      <option key={projectId} value={projectId}>
+                        {entry?.projectName}
+                      </option>
+                    )
+                  })}
+                </select>
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-sm"
+                  value={filterBillable}
+                  onChange={(e) => setFilterBillable(e.target.value)}
+                >
+                  <option value="all">Tipo</option>
+                  <option value="billable">Facturable</option>
+                  <option value="non-billable">No Facturable</option>
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Time Entries Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Registro de Tiempo ({filteredEntries.length} entradas)</CardTitle>
+        {/* Mobile Time Entries View */}
+        <div className="block md:hidden space-y-3">
+          {filteredEntries.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Clock className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm mb-3">No hay registros de tiempo</p>
+                <Button onClick={openModal} size="sm">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Registrar
+                </Button>
+              </CardContent>
+            </Card>
+          ) : filteredEntries.map((entry) => (
+            <Card key={entry.id} className={`hover:shadow-md transition-shadow ${!entry.isBillable ? 'bg-gray-50' : ''}`}>
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(entry.status)}
+                    {entry.isBillable ? (
+                      <Badge className="bg-green-100 text-green-700 text-xs">
+                        <CheckCircle className="w-3 h-3 mr-0.5" /> Facturable
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-gray-100 text-gray-700 text-xs">No fact.</Badge>
+                    )}
+                  </div>
+                  <div className="text-base font-bold text-gray-900">
+                    ${entry.billableAmount.toLocaleString()}
+                  </div>
+                </div>
+                <div className="text-sm font-medium text-gray-900 mb-1">{entry.employeeName}</div>
+                <div className="text-xs text-blue-600 mb-1">{entry.projectName}</div>
+                {entry.description && (
+                  <p className="text-xs text-gray-500 mb-2 line-clamp-2">{entry.description}</p>
+                )}
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(entry.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{entry.hours}h</span>
+                    <span>@ ${entry.hourlyRate}/h</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop Time Entries Table */}
+        <Card className="hidden md:block">
+          <CardHeader className="p-4">
+            <CardTitle className="text-base">Registro de Tiempo ({filteredEntries.length} entradas)</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
