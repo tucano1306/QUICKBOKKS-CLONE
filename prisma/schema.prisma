@@ -366,6 +366,7 @@ model Employee {
   runItems        PayrollRunItem[]
   payrolls        Payroll[]
   timeEntries     TimeEntry[]
+  taxFormsW2      TaxFormW2[]
 
   @@map("employees")
 }
@@ -1654,6 +1655,189 @@ model TaxForm1096 {
   @@map("tax_form_1096")
 }
 
+// ============== TAX FORM 941 - QUARTERLY FEDERAL TAX RETURN ==============
+model TaxForm941 {
+  id                      String         @id @default(cuid())
+  companyId               String
+  company                 Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quarter                 Int            // 1, 2, 3, 4
+  year                    Int
+  ein                     String
+  companyName             String
+  companyAddress          String
+  numberOfEmployees       Int            @default(0)
+  wagesAndTips            Float          @default(0)
+  federalIncomeTaxWithheld Float         @default(0)
+  socialSecurityWages     Float          @default(0)
+  socialSecurityTax       Float          @default(0)
+  medicareWages           Float          @default(0)
+  medicareTax             Float          @default(0)
+  additionalMedicareTax   Float          @default(0)
+  totalTaxes              Float          @default(0)
+  totalDeposits           Float          @default(0)
+  balanceDue              Float          @default(0)
+  overpayment             Float          @default(0)
+  status                  TaxFormStatus  @default(DRAFT)
+  filedDate               DateTime?
+  paidDate                DateTime?
+  confirmationNumber      String?
+  notes                   String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  @@unique([companyId, quarter, year])
+  @@index([companyId])
+  @@index([year])
+  @@index([status])
+  @@map("tax_form_941")
+}
+
+// ============== TAX FORM 940 - ANNUAL FUTA TAX RETURN ==============
+model TaxForm940 {
+  id                      String         @id @default(cuid())
+  companyId               String
+  company                 Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  year                    Int
+  ein                     String
+  companyName             String
+  companyAddress          String
+  stateQualification      String         @default("FL")
+  totalPayments           Float          @default(0)
+  exemptPayments          Float          @default(0)
+  paymentsExcludingFUTA   Float          @default(0)
+  totalFUTAWages          Float          @default(0)
+  futaTaxBeforeAdjustments Float         @default(0)
+  stateUnemploymentTaxCredit Float       @default(0)
+  totalFUTATax            Float          @default(0)
+  totalDeposits           Float          @default(0)
+  balanceDue              Float          @default(0)
+  overpayment             Float          @default(0)
+  status                  TaxFormStatus  @default(DRAFT)
+  filedDate               DateTime?
+  paidDate                DateTime?
+  confirmationNumber      String?
+  notes                   String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  @@unique([companyId, year])
+  @@index([companyId])
+  @@index([year])
+  @@index([status])
+  @@map("tax_form_940")
+}
+
+// ============== FLORIDA RT-6 - QUARTERLY REEMPLOYMENT TAX ==============
+model FloridaRT6 {
+  id                      String         @id @default(cuid())
+  companyId               String
+  company                 Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quarter                 Int            // 1, 2, 3, 4
+  year                    Int
+  employerAccountNumber   String?
+  companyName             String
+  companyAddress          String
+  totalWages              Float          @default(0)
+  excessWages             Float          @default(0)
+  taxableWages            Float          @default(0)
+  taxRate                 Float          @default(0.027) // Florida SUI default rate 2.7%
+  taxDue                  Float          @default(0)
+  adjustments             Float          @default(0)
+  totalDue                Float          @default(0)
+  employeeCount           Int            @default(0)
+  employeeDetails         Json?          // Array of {ssn, name, wages}
+  status                  TaxFormStatus  @default(DRAFT)
+  filedDate               DateTime?
+  paidDate                DateTime?
+  confirmationNumber      String?
+  notes                   String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  @@unique([companyId, quarter, year])
+  @@index([companyId])
+  @@index([year])
+  @@index([status])
+  @@map("florida_rt6")
+}
+
+// ============== W-2 WAGE AND TAX STATEMENT ==============
+model TaxFormW2 {
+  id                        String         @id @default(cuid())
+  companyId                 String
+  company                   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId                String
+  employee                  Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  year                      Int
+  ein                       String
+  employeeSSN               String
+  employeeName              String
+  employeeAddress           String
+  wages                     Float          @default(0)
+  federalIncomeTaxWithheld  Float          @default(0)
+  socialSecurityWages       Float          @default(0)
+  socialSecurityTaxWithheld Float          @default(0)
+  medicareWages             Float          @default(0)
+  medicareTaxWithheld       Float          @default(0)
+  stateWages                Float          @default(0)
+  stateIncomeTaxWithheld    Float          @default(0)
+  stateName                 String         @default("FL")
+  stateEIN                  String?
+  localWages                Float          @default(0)
+  localIncomeTaxWithheld    Float          @default(0)
+  localityName              String?
+  status                    TaxFormStatus  @default(DRAFT)
+  sentToEmployee            Boolean        @default(false)
+  sentDate                  DateTime?
+  filedWithSSA              Boolean        @default(false)
+  ssaFiledDate              DateTime?
+  confirmationNumber        String?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+
+  @@unique([companyId, employeeId, year])
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([year])
+  @@index([status])
+  @@map("tax_form_w2")
+}
+
+// ============== W-3 TRANSMITTAL OF W-2 ==============
+model TaxFormW3 {
+  id                        String         @id @default(cuid())
+  companyId                 String
+  company                   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  year                      Int
+  ein                       String
+  companyName               String
+  companyAddress            String
+  establishmentNumber       String?
+  employerType              String?
+  totalW2Forms              Int            @default(0)
+  totalWages                Float          @default(0)
+  totalFederalTaxWithheld   Float          @default(0)
+  totalSocialSecurityWages  Float          @default(0)
+  totalSocialSecurityTax    Float          @default(0)
+  totalMedicareWages        Float          @default(0)
+  totalMedicareTax          Float          @default(0)
+  totalStateWages           Float          @default(0)
+  totalStateTaxWithheld     Float          @default(0)
+  w2FormIds                 String[]
+  status                    TaxFormStatus  @default(DRAFT)
+  filedWithSSA              Boolean        @default(false)
+  ssaFiledDate              DateTime?
+  confirmationNumber        String?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+
+  @@unique([companyId, year])
+  @@index([companyId])
+  @@index([year])
+  @@index([status])
+  @@map("tax_form_w3")
+}
+
 model SalesTaxFiling {
   id                 String          @id @default(cuid())
   userId             String
@@ -1813,6 +1997,11 @@ model Company {
   uploadedDocuments      UploadedDocument[]
   webhooks               Webhook[]
   whiteLabel             WhiteLabel?
+  taxForms941            TaxForm941[]
+  taxForms940            TaxForm940[]
+  floridaRT6Forms        FloridaRT6[]
+  taxFormsW2             TaxFormW2[]
+  taxFormsW3             TaxFormW3[]
 
   @@map("companies")
 }
@@ -3399,6 +3588,16 @@ enum W9Status {
   SUBMITTED
   VERIFIED
   EXPIRED
+  REJECTED
+}
+
+enum TaxFormStatus {
+  DRAFT
+  PENDING_REVIEW
+  READY_TO_FILE
+  FILED
+  PAID
+  AMENDED
   REJECTED
 }
 

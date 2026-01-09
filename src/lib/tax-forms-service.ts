@@ -116,6 +116,15 @@ export async function generateForm941(
   quarter: number,
   year: number
 ): Promise<Form941Data> {
+  // Obtener datos de la empresa
+  const company = await prisma.company.findUnique({
+    where: { id: companyId }
+  });
+
+  if (!company) {
+    throw new Error('Empresa no encontrada');
+  }
+
   // Calcular fechas del trimestre
   const quarterStart = new Date(year, (quarter - 1) * 3, 1);
   const quarterEnd = new Date(year, quarter * 3, 0);
@@ -123,6 +132,7 @@ export async function generateForm941(
   // Obtener todos los payrolls del trimestre
   const payrolls = await prisma.payroll.findMany({
     where: {
+      companyId,
       periodStart: { gte: quarterStart, lte: quarterEnd },
     },
     include: {
@@ -178,9 +188,9 @@ export async function generateForm941(
   const form941: Form941Data = {
     quarter,
     year,
-    ein: 'XX-XXXXXXX', // Obtener del perfil de la empresa
-    companyName: 'Company Name', // Obtener del perfil
-    companyAddress: 'Company Address', // Obtener del perfil
+    ein: company.taxId || 'XX-XXXXXXX',
+    companyName: company.name,
+    companyAddress: `${company.address || ''}, ${company.city || ''}, ${company.state || ''} ${company.zipCode || ''}`.trim(),
     numberOfEmployees: employeeSet.size,
     wagesAndTips: totalWages,
     federalIncomeTaxWithheld: totalFederalTax,
@@ -195,29 +205,50 @@ export async function generateForm941(
     overpayment,
   };
 
-  // Guardar en la base de datos
-  // TODO: Agregar modelo TaxForm941 al schema de Prisma
-  /*
-  await prisma.taxForm941.create({
-    data: {
-      userId: companyId,
+  // Guardar o actualizar en la base de datos
+  await prisma.taxForm941.upsert({
+    where: {
+      companyId_quarter_year: { companyId, quarter, year }
+    },
+    update: {
+      ein: form941.ein,
+      companyName: form941.companyName,
+      companyAddress: form941.companyAddress,
+      numberOfEmployees: form941.numberOfEmployees,
+      wagesAndTips: form941.wagesAndTips,
+      federalIncomeTaxWithheld: form941.federalIncomeTaxWithheld,
+      socialSecurityWages: form941.socialSecurityWages,
+      socialSecurityTax: form941.socialSecurityTax,
+      medicareWages: form941.medicareWages,
+      medicareTax: form941.medicareTax,
+      additionalMedicareTax: form941.additionalMedicareTax,
+      totalTaxes: form941.totalTaxes,
+      totalDeposits: form941.totalDeposits,
+      balanceDue: form941.balanceDue,
+      overpayment: form941.overpayment,
+    },
+    create: {
+      companyId,
       quarter,
       year,
-      numberOfEmployees: employeeSet.size,
-      wagesAndTips: totalWages,
-      federalIncomeTaxWithheld: totalFederalTax,
-      socialSecurityWages: totalSocialSecurityWages,
-      socialSecurityTax: totalSocialSecurityTax,
-      medicareWages: totalMedicareWages,
-      medicareTax: totalMedicareTax,
-      totalTaxes,
-      deposits: totalDeposits,
-      balanceDue,
-      overpayment,
+      ein: form941.ein,
+      companyName: form941.companyName,
+      companyAddress: form941.companyAddress,
+      numberOfEmployees: form941.numberOfEmployees,
+      wagesAndTips: form941.wagesAndTips,
+      federalIncomeTaxWithheld: form941.federalIncomeTaxWithheld,
+      socialSecurityWages: form941.socialSecurityWages,
+      socialSecurityTax: form941.socialSecurityTax,
+      medicareWages: form941.medicareWages,
+      medicareTax: form941.medicareTax,
+      additionalMedicareTax: form941.additionalMedicareTax,
+      totalTaxes: form941.totalTaxes,
+      totalDeposits: form941.totalDeposits,
+      balanceDue: form941.balanceDue,
+      overpayment: form941.overpayment,
       status: 'DRAFT',
     },
   });
-  */
 
   return form941;
 }
@@ -228,12 +259,22 @@ export async function generateForm940(
   companyId: string,
   year: number
 ): Promise<Form940Data> {
+  // Obtener datos de la empresa
+  const company = await prisma.company.findUnique({
+    where: { id: companyId }
+  });
+
+  if (!company) {
+    throw new Error('Empresa no encontrada');
+  }
+
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year, 11, 31);
 
   // Obtener todos los payrolls del año
   const payrolls = await prisma.payroll.findMany({
     where: {
+      companyId,
       periodStart: { gte: yearStart, lte: yearEnd },
     },
     include: {
@@ -280,10 +321,10 @@ export async function generateForm940(
 
   const form940: Form940Data = {
     year,
-    ein: 'XX-XXXXXXX',
-    companyName: 'Company Name',
-    companyAddress: 'Company Address',
-    stateQualification: 'FL', // Florida
+    ein: company.taxId || 'XX-XXXXXXX',
+    companyName: company.name,
+    companyAddress: `${company.address || ''}, ${company.city || ''}, ${company.state || ''} ${company.zipCode || ''}`.trim(),
+    stateQualification: company.state || 'FL',
     totalPayments,
     exemptPayments,
     paymentsExcludingFUTA,
@@ -296,26 +337,47 @@ export async function generateForm940(
     overpayment,
   };
 
-  // Guardar en la base de datos
-  // TODO: Agregar modelo TaxForm940 al schema de Prisma
-  /*
-  await prisma.taxForm940.create({
-    data: {
-      userId: companyId,
+  // Guardar o actualizar en la base de datos
+  await prisma.taxForm940.upsert({
+    where: {
+      companyId_year: { companyId, year }
+    },
+    update: {
+      ein: form940.ein,
+      companyName: form940.companyName,
+      companyAddress: form940.companyAddress,
+      stateQualification: form940.stateQualification,
+      totalPayments: form940.totalPayments,
+      exemptPayments: form940.exemptPayments,
+      paymentsExcludingFUTA: form940.paymentsExcludingFUTA,
+      totalFUTAWages: form940.totalFUTAWages,
+      futaTaxBeforeAdjustments: form940.futaTaxBeforeAdjustments,
+      stateUnemploymentTaxCredit: form940.stateUnemploymentTaxCredit,
+      totalFUTATax: form940.totalFUTATax,
+      totalDeposits: form940.totalDeposits,
+      balanceDue: form940.balanceDue,
+      overpayment: form940.overpayment,
+    },
+    create: {
+      companyId,
       year,
-      totalWages: totalPayments,
-      exemptWages: exemptPayments,
-      excessWages: paymentsExcludingFUTA,
-      taxableWages: totalFUTAWages,
-      futaTax: totalFUTATax,
-      stateUnemploymentCredit: stateUnemploymentTaxCredit,
-      deposits: totalDeposits,
-      balanceDue,
-      overpayment,
+      ein: form940.ein,
+      companyName: form940.companyName,
+      companyAddress: form940.companyAddress,
+      stateQualification: form940.stateQualification,
+      totalPayments: form940.totalPayments,
+      exemptPayments: form940.exemptPayments,
+      paymentsExcludingFUTA: form940.paymentsExcludingFUTA,
+      totalFUTAWages: form940.totalFUTAWages,
+      futaTaxBeforeAdjustments: form940.futaTaxBeforeAdjustments,
+      stateUnemploymentTaxCredit: form940.stateUnemploymentTaxCredit,
+      totalFUTATax: form940.totalFUTATax,
+      totalDeposits: form940.totalDeposits,
+      balanceDue: form940.balanceDue,
+      overpayment: form940.overpayment,
       status: 'DRAFT',
     },
   });
-  */
 
   return form940;
 }
@@ -327,12 +389,22 @@ export async function generateRT6(
   quarter: number,
   year: number
 ): Promise<RT6Data> {
+  // Obtener datos de la empresa
+  const company = await prisma.company.findUnique({
+    where: { id: companyId }
+  });
+
+  if (!company) {
+    throw new Error('Empresa no encontrada');
+  }
+
   const quarterStart = new Date(year, (quarter - 1) * 3, 1);
   const quarterEnd = new Date(year, quarter * 3, 0);
 
   // Obtener payrolls del trimestre
   const payrolls = await prisma.payroll.findMany({
     where: {
+      companyId,
       periodStart: { gte: quarterStart, lte: quarterEnd },
     },
     include: {
@@ -389,9 +461,9 @@ export async function generateRT6(
   const rt6: RT6Data = {
     quarter,
     year,
-    employerAccountNumber: 'FL-XXXXXXX',
-    companyName: 'Company Name',
-    companyAddress: 'Company Address',
+    employerAccountNumber: company.taxId ? `FL-${company.taxId.replace('-', '')}` : 'FL-XXXXXXX',
+    companyName: company.name,
+    companyAddress: `${company.address || ''}, ${company.city || ''}, ${company.state || ''} ${company.zipCode || ''}`.trim(),
     totalWages,
     excessWages,
     taxableWages,
@@ -403,28 +475,45 @@ export async function generateRT6(
     employees,
   };
 
-  // Guardar en la base de datos
-  // TODO: Agregar modelo FloridaRT6 al schema de Prisma
-  /*
-  await prisma.floridaRT6.create({
-    data: {
-      userId: companyId,
+  // Guardar o actualizar en la base de datos
+  await prisma.floridaRT6.upsert({
+    where: {
+      companyId_quarter_year: { companyId, quarter, year }
+    },
+    update: {
+      employerAccountNumber: rt6.employerAccountNumber,
+      companyName: rt6.companyName,
+      companyAddress: rt6.companyAddress,
+      totalWages: rt6.totalWages,
+      excessWages: rt6.excessWages,
+      taxableWages: rt6.taxableWages,
+      taxRate: rt6.taxRate,
+      taxDue: rt6.taxDue,
+      adjustments: rt6.adjustments,
+      totalDue: rt6.totalDue,
+      employeeCount: rt6.employeeCount,
+      employeeDetails: rt6.employees,
+    },
+    create: {
+      companyId,
       quarter,
       year,
-      totalWages,
-      excessWages,
-      taxableWages,
-      taxRate: FLORIDA_SUI_RATE,
-      contributionDue: taxDue,
-      adjustments,
-      totalDue,
-      employeeCount: Object.keys(employeeWages).length,
+      employerAccountNumber: rt6.employerAccountNumber,
+      companyName: rt6.companyName,
+      companyAddress: rt6.companyAddress,
+      totalWages: rt6.totalWages,
+      excessWages: rt6.excessWages,
+      taxableWages: rt6.taxableWages,
+      taxRate: rt6.taxRate,
+      taxDue: rt6.taxDue,
+      adjustments: rt6.adjustments,
+      totalDue: rt6.totalDue,
+      employeeCount: rt6.employeeCount,
+      employeeDetails: rt6.employees,
       status: 'DRAFT',
     },
   });
-  */
 
-  // Return placeholder since model doesn't exist - return the full RT6Data
   return rt6;
 }
 
@@ -435,6 +524,15 @@ export async function generateW2(
   employeeId: string,
   year: number
 ): Promise<W2Data> {
+  // Obtener datos de la empresa
+  const company = await prisma.company.findUnique({
+    where: { id: companyId }
+  });
+
+  if (!company) {
+    throw new Error('Empresa no encontrada');
+  }
+
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year, 11, 31);
 
@@ -451,6 +549,7 @@ export async function generateW2(
   const payrolls = await prisma.payroll.findMany({
     where: {
       employeeId,
+      companyId,
       periodStart: { gte: yearStart, lte: yearEnd },
     },
   });
@@ -501,9 +600,9 @@ export async function generateW2(
 
   const w2: W2Data = {
     year,
-    ein: 'XX-XXXXXXX',
-    companyName: 'Company Name',
-    companyAddress: 'Company Address',
+    ein: company.taxId || 'XX-XXXXXXX',
+    companyName: company.name,
+    companyAddress: `${company.address || ''}, ${company.city || ''}, ${company.state || ''} ${company.zipCode || ''}`.trim(),
     employeeSSN: employee.taxId || '***-**-****',
     employeeName: `${employee.firstName} ${employee.lastName}`,
     employeeAddress: employee.address || '',
@@ -515,9 +614,52 @@ export async function generateW2(
     medicareTaxWithheld,
     stateWages,
     stateIncomeTaxWithheld,
-    stateName: 'FL',
-    stateEIN: '',
+    stateName: company.state || 'FL',
+    stateEIN: company.taxId || '',
   };
+
+  // Guardar o actualizar en la base de datos
+  await prisma.taxFormW2.upsert({
+    where: {
+      companyId_employeeId_year: { companyId, employeeId, year }
+    },
+    update: {
+      ein: w2.ein,
+      employeeSSN: w2.employeeSSN,
+      employeeName: w2.employeeName,
+      employeeAddress: w2.employeeAddress,
+      wages: w2.wages,
+      federalIncomeTaxWithheld: w2.federalIncomeTaxWithheld,
+      socialSecurityWages: w2.socialSecurityWages,
+      socialSecurityTaxWithheld: w2.socialSecurityTaxWithheld,
+      medicareWages: w2.medicareWages,
+      medicareTaxWithheld: w2.medicareTaxWithheld,
+      stateWages: w2.stateWages,
+      stateIncomeTaxWithheld: w2.stateIncomeTaxWithheld,
+      stateName: w2.stateName,
+      stateEIN: w2.stateEIN,
+    },
+    create: {
+      companyId,
+      employeeId,
+      year,
+      ein: w2.ein,
+      employeeSSN: w2.employeeSSN,
+      employeeName: w2.employeeName,
+      employeeAddress: w2.employeeAddress,
+      wages: w2.wages,
+      federalIncomeTaxWithheld: w2.federalIncomeTaxWithheld,
+      socialSecurityWages: w2.socialSecurityWages,
+      socialSecurityTaxWithheld: w2.socialSecurityTaxWithheld,
+      medicareWages: w2.medicareWages,
+      medicareTaxWithheld: w2.medicareTaxWithheld,
+      stateWages: w2.stateWages,
+      stateIncomeTaxWithheld: w2.stateIncomeTaxWithheld,
+      stateName: w2.stateName,
+      stateEIN: w2.stateEIN,
+      status: 'DRAFT',
+    },
+  });
 
   return w2;
 }
@@ -528,12 +670,18 @@ export async function generateW3(
   companyId: string,
   year: number
 ): Promise<W3Data> {
-  const yearStart = new Date(year, 0, 1);
-  const yearEnd = new Date(year, 11, 31);
+  // Obtener datos de la empresa
+  const company = await prisma.company.findUnique({
+    where: { id: companyId }
+  });
 
-  // Obtener todos los empleados
+  if (!company) {
+    throw new Error('Empresa no encontrada');
+  }
+
+  // Obtener todos los empleados de la empresa
   const employees = await prisma.employee.findMany({
-    where: { userId: companyId },
+    where: { companyId },
   });
 
   let totalWages = 0;
@@ -561,9 +709,9 @@ export async function generateW3(
 
   const w3: W3Data = {
     year,
-    ein: 'XX-XXXXXXX',
-    companyName: 'Company Name',
-    companyAddress: 'Company Address',
+    ein: company.taxId || 'XX-XXXXXXX',
+    companyName: company.name,
+    companyAddress: `${company.address || ''}, ${company.city || ''}, ${company.state || ''} ${company.zipCode || ''}`.trim(),
     establishmentNumber: '001',
     numberOfW2Forms: employees.length,
     totalWages,
@@ -576,46 +724,92 @@ export async function generateW3(
     totalStateIncomeTaxWithheld,
   };
 
+  // Obtener IDs de los W2 generados
+  const w2Records = await prisma.taxFormW2.findMany({
+    where: { companyId, year },
+    select: { id: true }
+  });
+  const w2FormIds = w2Records.map(w => w.id);
+
+  // Guardar o actualizar en la base de datos
+  await prisma.taxFormW3.upsert({
+    where: {
+      companyId_year: { companyId, year }
+    },
+    update: {
+      ein: w3.ein,
+      companyName: w3.companyName,
+      companyAddress: w3.companyAddress,
+      totalW2Forms: w3.numberOfW2Forms,
+      totalWages: w3.totalWages,
+      totalFederalTaxWithheld: w3.totalFederalIncomeTaxWithheld,
+      totalSocialSecurityWages: w3.totalSocialSecurityWages,
+      totalSocialSecurityTax: w3.totalSocialSecurityTaxWithheld,
+      totalMedicareWages: w3.totalMedicareWages,
+      totalMedicareTax: w3.totalMedicareTaxWithheld,
+      totalStateWages: w3.totalStateWages,
+      totalStateTaxWithheld: w3.totalStateIncomeTaxWithheld,
+      w2FormIds,
+    },
+    create: {
+      companyId,
+      year,
+      ein: w3.ein,
+      companyName: w3.companyName,
+      companyAddress: w3.companyAddress,
+      totalW2Forms: w3.numberOfW2Forms,
+      totalWages: w3.totalWages,
+      totalFederalTaxWithheld: w3.totalFederalIncomeTaxWithheld,
+      totalSocialSecurityWages: w3.totalSocialSecurityWages,
+      totalSocialSecurityTax: w3.totalSocialSecurityTaxWithheld,
+      totalMedicareWages: w3.totalMedicareWages,
+      totalMedicareTax: w3.totalMedicareTaxWithheld,
+      totalStateWages: w3.totalStateWages,
+      totalStateTaxWithheld: w3.totalStateIncomeTaxWithheld,
+      w2FormIds,
+      status: 'DRAFT',
+    },
+  });
+
   return w3;
 }
 
 // ============== HELPER FUNCTIONS ==============
 
 export async function getQuarterlyForms941(companyId: string, year: number) {
-  // TODO: Agregar modelo TaxForm941 al schema de Prisma
-  return [];
-  /*
   return await prisma.taxForm941.findMany({
-    where: { userId: companyId, year },
+    where: { companyId, year },
     orderBy: { quarter: 'asc' },
   });
-  */
 }
 
 export async function getAnnualForm940(companyId: string, year: number) {
-  // TODO: Agregar modelo TaxForm940 al schema de Prisma
-  return null;
-  /*
   return await prisma.taxForm940.findFirst({
-    where: { userId: companyId, year },
+    where: { companyId, year },
   });
-  */
 }
 
 export async function getQuarterlyRT6(companyId: string, year: number) {
-  // TODO: Agregar modelo FloridaRT6 al schema de Prisma
-  return [];
-  /*
   return await prisma.floridaRT6.findMany({
-    where: { userId: companyId, year },
+    where: { companyId, year },
     orderBy: { quarter: 'asc' },
   });
-  */
 }
 
 export async function getAllW2ForYear(companyId: string, year: number) {
+  // Primero verificar si ya existen W2 generados
+  const existingW2s = await prisma.taxFormW2.findMany({
+    where: { companyId, year },
+    include: { employee: true }
+  });
+
+  if (existingW2s.length > 0) {
+    return existingW2s;
+  }
+
+  // Si no existen, generar nuevos
   const employees = await prisma.employee.findMany({
-    where: { userId: companyId },
+    where: { companyId },
   });
 
   const w2Forms: W2Data[] = [];
@@ -625,4 +819,10 @@ export async function getAllW2ForYear(companyId: string, year: number) {
   }
 
   return w2Forms;
+}
+
+export async function getW3ForYear(companyId: string, year: number) {
+  return await prisma.taxFormW3.findFirst({
+    where: { companyId, year },
+  });
 }

@@ -348,42 +348,174 @@ export default function TaxFormsPage() {
   }
 
   // Generar preview del formulario seleccionado
-  const handlePreview = () => {
-    let data: any
-
-    switch (selectedForm) {
-      case 'rt6':
-        data = generateRT6Data()
-        break
-      case '941':
-        data = generateForm941Data()
-        break
-      case '940':
-        data = generateForm940Data()
-        break
-      case 'w3':
-        data = generateW3Data()
-        break
-      case '1096':
-        data = generateForm1096Data()
-        break
-      case 'w2':
-        if (selectedEmployee === 'all') {
-          data = {
-            formType: 'Form W-2 (Todos)',
-            employees: employees.map(emp => generateW2Data(emp))
-          }
-        } else {
-          const emp = employees.find(e => e.id === selectedEmployee)
-          if (emp) {
-            data = generateW2Data(emp)
-          }
-        }
-        break
+  const handlePreview = async () => {
+    if (!activeCompany?.id) {
+      toast.error('No hay empresa activa')
+      return
     }
 
-    setPreviewData(data)
-    setShowPreview(true)
+    try {
+      let data: any
+
+      // Llamar al API para obtener datos reales
+      const baseUrl = `/api/tax-forms?type=${selectedForm}&year=${selectedYear}`
+      const url = selectedForm === 'rt6' || selectedForm === '941' 
+        ? `${baseUrl}&quarter=${selectedQuarter}`
+        : baseUrl
+
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error('Error al obtener datos del formulario')
+      }
+
+      const apiData = await response.json()
+
+      switch (selectedForm) {
+        case 'rt6':
+          data = {
+            formType: 'RT-6',
+            title: 'FLORIDA DEPARTMENT OF REVENUE - EMPLOYER\'S QUARTERLY REPORT',
+            period: `Q${selectedQuarter} ${selectedYear}`,
+            companyInfo: {
+              name: apiData.companyName || activeCompany?.name,
+              ein: apiData.employerAccountNumber || 'XX-XXXXXXX',
+              address: apiData.companyAddress || '',
+              accountNumber: apiData.employerAccountNumber
+            },
+            data: {
+              totalWages: (apiData.totalWages || 0).toFixed(2),
+              excessWages: (apiData.excessWages || 0).toFixed(2),
+              taxableWages: (apiData.taxableWages || 0).toFixed(2),
+              taxRate: ((apiData.taxRate || 0.027) * 100).toFixed(2) + '%',
+              taxDue: (apiData.taxDue || 0).toFixed(2),
+              employeeCount: apiData.employeeCount || 0,
+              employees: apiData.employees || []
+            }
+          }
+          break
+        case '941':
+          data = {
+            formType: 'Form 941',
+            title: 'EMPLOYER\'S QUARTERLY FEDERAL TAX RETURN',
+            period: `Q${selectedQuarter} ${selectedYear}`,
+            companyInfo: {
+              name: apiData.companyName || activeCompany?.name,
+              ein: apiData.ein || 'XX-XXXXXXX',
+              address: apiData.companyAddress || ''
+            },
+            data: {
+              numberOfEmployees: apiData.numberOfEmployees || 0,
+              wagesAndTips: (apiData.wagesAndTips || 0).toFixed(2),
+              federalIncomeTaxWithheld: (apiData.federalIncomeTaxWithheld || 0).toFixed(2),
+              socialSecurityWages: (apiData.socialSecurityWages || 0).toFixed(2),
+              socialSecurityTax: (apiData.socialSecurityTax || 0).toFixed(2),
+              medicareWages: (apiData.medicareWages || 0).toFixed(2),
+              medicareTax: (apiData.medicareTax || 0).toFixed(2),
+              totalTaxes: (apiData.totalTaxes || 0).toFixed(2),
+              totalDeposits: (apiData.totalDeposits || 0).toFixed(2),
+              balanceDue: (apiData.balanceDue || 0).toFixed(2)
+            }
+          }
+          break
+        case '940':
+          data = {
+            formType: 'Form 940',
+            title: 'EMPLOYER\'S ANNUAL FEDERAL UNEMPLOYMENT (FUTA) TAX RETURN',
+            period: `Año ${selectedYear}`,
+            companyInfo: {
+              name: apiData.companyName || activeCompany?.name,
+              ein: apiData.ein || 'XX-XXXXXXX',
+              address: apiData.companyAddress || ''
+            },
+            data: {
+              stateQualification: apiData.stateQualification || 'Florida',
+              totalPayments: (apiData.totalPayments || 0).toFixed(2),
+              exemptPayments: (apiData.exemptPayments || 0).toFixed(2),
+              paymentsExcludingFUTA: (apiData.paymentsExcludingFUTA || 0).toFixed(2),
+              totalFUTAWages: (apiData.totalFUTAWages || 0).toFixed(2),
+              futaTaxBeforeAdjustments: (apiData.futaTaxBeforeAdjustments || 0).toFixed(2),
+              stateUnemploymentCredit: (apiData.stateUnemploymentTaxCredit || 0).toFixed(2),
+              totalFUTATax: (apiData.totalFUTATax || 0).toFixed(2),
+              totalDeposits: (apiData.totalDeposits || 0).toFixed(2),
+              balanceDue: (apiData.balanceDue || 0).toFixed(2)
+            }
+          }
+          break
+        case 'w3':
+          data = {
+            formType: 'Form W-3',
+            title: 'TRANSMITTAL OF WAGE AND TAX STATEMENTS',
+            period: `Año ${selectedYear}`,
+            companyInfo: {
+              name: apiData.companyName || activeCompany?.name,
+              ein: apiData.ein || 'XX-XXXXXXX',
+              address: apiData.companyAddress || ''
+            },
+            data: {
+              numberOfW2Forms: apiData.numberOfW2Forms || 0,
+              totalWages: (apiData.totalWages || 0).toFixed(2),
+              totalFederalIncomeTaxWithheld: (apiData.totalFederalIncomeTaxWithheld || 0).toFixed(2),
+              totalSocialSecurityWages: (apiData.totalSocialSecurityWages || 0).toFixed(2),
+              totalSocialSecurityTaxWithheld: (apiData.totalSocialSecurityTaxWithheld || 0).toFixed(2),
+              totalMedicareWages: (apiData.totalMedicareWages || 0).toFixed(2),
+              totalMedicareTaxWithheld: (apiData.totalMedicareTaxWithheld || 0).toFixed(2),
+              stateName: 'Florida',
+              stateWages: (apiData.totalStateWages || 0).toFixed(2),
+              stateIncomeTax: (apiData.totalStateIncomeTaxWithheld || 0).toFixed(2)
+            }
+          }
+          break
+        case '1096':
+          data = generateForm1096Data()
+          break
+        case 'w2':
+          if (Array.isArray(apiData) && apiData.length > 0) {
+            data = {
+              formType: 'Form W-2 (Todos)',
+              employees: apiData.map((w2: any) => ({
+                formType: 'Form W-2',
+                title: 'WAGE AND TAX STATEMENT',
+                period: `Año ${selectedYear}`,
+                companyInfo: {
+                  name: w2.companyName || activeCompany?.name,
+                  ein: w2.ein || 'XX-XXXXXXX',
+                  address: w2.companyAddress || ''
+                },
+                employeeInfo: {
+                  name: w2.employeeName,
+                  ssn: w2.employeeSSN,
+                  address: w2.employeeAddress || ''
+                },
+                data: {
+                  box1_wages: (w2.wages || 0).toFixed(2),
+                  box2_federalTax: (w2.federalIncomeTaxWithheld || 0).toFixed(2),
+                  box3_ssWages: (w2.socialSecurityWages || 0).toFixed(2),
+                  box4_ssTax: (w2.socialSecurityTaxWithheld || 0).toFixed(2),
+                  box5_medicareWages: (w2.medicareWages || 0).toFixed(2),
+                  box6_medicareTax: (w2.medicareTaxWithheld || 0).toFixed(2),
+                  box15_state: w2.stateName || 'FL',
+                  box16_stateWages: (w2.stateWages || 0).toFixed(2),
+                  box17_stateTax: (w2.stateIncomeTaxWithheld || 0).toFixed(2)
+                }
+              }))
+            }
+          } else {
+            data = {
+              formType: 'Form W-2 (Todos)',
+              employees: []
+            }
+          }
+          break
+      }
+
+      setPreviewData(data)
+      setShowPreview(true)
+      toast.success('Formulario generado con datos reales')
+    } catch (error) {
+      console.error('Error generating form:', error)
+      toast.error('Error al generar el formulario')
+    }
   }
 
   // Función para descargar como CSV
@@ -433,49 +565,147 @@ export default function TaxFormsPage() {
   }
 
   // Descargar formulario
-  const handleDownload = () => {
-    let data: any
-    let filename: string = ''
-
-    switch (selectedForm) {
-      case 'rt6':
-        data = generateRT6Data()
-        filename = 'RT6_Florida'
-        break
-      case '941':
-        data = generateForm941Data()
-        filename = 'Form941_Federal'
-        break
-      case '940':
-        data = generateForm940Data()
-        filename = 'Form940_FUTA'
-        break
-      case 'w3':
-        data = generateW3Data()
-        filename = 'FormW3_Transmittal'
-        break
-      case '1096':
-        data = generateForm1096Data()
-        filename = 'Form1096_Transmittal'
-        break
-      case 'w2':
-        if (selectedEmployee === 'all') {
-          data = {
-            formType: 'Form W-2 (Todos)',
-            employees: employees.map(emp => generateW2Data(emp))
-          }
-          filename = 'FormW2_AllEmployees'
-        } else {
-          const emp = employees.find(e => e.id === selectedEmployee)
-          if (emp) {
-            data = generateW2Data(emp)
-            filename = `FormW2_${emp.lastName.replaceAll(/\s/g, '_')}`
-          }
-        }
-        break
+  const handleDownload = async () => {
+    if (!activeCompany?.id) {
+      toast.error('No hay empresa activa')
+      return
     }
 
-    downloadAsCSV(data, filename)
+    try {
+      let data: any
+      let filename: string = ''
+
+      // Llamar al API para obtener datos reales
+      const baseUrl = `/api/tax-forms?type=${selectedForm}&year=${selectedYear}`
+      const url = selectedForm === 'rt6' || selectedForm === '941' 
+        ? `${baseUrl}&quarter=${selectedQuarter}`
+        : baseUrl
+
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error('Error al obtener datos del formulario')
+      }
+
+      const apiData = await response.json()
+
+      switch (selectedForm) {
+        case 'rt6':
+          data = {
+            formType: 'RT-6',
+            period: `Q${selectedQuarter} ${selectedYear}`,
+            companyInfo: {
+              name: apiData.companyName || activeCompany?.name,
+              ein: apiData.employerAccountNumber || 'XX-XXXXXXX',
+            },
+            data: {
+              totalWages: (apiData.totalWages || 0).toFixed(2),
+              excessWages: (apiData.excessWages || 0).toFixed(2),
+              taxableWages: (apiData.taxableWages || 0).toFixed(2),
+              taxRate: ((apiData.taxRate || 0.027) * 100).toFixed(2) + '%',
+              taxDue: (apiData.taxDue || 0).toFixed(2),
+              employees: apiData.employees || []
+            }
+          }
+          filename = 'RT6_Florida'
+          break
+        case '941':
+          data = {
+            formType: 'Form 941',
+            period: `Q${selectedQuarter} ${selectedYear}`,
+            companyInfo: {
+              name: apiData.companyName || activeCompany?.name,
+              ein: apiData.ein || 'XX-XXXXXXX',
+            },
+            data: {
+              numberOfEmployees: apiData.numberOfEmployees || 0,
+              wagesAndTips: (apiData.wagesAndTips || 0).toFixed(2),
+              federalIncomeTaxWithheld: (apiData.federalIncomeTaxWithheld || 0).toFixed(2),
+              socialSecurityTax: (apiData.socialSecurityTax || 0).toFixed(2),
+              medicareTax: (apiData.medicareTax || 0).toFixed(2),
+              totalTaxes: (apiData.totalTaxes || 0).toFixed(2),
+              balanceDue: (apiData.balanceDue || 0).toFixed(2)
+            }
+          }
+          filename = 'Form941_Federal'
+          break
+        case '940':
+          data = {
+            formType: 'Form 940',
+            period: `Año ${selectedYear}`,
+            companyInfo: {
+              name: apiData.companyName || activeCompany?.name,
+              ein: apiData.ein || 'XX-XXXXXXX',
+            },
+            data: {
+              totalPayments: (apiData.totalPayments || 0).toFixed(2),
+              totalFUTAWages: (apiData.totalFUTAWages || 0).toFixed(2),
+              totalFUTATax: (apiData.totalFUTATax || 0).toFixed(2),
+              balanceDue: (apiData.balanceDue || 0).toFixed(2)
+            }
+          }
+          filename = 'Form940_FUTA'
+          break
+        case 'w3':
+          data = {
+            formType: 'Form W-3',
+            period: `Año ${selectedYear}`,
+            companyInfo: {
+              name: apiData.companyName || activeCompany?.name,
+              ein: apiData.ein || 'XX-XXXXXXX',
+            },
+            data: {
+              numberOfW2Forms: apiData.numberOfW2Forms || 0,
+              totalWages: (apiData.totalWages || 0).toFixed(2),
+              totalFederalIncomeTaxWithheld: (apiData.totalFederalIncomeTaxWithheld || 0).toFixed(2),
+              totalSocialSecurityTaxWithheld: (apiData.totalSocialSecurityTaxWithheld || 0).toFixed(2),
+              totalMedicareTaxWithheld: (apiData.totalMedicareTaxWithheld || 0).toFixed(2)
+            }
+          }
+          filename = 'FormW3_Transmittal'
+          break
+        case '1096':
+          data = generateForm1096Data()
+          filename = 'Form1096_Transmittal'
+          break
+        case 'w2':
+          if (Array.isArray(apiData) && apiData.length > 0) {
+            data = {
+              formType: 'Form W-2 (Todos)',
+              employees: apiData.map((w2: any) => ({
+                employeeInfo: {
+                  name: w2.employeeName,
+                  ssn: w2.employeeSSN,
+                },
+                data: {
+                  box1_wages: (w2.wages || 0).toFixed(2),
+                  box2_federalTax: (w2.federalIncomeTaxWithheld || 0).toFixed(2),
+                  box3_ssWages: (w2.socialSecurityWages || 0).toFixed(2),
+                  box4_ssTax: (w2.socialSecurityTaxWithheld || 0).toFixed(2),
+                  box5_medicareWages: (w2.medicareWages || 0).toFixed(2),
+                  box6_medicareTax: (w2.medicareTaxWithheld || 0).toFixed(2),
+                  box15_state: w2.stateName || 'FL',
+                  box16_stateWages: (w2.stateWages || 0).toFixed(2),
+                  box17_stateTax: (w2.stateIncomeTaxWithheld || 0).toFixed(2)
+                }
+              }))
+            }
+            filename = 'FormW2_AllEmployees'
+          } else {
+            data = {
+              formType: 'Form W-2 (Todos)',
+              employees: []
+            }
+            filename = 'FormW2_Empty'
+          }
+          break
+      }
+
+      downloadAsCSV(data, filename)
+    } catch (error) {
+      console.error('Error downloading form:', error)
+      toast.error('Error al descargar el formulario')
+    }
   }
 
   // Renderizar preview del formulario
