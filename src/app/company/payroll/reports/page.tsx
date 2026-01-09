@@ -521,7 +521,7 @@ export default function PayrollReportsPage() {
                 <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                   <span className="text-sm font-semibold text-gray-700">Costo Promedio por Empleado</span>
                   <span className="text-base font-bold text-blue-600">
-                    ${(totalCost / totalEmployees).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    ${totalEmployees > 0 ? (totalCost / totalEmployees).toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-white rounded-lg">
