@@ -96,19 +96,21 @@ export default function ExpensesListPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // Load expenses - usar limit=500 para cargar todos los gastos
-      const expensesRes = await fetch('/api/expenses?limit=500')
+      // Load expenses - usar limit=2000 para cargar todos los gastos
+      const expensesRes = await fetch('/api/expenses?limit=2000')
       if (expensesRes.ok) {
         const expensesData = await expensesRes.json()
         // La API puede devolver { data: [...] } o un array directo
         const expensesArray = Array.isArray(expensesData) 
           ? expensesData 
           : (expensesData.data || [])
+        console.log(`📊 Total gastos cargados: ${expensesArray.length}`)
         setExpenses(expensesArray)
         setFilteredExpenses(expensesArray)
         calculateStats(expensesArray)
       } else {
         // Si hay error, inicializar con arrays vacíos
+        console.error('Error al cargar gastos:', expensesRes.status)
         setExpenses([])
         setFilteredExpenses([])
       }
@@ -149,18 +151,21 @@ export default function ExpensesListPage() {
     let filtered = expenses
 
     // Search filter - búsqueda inteligente en múltiples campos
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase()
-      filtered = filtered.filter(
-        e =>
-          e.description.toLowerCase().includes(term) ||
-          e.vendor?.toLowerCase().includes(term) ||
-          e.category.name.toLowerCase().includes(term) ||
-          e.employee?.name?.toLowerCase().includes(term) ||
-          e.reference?.toLowerCase().includes(term) ||
-          e.paymentMethod?.toLowerCase().includes(term) ||
-          e.amount.toString().includes(term)
-      )
+    if (searchTerm && searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim()
+      filtered = filtered.filter(e => {
+        // Verificar cada campo de forma segura
+        const descMatch = e.description?.toLowerCase()?.includes(term) || false
+        const vendorMatch = e.vendor?.toLowerCase()?.includes(term) || false
+        const categoryMatch = e.category?.name?.toLowerCase()?.includes(term) || false
+        const employeeMatch = e.employee?.name?.toLowerCase()?.includes(term) || false
+        const refMatch = e.reference?.toLowerCase()?.includes(term) || false
+        const paymentMatch = e.paymentMethod?.toLowerCase()?.includes(term) || false
+        const amountMatch = e.amount?.toString()?.includes(term) || false
+        
+        return descMatch || vendorMatch || categoryMatch || employeeMatch || refMatch || paymentMatch || amountMatch
+      })
+      console.log(`🔍 Filtro "${term}": ${filtered.length} resultados de ${expenses.length} gastos`)
     }
 
     // Status filter
@@ -170,7 +175,7 @@ export default function ExpensesListPage() {
 
     // Category filter
     if (categoryFilter !== 'ALL') {
-      filtered = filtered.filter(e => e.category.id === categoryFilter)
+      filtered = filtered.filter(e => e.category?.id === categoryFilter)
     }
 
     // Date from filter

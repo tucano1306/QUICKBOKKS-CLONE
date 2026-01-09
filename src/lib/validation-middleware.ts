@@ -140,8 +140,9 @@ export function validatePagination(request: NextRequest): {
     errors.push('page debe ser un número mayor a 0');
   }
 
-  if (isNaN(limit) || limit < 1 || limit > 500) {
-    errors.push('limit debe ser un número entre 1 y 500');
+  // Permitir hasta 5000 registros para soportar empresas con muchos gastos
+  if (isNaN(limit) || limit < 1 || limit > 5000) {
+    errors.push('limit debe ser un número entre 1 y 5000');
   }
 
   if (errors.length > 0) {

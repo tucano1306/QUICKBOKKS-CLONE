@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
@@ -65,7 +65,6 @@ export default function VehicleDepreciationPage() {
   const { status } = useSession()
   const [loading, setLoading] = useState(true)
   const [assets, setAssets] = useState<Asset[]>([])
-  const [filteredAssets, setFilteredAssets] = useState<Asset[]>([])
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
@@ -103,17 +102,18 @@ export default function VehicleDepreciationPage() {
     }
   }, [status])
 
-  useEffect(() => {
+  // Memoize filtered assets to prevent unnecessary recalculations
+  const filteredAssets = useMemo(() => {
     let filtered = assets.filter(a => a.category === 'VEHICLE')
     
     if (statusFilter !== 'ALL') {
       filtered = filtered.filter(a => a.status === statusFilter)
     }
     
-    setFilteredAssets(filtered)
+    return filtered
   }, [assets, statusFilter])
 
-  const loadAssets = async () => {
+  const loadAssets = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch('/api/accounting/assets')
@@ -126,7 +126,7 @@ export default function VehicleDepreciationPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   const handleAddAsset = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -447,7 +447,8 @@ export default function VehicleDepreciationPage() {
   }
 
   // Calculate stats - using REAL calculated depreciation values (not DB values)
-  const stats = {
+  // Memoized to prevent unnecessary recalculations on each render
+  const stats = useMemo(() => ({
     totalVehicles: filteredAssets.length,
     activeVehicles: filteredAssets.filter(a => a.status === 'ACTIVE').length,
     totalValue: filteredAssets.reduce((sum, a) => sum + a.purchasePrice, 0),
@@ -457,7 +458,7 @@ export default function VehicleDepreciationPage() {
     totalDepreciation: filteredAssets.reduce((sum, a) => sum + calculateRealAccumulatedDepreciation(a), 0),
     monthlyDepreciation: filteredAssets.reduce((sum, a) => sum + calculateMonthlyDepreciation(a), 0),
     weeklyDepreciation: filteredAssets.reduce((sum, a) => sum + calculateWeeklyDepreciation(a), 0)
-  }
+  }), [filteredAssets])
 
   if (status === 'loading' || loading) {
     return (
@@ -1437,12 +1438,12 @@ export default function VehicleDepreciationPage() {
 
         {/* MILEAGE UPDATE MODAL - Actualización Rápida de Millaje */}
         {showMileageModal && selectedAsset && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md">
-              <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-violet-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+            <Card className="w-full max-w-md my-2 sm:my-4 max-h-[95vh] overflow-y-auto">
+              <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-violet-50 p-3 sm:p-4 sticky top-0 z-10">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Gauge className="w-6 h-6 text-purple-600" />
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Gauge className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                     Actualizar Millaje
                   </CardTitle>
                   <Button 
@@ -1456,9 +1457,9 @@ export default function VehicleDepreciationPage() {
                     ✕
                   </Button>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">{selectedAsset.name}</p>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">{selectedAsset.name}</p>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-6">
                 <form 
                   onSubmit={async (e) => {
                     e.preventDefault()
@@ -1475,43 +1476,41 @@ export default function VehicleDepreciationPage() {
                     
                     await handleUpdateMileage(selectedAsset.id, newMileage, newLifetimeMiles, newPurchaseMileage)
                   }} 
-                  className="space-y-4"
+                  className="space-y-3 sm:space-y-4"
                 >
-                  {/* Información actual */}
-                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                    <h4 className="font-medium text-gray-700 mb-2">📊 Valores Actuales en Base de Datos</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-gray-500">Millaje Actual:</span>
-                        <span className="ml-2 font-bold text-purple-700">
+                  {/* Información actual - Compacta en móvil */}
+                  <div className="p-2 sm:p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium text-gray-700 mb-2 text-xs sm:text-sm">📊 Valores Actuales</h4>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 text-[10px] sm:text-xs">Millaje Actual</span>
+                        <span className="font-bold text-purple-700">
                           {selectedAsset.currentMileage?.toLocaleString() || '0'} mi
                         </span>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Millas de Vida:</span>
-                        <span className="ml-2 font-bold text-purple-700">
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 text-[10px] sm:text-xs">Vida Útil</span>
+                        <span className="font-bold text-purple-700">
                           {selectedAsset.estimatedLifetimeMiles?.toLocaleString() || '200,000'} mi
                         </span>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Millaje de Compra:</span>
-                        <span className="ml-2 font-medium">
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 text-[10px] sm:text-xs">Compra</span>
+                        <span className="font-medium">
                           {selectedAsset.purchaseMileage?.toLocaleString() || '0'} mi
                         </span>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Millas Usadas:</span>
-                        <span className="ml-2 font-medium">
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 text-[10px] sm:text-xs">Usadas</span>
+                        <span className="font-medium">
                           {((selectedAsset.currentMileage || 0) - (selectedAsset.purchaseMileage || 0)).toLocaleString()} mi
                         </span>
                       </div>
                     </div>
                     {selectedAsset.lastMileageUpdate && (
-                      <p className="text-xs text-gray-500 mt-2 border-t pt-2">
-                        🕐 Última actualización: {new Date(selectedAsset.lastMileageUpdate).toLocaleDateString('es-MX', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
+                      <p className="text-[10px] sm:text-xs text-gray-500 mt-2 border-t pt-2">
+                        🕐 {new Date(selectedAsset.lastMileageUpdate).toLocaleDateString('es-MX', { 
+                          month: 'short', 
                           day: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit'
@@ -1520,16 +1519,16 @@ export default function VehicleDepreciationPage() {
                     )}
                   </div>
 
-                  {/* Título de actualización */}
-                  <div className="bg-gradient-to-r from-purple-600 to-violet-600 text-white p-3 rounded-lg text-center">
-                    <p className="font-semibold">📍 Ingresa el Millaje de Hoy</p>
-                    <p className="text-xs opacity-90">Fecha: {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  {/* Título de actualización - Más compacto */}
+                  <div className="bg-gradient-to-r from-purple-600 to-violet-600 text-white p-2 sm:p-3 rounded-lg text-center">
+                    <p className="font-semibold text-sm sm:text-base">📍 Millaje de Hoy</p>
+                    <p className="text-[10px] sm:text-xs opacity-90">{new Date().toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
                   </div>
 
-                  {/* Nuevos valores */}
+                  {/* Campo principal de millaje */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      🚗 Millas del Odómetro Hoy *
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      🚗 Odómetro *
                     </label>
                     <input
                       type="number"
@@ -1539,29 +1538,30 @@ export default function VehicleDepreciationPage() {
                       min="0"
                       max="999999"
                       required
-                      className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-2xl font-bold text-center"
+                      className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-xl sm:text-2xl font-bold text-center"
                     />
-                    <p className="text-xs text-gray-500 mt-1 text-center">Ingresa las millas EXACTAS del odómetro (ej: 112500, no 112)</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1 text-center">Millas exactas (ej: 112500)</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Campos secundarios */}
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Millaje de Compra
+                      <label className="block text-[10px] sm:text-sm font-medium text-gray-700 mb-1">
+                        Compra
                       </label>
                       <input
                         type="number"
                         name="purchaseMileage"
                         defaultValue={selectedAsset.purchaseMileage || 0}
-                        placeholder="Ej: 50000"
+                        placeholder="50000"
                         min="0"
                         max="999999"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Millas de Vida Útil
+                      <label className="block text-[10px] sm:text-sm font-medium text-gray-700 mb-1">
+                        Vida Útil
                       </label>
                       <input
                         type="number"
@@ -1570,28 +1570,23 @@ export default function VehicleDepreciationPage() {
                         placeholder="200000"
                         min="0"
                         max="999999"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
                       />
                     </div>
                   </div>
 
-                  {/* Vista previa del cálculo */}
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  {/* Vista previa - Más compacta */}
+                  <div className="p-2 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm text-green-900">
-                        <p className="font-semibold mb-1">✓ Al guardar se recalculará:</p>
-                        <ul className="text-green-700 text-xs space-y-1">
-                          <li>• Depreciación por milla</li>
-                          <li>• Millas usadas totales</li>
-                          <li>• Valor actual del vehículo</li>
-                          <li>• Se registrará la fecha de actualización</li>
-                        </ul>
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                      <div className="text-xs sm:text-sm text-green-900">
+                        <p className="font-semibold">✓ Se recalculará automáticamente</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-4">
+                  {/* Botones */}
+                  <div className="flex gap-2 pt-2 sm:pt-4">
                     <Button
                       type="button"
                       variant="outline"
@@ -1599,25 +1594,24 @@ export default function VehicleDepreciationPage() {
                         setShowMileageModal(false)
                         setSelectedAsset(null)
                       }}
-                      className="flex-1"
+                      className="flex-1 text-sm sm:text-base py-2 sm:py-3"
                       disabled={updatingMileage}
                     >
                       Cancelar
                     </Button>
                     <Button 
                       type="submit" 
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-semibold shadow-lg"
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-semibold shadow-lg text-sm sm:text-base py-2 sm:py-3"
                       disabled={updatingMileage}
                     >
                       {updatingMileage ? (
                         <>
-                          <Clock className="w-4 h-4 mr-2 animate-spin" />
+                          <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" />
                           Guardando...
                         </>
                       ) : (
                         <>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          💾 Guardar y Recalcular
+                          💾 Guardar
                         </>
                       )}
                     </Button>
