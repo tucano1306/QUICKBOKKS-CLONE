@@ -181,13 +181,20 @@ export default function VehicleDepreciationPage() {
   }
 
   // Función para actualizar millaje rápidamente
-  const handleUpdateMileage = async (assetId: string, newMileage: number, newLifetimeMiles?: number) => {
+  const handleUpdateMileage = async (assetId: string, newMileage: number, newLifetimeMiles?: number, purchaseMileage?: number) => {
     setUpdatingMileage(true)
     try {
-      const updateData: any = { currentMileage: newMileage }
-      if (newLifetimeMiles) {
+      const updateData: any = { 
+        currentMileage: newMileage
+      }
+      if (newLifetimeMiles !== undefined && newLifetimeMiles > 0) {
         updateData.estimatedLifetimeMiles = newLifetimeMiles
       }
+      if (purchaseMileage !== undefined && purchaseMileage >= 0) {
+        updateData.purchaseMileage = purchaseMileage
+      }
+      
+      console.log('📤 Enviando actualización de millaje:', updateData)
       
       const response = await fetch(`/api/accounting/assets/${assetId}`, {
         method: 'PUT',
@@ -196,20 +203,23 @@ export default function VehicleDepreciationPage() {
       })
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Millaje actualizado exitosamente' })
-        loadAssets() // Recargar datos
+        const updatedAsset = await response.json()
+        console.log('✅ Respuesta del servidor:', updatedAsset)
+        setMessage({ type: 'success', text: `✅ Millaje actualizado a ${newMileage.toLocaleString()} millas` })
+        await loadAssets() // Recargar datos
         setShowMileageModal(false)
         setSelectedAsset(null)
-        setTimeout(() => setMessage(null), 3000)
+        setTimeout(() => setMessage(null), 5000)
       } else {
         const error = await response.json()
+        console.error('❌ Error del servidor:', error)
         setMessage({ type: 'error', text: error.error || 'Error al actualizar millaje' })
-        setTimeout(() => setMessage(null), 3000)
+        setTimeout(() => setMessage(null), 5000)
       }
     } catch (error) {
-      console.error('Error updating mileage:', error)
+      console.error('❌ Error updating mileage:', error)
       setMessage({ type: 'error', text: 'Error de conexión' })
-      setTimeout(() => setMessage(null), 3000)
+      setTimeout(() => setMessage(null), 5000)
     } finally {
       setUpdatingMileage(false)
     }
@@ -626,21 +636,30 @@ export default function VehicleDepreciationPage() {
 
                     {/* Quick Stats */}
                     <div className="lg:w-72 space-y-2">
-                      {/* Millas si están disponibles */}
-                      {asset.currentMileage !== null && (
-                        <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                          <div className="flex items-center gap-2 mb-1">
+                      {/* Millas - SIEMPRE VISIBLE con botón de actualizar */}
+                      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
                             <Gauge className="w-4 h-4 text-purple-600" />
-                            <span className="text-xs font-semibold text-purple-900">MILLAJE</span>
+                            <span className="text-xs font-semibold text-purple-900">MILLAJE ACTUAL</span>
                           </div>
-                          <p className="text-xl font-bold text-purple-900">
-                            {(asset.currentMileage || 0).toLocaleString('es-MX')} mi
-                          </p>
-                          <p className="text-xs text-purple-700">
-                            ${calculateDepreciationPerMile(asset).toFixed(4)}/milla
-                          </p>
                         </div>
-                      )}
+                        <p className="text-2xl font-bold text-purple-900">
+                          {(asset.currentMileage || 0).toLocaleString('es-MX')} mi
+                        </p>
+                        <div className="flex justify-between text-xs text-purple-700 mt-1">
+                          <span>Compra: {(asset.purchaseMileage || 0).toLocaleString()} mi</span>
+                          <span>Usadas: {((asset.currentMileage || 0) - (asset.purchaseMileage || 0)).toLocaleString()} mi</span>
+                        </div>
+                        <p className="text-xs text-purple-600 mt-1">
+                          Vida útil: {(asset.estimatedLifetimeMiles || 200000).toLocaleString()} mi
+                        </p>
+                        {asset.lastMileageUpdate && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Última actualización: {new Date(asset.lastMileageUpdate).toLocaleDateString('es-MX')}
+                          </p>
+                        )}
+                      </div>
 
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-center gap-2 mb-1">
@@ -669,14 +688,14 @@ export default function VehicleDepreciationPage() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="w-full bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                        className="w-full bg-gradient-to-r from-purple-600 to-violet-600 text-white hover:from-purple-700 hover:to-violet-700 shadow-md"
                         onClick={() => {
                           setSelectedAsset(asset)
                           setShowMileageModal(true)
                         }}
                       >
                         <Gauge className="w-4 h-4 mr-2" />
-                        Actualizar Millaje
+                        📍 Actualizar Millas Hoy
                       </Button>
 
                       <div className="flex gap-2">
@@ -688,6 +707,7 @@ export default function VehicleDepreciationPage() {
                             setSelectedAsset(asset)
                             setShowViewModal(true)
                           }}
+                          title="Ver detalles"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -699,6 +719,7 @@ export default function VehicleDepreciationPage() {
                             setSelectedAsset(asset)
                             setShowEditModal(true)
                           }}
+                          title="Editar vehículo"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -1402,13 +1423,21 @@ export default function VehicleDepreciationPage() {
                     const formData = new FormData(e.currentTarget)
                     const newMileage = parseInt(formData.get('currentMileage') as string) || 0
                     const newLifetimeMiles = parseInt(formData.get('estimatedLifetimeMiles') as string) || undefined
-                    await handleUpdateMileage(selectedAsset.id, newMileage, newLifetimeMiles)
+                    const newPurchaseMileage = parseInt(formData.get('purchaseMileage') as string) || undefined
+                    
+                    console.log('Form Data:', {
+                      currentMileage: newMileage,
+                      estimatedLifetimeMiles: newLifetimeMiles,
+                      purchaseMileage: newPurchaseMileage
+                    })
+                    
+                    await handleUpdateMileage(selectedAsset.id, newMileage, newLifetimeMiles, newPurchaseMileage)
                   }} 
                   className="space-y-4"
                 >
                   {/* Información actual */}
                   <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                    <h4 className="font-medium text-gray-700 mb-2">Valores Actuales</h4>
+                    <h4 className="font-medium text-gray-700 mb-2">📊 Valores Actuales en Base de Datos</h4>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
                         <span className="text-gray-500">Millaje Actual:</span>
@@ -1435,12 +1464,30 @@ export default function VehicleDepreciationPage() {
                         </span>
                       </div>
                     </div>
+                    {selectedAsset.lastMileageUpdate && (
+                      <p className="text-xs text-gray-500 mt-2 border-t pt-2">
+                        🕐 Última actualización: {new Date(selectedAsset.lastMileageUpdate).toLocaleDateString('es-MX', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Título de actualización */}
+                  <div className="bg-gradient-to-r from-purple-600 to-violet-600 text-white p-3 rounded-lg text-center">
+                    <p className="font-semibold">📍 Ingresa el Millaje de Hoy</p>
+                    <p className="text-xs opacity-90">Fecha: {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   </div>
 
                   {/* Nuevos valores */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nuevo Millaje Actual *
+                      🚗 Millas del Odómetro Hoy *
                     </label>
                     <input
                       type="number"
@@ -1450,36 +1497,54 @@ export default function VehicleDepreciationPage() {
                       min="0"
                       max="999999"
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
+                      className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-2xl font-bold text-center"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Ingresa las millas del odómetro (hasta 6 dígitos)</p>
+                    <p className="text-xs text-gray-500 mt-1 text-center">Ingresa las millas EXACTAS del odómetro (ej: 112500, no 112)</p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Millas de Vida Útil Estimadas
-                    </label>
-                    <input
-                      type="number"
-                      name="estimatedLifetimeMiles"
-                      defaultValue={selectedAsset.estimatedLifetimeMiles || 200000}
-                      placeholder="200000"
-                      min="0"
-                      max="999999"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Millas totales esperadas de vida del vehículo</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Millaje de Compra
+                      </label>
+                      <input
+                        type="number"
+                        name="purchaseMileage"
+                        defaultValue={selectedAsset.purchaseMileage || 0}
+                        placeholder="Ej: 50000"
+                        min="0"
+                        max="999999"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Millas de Vida Útil
+                      </label>
+                      <input
+                        type="number"
+                        name="estimatedLifetimeMiles"
+                        defaultValue={selectedAsset.estimatedLifetimeMiles || 200000}
+                        placeholder="200000"
+                        min="0"
+                        max="999999"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
                   </div>
 
                   {/* Vista previa del cálculo */}
-                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <Calculator className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm text-purple-900">
-                        <p className="font-semibold mb-1">Depreciación por Milla</p>
-                        <p className="text-purple-700">
-                          Con los nuevos valores, se recalculará automáticamente la depreciación basada en el uso real del vehículo.
-                        </p>
+                      <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-green-900">
+                        <p className="font-semibold mb-1">✓ Al guardar se recalculará:</p>
+                        <ul className="text-green-700 text-xs space-y-1">
+                          <li>• Depreciación por milla</li>
+                          <li>• Millas usadas totales</li>
+                          <li>• Valor actual del vehículo</li>
+                          <li>• Se registrará la fecha de actualización</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
@@ -1499,18 +1564,18 @@ export default function VehicleDepreciationPage() {
                     </Button>
                     <Button 
                       type="submit" 
-                      className="flex-1 bg-purple-600 hover:bg-purple-700"
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-semibold shadow-lg"
                       disabled={updatingMileage}
                     >
                       {updatingMileage ? (
                         <>
                           <Clock className="w-4 h-4 mr-2 animate-spin" />
-                          Actualizando...
+                          Guardando...
                         </>
                       ) : (
                         <>
-                          <Gauge className="w-4 h-4 mr-2" />
-                          Actualizar Millaje
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          💾 Guardar y Recalcular
                         </>
                       )}
                     </Button>
