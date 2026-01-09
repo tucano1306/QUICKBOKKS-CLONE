@@ -81,10 +81,16 @@ export async function GET() {
       },
     })
 
-    // Total customers - filtrar por userId del usuario actual
+    // Obtener companyId del usuario
+    const userCompany = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id },
+      select: { companyId: true }
+    })
+
+    // Total customers - filtrar por companyId del usuario actual
     const totalCustomers = await prisma.customer.count({
       where: {
-        userId: session.user.id,
+        companyId: userCompany?.companyId || undefined,
         status: 'ACTIVE',
       },
     })

@@ -100,6 +100,7 @@ export default function VehicleDepreciationPage() {
     if (status === 'authenticated') {
       loadAssets()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status])
 
   // Memoize filtered assets to prevent unnecessary recalculations
@@ -458,6 +459,7 @@ export default function VehicleDepreciationPage() {
     totalDepreciation: filteredAssets.reduce((sum, a) => sum + calculateRealAccumulatedDepreciation(a), 0),
     monthlyDepreciation: filteredAssets.reduce((sum, a) => sum + calculateMonthlyDepreciation(a), 0),
     weeklyDepreciation: filteredAssets.reduce((sum, a) => sum + calculateWeeklyDepreciation(a), 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [filteredAssets])
 
   if (status === 'loading' || loading) {
