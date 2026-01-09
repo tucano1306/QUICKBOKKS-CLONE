@@ -217,57 +217,57 @@ export default function TaxInfoPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tax Information Center</h1>
-            <p className="text-gray-600 mt-1">Compliance dashboard and filing status</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tax Information Center</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Compliance dashboard and filing status</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchTaxData}>
-              <RefreshCw className="w-4 h-4 mr-2" />Refresh
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={fetchTaxData}>
+              <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Refresh</span>
             </Button>
-            <Button variant="outline" onClick={() => { setEditingSettings(taxSettings || {}); setShowSettingsModal(true) }}>
-              <Edit className="w-4 h-4 mr-2" />Edit Settings
+            <Button variant="outline" size="sm" onClick={() => { setEditingSettings(taxSettings || {}); setShowSettingsModal(true) }}>
+              <Edit className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Settings</span>
             </Button>
-            <Button onClick={() => router.push('/company/taxes/export')}>
-              <Download className="w-4 h-4 mr-2" />Export Report
+            <Button size="sm" onClick={() => router.push('/company/taxes/export')}>
+              <Download className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Export</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
-              <DollarSign className="w-8 h-8 text-green-600 mb-2" />
-              <div className="text-2xl font-bold text-green-900">${((summary?.totalRevenue || 0) / 1000).toFixed(0)}K</div>
-              <div className="text-sm text-green-700">Revenue {selectedYear}</div>
+            <CardContent className="p-3 sm:p-6">
+              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 mb-2" />
+              <div className="text-lg sm:text-2xl font-bold text-green-900">${((summary?.totalRevenue || 0) / 1000).toFixed(0)}K</div>
+              <div className="text-xs sm:text-sm text-green-700">Revenue {selectedYear}</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <TrendingUp className="w-8 h-8 text-blue-600 mb-2" />
-              <div className="text-2xl font-bold text-blue-900">${((summary?.totalEstimatedTax || 0) / 1000).toFixed(0)}K</div>
-              <div className="text-sm text-blue-700">Est. Tax Liability</div>
+            <CardContent className="p-3 sm:p-6">
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mb-2" />
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">${((summary?.totalEstimatedTax || 0) / 1000).toFixed(0)}K</div>
+              <div className="text-xs sm:text-sm text-blue-700">Est. Tax <span className="hidden sm:inline">Liability</span></div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
-              <Clock className="w-8 h-8 text-yellow-600 mb-2" />
-              <div className="text-3xl font-bold text-yellow-900">{stats.pending}</div>
-              <div className="text-sm text-yellow-700">Pending Payments</div>
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hidden sm:block">
+            <CardContent className="p-3 sm:p-6">
+              <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600 mb-2" />
+              <div className="text-lg sm:text-3xl font-bold text-yellow-900">{stats.pending}</div>
+              <div className="text-xs sm:text-sm text-yellow-700">Pending Payments</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
-              <Calendar className="w-8 h-8 text-purple-600 mb-2" />
-              <div className="text-xl font-bold text-purple-900">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hidden sm:block">
+            <CardContent className="p-3 sm:p-6">
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 mb-2" />
+              <div className="text-base sm:text-xl font-bold text-purple-900">
                 {stats.nextPayment ? new Date(stats.nextPayment.nextDueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
               </div>
-              <div className="text-sm text-purple-700">Next Due Date</div>
+              <div className="text-xs sm:text-sm text-purple-700">Next Due Date</div>
             </CardContent>
           </Card>
         </div>
