@@ -249,6 +249,55 @@ export default function WorkflowsPage() {
     setWorkflows([...workflows, duplicate])
   }
 
+  // Función para usar templates predefinidos
+  const handleUseTemplate = (templateType: 'invoice-reminder' | 'expense-approval' | 'payment-alert') => {
+    const templates: Record<string, Partial<WorkflowType>> = {
+      'invoice-reminder': {
+        name: 'Invoice Payment Reminder',
+        description: 'Automatically send email reminders for unpaid invoices after 7, 14, and 30 days',
+        category: 'Accounts Receivable',
+        trigger: 'Invoice overdue',
+        steps: 4
+      },
+      'expense-approval': {
+        name: 'Expense Approval Workflow',
+        description: 'Route expenses over $500 to manager for approval before processing',
+        category: 'Expense Management',
+        trigger: 'Expense created over threshold',
+        steps: 3
+      },
+      'payment-alert': {
+        name: 'Payment Received Notification',
+        description: 'Send thank you email and internal notification when payment is received',
+        category: 'Customer Management',
+        trigger: 'Payment received',
+        steps: 2
+      }
+    }
+
+    const template = templates[templateType]
+    if (template) {
+      const newWorkflowFromTemplate: WorkflowType = {
+        id: String(Date.now()),
+        name: template.name || '',
+        description: template.description || '',
+        category: template.category || 'Accounts Receivable',
+        status: 'draft',
+        trigger: template.trigger || '',
+        steps: template.steps || 3,
+        executions: 0,
+        successRate: 0,
+        createdBy: session?.user?.name || 'User',
+        createdDate: new Date().toISOString().split('T')[0]
+      }
+      setWorkflows([...workflows, newWorkflowFromTemplate])
+      
+      // Mostrar modal de edición para personalizar
+      setEditingWorkflow(newWorkflowFromTemplate)
+      setShowEditModal(true)
+    }
+  }
+
   const categories = [
     'all',
     'Accounts Receivable',
@@ -545,7 +594,7 @@ export default function WorkflowsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all">
+              <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all" onClick={() => handleUseTemplate('invoice-reminder')}>
                 <div className="flex items-center gap-3 mb-2">
                   <Mail className="w-5 h-5 text-blue-600" />
                   <h4 className="font-semibold text-gray-900">Invoice Reminder</h4>
@@ -553,13 +602,13 @@ export default function WorkflowsPage() {
                 <p className="text-sm text-gray-600 mb-3">
                   Send automatic reminders for unpaid invoices
                 </p>
-                <Button size="sm" variant="outline" className="w-full">
+                <Button size="sm" variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); handleUseTemplate('invoice-reminder') }}>
                   <Plus className="w-3 h-3 mr-1" />
                   Use Template
                 </Button>
               </div>
 
-              <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all">
+              <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all" onClick={() => handleUseTemplate('expense-approval')}>
                 <div className="flex items-center gap-3 mb-2">
                   <FileText className="w-5 h-5 text-green-600" />
                   <h4 className="font-semibold text-gray-900">Expense Approval</h4>
@@ -567,13 +616,13 @@ export default function WorkflowsPage() {
                 <p className="text-sm text-gray-600 mb-3">
                   Route expenses for approval based on amount
                 </p>
-                <Button size="sm" variant="outline" className="w-full">
+                <Button size="sm" variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); handleUseTemplate('expense-approval') }}>
                   <Plus className="w-3 h-3 mr-1" />
                   Use Template
                 </Button>
               </div>
 
-              <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all">
+              <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all" onClick={() => handleUseTemplate('payment-alert')}>
                 <div className="flex items-center gap-3 mb-2">
                   <Bell className="w-5 h-5 text-orange-600" />
                   <h4 className="font-semibold text-gray-900">Payment Alert</h4>
@@ -581,7 +630,7 @@ export default function WorkflowsPage() {
                 <p className="text-sm text-gray-600 mb-3">
                   Notify when payments are received
                 </p>
-                <Button size="sm" variant="outline" className="w-full">
+                <Button size="sm" variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); handleUseTemplate('payment-alert') }}>
                   <Plus className="w-3 h-3 mr-1" />
                   Use Template
                 </Button>
