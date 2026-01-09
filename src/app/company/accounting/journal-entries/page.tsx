@@ -480,8 +480,8 @@ export default function JournalEntriesPage() {
           </Card>
         </div>
 
-        {/* Action Buttons */}
-        <Card className="border-indigo-200 bg-indigo-50/30">
+        {/* Action Buttons - Desktop Only */}
+        <Card className="hidden sm:block border-indigo-200 bg-indigo-50/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-indigo-900 flex items-center">
               <Receipt className="w-4 h-4 mr-2" />
@@ -566,24 +566,24 @@ export default function JournalEntriesPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <div className="flex-1 relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar por número o descripción..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 sm:pl-10 text-sm"
                 />
               </div>
               <select 
-                className="px-4 py-2 border rounded-lg bg-white"
+                className="px-3 py-2 border rounded-lg bg-white text-sm w-full sm:w-auto"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
-                <option value="all">Todos los Estados</option>
+                <option value="all">Todos</option>
                 <option value="posted">Registrados</option>
                 <option value="draft">Borradores</option>
                 <option value="reversed">Revertidos</option>
@@ -592,8 +592,76 @@ export default function JournalEntriesPage() {
           </CardContent>
         </Card>
 
-        {/* Journal Entries Table */}
-        <Card>
+        {/* Mobile Cards View */}
+        <div className="block sm:hidden space-y-3">
+          {filteredEntries.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-gray-500">
+                <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p className="font-medium">No hay asientos</p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredEntries.map((entry) => (
+              <Card 
+                key={entry.id} 
+                className={`overflow-hidden cursor-pointer ${
+                  selectedEntry?.id === entry.id ? 'ring-2 ring-blue-500' : ''
+                }`}
+                onClick={() => setSelectedEntry(entry)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="font-mono text-sm font-semibold text-blue-600">
+                      {entry.entryNumber}
+                    </div>
+                    {getStatusBadge(entry.status)}
+                  </div>
+                  <div className="text-sm text-gray-900 truncate mb-2">
+                    {entry.description}
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(entry.date).toLocaleDateString('es-MX')}
+                    </span>
+                    <span className="font-semibold text-gray-900">
+                      ${(entry.totalDebit || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 mt-3 pt-2 border-t">
+                    <button 
+                      className="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-blue-600 bg-blue-50 rounded-lg"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedEntry(entry)
+                        setShowDetail(true)
+                      }}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Ver
+                    </button>
+                    {(entry.status || '').toLowerCase() === 'draft' && (
+                      <button 
+                        className="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-green-600 bg-green-50 rounded-lg"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          updateJournalEntryStatus(entry, 'POSTED')
+                        }}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Registrar
+                      </button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table */}
+        <Card className="hidden sm:block">
           <CardHeader>
             <CardTitle>Listado de Asientos Contables</CardTitle>
           </CardHeader>

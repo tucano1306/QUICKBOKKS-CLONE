@@ -368,14 +368,24 @@ export default function ReconciliationPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Conciliación Bancaria</h1>
-            <p className="text-gray-600 mt-1">
-              Reconcilia tus cuentas bancarias con tus registros contables
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Conciliación Bancaria</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Reconcilia cuentas bancarias con registros
             </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportReport} className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
+            </Button>
+            <Button size="sm" onClick={() => setShowNewModal(true)} className="flex-1 sm:flex-none">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nueva</span>
+            </Button>
           </div>
         </div>
 
@@ -388,11 +398,11 @@ export default function ReconciliationPage() {
           }`}>
             <div className="flex items-center gap-2">
               {message.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5" />
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
               ) : (
-                <AlertCircle className="w-5 h-5" />
+                <AlertCircle className="w-5 h-5 shrink-0" />
               )}
-              <span>{message.text}</span>
+              <span className="text-sm">{message.text}</span>
             </div>
             <button 
               onClick={() => setMessage(null)}
@@ -407,12 +417,12 @@ export default function ReconciliationPage() {
         {processing && (
           <div className="flex items-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Procesando transacciones...</span>
+            <span className="text-sm">Procesando...</span>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <Card className="border-green-200 bg-green-50/30">
+        {/* Action Buttons - Desktop */}
+        <Card className="hidden sm:block border-green-200 bg-green-50/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-green-900 flex items-center">
               <Building2 className="w-4 h-4 mr-2" />
@@ -424,54 +434,52 @@ export default function ReconciliationPage() {
           </CardContent>
         </Card>
 
-        {/* Original Header Section */}
-        <div className="flex items-center justify-between">
-          <div></div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportReport}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar Reporte
-            </Button>
-            <Button onClick={() => setShowNewModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Conciliación
-            </Button>
-          </div>
+        {/* Mobile Quick Actions */}
+        <div className="flex sm:hidden gap-2 overflow-x-auto pb-2">
+          <Button size="sm" variant="outline" onClick={handleAutoMatch} disabled={processing || unmatchedCount === 0}>
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Auto-Match
+          </Button>
+          <Button size="sm" onClick={handleReconcile} disabled={processing || selectedItems.length === 0}>
+            <CheckCircle2 className="w-4 h-4 mr-1" />
+            Conciliar
+          </Button>
+          <Button size="sm" variant="outline" onClick={selectAllUnmatched} disabled={unmatchedCount === 0}>
+            <CheckSquare className="w-4 h-4 mr-1" />
+            Seleccionar
+          </Button>
         </div>
 
         {/* Account Selector */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible">
           {bankAccounts.map((account) => (
             <Card 
               key={account.id}
-              className={`cursor-pointer transition ${
+              className={`cursor-pointer transition shrink-0 w-64 sm:w-auto ${
                 selectedAccount === account.id 
                   ? 'ring-2 ring-blue-600 bg-blue-50' 
                   : 'hover:shadow-md'
               }`}
               onClick={() => setSelectedAccount(account.id)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <Building2 className="w-8 h-8 text-blue-600" />
-                  {account.status === 'reconciled' && <CheckCircle2 className="w-5 h-5 text-green-600" />}
-                  {account.status === 'pending' && <AlertCircle className="w-5 h-5 text-yellow-600" />}
-                  {account.status === 'unreconciled' && <XCircle className="w-5 h-5 text-red-600" />}
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-2 sm:mb-3">
+                  <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+                  {account.status === 'reconciled' && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />}
+                  {account.status === 'pending' && <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />}
+                  {account.status === 'unreconciled' && <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />}
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-1">{account.name}</h3>
-                <p className="text-sm text-gray-600 mb-3">{account.accountNumber}</p>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Saldo Banco:</span>
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-1 truncate">{account.name}</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">{account.accountNumber}</p>
+                <div className="space-y-1 text-xs sm:text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Banco:</span>
                     <span className="font-semibold">${account.bankBalance.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Saldo Libros:</span>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Libros:</span>
                     <span className="font-semibold">${account.bookBalance.toLocaleString()}</span>
                   </div>
-                </div>
-                <div className="mt-3 pt-3 border-t text-xs text-gray-500">
-                  Última conciliación: {new Date(account.lastReconciled).toLocaleDateString('es-MX')}
                 </div>
               </CardContent>
             </Card>
@@ -479,25 +487,25 @@ export default function ReconciliationPage() {
         </div>
 
         {/* Reconciliation Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-blue-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900 truncate">
                 ${currentAccount.bankBalance.toLocaleString()}
               </div>
-              <div className="text-sm text-blue-700">Saldo Bancario</div>
+              <div className="text-xs sm:text-sm text-blue-700">Saldo Bancario</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <FileCheck className="w-8 h-8 text-purple-600" />
+                <FileCheck className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900 truncate">
                 ${currentAccount.bookBalance.toLocaleString()}
               </div>
               <div className="text-sm text-purple-700">Saldo en Libros</div>
@@ -505,74 +513,68 @@ export default function ReconciliationPage() {
           </Card>
 
           <Card className={`bg-gradient-to-br ${Math.abs(difference) === 0 ? 'from-green-50 to-green-100 border-green-200' : 'from-red-50 to-red-100 border-red-200'}`}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
                 {Math.abs(difference) === 0 ? (
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+                  <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                 ) : (
-                  <AlertCircle className="w-8 h-8 text-red-600" />
+                  <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
                 )}
               </div>
-              <div className={`text-2xl font-bold ${Math.abs(difference) === 0 ? 'text-green-900' : 'text-red-900'}`}>
+              <div className={`text-lg sm:text-2xl font-bold truncate ${Math.abs(difference) === 0 ? 'text-green-900' : 'text-red-900'}`}>
                 ${Math.abs(difference).toLocaleString()}
               </div>
-              <div className={`text-sm ${Math.abs(difference) === 0 ? 'text-green-700' : 'text-red-700'}`}>
+              <div className={`text-xs sm:text-sm ${Math.abs(difference) === 0 ? 'text-green-700' : 'text-red-700'}`}>
                 Diferencia
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="text-center">
-                <div className="text-4xl font-bold text-orange-900 mb-1">
+                <div className="text-2xl sm:text-4xl font-bold text-orange-900 mb-1">
                   {matchedCount}/{reconciliationItems.length}
                 </div>
-                <div className="text-sm text-orange-700">Transacciones Conciliadas</div>
+                <div className="text-xs sm:text-sm text-orange-700">Conciliadas</div>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Status Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">{matchedCount}</div>
-                    <div className="text-sm text-gray-600">Conciliadas</div>
-                  </div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+                <div>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900">{matchedCount}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Conciliadas</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <XCircle className="w-8 h-8 text-red-600" />
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">{unmatchedCount}</div>
-                    <div className="text-sm text-gray-600">Sin Conciliar</div>
-                  </div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
+                <div>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900">{unmatchedCount}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Sin Conciliar</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Clock className="w-8 h-8 text-yellow-600" />
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">{pendingCount}</div>
-                    <div className="text-sm text-gray-600">Pendientes</div>
-                  </div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
+                <div>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900">{pendingCount}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Pendientes</div>
                 </div>
               </div>
             </CardContent>
@@ -581,13 +583,13 @@ export default function ReconciliationPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <div className="flex-1 relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar transacción..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"

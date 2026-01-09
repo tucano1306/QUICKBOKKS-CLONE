@@ -244,104 +244,106 @@ export default function AICategorizationPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Alerts */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <span className="text-red-700">{error}</span>
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <span className="text-red-700 text-sm">{error}</span>
             <button onClick={() => setError(null)} className="ml-auto text-red-600">×</button>
           </div>
         )}
         
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-green-700">{success}</span>
+            <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+            <span className="text-green-700 text-sm">{success}</span>
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Brain className="w-8 h-8 text-purple-600" />
-              AI Auto-Categorización
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
+              AI Categorización
             </h1>
-            <p className="text-gray-600 mt-1">Clasificación inteligente de transacciones</p>
+            <p className="text-sm text-gray-600 mt-1">Clasificación inteligente</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => setAutoMode(!autoMode)}
-              className={autoMode ? 'bg-green-50 border-green-500 text-green-700' : ''}
+              className={`flex-1 sm:flex-none ${autoMode ? 'bg-green-50 border-green-500 text-green-700' : ''}`}
             >
-              {autoMode ? <Play className="w-4 h-4 mr-2" /> : <Pause className="w-4 h-4 mr-2" />}
-              Modo Auto: {autoMode ? 'ON' : 'OFF'}
+              {autoMode ? <Play className="w-4 h-4 sm:mr-2" /> : <Pause className="w-4 h-4 sm:mr-2" />}
+              <span className="hidden sm:inline">Auto:</span> {autoMode ? 'ON' : 'OFF'}
             </Button>
-            <Button variant="outline" onClick={handleTrain} disabled={processing}>
-              <Zap className="w-4 h-4 mr-2" />
-              Re-entrenar
+            <Button variant="outline" size="sm" onClick={handleTrain} disabled={processing} className="flex-1 sm:flex-none">
+              <Zap className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Re-entrenar</span>
             </Button>
-            <Button onClick={handleAutoCategorize} disabled={processing}>
-              <Bot className="w-4 h-4 mr-2" />
-              {processing ? 'Procesando...' : 'Categorizar'}
+            <Button size="sm" onClick={handleAutoCategorize} disabled={processing} className="flex-1 sm:flex-none">
+              <Bot className="w-4 h-4 sm:mr-2" />
+              {processing ? '...' : <span className="hidden sm:inline">Categorizar</span>}
+              <span className="sm:hidden">{processing ? '' : 'AI'}</span>
             </Button>
           </div>
         </div>
 
         {/* AI Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Activity className="w-8 h-8 text-blue-600" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                 <div>
-                  <div className="text-xl font-bold">{stats.totalProcessed}</div>
+                  <div className="text-lg sm:text-xl font-bold">{stats.totalProcessed}</div>
                   <div className="text-xs text-gray-600">Procesadas</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                 <div>
-                  <div className="text-xl font-bold">{stats.categorized}</div>
+                  <div className="text-lg sm:text-xl font-bold">{stats.categorized}</div>
                   <div className="text-xs text-gray-600">Categorizadas</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Clock className="w-8 h-8 text-yellow-600" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
                 <div>
-                  <div className="text-xl font-bold">{stats.pending}</div>
+                  <div className="text-lg sm:text-xl font-bold">{stats.pending}</div>
                   <div className="text-xs text-gray-600">Pendientes</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Target className="w-8 h-8 text-purple-600" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
                 <div>
-                  <div className="text-xl font-bold">{stats.averageConfidence.toFixed(1)}%</div>
+                  <div className="text-lg sm:text-xl font-bold">{stats.averageConfidence.toFixed(0)}%</div>
                   <div className="text-xs text-gray-600">Confianza</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="w-8 h-8 text-green-600" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                 <div>
-                  <div className="text-xl font-bold">{stats.accuracyRate}%</div>
+                  <div className="text-lg sm:text-xl font-bold">{stats.accuracyRate}%</div>
                   <div className="text-xs text-gray-600">Precisión</div>
                 </div>
               </div>

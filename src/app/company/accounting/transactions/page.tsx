@@ -192,95 +192,95 @@ export default function TransactionsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Alerts */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <span className="text-red-700">{error}</span>
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <span className="text-red-700 text-sm">{error}</span>
             <button onClick={() => setError(null)} className="ml-auto text-red-600">×</button>
           </div>
         )}
         
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-green-700">{success}</span>
+            <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+            <span className="text-green-700 text-sm">{success}</span>
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
-            <p className="text-gray-600 mt-1">Importar y clasificar transacciones</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Transacciones</h1>
+            <p className="text-sm text-gray-600 mt-1">Importar y clasificar transacciones</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchTransactions}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualizar
+            <Button variant="outline" size="sm" onClick={fetchTransactions} className="flex-1 sm:flex-none">
+              <RefreshCw className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
-            <Button variant="outline" onClick={() => setShowImportModal(true)}>
-              <Upload className="w-4 h-4 mr-2" />
-              Importar
+            <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)} className="flex-1 sm:flex-none">
+              <Upload className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Importar</span>
             </Button>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={handleExport} className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-100">
-                  <ArrowUpRight className="w-6 h-6 text-green-600" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg bg-green-100">
+                  <ArrowUpRight className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">${stats.totalIncome.toLocaleString()}</div>
-                  <div className="text-sm text-gray-600">Ingresos</div>
+                <div className="min-w-0">
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900 truncate">${stats.totalIncome.toLocaleString()}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Ingresos</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-red-100">
-                  <ArrowDownRight className="w-6 h-6 text-red-600" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg bg-red-100">
+                  <ArrowDownRight className="w-4 h-4 sm:w-6 sm:h-6 text-red-600" />
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">${stats.totalExpenses.toLocaleString()}</div>
-                  <div className="text-sm text-gray-600">Gastos</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-yellow-100">
-                  <Calendar className="w-6 h-6 text-yellow-600" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">{stats.pendingCount}</div>
-                  <div className="text-sm text-gray-600">Pendientes</div>
+                <div className="min-w-0">
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900 truncate">${stats.totalExpenses.toLocaleString()}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Gastos</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-100">
-                  <Receipt className="w-6 h-6 text-blue-600" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg bg-yellow-100">
+                  <Calendar className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-600" />
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">{stats.totalCount}</div>
-                  <div className="text-sm text-gray-600">Total</div>
+                <div className="min-w-0">
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900">{stats.pendingCount}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Pendientes</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg bg-blue-100">
+                  <Receipt className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900">{stats.totalCount}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Total</div>
                 </div>
               </div>
             </CardContent>
@@ -289,54 +289,109 @@ export default function TransactionsPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex-1 min-w-64 relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4">
+              <div className="w-full sm:flex-1 sm:min-w-64 relative">
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Buscar transacciones..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 sm:pl-10 text-sm"
                 />
               </div>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-              >
-                <option value="all">Todos los Tipos</option>
-                <option value="income">Ingresos</option>
-                <option value="expense">Gastos</option>
-                <option value="transfer">Transferencias</option>
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="completed">Completadas</option>
-                <option value="pending">Pendientes</option>
-                <option value="cancelled">Canceladas</option>
-              </select>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-              >
-                <option value="week">Última semana</option>
-                <option value="month">Este mes</option>
-                <option value="quarter">Este trimestre</option>
-                <option value="year">Este año</option>
-              </select>
+              <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-4">
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                >
+                  <option value="all">Tipo</option>
+                  <option value="income">Ingresos</option>
+                  <option value="expense">Gastos</option>
+                  <option value="transfer">Transfer</option>
+                </select>
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Estado</option>
+                  <option value="completed">Completadas</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="cancelled">Canceladas</option>
+                </select>
+                <select 
+                  className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                >
+                  <option value="week">Semana</option>
+                  <option value="month">Mes</option>
+                  <option value="quarter">Trimestre</option>
+                  <option value="year">Año</option>
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Transactions Table */}
-        <Card>
+        {/* Transactions - Mobile Cards */}
+        <div className="block sm:hidden space-y-3">
+          {filteredTransactions.length > 0 ? (
+            filteredTransactions.map((t) => (
+              <Card key={t.id} className="overflow-hidden">
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      {t.type === 'income' ? (
+                        <div className="p-1.5 bg-green-100 rounded-full">
+                          <ArrowUpRight className="w-3.5 h-3.5 text-green-600" />
+                        </div>
+                      ) : t.type === 'expense' ? (
+                        <div className="p-1.5 bg-red-100 rounded-full">
+                          <ArrowDownRight className="w-3.5 h-3.5 text-red-600" />
+                        </div>
+                      ) : (
+                        <div className="p-1.5 bg-blue-100 rounded-full">
+                          <FileText className="w-3.5 h-3.5 text-blue-600" />
+                        </div>
+                      )}
+                      <span className="text-xs text-gray-500">
+                        {new Date(t.date).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <Badge className={`text-xs ${getStatusBadge(t.status)}`}>
+                      {t.status === 'completed' ? 'OK' : t.status === 'pending' ? 'Pend' : 'Canc'}
+                    </Badge>
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 truncate mb-1">
+                    {t.description}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">{t.category}</span>
+                    <span className={`text-sm font-bold ${
+                      t.type === 'income' ? 'text-green-600' : 
+                      t.type === 'expense' ? 'text-red-600' : 'text-gray-900'
+                    }`}>
+                      {t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''}${t.amount.toLocaleString()}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center text-gray-500">
+                No se encontraron transacciones
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Transactions Table - Desktop */}
+        <Card className="hidden sm:block">
           <CardHeader>
             <CardTitle>Lista de Transacciones ({filteredTransactions.length})</CardTitle>
           </CardHeader>
