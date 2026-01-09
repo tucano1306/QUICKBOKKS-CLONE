@@ -245,25 +245,27 @@ export default function InvoiceTemplatesPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Invoice Templates</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Invoice Templates</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Customize how your invoices look
             </p>
           </div>
           <Button 
-            className="bg-[#2CA01C] hover:bg-[#108000]"
+            className="bg-[#2CA01C] hover:bg-[#108000] w-full sm:w-auto"
+            size="sm"
             onClick={() => {
               resetForm()
               setEditingTemplate(null)
               setShowModal(true)
             }}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            New Template
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">New Template</span>
+            <span className="sm:hidden">Nueva</span>
           </Button>
         </div>
 
