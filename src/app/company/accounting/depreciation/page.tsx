@@ -70,7 +70,9 @@ export default function VehicleDepreciationPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showMileageModal, setShowMileageModal] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
+  const [updatingMileage, setUpdatingMileage] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   // New asset form
@@ -175,6 +177,41 @@ export default function VehicleDepreciationPage() {
       console.error('Error adding asset:', error)
       setMessage({ type: 'error', text: 'Error al agregar vehículo' })
       setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
+  // Función para actualizar millaje rápidamente
+  const handleUpdateMileage = async (assetId: string, newMileage: number, newLifetimeMiles?: number) => {
+    setUpdatingMileage(true)
+    try {
+      const updateData: any = { currentMileage: newMileage }
+      if (newLifetimeMiles) {
+        updateData.estimatedLifetimeMiles = newLifetimeMiles
+      }
+      
+      const response = await fetch(`/api/accounting/assets/${assetId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Millaje actualizado exitosamente' })
+        loadAssets() // Recargar datos
+        setShowMileageModal(false)
+        setSelectedAsset(null)
+        setTimeout(() => setMessage(null), 3000)
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Error al actualizar millaje' })
+        setTimeout(() => setMessage(null), 3000)
+      }
+    } catch (error) {
+      console.error('Error updating mileage:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
+      setTimeout(() => setMessage(null), 3000)
+    } finally {
+      setUpdatingMileage(false)
     }
   }
 
@@ -627,6 +664,20 @@ export default function VehicleDepreciationPage() {
                           ${calculateRemainingValue(asset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
+
+                      {/* Botón Actualizar Millaje */}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                        onClick={() => {
+                          setSelectedAsset(asset)
+                          setShowMileageModal(true)
+                        }}
+                      >
+                        <Gauge className="w-4 h-4 mr-2" />
+                        Actualizar Millaje
+                      </Button>
 
                       <div className="flex gap-2">
                         <Button 
@@ -1286,6 +1337,155 @@ export default function VehicleDepreciationPage() {
                     <Button type="submit" className="flex-1 bg-amber-600 hover:bg-amber-700">
                       <Save className="w-4 h-4 mr-2" />
                       Guardar Cambios
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* MILEAGE UPDATE MODAL - Actualización Rápida de Millaje */}
+        {showMileageModal && selectedAsset && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md">
+              <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-violet-50">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Gauge className="w-6 h-6 text-purple-600" />
+                    Actualizar Millaje
+                  </CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setShowMileageModal(false)
+                      setSelectedAsset(null)
+                    }}
+                  >
+                    ✕
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-600 mt-1">{selectedAsset.name}</p>
+              </CardHeader>
+              <CardContent className="p-6">
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    const formData = new FormData(e.currentTarget)
+                    const newMileage = parseInt(formData.get('currentMileage') as string) || 0
+                    const newLifetimeMiles = parseInt(formData.get('estimatedLifetimeMiles') as string) || undefined
+                    await handleUpdateMileage(selectedAsset.id, newMileage, newLifetimeMiles)
+                  }} 
+                  className="space-y-4"
+                >
+                  {/* Información actual */}
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium text-gray-700 mb-2">Valores Actuales</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-500">Millaje Actual:</span>
+                        <span className="ml-2 font-bold text-purple-700">
+                          {selectedAsset.currentMileage?.toLocaleString() || '0'} mi
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Millas de Vida:</span>
+                        <span className="ml-2 font-bold text-purple-700">
+                          {selectedAsset.estimatedLifetimeMiles?.toLocaleString() || '200,000'} mi
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Millaje de Compra:</span>
+                        <span className="ml-2 font-medium">
+                          {selectedAsset.purchaseMileage?.toLocaleString() || '0'} mi
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Millas Usadas:</span>
+                        <span className="ml-2 font-medium">
+                          {((selectedAsset.currentMileage || 0) - (selectedAsset.purchaseMileage || 0)).toLocaleString()} mi
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nuevos valores */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nuevo Millaje Actual *
+                    </label>
+                    <input
+                      type="number"
+                      name="currentMileage"
+                      defaultValue={selectedAsset.currentMileage || ''}
+                      placeholder="Ej: 125000"
+                      min="0"
+                      max="999999"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Ingresa las millas del odómetro (hasta 6 dígitos)</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Millas de Vida Útil Estimadas
+                    </label>
+                    <input
+                      type="number"
+                      name="estimatedLifetimeMiles"
+                      defaultValue={selectedAsset.estimatedLifetimeMiles || 200000}
+                      placeholder="200000"
+                      min="0"
+                      max="999999"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Millas totales esperadas de vida del vehículo</p>
+                  </div>
+
+                  {/* Vista previa del cálculo */}
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <Calculator className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-purple-900">
+                        <p className="font-semibold mb-1">Depreciación por Milla</p>
+                        <p className="text-purple-700">
+                          Con los nuevos valores, se recalculará automáticamente la depreciación basada en el uso real del vehículo.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowMileageModal(false)
+                        setSelectedAsset(null)
+                      }}
+                      className="flex-1"
+                      disabled={updatingMileage}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="flex-1 bg-purple-600 hover:bg-purple-700"
+                      disabled={updatingMileage}
+                    >
+                      {updatingMileage ? (
+                        <>
+                          <Clock className="w-4 h-4 mr-2 animate-spin" />
+                          Actualizando...
+                        </>
+                      ) : (
+                        <>
+                          <Gauge className="w-4 h-4 mr-2" />
+                          Actualizar Millaje
+                        </>
+                      )}
                     </Button>
                   </div>
                 </form>
