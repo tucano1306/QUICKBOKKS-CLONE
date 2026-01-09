@@ -57,6 +57,12 @@ export async function POST(request: NextRequest) {
       accountId,
       locationId,
       costCenterId,
+      // Campos de millas para vehículos
+      currentMileage,
+      purchaseMileage,
+      estimatedLifetimeMiles,
+      yearModel,
+      vin,
     } = body;
 
     // Generar número de activo
@@ -88,6 +94,13 @@ export async function POST(request: NextRequest) {
         locationId,
         costCenterId,
         bookValue,
+        // Campos de millas
+        currentMileage: currentMileage || null,
+        purchaseMileage: purchaseMileage || null,
+        estimatedLifetimeMiles: estimatedLifetimeMiles || null,
+        lastMileageUpdate: currentMileage ? new Date() : null,
+        yearModel: yearModel || null,
+        vin: vin || null,
       },
       include: {
         costCenter: true,

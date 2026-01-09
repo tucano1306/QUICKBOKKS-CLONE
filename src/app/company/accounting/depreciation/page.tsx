@@ -21,7 +21,8 @@ import {
   Calculator,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Gauge
 } from 'lucide-react'
 
 interface Asset {
@@ -41,6 +42,13 @@ interface Asset {
   disposalDate: string | null
   createdAt: string
   depreciations: AssetDepreciation[]
+  // Campos de millas para vehículos
+  currentMileage: number | null
+  purchaseMileage: number | null
+  estimatedLifetimeMiles: number | null
+  lastMileageUpdate: string | null
+  yearModel: number | null
+  vin: string | null
 }
 
 interface AssetDepreciation {
@@ -68,7 +76,13 @@ export default function VehicleDepreciationPage() {
     purchaseDate: new Date().toISOString().split('T')[0],
     purchasePrice: '',
     salvageValue: '',
-    usefulLife: '5'
+    usefulLife: '5',
+    // Campos de millas
+    currentMileage: '',
+    purchaseMileage: '',
+    estimatedLifetimeMiles: '150000',
+    yearModel: new Date().getFullYear().toString(),
+    vin: ''
   })
 
   useEffect(() => {
@@ -121,7 +135,13 @@ export default function VehicleDepreciationPage() {
           depreciationMethod: 'STRAIGHT_LINE',
           purchasePrice: parseFloat(newAsset.purchasePrice),
           salvageValue: parseFloat(newAsset.salvageValue || '0'),
-          usefulLife: parseInt(newAsset.usefulLife)
+          usefulLife: parseInt(newAsset.usefulLife),
+          // Campos de millas
+          currentMileage: newAsset.currentMileage ? parseInt(newAsset.currentMileage) : null,
+          purchaseMileage: newAsset.purchaseMileage ? parseInt(newAsset.purchaseMileage) : null,
+          estimatedLifetimeMiles: newAsset.estimatedLifetimeMiles ? parseInt(newAsset.estimatedLifetimeMiles) : 150000,
+          yearModel: newAsset.yearModel ? parseInt(newAsset.yearModel) : null,
+          vin: newAsset.vin || null
         })
       })
 
@@ -134,7 +154,12 @@ export default function VehicleDepreciationPage() {
           purchaseDate: new Date().toISOString().split('T')[0],
           purchasePrice: '',
           salvageValue: '',
-          usefulLife: '5'
+          usefulLife: '5',
+          currentMileage: '',
+          purchaseMileage: '',
+          estimatedLifetimeMiles: '150000',
+          yearModel: new Date().getFullYear().toString(),
+          vin: ''
         })
         loadAssets()
         setTimeout(() => setMessage(null), 3000)
@@ -149,10 +174,66 @@ export default function VehicleDepreciationPage() {
     }
   }
 
+  // Porcentajes de valor residual según tipo de activo (estándares IRS/GAAP)
+  const RESIDUAL_VALUE_PERCENTAGES: Record<string, number> = {
+    VEHICLE: 0.10,        // 10% para vehículos
+    EQUIPMENT: 0.05,      // 5% para equipos
+    FURNITURE: 0.05,      // 5% para muebles
+    COMPUTER: 0.00,       // 0% para computadoras (obsolescencia)
+    BUILDING: 0.20,       // 20% para edificios
+    MACHINERY: 0.10,      // 10% para maquinaria
+    OTHER: 0.05           // 5% por defecto
+  }
+
+  // Calcular valor residual automáticamente
+  const calculateSuggestedResidualValue = (purchasePrice: number, category: string = 'VEHICLE') => {
+    const percentage = RESIDUAL_VALUE_PERCENTAGES[category] || 0.10
+    return Math.round(purchasePrice * percentage * 100) / 100
+  }
+
+  // Cuando cambia el precio de compra, actualizar valor residual sugerido
+  const handlePurchasePriceChange = (value: string) => {
+    const price = parseFloat(value) || 0
+    const suggestedResidual = calculateSuggestedResidualValue(price, 'VEHICLE')
+    setNewAsset({
+      ...newAsset,
+      purchasePrice: value,
+      salvageValue: suggestedResidual.toString()
+    })
+  }
+
   const calculateMonthlyDepreciation = (asset: Asset) => {
     const depreciableAmount = asset.purchasePrice - asset.salvageValue
     const monthlyRate = depreciableAmount / (asset.usefulLife * 12)
     return monthlyRate
+  }
+
+  // NUEVO: Calcular depreciación semanal
+  const calculateWeeklyDepreciation = (asset: Asset) => {
+    const monthlyDep = calculateMonthlyDepreciation(asset)
+    return monthlyDep / 4.33 // Promedio de semanas por mes
+  }
+
+  // NUEVO: Calcular depreciación por milla
+  const calculateDepreciationPerMile = (asset: Asset) => {
+    if (!asset.estimatedLifetimeMiles || asset.estimatedLifetimeMiles === 0) return 0
+    const depreciableAmount = asset.purchasePrice - asset.salvageValue
+    return depreciableAmount / asset.estimatedLifetimeMiles
+  }
+
+  // NUEVO: Calcular depreciación acumulada basada en millas
+  const calculateMileageBasedDepreciation = (asset: Asset) => {
+    if (!asset.currentMileage || !asset.purchaseMileage) return 0
+    const milesUsed = asset.currentMileage - asset.purchaseMileage
+    const depPerMile = calculateDepreciationPerMile(asset)
+    return milesUsed * depPerMile
+  }
+
+  // NUEVO: Calcular valor actual basado en millas
+  const calculateCurrentValueByMileage = (asset: Asset) => {
+    const mileageDepreciation = calculateMileageBasedDepreciation(asset)
+    const currentValue = asset.purchasePrice - mileageDepreciation
+    return Math.max(currentValue, asset.salvageValue) // No puede ser menor al valor residual
   }
 
   const calculateRemainingValue = (asset: Asset) => {
@@ -191,7 +272,8 @@ export default function VehicleDepreciationPage() {
     totalValue: filteredAssets.reduce((sum, a) => sum + a.purchasePrice, 0),
     currentValue: filteredAssets.reduce((sum, a) => sum + a.bookValue, 0),
     totalDepreciation: filteredAssets.reduce((sum, a) => sum + a.accumulatedDepreciation, 0),
-    monthlyDepreciation: filteredAssets.reduce((sum, a) => sum + calculateMonthlyDepreciation(a), 0)
+    monthlyDepreciation: filteredAssets.reduce((sum, a) => sum + calculateMonthlyDepreciation(a), 0),
+    weeklyDepreciation: filteredAssets.reduce((sum, a) => sum + calculateWeeklyDepreciation(a), 0)
   }
 
   if (status === 'loading' || loading) {
@@ -296,16 +378,19 @@ export default function VehicleDepreciationPage() {
                   <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
                 <div className="text-right">
-                  <p className="text-xs sm:text-sm font-medium text-gray-500">Depreciación Total</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-500">Depreciación</p>
                 </div>
               </div>
               <div className="space-y-1">
                 <p className="text-xl sm:text-3xl font-bold text-gray-900 truncate">
-                  ${stats.totalDepreciation.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  ${stats.monthlyDepreciation.toLocaleString('es-MX', { minimumFractionDigits: 2 })}<span className="text-sm font-normal text-gray-500">/mes</span>
                 </p>
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-gray-600">
+                  <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium">
+                    ${stats.weeklyDepreciation.toFixed(2)}/sem
+                  </span>
                   <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
-                    ${stats.monthlyDepreciation.toFixed(2)}/mes
+                    Total: ${stats.totalDepreciation.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -409,14 +494,33 @@ export default function VehicleDepreciationPage() {
                     </div>
 
                     {/* Quick Stats */}
-                    <div className="lg:w-64 space-y-2">
+                    <div className="lg:w-72 space-y-2">
+                      {/* Millas si están disponibles */}
+                      {asset.currentMileage !== null && (
+                        <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Gauge className="w-4 h-4 text-purple-600" />
+                            <span className="text-xs font-semibold text-purple-900">MILLAJE</span>
+                          </div>
+                          <p className="text-xl font-bold text-purple-900">
+                            {(asset.currentMileage || 0).toLocaleString('es-MX')} mi
+                          </p>
+                          <p className="text-xs text-purple-700">
+                            ${calculateDepreciationPerMile(asset).toFixed(4)}/milla
+                          </p>
+                        </div>
+                      )}
+
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-center gap-2 mb-1">
                           <Calculator className="w-4 h-4 text-blue-600" />
-                          <span className="text-xs font-semibold text-blue-900">DEPRECIACIÓN MENSUAL</span>
+                          <span className="text-xs font-semibold text-blue-900">DEPRECIACIÓN</span>
                         </div>
                         <p className="text-xl font-bold text-blue-900">
-                          ${calculateMonthlyDepreciation(asset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${calculateMonthlyDepreciation(asset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}<span className="text-xs font-normal">/mes</span>
+                        </p>
+                        <p className="text-sm font-semibold text-orange-600">
+                          ${calculateWeeklyDepreciation(asset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}<span className="text-xs font-normal">/semana</span>
                         </p>
                       </div>
 
@@ -508,7 +612,7 @@ export default function VehicleDepreciationPage() {
                         required
                         step="0.01"
                         value={newAsset.purchasePrice}
-                        onChange={(e) => setNewAsset({ ...newAsset, purchasePrice: e.target.value })}
+                        onChange={(e) => handlePurchasePriceChange(e.target.value)}
                         placeholder="0.00"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
@@ -516,16 +620,26 @@ export default function VehicleDepreciationPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Valor Residual
+                        Valor Residual (10% automático)
                       </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newAsset.salvageValue}
-                        onChange={(e) => setNewAsset({ ...newAsset, salvageValue: e.target.value })}
-                        placeholder="0.00"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newAsset.salvageValue}
+                          onChange={(e) => setNewAsset({ ...newAsset, salvageValue: e.target.value })}
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        {newAsset.purchasePrice && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                            Sugerido: ${calculateSuggestedResidualValue(parseFloat(newAsset.purchasePrice) || 0, 'VEHICLE').toLocaleString('es-MX')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 Se calcula automáticamente (10% del precio para vehículos según IRS)
+                      </p>
                     </div>
 
                     <div>
@@ -543,13 +657,93 @@ export default function VehicleDepreciationPage() {
                     </div>
                   </div>
 
+                  {/* Sección de Millas */}
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Gauge className="w-5 h-5 text-purple-600" />
+                      <span className="font-semibold text-purple-900">Información de Millaje (Opcional)</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Millas al Comprar
+                        </label>
+                        <input
+                          type="number"
+                          value={newAsset.purchaseMileage}
+                          onChange={(e) => setNewAsset({ ...newAsset, purchaseMileage: e.target.value, currentMileage: e.target.value })}
+                          placeholder="0"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Millas Actuales
+                        </label>
+                        <input
+                          type="number"
+                          value={newAsset.currentMileage}
+                          onChange={(e) => setNewAsset({ ...newAsset, currentMileage: e.target.value })}
+                          placeholder="0"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Vida Útil (millas)
+                        </label>
+                        <input
+                          type="number"
+                          value={newAsset.estimatedLifetimeMiles}
+                          onChange={(e) => setNewAsset({ ...newAsset, estimatedLifetimeMiles: e.target.value })}
+                          placeholder="150000"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-purple-700 mt-2">
+                      💡 Con las millas podemos calcular depreciación por uso real del vehículo
+                    </p>
+                  </div>
+
+                  {/* VIN y Año */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Año del Modelo
+                      </label>
+                      <input
+                        type="number"
+                        value={newAsset.yearModel}
+                        onChange={(e) => setNewAsset({ ...newAsset, yearModel: e.target.value })}
+                        placeholder="2024"
+                        min="1900"
+                        max="2100"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        VIN (Número de Serie)
+                      </label>
+                      <input
+                        type="text"
+                        value={newAsset.vin}
+                        onChange={(e) => setNewAsset({ ...newAsset, vin: e.target.value.toUpperCase() })}
+                        placeholder="1GNSCBKD8PR351862"
+                        maxLength={17}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                      />
+                    </div>
+                  </div>
+
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-start gap-2">
                       <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div className="text-sm text-blue-900">
                         <p className="font-semibold mb-1">Método de Depreciación</p>
                         <p className="text-blue-700">
-                          Se utilizará el método de <strong>Línea Recta</strong> para calcular la depreciación mensual.
+                          Se utilizará el método de <strong>Línea Recta</strong> para calcular la depreciación mensual y semanal.
                         </p>
                       </div>
                     </div>
