@@ -1194,6 +1194,8 @@ export default function VehicleDepreciationPage() {
                           name: formData.get('name'),
                           description: formData.get('description'),
                           currentMileage: parseInt(formData.get('currentMileage') as string) || null,
+                          purchaseMileage: parseInt(formData.get('purchaseMileage') as string) || null,
+                          estimatedLifetimeMiles: parseInt(formData.get('estimatedLifetimeMiles') as string) || 200000,
                           salvageValue: parseFloat(formData.get('salvageValue') as string) || 0,
                           status: formData.get('status'),
                           usefulLife: parseInt(formData.get('usefulLife') as string) || 5
@@ -1252,6 +1254,39 @@ export default function VehicleDepreciationPage() {
                         placeholder="Ej: 125000"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Millas del odómetro actual</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Millaje de Compra
+                      </label>
+                      <input
+                        type="number"
+                        name="purchaseMileage"
+                        defaultValue={selectedAsset.purchaseMileage || ''}
+                        min="0"
+                        max="999999"
+                        placeholder="Ej: 50000"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Millas al momento de compra</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Millas de Vida Útil
+                      </label>
+                      <input
+                        type="number"
+                        name="estimatedLifetimeMiles"
+                        defaultValue={selectedAsset.estimatedLifetimeMiles || 200000}
+                        min="0"
+                        max="999999"
+                        placeholder="200000"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Total millas esperadas del vehículo</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1310,14 +1345,6 @@ export default function VehicleDepreciationPage() {
                       <div>
                         <span className="text-gray-500">Precio de Compra:</span>
                         <span className="ml-2 font-medium">${selectedAsset.purchasePrice.toLocaleString('es-MX')}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Millaje de Compra:</span>
-                        <span className="ml-2 font-medium">{selectedAsset.purchaseMileage?.toLocaleString() || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Millas de Vida:</span>
-                        <span className="ml-2 font-medium">{selectedAsset.estimatedLifetimeMiles?.toLocaleString() || 'N/A'}</span>
                       </div>
                     </div>
                   </div>
