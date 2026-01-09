@@ -22,7 +22,8 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Gauge
+  Gauge,
+  Save
 } from 'lucide-react'
 
 interface Asset {
@@ -67,6 +68,9 @@ export default function VehicleDepreciationPage() {
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([])
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   // New asset form
@@ -202,47 +206,135 @@ export default function VehicleDepreciationPage() {
     })
   }
 
-  const calculateMonthlyDepreciation = (asset: Asset) => {
-    const depreciableAmount = asset.purchasePrice - asset.salvageValue
-    const monthlyRate = depreciableAmount / (asset.usefulLife * 12)
-    return monthlyRate
+  // ============================================
+  // FÓRMULAS DE DEPRECIACIÓN DE VEHÍCULOS EN FLORIDA
+  // Basado en IRS Publication 946 y MACRS
+  // ============================================
+
+  // Tasas de depreciación MACRS para vehículos (5 años) - IRS
+  const MACRS_RATES = [0.20, 0.32, 0.192, 0.1152, 0.1152, 0.0576]
+
+  // Calcular meses transcurridos desde la compra
+  const calculateMonthsOwned = (purchaseDate: string): number => {
+    const purchase = new Date(purchaseDate)
+    const now = new Date()
+    const months = (now.getFullYear() - purchase.getFullYear()) * 12 + 
+                   (now.getMonth() - purchase.getMonth())
+    return Math.max(0, months)
   }
 
-  // NUEVO: Calcular depreciación semanal
-  const calculateWeeklyDepreciation = (asset: Asset) => {
+  // Calcular años completos de propiedad
+  const calculateYearsOwned = (purchaseDate: string): number => {
+    const months = calculateMonthsOwned(purchaseDate)
+    return Math.floor(months / 12)
+  }
+
+  // DEPRECIACIÓN LÍNEA RECTA MENSUAL (Método estándar Florida/IRS)
+  const calculateMonthlyDepreciation = (asset: Asset): number => {
+    const depreciableAmount = asset.purchasePrice - asset.salvageValue
+    const totalMonths = asset.usefulLife * 12
+    if (totalMonths === 0) return 0
+    return depreciableAmount / totalMonths
+  }
+
+  // DEPRECIACIÓN SEMANAL
+  const calculateWeeklyDepreciation = (asset: Asset): number => {
     const monthlyDep = calculateMonthlyDepreciation(asset)
     return monthlyDep / 4.33 // Promedio de semanas por mes
   }
 
-  // NUEVO: Calcular depreciación por milla
-  const calculateDepreciationPerMile = (asset: Asset) => {
+  // DEPRECIACIÓN DIARIA
+  const calculateDailyDepreciation = (asset: Asset): number => {
+    const depreciableAmount = asset.purchasePrice - asset.salvageValue
+    const totalDays = asset.usefulLife * 365
+    if (totalDays === 0) return 0
+    return depreciableAmount / totalDays
+  }
+
+  // DEPRECIACIÓN ACUMULADA REAL (basada en tiempo transcurrido)
+  const calculateRealAccumulatedDepreciation = (asset: Asset): number => {
+    const monthsOwned = calculateMonthsOwned(asset.purchaseDate)
+    const totalMonths = asset.usefulLife * 12
+    const monthsToDepreciate = Math.min(monthsOwned, totalMonths)
+    
+    const depreciableAmount = asset.purchasePrice - asset.salvageValue
+    const accumulatedDep = (depreciableAmount / totalMonths) * monthsToDepreciate
+    
+    return Math.min(accumulatedDep, depreciableAmount) // No exceder el monto depreciable
+  }
+
+  // VALOR EN LIBROS REAL (calculado)
+  const calculateRealBookValue = (asset: Asset): number => {
+    const accumulatedDep = calculateRealAccumulatedDepreciation(asset)
+    const bookValue = asset.purchasePrice - accumulatedDep
+    return Math.max(bookValue, asset.salvageValue) // No menor al valor residual
+  }
+
+  // PORCENTAJE DE DEPRECIACIÓN REAL
+  const calculateRealDepreciationPercentage = (asset: Asset): string => {
+    if (asset.purchasePrice === 0) return '0.0'
+    const accumulatedDep = calculateRealAccumulatedDepreciation(asset)
+    const depreciableAmount = asset.purchasePrice - asset.salvageValue
+    if (depreciableAmount === 0) return '100.0'
+    return ((accumulatedDep / depreciableAmount) * 100).toFixed(1)
+  }
+
+  // DEPRECIACIÓN POR MILLA (Unit of Production Method - Florida)
+  const calculateDepreciationPerMile = (asset: Asset): number => {
     if (!asset.estimatedLifetimeMiles || asset.estimatedLifetimeMiles === 0) return 0
     const depreciableAmount = asset.purchasePrice - asset.salvageValue
     return depreciableAmount / asset.estimatedLifetimeMiles
   }
 
-  // NUEVO: Calcular depreciación acumulada basada en millas
-  const calculateMileageBasedDepreciation = (asset: Asset) => {
+  // DEPRECIACIÓN ACUMULADA POR MILLAS
+  const calculateMileageBasedDepreciation = (asset: Asset): number => {
     if (!asset.currentMileage || !asset.purchaseMileage) return 0
-    const milesUsed = asset.currentMileage - asset.purchaseMileage
+    const milesUsed = Math.max(0, asset.currentMileage - asset.purchaseMileage)
     const depPerMile = calculateDepreciationPerMile(asset)
-    return milesUsed * depPerMile
+    const maxDep = asset.purchasePrice - asset.salvageValue
+    return Math.min(milesUsed * depPerMile, maxDep)
   }
 
-  // NUEVO: Calcular valor actual basado en millas
-  const calculateCurrentValueByMileage = (asset: Asset) => {
+  // VALOR ACTUAL POR MILLAS
+  const calculateCurrentValueByMileage = (asset: Asset): number => {
     const mileageDepreciation = calculateMileageBasedDepreciation(asset)
     const currentValue = asset.purchasePrice - mileageDepreciation
-    return Math.max(currentValue, asset.salvageValue) // No puede ser menor al valor residual
+    return Math.max(currentValue, asset.salvageValue)
   }
 
-  const calculateRemainingValue = (asset: Asset) => {
-    return asset.bookValue
+  // DEPRECIACIÓN MACRS (Acelerada - IRS para vehículos de negocio)
+  const calculateMACRSDepreciation = (asset: Asset): number => {
+    const yearsOwned = calculateYearsOwned(asset.purchaseDate)
+    if (yearsOwned >= MACRS_RATES.length) return asset.purchasePrice - asset.salvageValue
+    
+    let totalDep = 0
+    for (let i = 0; i <= yearsOwned && i < MACRS_RATES.length; i++) {
+      totalDep += asset.purchasePrice * MACRS_RATES[i]
+    }
+    return Math.min(totalDep, asset.purchasePrice - asset.salvageValue)
   }
 
-  const calculateDepreciationPercentage = (asset: Asset) => {
-    if (asset.purchasePrice === 0) return 0
-    return ((asset.accumulatedDepreciation / asset.purchasePrice) * 100).toFixed(1)
+  // VALOR RESIDUAL CON MACRS
+  const calculateMACRSBookValue = (asset: Asset): number => {
+    const macrsDep = calculateMACRSDepreciation(asset)
+    return Math.max(asset.purchasePrice - macrsDep, asset.salvageValue)
+  }
+
+  // VALOR EN LIBROS (usar el real calculado, no el de BD)
+  const calculateRemainingValue = (asset: Asset): number => {
+    return calculateRealBookValue(asset)
+  }
+
+  // PORCENTAJE DE DEPRECIACIÓN (usar el real)
+  const calculateDepreciationPercentage = (asset: Asset): string => {
+    return calculateRealDepreciationPercentage(asset)
+  }
+
+  // TIEMPO RESTANTE DE VIDA ÚTIL
+  const calculateRemainingLifeMonths = (asset: Asset): number => {
+    const monthsOwned = calculateMonthsOwned(asset.purchaseDate)
+    const totalMonths = asset.usefulLife * 12
+    return Math.max(0, totalMonths - monthsOwned)
   }
 
   const getStatusBadge = (status: string) => {
@@ -265,13 +357,15 @@ export default function VehicleDepreciationPage() {
     )
   }
 
-  // Calculate stats
+  // Calculate stats - using REAL calculated depreciation values (not DB values)
   const stats = {
     totalVehicles: filteredAssets.length,
     activeVehicles: filteredAssets.filter(a => a.status === 'ACTIVE').length,
     totalValue: filteredAssets.reduce((sum, a) => sum + a.purchasePrice, 0),
-    currentValue: filteredAssets.reduce((sum, a) => sum + a.bookValue, 0),
-    totalDepreciation: filteredAssets.reduce((sum, a) => sum + a.accumulatedDepreciation, 0),
+    // Use real calculated book value (not DB value which is always 0)
+    currentValue: filteredAssets.reduce((sum, a) => sum + calculateRealBookValue(a), 0),
+    // Use real calculated accumulated depreciation
+    totalDepreciation: filteredAssets.reduce((sum, a) => sum + calculateRealAccumulatedDepreciation(a), 0),
     monthlyDepreciation: filteredAssets.reduce((sum, a) => sum + calculateMonthlyDepreciation(a), 0),
     weeklyDepreciation: filteredAssets.reduce((sum, a) => sum + calculateWeeklyDepreciation(a), 0)
   }
@@ -535,10 +629,26 @@ export default function VehicleDepreciationPage() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedAsset(asset)
+                            setShowViewModal(true)
+                          }}
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedAsset(asset)
+                            setShowEditModal(true)
+                          }}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                       </div>
@@ -761,6 +871,415 @@ export default function VehicleDepreciationPage() {
                     <Button type="submit" className="flex-1">
                       <Plus className="w-4 h-4 mr-2" />
                       Agregar Vehículo
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* VIEW MODAL - Ver Detalles de Depreciación */}
+        {showViewModal && selectedAsset && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-cyan-50">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Car className="w-6 h-6 text-blue-600" />
+                    {selectedAsset.name}
+                  </CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setShowViewModal(false)
+                      setSelectedAsset(null)
+                    }}
+                  >
+                    ✕
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">{selectedAsset.description}</p>
+              </CardHeader>
+              <CardContent className="p-6">
+                {/* Información General */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    Información General
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <span className="text-xs text-gray-500">Fecha de Compra</span>
+                      <p className="font-semibold">{new Date(selectedAsset.purchaseDate).toLocaleDateString('es-MX')}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <span className="text-xs text-gray-500">Meses de Uso</span>
+                      <p className="font-semibold">{calculateMonthsOwned(selectedAsset.purchaseDate)} meses</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <span className="text-xs text-gray-500">Años de Uso</span>
+                      <p className="font-semibold">{calculateYearsOwned(selectedAsset.purchaseDate)} años</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <span className="text-xs text-gray-500">Vida Útil</span>
+                      <p className="font-semibold">{selectedAsset.usefulLife} años</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <span className="text-xs text-gray-500">Vida Útil Restante</span>
+                      <p className="font-semibold">{calculateRemainingLifeMonths(selectedAsset)} meses</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <span className="text-xs text-gray-500">Estado</span>
+                      <p className="font-semibold capitalize">{selectedAsset.status === 'ACTIVE' ? 'Activo' : selectedAsset.status}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Valores Financieros */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-green-600" />
+                    Valores Financieros
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <span className="text-xs text-blue-600 font-medium">PRECIO DE COMPRA</span>
+                      <p className="text-xl font-bold text-blue-900">
+                        ${selectedAsset.purchasePrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <span className="text-xs text-amber-600 font-medium">DEPRECIACIÓN ACUM.</span>
+                      <p className="text-xl font-bold text-amber-900">
+                        ${calculateRealAccumulatedDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <span className="text-xs text-emerald-600 font-medium">VALOR ACTUAL</span>
+                      <p className="text-xl font-bold text-emerald-900">
+                        ${calculateRealBookValue(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <span className="text-xs text-gray-600 font-medium">VALOR RESIDUAL</span>
+                      <p className="text-xl font-bold text-gray-900">
+                        ${selectedAsset.salvageValue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tasas de Depreciación */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <TrendingDown className="w-5 h-5 text-red-600" />
+                    Tasas de Depreciación (Línea Recta - Florida/IRS)
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-center">
+                      <span className="text-xs text-red-600 font-medium block mb-1">% DEPRECIADO</span>
+                      <p className="text-3xl font-bold text-red-700">
+                        {calculateRealDepreciationPercentage(selectedAsset)}%
+                      </p>
+                    </div>
+                    <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg text-center">
+                      <span className="text-xs text-orange-600 font-medium block mb-1">MENSUAL</span>
+                      <p className="text-lg font-bold text-orange-700">
+                        ${calculateMonthlyDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                      <span className="text-xs text-yellow-700 font-medium block mb-1">SEMANAL</span>
+                      <p className="text-lg font-bold text-yellow-700">
+                        ${calculateWeeklyDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-lime-50 border border-lime-200 rounded-lg text-center">
+                      <span className="text-xs text-lime-700 font-medium block mb-1">DIARIA</span>
+                      <p className="text-lg font-bold text-lime-700">
+                        ${calculateDailyDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Depreciación por Millas (si aplica) */}
+                {selectedAsset.estimatedLifetimeMiles && selectedAsset.estimatedLifetimeMiles > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Gauge className="w-5 h-5 text-purple-600" />
+                      Depreciación por Millas (Unit of Production)
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                        <span className="text-xs text-purple-600 font-medium">POR MILLA</span>
+                        <p className="text-lg font-bold text-purple-900">
+                          ${calculateDepreciationPerMile(selectedAsset).toFixed(3)}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-violet-50 border border-violet-200 rounded-lg">
+                        <span className="text-xs text-violet-600 font-medium">MILLAS USADAS</span>
+                        <p className="text-lg font-bold text-violet-900">
+                          {((selectedAsset.currentMileage || 0) - (selectedAsset.purchaseMileage || 0)).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-fuchsia-50 border border-fuchsia-200 rounded-lg">
+                        <span className="text-xs text-fuchsia-600 font-medium">DEP. POR MILLAS</span>
+                        <p className="text-lg font-bold text-fuchsia-900">
+                          ${calculateMileageBasedDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg">
+                        <span className="text-xs text-pink-600 font-medium">VALOR (MILLAS)</span>
+                        <p className="text-lg font-bold text-pink-900">
+                          ${calculateCurrentValueByMileage(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Depreciación MACRS */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Calculator className="w-5 h-5 text-indigo-600" />
+                    Depreciación MACRS (IRS Acelerada - 5 años)
+                  </h3>
+                  <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <span className="text-xs text-indigo-600 font-medium">TASAS MACRS</span>
+                        <p className="text-sm text-indigo-700">
+                          Año 1: 20% | Año 2: 32% | Año 3: 19.2%<br/>
+                          Año 4: 11.52% | Año 5: 11.52% | Año 6: 5.76%
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-indigo-600 font-medium">DEP. ACUM. MACRS</span>
+                        <p className="text-xl font-bold text-indigo-900">
+                          ${calculateMACRSDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-indigo-600 font-medium">VALOR MACRS</span>
+                        <p className="text-xl font-bold text-indigo-900">
+                          ${calculateMACRSBookValue(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-xs text-indigo-700">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>El método MACRS es utilizado por el IRS para depreciación acelerada de vehículos de negocio. Permite deducciones mayores en los primeros años.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowViewModal(false)
+                      setSelectedAsset(null)
+                    }}
+                    className="flex-1"
+                  >
+                    Cerrar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowViewModal(false)
+                      setShowEditModal(true)
+                    }}
+                    className="flex-1"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar Vehículo
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* EDIT MODAL - Editar Vehículo */}
+        {showEditModal && selectedAsset && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <CardHeader className="border-b bg-gradient-to-r from-amber-50 to-orange-50">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Edit className="w-6 h-6 text-amber-600" />
+                    Editar Vehículo
+                  </CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setShowEditModal(false)
+                      setSelectedAsset(null)
+                    }}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    const formData = new FormData(e.currentTarget)
+                    
+                    try {
+                      const response = await fetch(`/api/accounting/assets/${selectedAsset.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          name: formData.get('name'),
+                          description: formData.get('description'),
+                          currentMileage: parseInt(formData.get('currentMileage') as string) || null,
+                          salvageValue: parseFloat(formData.get('salvageValue') as string) || 0,
+                          status: formData.get('status'),
+                          usefulLife: parseInt(formData.get('usefulLife') as string) || 5
+                        })
+                      })
+                      
+                      if (response.ok) {
+                        setMessage({ type: 'success', text: 'Vehículo actualizado exitosamente' })
+                        loadAssets()
+                        setShowEditModal(false)
+                        setSelectedAsset(null)
+                      } else {
+                        const error = await response.json()
+                        setMessage({ type: 'error', text: error.error || 'Error al actualizar el vehículo' })
+                      }
+                    } catch (error) {
+                      setMessage({ type: 'error', text: 'Error de conexión' })
+                    }
+                  }} 
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre del Vehículo *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      defaultValue={selectedAsset.name}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Descripción
+                    </label>
+                    <input
+                      type="text"
+                      name="description"
+                      defaultValue={selectedAsset.description || ''}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Millaje Actual
+                      </label>
+                      <input
+                        type="number"
+                        name="currentMileage"
+                        defaultValue={selectedAsset.currentMileage || ''}
+                        min="0"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Valor Residual
+                      </label>
+                      <input
+                        type="number"
+                        name="salvageValue"
+                        defaultValue={selectedAsset.salvageValue}
+                        min="0"
+                        step="0.01"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vida Útil (años)
+                      </label>
+                      <select
+                        name="usefulLife"
+                        defaultValue={selectedAsset.usefulLife}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="3">3 años</option>
+                        <option value="5">5 años (IRS estándar)</option>
+                        <option value="7">7 años</option>
+                        <option value="10">10 años</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Estado
+                      </label>
+                      <select
+                        name="status"
+                        defaultValue={selectedAsset.status}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="ACTIVE">Activo</option>
+                        <option value="DISPOSED">Vendido/Desechado</option>
+                        <option value="FULLY_DEPRECIATED">Totalmente Depreciado</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Información de solo lectura */}
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium text-gray-700 mb-2">Información Original (Solo Lectura)</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Fecha de Compra:</span>
+                        <span className="ml-2 font-medium">{new Date(selectedAsset.purchaseDate).toLocaleDateString('es-MX')}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Precio de Compra:</span>
+                        <span className="ml-2 font-medium">${selectedAsset.purchasePrice.toLocaleString('es-MX')}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Millaje de Compra:</span>
+                        <span className="ml-2 font-medium">{selectedAsset.purchaseMileage?.toLocaleString() || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Millas de Vida:</span>
+                        <span className="ml-2 font-medium">{selectedAsset.estimatedLifetimeMiles?.toLocaleString() || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowEditModal(false)
+                        setSelectedAsset(null)
+                      }}
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit" className="flex-1 bg-amber-600 hover:bg-amber-700">
+                      <Save className="w-4 h-4 mr-2" />
+                      Guardar Cambios
                     </Button>
                   </div>
                 </form>
