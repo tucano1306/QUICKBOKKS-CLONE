@@ -418,7 +418,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
       setShowSubmenu({ [currentTabId]: true })
       setMobileExpandedTab(currentTabId)
     }
-  }, [currentTabId]) // Solo depende de currentTabId, NO de activeTab
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTabId]) // Solo depende de currentTabId, NO de activeTab (intencional para evitar loop)
 
   // Función para cambiar de categoría y navegar al primer submenú
   const handleTabChange = (tab: TabSection) => {

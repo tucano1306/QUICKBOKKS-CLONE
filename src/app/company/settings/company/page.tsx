@@ -280,8 +280,9 @@ export default function CompanySettingsPage() {
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-              <div className="w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div className="w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                 {logoPreview || companyInfo.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img 
                     src={logoPreview || companyInfo.logoUrl} 
                     alt="Company Logo" 
