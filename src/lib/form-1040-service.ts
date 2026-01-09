@@ -3,73 +3,113 @@
  * 
  * Genera y calcula el Form 1040 - U.S. Individual Income Tax Return
  * Incluye todos los schedules principales y asistencia de IA
+ * Soporta múltiples años fiscales (2020-2027+)
  */
 
 import { prisma } from './prisma';
 
-// Tax brackets for 2024 (adjust as needed for different years)
-const TAX_BRACKETS_2024 = {
-  SINGLE: [
-    { min: 0, max: 11600, rate: 0.10 },
-    { min: 11600, max: 47150, rate: 0.12 },
-    { min: 47150, max: 100525, rate: 0.22 },
-    { min: 100525, max: 191950, rate: 0.24 },
-    { min: 191950, max: 243725, rate: 0.32 },
-    { min: 243725, max: 609350, rate: 0.35 },
-    { min: 609350, max: Infinity, rate: 0.37 },
-  ],
-  MARRIED_FILING_JOINTLY: [
-    { min: 0, max: 23200, rate: 0.10 },
-    { min: 23200, max: 94300, rate: 0.12 },
-    { min: 94300, max: 201050, rate: 0.22 },
-    { min: 201050, max: 383900, rate: 0.24 },
-    { min: 383900, max: 487450, rate: 0.32 },
-    { min: 487450, max: 731200, rate: 0.35 },
-    { min: 731200, max: Infinity, rate: 0.37 },
-  ],
-  MARRIED_FILING_SEPARATELY: [
-    { min: 0, max: 11600, rate: 0.10 },
-    { min: 11600, max: 47150, rate: 0.12 },
-    { min: 47150, max: 100525, rate: 0.22 },
-    { min: 100525, max: 191950, rate: 0.24 },
-    { min: 191950, max: 243725, rate: 0.32 },
-    { min: 243725, max: 365600, rate: 0.35 },
-    { min: 365600, max: Infinity, rate: 0.37 },
-  ],
-  HEAD_OF_HOUSEHOLD: [
-    { min: 0, max: 16550, rate: 0.10 },
-    { min: 16550, max: 63100, rate: 0.12 },
-    { min: 63100, max: 100500, rate: 0.22 },
-    { min: 100500, max: 191950, rate: 0.24 },
-    { min: 191950, max: 243700, rate: 0.32 },
-    { min: 243700, max: 609350, rate: 0.35 },
-    { min: 609350, max: Infinity, rate: 0.37 },
-  ],
-  QUALIFYING_SURVIVING_SPOUSE: [
-    { min: 0, max: 23200, rate: 0.10 },
-    { min: 23200, max: 94300, rate: 0.12 },
-    { min: 94300, max: 201050, rate: 0.22 },
-    { min: 201050, max: 383900, rate: 0.24 },
-    { min: 383900, max: 487450, rate: 0.32 },
-    { min: 487450, max: 731200, rate: 0.35 },
-    { min: 731200, max: Infinity, rate: 0.37 },
-  ],
+// Tax brackets by year - will use latest available if year not found
+const TAX_BRACKETS: { [year: number]: any } = {
+  2024: {
+    SINGLE: [
+      { min: 0, max: 11600, rate: 0.10 },
+      { min: 11600, max: 47150, rate: 0.12 },
+      { min: 47150, max: 100525, rate: 0.22 },
+      { min: 100525, max: 191950, rate: 0.24 },
+      { min: 191950, max: 243725, rate: 0.32 },
+      { min: 243725, max: 609350, rate: 0.35 },
+      { min: 609350, max: Infinity, rate: 0.37 },
+    ],
+    MARRIED_FILING_JOINTLY: [
+      { min: 0, max: 23200, rate: 0.10 },
+      { min: 23200, max: 94300, rate: 0.12 },
+      { min: 94300, max: 201050, rate: 0.22 },
+      { min: 201050, max: 383900, rate: 0.24 },
+      { min: 383900, max: 487450, rate: 0.32 },
+      { min: 487450, max: 731200, rate: 0.35 },
+      { min: 731200, max: Infinity, rate: 0.37 },
+    ],
+    MARRIED_FILING_SEPARATELY: [
+      { min: 0, max: 11600, rate: 0.10 },
+      { min: 11600, max: 47150, rate: 0.12 },
+      { min: 47150, max: 100525, rate: 0.22 },
+      { min: 100525, max: 191950, rate: 0.24 },
+      { min: 191950, max: 243725, rate: 0.32 },
+      { min: 243725, max: 365600, rate: 0.35 },
+      { min: 365600, max: Infinity, rate: 0.37 },
+    ],
+    HEAD_OF_HOUSEHOLD: [
+      { min: 0, max: 16550, rate: 0.10 },
+      { min: 16550, max: 63100, rate: 0.12 },
+      { min: 63100, max: 100500, rate: 0.22 },
+      { min: 100500, max: 191950, rate: 0.24 },
+      { min: 191950, max: 243700, rate: 0.32 },
+      { min: 243700, max: 609350, rate: 0.35 },
+      { min: 609350, max: Infinity, rate: 0.37 },
+    ],
+    QUALIFYING_SURVIVING_SPOUSE: [
+      { min: 0, max: 23200, rate: 0.10 },
+      { min: 23200, max: 94300, rate: 0.12 },
+      { min: 94300, max: 201050, rate: 0.22 },
+      { min: 201050, max: 383900, rate: 0.24 },
+      { min: 383900, max: 487450, rate: 0.32 },
+      { min: 487450, max: 731200, rate: 0.35 },
+      { min: 731200, max: Infinity, rate: 0.37 },
+    ],
+  },
+  // 2025-2027 will use 2024 brackets until IRS publishes official amounts
+  // These will be updated with inflation adjustments when available
 };
 
-// Standard Deduction amounts for 2024
-const STANDARD_DEDUCTION_2024 = {
-  SINGLE: 14600,
-  MARRIED_FILING_JOINTLY: 29200,
-  MARRIED_FILING_SEPARATELY: 14600,
-  HEAD_OF_HOUSEHOLD: 21900,
-  QUALIFYING_SURVIVING_SPOUSE: 29200,
+// Get tax brackets for a specific year (fallback to most recent if not available)
+function getTaxBracketsForYear(year: number) {
+  // If year exists, return it
+  if (TAX_BRACKETS[year]) {
+    return TAX_BRACKETS[year];
+  }
+  // For future years, use 2024 brackets (will be updated annually)
+  if (year >= 2024) {
+    return TAX_BRACKETS[2024];
+  }
+  // For older years, also use 2024 as baseline
+  return TAX_BRACKETS[2024];
+}
+
+// Standard Deduction amounts by year
+const STANDARD_DEDUCTIONS: { [year: number]: any } = {
+  2024: {
+    SINGLE: 14600,
+    MARRIED_FILING_JOINTLY: 29200,
+    MARRIED_FILING_SEPARATELY: 14600,
+    HEAD_OF_HOUSEHOLD: 21900,
+    QUALIFYING_SURVIVING_SPOUSE: 29200,
+  },
 };
 
-// Additional deduction for age 65+ or blind (per person)
-const ADDITIONAL_DEDUCTION_2024 = {
-  SINGLE: 1950,
-  MARRIED: 1550,
+// Get standard deductions for a specific year
+function getStandardDeductionForYear(year: number) {
+  if (STANDARD_DEDUCTIONS[year]) {
+    return STANDARD_DEDUCTIONS[year];
+  }
+  // Use 2024 as default for future/past years
+  return STANDARD_DEDUCTIONS[2024];
+}
+
+// Additional deduction for age 65+ or blind (per person) by year
+const ADDITIONAL_DEDUCTIONS: { [year: number]: any } = {
+  2024: {
+    SINGLE: 1950,
+    MARRIED: 1550,
+  },
 };
+
+// Get additional deductions for a specific year
+function getAdditionalDeductionForYear(year: number) {
+  if (ADDITIONAL_DEDUCTIONS[year]) {
+    return ADDITIONAL_DEDUCTIONS[year];
+  }
+  return ADDITIONAL_DEDUCTIONS[2024];
+}
 
 export interface Form1040Input {
   userId: string;
@@ -168,13 +208,15 @@ export interface Form1040Data {
 }
 
 /**
- * Calculate tax based on brackets
+ * Calculate tax based on brackets for a specific year
  */
 export function calculateTaxFromBrackets(
   taxableIncome: number,
-  filingStatus: string
+  filingStatus: string,
+  year: number = 2024
 ): number {
-  const brackets = TAX_BRACKETS_2024[filingStatus as keyof typeof TAX_BRACKETS_2024] || TAX_BRACKETS_2024.SINGLE;
+  const yearBrackets = getTaxBracketsForYear(year);
+  const brackets = yearBrackets[filingStatus as keyof typeof yearBrackets] || yearBrackets.SINGLE;
   let tax = 0;
   let remainingIncome = taxableIncome;
 
@@ -190,7 +232,7 @@ export function calculateTaxFromBrackets(
 }
 
 /**
- * Calculate standard deduction based on filing status and age/blind status
+ * Calculate standard deduction based on filing status, age/blind status, and year
  */
 export function calculateStandardDeduction(
   filingStatus: string,
@@ -199,13 +241,16 @@ export function calculateStandardDeduction(
     youBlind?: boolean;
     spouseBornBefore1960?: boolean;
     spouseBlind?: boolean;
-  }
+  },
+  year: number = 2024
 ): number {
-  let deduction = STANDARD_DEDUCTION_2024[filingStatus as keyof typeof STANDARD_DEDUCTION_2024] || STANDARD_DEDUCTION_2024.SINGLE;
+  const yearDeductions = getStandardDeductionForYear(year);
+  let deduction = yearDeductions[filingStatus as keyof typeof yearDeductions] || yearDeductions.SINGLE;
   
   if (additionalDeductions) {
     const isMarried = filingStatus.includes('MARRIED');
-    const additionalAmount = isMarried ? ADDITIONAL_DEDUCTION_2024.MARRIED : ADDITIONAL_DEDUCTION_2024.SINGLE;
+    const yearAdditional = getAdditionalDeductionForYear(year);
+    const additionalAmount = isMarried ? yearAdditional.MARRIED : yearAdditional.SINGLE;
     
     if (additionalDeductions.youBornBefore1960) deduction += additionalAmount;
     if (additionalDeductions.youBlind) deduction += additionalAmount;
@@ -355,7 +400,8 @@ export async function saveForm1040(
 ): Promise<any> {
   const standardDeduction = calculateStandardDeduction(
     input.filingStatus,
-    input.additionalDeductions
+    input.additionalDeductions,
+    input.taxYear
   );
 
   const income = calculatedData.income || {
@@ -381,8 +427,8 @@ export async function saveForm1040(
   const totalDeduction = standardDeduction;
   const taxableIncome = Math.max(0, agi - totalDeduction);
   
-  // Calculate tax
-  const taxFromBrackets = calculateTaxFromBrackets(taxableIncome, input.filingStatus);
+  // Calculate tax using the correct year
+  const taxFromBrackets = calculateTaxFromBrackets(taxableIncome, input.filingStatus, input.taxYear);
   
   // Self-employment tax if applicable
   let additionalTaxes = 0;

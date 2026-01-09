@@ -62,7 +62,8 @@ export default function Form1040Page() {
   const { activeCompany } = useCompany()
 
   // Form State
-  const [taxYear, setTaxYear] = useState<number>(2024)
+  const currentYear = new Date().getFullYear()
+  const [taxYear, setTaxYear] = useState<number>(currentYear - 1)
   const [filingStatus, setFilingStatus] = useState<string>('SINGLE')
   const [loading, setLoading] = useState(false)
   const [existingForm, setExistingForm] = useState<any>(null)
@@ -404,7 +405,7 @@ export default function Form1040Page() {
               Form 1040 - Individual Income Tax Return
             </h1>
             <p className="text-muted-foreground mt-1">
-              U.S. Individual Income Tax Return para el año fiscal {taxYear}
+              U.S. Individual Income Tax Return - Año Fiscal {taxYear}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -414,9 +415,14 @@ export default function Form1040Page() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="2027">2027</SelectItem>
+                <SelectItem value="2026">2026</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
                 <SelectItem value="2024">2024</SelectItem>
                 <SelectItem value="2023">2023</SelectItem>
                 <SelectItem value="2022">2022</SelectItem>
+                <SelectItem value="2021">2021</SelectItem>
+                <SelectItem value="2020">2020</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -509,7 +515,7 @@ export default function Form1040Page() {
               <CardHeader>
                 <CardTitle>Información Personal</CardTitle>
                 <CardDescription>
-                  Complete su información personal y estado civil
+                  Complete su información personal y estado civil para el año {taxYear}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -743,7 +749,7 @@ export default function Form1040Page() {
               <CardHeader>
                 <CardTitle>Ingresos (Income)</CardTitle>
                 <CardDescription>
-                  Reporte todos sus ingresos del año {taxYear}
+                  Reporte todos sus ingresos del año fiscal {taxYear}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -959,7 +965,7 @@ export default function Form1040Page() {
               <CardHeader>
                 <CardTitle>Schedule C - Profit or Loss From Business</CardTitle>
                 <CardDescription>
-                  Para trabajadores independientes y dueños de negocios
+                  Para trabajadores independientes y dueños de negocios ({taxYear})
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1021,7 +1027,7 @@ export default function Form1040Page() {
               <CardHeader>
                 <CardTitle>Dependientes</CardTitle>
                 <CardDescription>
-                  Agregue información de sus dependientes para créditos tributarios
+                  Agregue información de sus dependientes para créditos tributarios ({taxYear})
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
