@@ -384,23 +384,24 @@ export default function ImportDataPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Database className="w-8 h-8 text-blue-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Database className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Importar Datos
             </h1>
-            <p className="text-gray-600 mt-1">
-              Importa datos desde archivos Excel a tu sistema contable
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Importa datos desde archivos Excel
             </p>
           </div>
           
           <Link href="/company/tools/excel-manager">
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2">
               <FileSpreadsheet className="w-4 h-4" />
-              Gestor Excel Avanzado
+              <span className="hidden sm:inline">Gestor Excel Avanzado</span>
+              <span className="sm:hidden">Excel</span>
             </Button>
           </Link>
         </div>

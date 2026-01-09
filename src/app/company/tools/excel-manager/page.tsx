@@ -272,28 +272,28 @@ export default function ExcelManagerPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileSpreadsheet className="w-8 h-8 text-green-600" />
-              Gestor de Archivos Excel
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <FileSpreadsheet className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+              <span>Gestor <span className="hidden sm:inline">de Archivos</span> Excel</span>
             </h1>
-            <p className="text-gray-600 mt-1">
-              Carga, analiza y gestiona datos de archivos Excel
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Carga, analiza y gestiona archivos Excel
             </p>
           </div>
           
           {excelFiles.length > 0 && (
             <div className="flex gap-2">
-              <Badge variant="secondary" className="px-3 py-1">
-                <Database className="w-4 h-4 mr-1" />
-                {excelFiles.length} archivo(s)
+              <Badge variant="secondary" className="px-2 sm:px-3 py-1 text-xs">
+                <Database className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                {excelFiles.length}
               </Badge>
-              <Badge variant="secondary" className="px-3 py-1">
-                <Layers className="w-4 h-4 mr-1" />
-                {excelFiles.reduce((sum, f) => sum + f.totalRows, 0)} registros
+              <Badge variant="secondary" className="px-2 sm:px-3 py-1 text-xs">
+                <Layers className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                {excelFiles.reduce((sum, f) => sum + f.totalRows, 0)}
               </Badge>
             </div>
           )}

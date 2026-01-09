@@ -280,30 +280,32 @@ export default function ExportDataPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Download className="w-8 h-8 text-green-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Download className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               Exportar Datos
             </h1>
-            <p className="text-gray-600 mt-1">
-              Descarga tus datos en formato Excel para respaldos o análisis externo
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Descarga tus datos en formato Excel
             </p>
           </div>
           
           <Button 
             onClick={handleExportFullReport}
             disabled={isExporting}
-            className="gap-2 bg-green-600 hover:bg-green-700"
+            size="sm"
+            className="gap-2 bg-green-600 hover:bg-green-700 w-full sm:w-auto"
           >
             {isExporting ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <BarChart3 className="w-4 h-4" />
             )}
-            Reporte Completo
+            <span className="hidden sm:inline">Reporte Completo</span>
+            <span className="sm:hidden">Reporte</span>
           </Button>
         </div>
 
