@@ -245,9 +245,9 @@ export default function BudgetVsActualPage() {
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-semibold text-red-700">Gastos</div>
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="text-xs sm:text-sm font-semibold text-red-700">Gastos</div>
                 {expenseVariance <= 0 ? (
                   <ArrowDownRight className="w-5 h-5 text-green-600" />
                 ) : (
@@ -283,9 +283,9 @@ export default function BudgetVsActualPage() {
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-semibold text-blue-700">Utilidad Neta</div>
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="text-xs sm:text-sm font-semibold text-blue-700">Utilidad Neta</div>
                 {profitVariance >= 0 ? (
                   <ArrowUpRight className="w-5 h-5 text-green-600" />
                 ) : (

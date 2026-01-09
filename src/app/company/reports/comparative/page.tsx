@@ -135,30 +135,30 @@ export default function ComparativeReportsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Message Display */}
         {message && (
-          <div className={`flex items-center gap-2 p-4 rounded-lg ${
+          <div className={`flex items-center gap-2 p-3 sm:p-4 rounded-lg text-sm ${
             message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
           }`}>
-            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
             <span>{message.text}</span>
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reportes Comparativos</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reportes Comparativos</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Análisis financiero por periodo - Mensual, Trimestral y Anual
             </p>
-            <p className="text-sm text-blue-600 mt-1">
+            <p className="text-xs sm:text-sm text-blue-600 mt-1">
               Periodo: {dateRange.label || `${dateRange.startDate} al ${dateRange.endDate}`}
             </p>
           </div>
-          <div className="flex gap-2">
-            <div className="w-72">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="w-full sm:w-72">
               <DateRangeSelector
                 value={dateRange}
                 onSelect={(range: DateRange) => {
@@ -166,15 +166,16 @@ export default function ComparativeReportsPage() {
                 }}
               />
             </div>
-            <Button variant="outline" onClick={recalculate} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Recalcular
-            </Button>
-            <Button variant="outline" onClick={exportCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
-            </Button>
-            <Button onClick={() => {
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={recalculate} disabled={loading} className="flex-1 sm:flex-none">
+                <RefreshCw className={`w-4 h-4 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Recalcular</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportCSV} className="flex-1 sm:flex-none">
+                <Download className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">CSV</span>
+              </Button>
+              <Button size="sm" onClick={() => {
               const printWindow = window.open('', '_blank')
               if (printWindow) {
                 const viewLabel = getViewModeLabel(viewMode)
@@ -283,42 +284,49 @@ export default function ComparativeReportsPage() {
                 printWindow.focus()
                 setTimeout(() => printWindow.print(), 250)
               }
-            }}>
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir
+            }} className="flex-1 sm:flex-none">
+              <Printer className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Imprimir</span>
             </Button>
+            </div>
           </div>
         </div>
 
         {/* View Mode Selector */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-gray-700">Vista:</span>
-              <div className="flex gap-2">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              <span className="text-xs sm:text-sm font-medium text-gray-700">Vista:</span>
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant={viewMode === 'monthly' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('monthly')}
+                  className="flex-1 sm:flex-none"
                 >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Mensual
+                  <Calendar className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Mensual</span>
+                  <span className="sm:hidden">Mes</span>
                 </Button>
                 <Button
                   variant={viewMode === 'quarterly' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('quarterly')}
+                  className="flex-1 sm:flex-none"
                 >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Trimestral
+                  <BarChart3 className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Trimestral</span>
+                  <span className="sm:hidden">Trim</span>
                 </Button>
                 <Button
                   variant={viewMode === 'yearly' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('yearly')}
+                  className="flex-1 sm:flex-none"
                 >
-                  <LineChart className="w-4 h-4 mr-2" />
-                  Anual
+                  <LineChart className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Anual</span>
+                  <span className="sm:hidden">Año</span>
                 </Button>
               </div>
             </div>
@@ -326,77 +334,77 @@ export default function ComparativeReportsPage() {
         </Card>
 
         {/* Summary Cards with Animations */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4 relative">
+            <CardContent className="p-3 sm:p-4 relative">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-green-700">Total Ingresos</div>
+                <div className="text-xs sm:text-sm text-green-700">Total Ingresos</div>
                 <div className="flex items-center gap-2">
-                  <Sparkline data={currentData.map(d => d.ingresos)} color="#22c55e" height={20} width={40} />
-                  <TrendingUp className="w-5 h-5 text-green-600 group-hover:scale-110 transition-transform" />
+                  <Sparkline data={currentData.map(d => d.ingresos)} color="#22c55e" height={20} width={40} className="hidden sm:block" />
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 group-hover:scale-110 transition-transform" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
                 <AnimatedCounter value={totalIngresos} prefix="$" duration={1500} />
               </div>
-              <p className="text-xs text-green-700 mt-1">
+              <p className="text-xs text-green-700 mt-1 hidden sm:block">
                 {currentData.length} periodos
               </p>
-              <AnimatedProgress value={100} color="green" height={4} showValue={false} className="mt-2" />
+              <AnimatedProgress value={100} color="green" height={4} showValue={false} className="mt-2 hidden sm:block" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4 relative">
+            <CardContent className="p-3 sm:p-4 relative">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-red-700">Total Gastos</div>
+                <div className="text-xs sm:text-sm text-red-700">Total Gastos</div>
                 <div className="flex items-center gap-2">
-                  <Sparkline data={currentData.map(d => d.gastos)} color="#ef4444" height={20} width={40} />
-                  <TrendingDown className="w-5 h-5 text-red-600 group-hover:scale-110 transition-transform" />
+                  <Sparkline data={currentData.map(d => d.gastos)} color="#ef4444" height={20} width={40} className="hidden sm:block" />
+                  <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 group-hover:scale-110 transition-transform" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-red-900">
+              <div className="text-lg sm:text-2xl font-bold text-red-900">
                 <AnimatedCounter value={totalGastos} prefix="$" duration={1500} />
               </div>
-              <p className="text-xs text-red-700 mt-1">
+              <p className="text-xs text-red-700 mt-1 hidden sm:block">
                 {totalIngresos > 0 ? ((totalGastos / totalIngresos) * 100).toFixed(1) : '0.0'}% de ingresos
               </p>
-              <AnimatedProgress value={totalIngresos > 0 ? Math.round((totalGastos / totalIngresos) * 100) : 0} color="red" height={4} showValue={false} className="mt-2" />
+              <AnimatedProgress value={totalIngresos > 0 ? Math.round((totalGastos / totalIngresos) * 100) : 0} color="red" height={4} showValue={false} className="mt-2 hidden sm:block" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4 relative">
+            <CardContent className="p-3 sm:p-4 relative">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-blue-700">Utilidad Neta</div>
+                <div className="text-xs sm:text-sm text-blue-700">Utilidad Neta</div>
                 <div className="flex items-center gap-2">
-                  <Sparkline data={currentData.map(d => d.utilidad)} color="#3b82f6" height={20} width={40} />
-                  <DollarSign className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
+                  <Sparkline data={currentData.map(d => d.utilidad)} color="#3b82f6" height={20} width={40} className="hidden sm:block" />
+                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:scale-110 transition-transform" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">
                 <AnimatedCounter value={totalUtilidad} prefix="$" duration={1500} />
               </div>
-              <p className="text-xs text-blue-700 mt-1">
+              <p className="text-xs text-blue-700 mt-1 hidden sm:block">
                 Acumulado del periodo
               </p>
-              <AnimatedProgress value={Math.round((totalUtilidad / totalIngresos) * 100)} color="blue" height={4} showValue={false} className="mt-2" />
+              <AnimatedProgress value={Math.round((totalUtilidad / totalIngresos) * 100)} color="blue" height={4} showValue={false} className="mt-2 hidden sm:block" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4 relative">
+            <CardContent className="p-3 sm:p-4 relative">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-purple-700">Margen Promedio</div>
+                <div className="text-xs sm:text-sm text-purple-700">Margen Promedio</div>
                 <div className="flex items-center gap-2">
-                  <Sparkline data={currentData.map(d => d.margen)} color="#a855f7" height={20} width={40} />
-                  <PieChart className="w-5 h-5 text-purple-600 group-hover:scale-110 transition-transform" />
+                  <Sparkline data={currentData.map(d => d.margen)} color="#a855f7" height={20} width={40} className="hidden sm:block" />
+                  <PieChart className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 group-hover:scale-110 transition-transform" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
                 <AnimatedCounter value={promedioMargen} suffix="%" decimals={1} duration={1500} />
               </div>
-              <p className="text-xs text-purple-700 mt-1">
+              <p className="text-xs text-purple-700 mt-1 hidden sm:block">
                 Promedio de {currentData.length} periodos
               </p>
               <AnimatedProgress value={Math.round(promedioMargen)} color="purple" height={4} showValue={false} className="mt-2" />

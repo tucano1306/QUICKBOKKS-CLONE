@@ -696,11 +696,88 @@ export default function TaxReportsPage() {
 
         {/* Tax Reports Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Declaraciones Fiscales - {selectedYear}</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">Declaraciones Fiscales - {selectedYear}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="block md:hidden divide-y divide-gray-200">
+              {filteredReports.map((report) => {
+                const dueDate = new Date(report.dueDate)
+                const today = new Date()
+                const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                const isUrgent = daysUntilDue >= 0 && daysUntilDue <= 7 && report.status === 'pending'
+
+                return (
+                  <div key={report.id} className={`p-4 ${isUrgent ? 'bg-yellow-50' : ''}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        {getTaxTypeIcon(report.type)}
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">{report.type}</div>
+                          <div className="text-xs text-gray-500">{report.period}</div>
+                        </div>
+                      </div>
+                      {getStatusBadge(report.status)}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                      <div>
+                        <span className="text-gray-500">Base Gravable:</span>
+                        <span className="ml-1 font-medium">${report.taxBase.toLocaleString('es-MX')}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Tasa:</span>
+                        <span className="ml-1 font-medium">{report.taxRate}%</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Impuesto:</span>
+                        <span className="ml-1 font-semibold text-blue-600">${report.amount.toLocaleString('es-MX')}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Retenciones:</span>
+                        <span className="ml-1 font-medium">{report.withheld ? `-$${report.withheld.toLocaleString('es-MX')}` : '-'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-bold text-green-700">A pagar: ${report.balance.toLocaleString('es-MX')}</div>
+                        <div className={`text-xs ${isUrgent ? 'text-orange-600 font-semibold' : 'text-gray-500'}`}>
+                          Vence: {new Date(report.dueDate).toLocaleDateString('es-MX')}
+                          {report.status === 'pending' && (
+                            <span className="ml-1">
+                              ({daysUntilDue < 0 ? `${Math.abs(daysUntilDue)}d vencida` : `${daysUntilDue}d`})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {report.status === 'filed' ? (
+                          <>
+                            <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => handleViewReport(report)}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => handlePrintReport(report)}>
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button size="sm" className="h-8 px-2" onClick={() => handleFileDeclaration(report)}>
+                              <Send className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => handleViewReport(report)}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>

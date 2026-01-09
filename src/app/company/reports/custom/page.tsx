@@ -213,21 +213,21 @@ export default function CustomReportsPage() {
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reportes Personalizados</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reportes Personalizados</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Constructor de reportes con análisis avanzado
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm">
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => setActiveTab('builder')}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Reporte
+            <Button size="sm" onClick={() => setActiveTab('builder')}>
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nuevo Reporte</span>
             </Button>
           </div>
         </div>
@@ -260,52 +260,52 @@ export default function CustomReportsPage() {
         {activeTab === 'templates' && (
           <>
             {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
               <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-center justify-between mb-2">
-                    <FileText className="w-8 h-8 text-blue-600" />
+                    <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                   </div>
-                  <div className="text-3xl font-bold text-blue-900">
+                  <div className="text-xl sm:text-3xl font-bold text-blue-900">
                     {templates.length}
                   </div>
-                  <div className="text-sm text-blue-700">Reportes Guardados</div>
+                  <div className="text-xs sm:text-sm text-blue-700">Reportes <span className="hidden sm:inline">Guardados</span></div>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-center justify-between mb-2">
-                    <BarChart3 className="w-8 h-8 text-green-600" />
+                    <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                   </div>
-                  <div className="text-3xl font-bold text-green-900">
+                  <div className="text-xl sm:text-3xl font-bold text-green-900">
                     {templates.filter(t => t.isFavorite).length}
                   </div>
-                  <div className="text-sm text-green-700">Favoritos</div>
+                  <div className="text-xs sm:text-sm text-green-700">Favoritos</div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                <CardContent className="p-6">
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hidden sm:block">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-center justify-between mb-2">
-                    <Calendar className="w-8 h-8 text-purple-600" />
+                    <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
                   </div>
-                  <div className="text-3xl font-bold text-purple-900">
+                  <div className="text-xl sm:text-3xl font-bold text-purple-900">
                     {templates.filter(t => t.lastRun).length}
                   </div>
-                  <div className="text-sm text-purple-700">Ejecutados</div>
+                  <div className="text-xs sm:text-sm text-purple-700">Ejecutados</div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                <CardContent className="p-6">
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hidden sm:block">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-center justify-between mb-2">
-                    <Layers className="w-8 h-8 text-orange-600" />
+                    <Layers className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
                   </div>
-                  <div className="text-3xl font-bold text-orange-900">
+                  <div className="text-xl sm:text-3xl font-bold text-orange-900">
                     {new Set(templates.map(t => t.category)).size}
                   </div>
-                  <div className="text-sm text-orange-700">Categorías</div>
+                  <div className="text-xs sm:text-sm text-orange-700">Categorías</div>
                 </CardContent>
               </Card>
             </div>

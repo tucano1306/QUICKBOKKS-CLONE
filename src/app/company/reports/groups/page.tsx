@@ -229,19 +229,20 @@ export default function ReportGroupsPage() {
     <CompanyTabsLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Report Groups</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Report Groups</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Organize your reports into custom groups for easy access
             </p>
           </div>
           <Button 
+            size="sm"
             className="bg-[#2CA01C] hover:bg-[#108000]"
             onClick={() => openModal()}
           >
             <Plus className="w-4 h-4 mr-2" />
-            New Group
+            <span className="hidden sm:inline">New </span>Group
           </Button>
         </div>
 
@@ -358,15 +359,15 @@ export default function ReportGroupsPage() {
 
         {/* Quick Stats */}
         <Card>
-          <CardHeader>
-            <CardTitle>Report Categories Overview</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Report Categories Overview</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-5 gap-4">
-              {Object.entries(reportTypeLabels).slice(0, 5).map(([key, { label, icon: Icon }]) => (
-                <div key={key} className="p-4 bg-gray-50 rounded-lg text-center">
-                  <Icon className="w-6 h-6 text-[#0077C5] mx-auto mb-2" />
-                  <div className="text-sm font-medium">{label}</div>
+          <CardContent className="p-3 sm:p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+              {Object.entries(reportTypeLabels).slice(0, 5).map(([key, { label, icon: Icon }], index) => (
+                <div key={key} className={`p-3 sm:p-4 bg-gray-50 rounded-lg text-center ${index >= 4 ? 'hidden sm:block' : ''}`}>
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#0077C5] mx-auto mb-2" />
+                  <div className="text-xs sm:text-sm font-medium">{label}</div>
                   <div className="text-xs text-gray-500">
                     {groups.filter(g => g.reportTypes.includes(key)).length} groups
                   </div>

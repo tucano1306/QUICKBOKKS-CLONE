@@ -265,14 +265,14 @@ export default function BudgetAlertsPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                   Severidad:
                 </label>
                 <select 
-                  className="px-4 py-2 border rounded-lg"
+                  className="flex-1 sm:flex-none px-3 py-2 border rounded-lg text-sm"
                   value={selectedSeverity}
                   onChange={(e) => setSelectedSeverity(e.target.value)}
                 >
@@ -285,11 +285,11 @@ export default function BudgetAlertsPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                   Estado:
                 </label>
                 <select 
-                  className="px-4 py-2 border rounded-lg"
+                  className="flex-1 sm:flex-none px-3 py-2 border rounded-lg text-sm"
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                 >
@@ -302,11 +302,11 @@ export default function BudgetAlertsPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                  Departamento:
+                <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
+                  Depto:
                 </label>
                 <select 
-                  className="px-4 py-2 border rounded-lg"
+                  className="flex-1 sm:flex-none px-3 py-2 border rounded-lg text-sm"
                   value={selectedDepartment}
                   onChange={(e) => setSelectedDepartment(e.target.value)}
                 >

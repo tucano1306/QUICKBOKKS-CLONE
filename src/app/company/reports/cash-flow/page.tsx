@@ -551,15 +551,15 @@ export default function CashFlowPage() {
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-orange-700">Días de Efectivo</div>
-                <Calendar className="w-5 h-5 text-orange-600" />
+                <div className="text-xs sm:text-sm text-orange-700">Días de Efectivo</div>
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">
+              <div className="text-lg sm:text-3xl font-bold text-orange-900">
                 45
               </div>
-              <div className="text-xs text-orange-600 mt-1">
+              <div className="text-xs text-orange-600 mt-1 hidden sm:block">
                 Días de operación cubiertos
               </div>
             </CardContent>

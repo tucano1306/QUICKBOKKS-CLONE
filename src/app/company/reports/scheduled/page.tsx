@@ -158,86 +158,86 @@ export default function ScheduledReportsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reportes Programados</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Reportes Programados</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Automatización y entrega programada de reportes
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <History className="w-4 h-4 mr-2" />
-              Ver Historial
+            <Button variant="outline" size="sm">
+              <History className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Ver Historial</span>
             </Button>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Programado
+            <Button size="sm">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nuevo</span>
             </Button>
           </div>
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Calendar className="w-8 h-8 text-blue-600" />
+                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">
+              <div className="text-xl sm:text-3xl font-bold text-blue-900">
                 {stats.total}
               </div>
-              <div className="text-sm text-blue-700">Total Programados</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">
+              <div className="text-xl sm:text-3xl font-bold text-green-900">
                 {stats.active}
               </div>
-              <div className="text-sm text-green-700">Activos</div>
+              <div className="text-xs sm:text-sm text-green-700">Activos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Pause className="w-8 h-8 text-yellow-600" />
+                <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
               </div>
-              <div className="text-3xl font-bold text-yellow-900">
+              <div className="text-xl sm:text-3xl font-bold text-yellow-900">
                 {stats.paused}
               </div>
-              <div className="text-sm text-yellow-700">Pausados</div>
+              <div className="text-xs sm:text-sm text-yellow-700">Pausados</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 hidden sm:block">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-3xl font-bold text-red-900">
+              <div className="text-xl sm:text-3xl font-bold text-red-900">
                 {stats.failed}
               </div>
-              <div className="text-sm text-red-700">Con Errores</div>
+              <div className="text-xs sm:text-sm text-red-700">Con Errores</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hidden lg:block">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">
+              <div className="text-xl sm:text-3xl font-bold text-purple-900">
                 {stats.successRate}%
               </div>
-              <div className="text-sm text-purple-700">Tasa de Éxito</div>
+              <div className="text-xs sm:text-sm text-purple-700">Tasa de Éxito</div>
             </CardContent>
           </Card>
         </div>
@@ -271,13 +271,13 @@ export default function ScheduledReportsPage() {
           <>
             {/* Filters */}
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                     Frecuencia:
                   </label>
                   <select 
-                    className="px-4 py-2 border rounded-lg"
+                    className="px-3 py-2 border rounded-lg text-sm"
                     value={selectedFrequency}
                     onChange={(e) => setSelectedFrequency(e.target.value)}
                   >

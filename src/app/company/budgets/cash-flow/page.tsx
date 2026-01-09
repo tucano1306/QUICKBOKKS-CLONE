@@ -244,138 +244,139 @@ export default function BudgetCashFlowPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Presupuesto de Flujo de Efectivo</h1>
-            <p className="text-gray-600 mt-1">
-              Proyección de entradas y salidas de efectivo mensual
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Presupuesto de Flujo de Efectivo</h1>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
+              Proyección de entradas y salidas de efectivo
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
-            <Button onClick={() => setShowNewPeriodModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Período
+            <Button size="sm" onClick={() => setShowNewPeriodModal(true)}>
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nuevo Período</span>
             </Button>
           </div>
         </div>
 
         {/* Configuration */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                Año Fiscal:
-              </label>
-              <select 
-                className="px-4 py-2 border rounded-lg"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-              >
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-                <option value="2027">2027</option>
-                <option value="2028">2028</option>
-              </select>
-              <div className="flex-1"></div>
-              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                Vista:
-              </label>
-              <div className="flex gap-2">
-                <Button 
-                  variant={viewMode === 'monthly' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('monthly')}
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
+                  Año:
+                </label>
+                <select 
+                  className="px-3 py-2 border rounded-lg text-sm"
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
                 >
-                  Mensual
-                </Button>
-                <Button 
-                  variant={viewMode === 'quarterly' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('quarterly')}
-                >
-                  Trimestral
-                </Button>
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                  <option value="2028">2028</option>
+                </select>
+              </div>
+              <div className="flex-1 hidden sm:block"></div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
+                  Vista:
+                </label>
+                <div className="flex gap-1 sm:gap-2">
+                  <Button 
+                    variant={viewMode === 'monthly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('monthly')}
+                  >
+                    <span className="hidden sm:inline">Mensual</span>
+                    <span className="sm:hidden">Mes</span>
+                  </Button>
+                  <Button 
+                    variant={viewMode === 'quarterly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('quarterly')}
+                  >
+                    <span className="hidden sm:inline">Trimestral</span>
+                    <span className="sm:hidden">Trim</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Summary Stats with Animations */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <Wallet className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={[40, 45, 42, 48, 45, 50]} color="#3b82f6" height={25} width={40} />
+                <Wallet className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[40, 45, 42, 48, 45, 50]} color="#3b82f6" height={25} width={40} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">
                 <AnimatedCounter value={openingBalance / 1000000} prefix="$" suffix="M" decimals={1} duration={1500} />
               </div>
-              <div className="text-sm text-blue-700">Saldo Inicial</div>
+              <div className="text-xs sm:text-sm text-blue-700">Saldo Inicial</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-green-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={[30, 40, 35, 55, 50, 60]} color="#22c55e" height={25} width={40} />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[30, 40, 35, 55, 50, 60]} color="#22c55e" height={25} width={40} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900">
                 <AnimatedCounter value={totalInflows / 1000000} prefix="$" suffix="M" decimals={1} duration={1500} />
               </div>
-              <div className="text-sm text-green-700">Entradas Totales</div>
+              <div className="text-xs sm:text-sm text-green-700">Entradas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="p-6 relative">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <TrendingDown className="w-8 h-8 text-red-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={[50, 45, 55, 40, 45, 35]} color="#ef4444" height={25} width={40} />
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[50, 45, 55, 40, 45, 35]} color="#ef4444" height={25} width={40} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
+              <div className="text-lg sm:text-2xl font-bold text-red-900">
                 <AnimatedCounter value={totalOutflows / 1000000} prefix="$" suffix="M" decimals={1} duration={1500} />
               </div>
-              <div className="text-sm text-red-700">Salidas Totales</div>
+              <div className="text-xs sm:text-sm text-red-700">Salidas</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="p-6 relative">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 overflow-hidden group hover:shadow-lg transition-all duration-300 hidden sm:block">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <Droplet className="w-8 h-8 text-purple-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={[20, 35, 30, 45, 40, 50]} color="#a855f7" height={25} width={40} />
+                <Droplet className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[20, 35, 30, 45, 40, 50]} color="#a855f7" height={25} width={40} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
                 <AnimatedCounter value={netCashFlow / 1000000} prefix={netCashFlow >= 0 ? '+$' : '-$'} suffix="M" decimals={1} duration={1500} />
               </div>
-              <div className="text-sm text-purple-700">Flujo Neto</div>
+              <div className="text-xs sm:text-sm text-purple-700">Flujo Neto</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="p-6 relative">
+          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 overflow-hidden group hover:shadow-lg transition-all duration-300 hidden lg:block">
+            <CardContent className="p-3 sm:p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-indigo-600 group-hover:scale-110 transition-transform" />
-                <Sparkline data={[45, 50, 48, 55, 60, 70]} color="#6366f1" height={25} width={40} />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600 group-hover:scale-110 transition-transform" />
+                <Sparkline data={[45, 50, 48, 55, 60, 70]} color="#6366f1" height={25} width={40} className="hidden sm:block" />
               </div>
-              <div className="text-2xl font-bold text-indigo-900">
+              <div className="text-lg sm:text-2xl font-bold text-indigo-900">
                 <AnimatedCounter value={endingBalance / 1000000} prefix="$" suffix="M" decimals={1} duration={1500} />
               </div>
-              <div className="text-sm text-indigo-700">Saldo Final</div>
+              <div className="text-xs sm:text-sm text-indigo-700">Saldo Final</div>
             </CardContent>
           </Card>
         </div>
