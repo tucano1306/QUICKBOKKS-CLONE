@@ -158,39 +158,93 @@ export default function FirmDashboardPage() {
   if (!dashboard) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{dashboard.firmName}</h1>
-            <p className="text-gray-600 mt-1">Dashboard de Firma Contable</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Header with Breadcrumbs */}
+      <div className="lg:hidden sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/dashboard"
+              className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Firma</span>
+            </Link>
+            <ChevronRight className="w-3 h-3 text-gray-400" />
+            <span className="text-sm text-gray-700">Dashboard</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/firm/clients"
-              className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
-            >
-              <Users className="w-4 h-4" />
-              Clientes
-            </Link>
-            <Link
-              href="/firm/time"
-              className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
-            >
-              <Clock className="w-4 h-4" />
-              Tiempo
-            </Link>
-            <Link
-              href="/firm/settings"
-              className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
-            >
-              <Settings className="w-4 h-4" />
-              Configuración
-            </Link>
-          </div>
+          <Link
+            href="/firm/settings"
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+          >
+            <Settings className="w-5 h-5" />
+          </Link>
+        </div>
+        {/* Mobile Quick Navigation */}
+        <div className="flex gap-2 px-4 pb-3 overflow-x-auto">
+          <Link
+            href="/firm/clients"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-full text-xs font-medium text-gray-700 whitespace-nowrap"
+          >
+            <Users className="w-3.5 h-3.5" />
+            Clientes
+          </Link>
+          <Link
+            href="/firm/time"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-full text-xs font-medium text-gray-700 whitespace-nowrap"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            Tiempo
+          </Link>
+          <Link
+            href="/firm/settings"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-full text-xs font-medium text-gray-700 whitespace-nowrap"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            Config
+          </Link>
         </div>
       </div>
+
+      <div className="p-4 lg:p-6">
+        {/* Desktop Header */}
+        <div className="hidden lg:block mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{dashboard.firmName}</h1>
+              <p className="text-gray-600 mt-1">Dashboard de Firma Contable</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/firm/clients"
+                className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
+              >
+                <Users className="w-4 h-4" />
+                Clientes
+              </Link>
+              <Link
+                href="/firm/time"
+                className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
+              >
+                <Clock className="w-4 h-4" />
+                Tiempo
+              </Link>
+              <Link
+                href="/firm/settings"
+                className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
+              >
+                <Settings className="w-4 h-4" />
+                Configuración
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Title */}
+        <div className="lg:hidden mb-4">
+          <h1 className="text-xl font-bold text-gray-900">{dashboard.firmName}</h1>
+          <p className="text-sm text-gray-600">Dashboard de Firma Contable</p>
+        </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

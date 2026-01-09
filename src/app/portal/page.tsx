@@ -160,10 +160,31 @@ export default function ClientPortalPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
+      {/* Header with Mobile Breadcrumbs */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center">
-          <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Portal de Clientes</h1>
+          {/* Mobile Breadcrumbs */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <button
+              onClick={() => setCurrentView('dashboard')}
+              className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              <span>🏠</span>
+              <span>Portal</span>
+            </button>
+            {currentView !== 'dashboard' && (
+              <>
+                <span className="text-gray-400">›</span>
+                <span className="text-sm text-gray-700">
+                  {currentView === 'invoices' ? 'Facturas' : currentView === 'documents' ? 'Documentos' : ''}
+                </span>
+              </>
+            )}
+          </div>
+          
+          {/* Desktop Title */}
+          <h1 className="hidden sm:block text-lg sm:text-2xl font-bold text-gray-900">Portal de Clientes</h1>
+          
           <Button variant="outline" size="sm" onClick={() => setIsLoggedIn(false)}>
             <span className="hidden sm:inline">Cerrar Sesión</span>
             <span className="sm:hidden">Salir</span>

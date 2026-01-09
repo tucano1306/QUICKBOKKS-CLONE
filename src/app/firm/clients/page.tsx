@@ -132,25 +132,55 @@ export default function FirmClientsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-            <p className="text-gray-600 mt-1">
-              {clients.length} clientes en total
-            </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Header with Breadcrumbs */}
+      <div className="lg:hidden sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/firm/dashboard"
+              className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              <Building className="w-4 h-4" />
+              <span>Firma</span>
+            </Link>
+            <ChevronRight className="w-3 h-3 text-gray-400" />
+            <span className="text-sm text-gray-700">Clientes</span>
           </div>
           <Link
             href="/firm/clients/new"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="p-2 bg-blue-600 text-white rounded-lg"
           >
-            <Plus className="w-4 h-4" />
-            Agregar Cliente
+            <Plus className="w-5 h-5" />
           </Link>
         </div>
       </div>
+
+      <div className="p-4 lg:p-6">
+        {/* Desktop Header */}
+        <div className="hidden lg:block mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
+              <p className="text-gray-600 mt-1">
+                {clients.length} clientes en total
+              </p>
+            </div>
+            <Link
+              href="/firm/clients/new"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar Cliente
+            </Link>
+          </div>
+        </div>
+
+        {/* Mobile Title */}
+        <div className="lg:hidden mb-4">
+          <h1 className="text-xl font-bold text-gray-900">Clientes</h1>
+          <p className="text-sm text-gray-600">{clients.length} clientes en total</p>
+        </div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
@@ -388,6 +418,7 @@ export default function FirmClientsPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
