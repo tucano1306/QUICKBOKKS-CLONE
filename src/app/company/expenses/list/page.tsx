@@ -22,8 +22,11 @@ import {
   Receipt,
   AlertCircle,
   Square,
-  CheckSquare
+  CheckSquare,
+  FileText
 } from 'lucide-react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface Expense {
   id: string
@@ -378,6 +381,156 @@ export default function ExpensesListPage() {
     a.click()
   }
 
+  const exportToPDF = () => {
+    if (!Array.isArray(filteredExpenses) || filteredExpenses.length === 0) {
+      setMessage({ type: 'error', text: 'No hay gastos para exportar a PDF' })
+      setTimeout(() => setMessage(null), 3000)
+      return
+    }
+
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    
+    // Header con gradiente simulado
+    doc.setFillColor(0, 119, 197) // QuickBooks blue
+    doc.rect(0, 0, pageWidth, 45, 'F')
+    
+    // Título principal
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(24)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Reporte de Gastos', pageWidth / 2, 20, { align: 'center' })
+    
+    // Subtítulo con fecha
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    const today = new Date().toLocaleDateString('es-MX', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+    doc.text(`Generado: ${today}`, pageWidth / 2, 30, { align: 'center' })
+    
+    // Filtros aplicados
+    let filterText = 'Todos los gastos'
+    const filters: string[] = []
+    if (statusFilter !== 'all') {
+      const statusNames: Record<string, string> = {
+        'PENDING': 'Pendientes',
+        'APPROVED': 'Aprobados', 
+        'REJECTED': 'Rechazados',
+        'PAID': 'Pagados'
+      }
+      filters.push(statusNames[statusFilter] || statusFilter)
+    }
+    if (categoryFilter !== 'all') {
+      const cat = categories.find(c => c.id === categoryFilter)
+      if (cat) filters.push(`Categoría: ${cat.name}`)
+    }
+    if (dateFrom) filters.push(`Desde: ${dateFrom}`)
+    if (dateTo) filters.push(`Hasta: ${dateTo}`)
+    if (filters.length > 0) filterText = filters.join(' | ')
+    
+    doc.setFontSize(9)
+    doc.text(filterText, pageWidth / 2, 38, { align: 'center' })
+    
+    // Resumen estadístico
+    doc.setTextColor(51, 51, 51)
+    doc.setFillColor(248, 250, 252)
+    doc.roundedRect(14, 52, pageWidth - 28, 28, 3, 3, 'F')
+    
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('RESUMEN', 20, 62)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    
+    const totalAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
+    const deductibleAmount = filteredExpenses.filter(e => e.taxDeductible).reduce((sum, e) => sum + e.amount, 0)
+    const pendingCount = filteredExpenses.filter(e => e.status === 'PENDING').length
+    const approvedCount = filteredExpenses.filter(e => e.status === 'APPROVED').length
+    
+    const col1 = 20
+    const col2 = 65
+    const col3 = 115
+    const col4 = 160
+    
+    doc.text(`Total Gastos: ${filteredExpenses.length}`, col1, 72)
+    doc.text(`Monto Total: $${totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, col2, 72)
+    doc.text(`Deducibles: $${deductibleAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, col3, 72)
+    doc.text(`Pendientes: ${pendingCount} | Aprobados: ${approvedCount}`, col4, 72)
+    
+    // Tabla de gastos
+    const tableData = filteredExpenses.map(expense => [
+      new Date(expense.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }),
+      expense.description.length > 35 ? expense.description.substring(0, 35) + '...' : expense.description,
+      expense.category.name,
+      expense.vendor || '-',
+      `$${expense.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      expense.status === 'PENDING' ? 'Pendiente' : 
+        expense.status === 'APPROVED' ? 'Aprobado' : 
+        expense.status === 'REJECTED' ? 'Rechazado' : 
+        expense.status === 'PAID' ? 'Pagado' : expense.status,
+      expense.taxDeductible ? '✓' : '-'
+    ])
+    
+    autoTable(doc, {
+      startY: 88,
+      head: [['Fecha', 'Descripción', 'Categoría', 'Proveedor', 'Monto', 'Estado', 'Ded.']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [0, 119, 197],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9,
+        halign: 'center'
+      },
+      bodyStyles: {
+        fontSize: 8,
+        cellPadding: 3
+      },
+      columnStyles: {
+        0: { cellWidth: 22, halign: 'center' },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 25, halign: 'right' },
+        5: { cellWidth: 20, halign: 'center' },
+        6: { cellWidth: 12, halign: 'center' }
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      margin: { left: 14, right: 14 },
+      didDrawPage: (data) => {
+        // Footer en cada página
+        const pageCount = doc.getNumberOfPages()
+        doc.setFontSize(8)
+        doc.setTextColor(128, 128, 128)
+        doc.text(
+          `Página ${data.pageNumber} de ${pageCount}`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        )
+        doc.text(
+          'ComputoPlus - Sistema de Contabilidad',
+          14,
+          doc.internal.pageSize.getHeight() - 10
+        )
+      }
+    })
+    
+    // Guardar PDF
+    const fileName = `reporte_gastos_${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(fileName)
+    
+    setMessage({ type: 'success', text: 'Reporte PDF generado exitosamente' })
+    setTimeout(() => setMessage(null), 3000)
+  }
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'APPROVED':
@@ -519,20 +672,30 @@ export default function ExpensesListPage() {
                 </div>
               </div>
             ) : (
-              <>
-                <Button variant="outline" onClick={() => setSelectMode(true)}>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setSelectMode(true)} className="flex-shrink-0">
                   <Square className="h-4 w-4 mr-2" />
-                  Seleccionar
+                  <span className="hidden sm:inline">Seleccionar</span>
                 </Button>
-                <Button variant="outline" onClick={exportToCSV}>
+                <Button variant="outline" onClick={exportToCSV} className="flex-shrink-0">
                   <Download className="h-4 w-4 mr-2" />
-                  Exportar
+                  <span className="hidden sm:inline">CSV</span>
                 </Button>
-                <Button onClick={() => router.push('/company/expenses/new')}>
+                <Button 
+                  variant="outline" 
+                  onClick={exportToPDF}
+                  className="flex-shrink-0 text-[#0077C5] border-[#0077C5] hover:bg-[#0077C5] hover:text-white"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Descargar PDF</span>
+                  <span className="sm:hidden">PDF</span>
+                </Button>
+                <Button onClick={() => router.push('/company/expenses/new')} className="flex-shrink-0">
                   <Plus className="h-4 w-4 mr-2" />
-                  Nuevo Gasto
+                  <span className="hidden sm:inline">Nuevo Gasto</span>
+                  <span className="sm:hidden">Nuevo</span>
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </div>
