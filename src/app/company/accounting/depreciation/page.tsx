@@ -261,6 +261,12 @@ export default function VehicleDepreciationPage() {
   // Tasas de depreciación MACRS para vehículos (5 años) - IRS
   const MACRS_RATES = [0.20, 0.32, 0.192, 0.1152, 0.1152, 0.0576]
 
+  // Verificar si el activo tiene datos de millas válidos
+  const hasMileageData = (asset: Asset): boolean => {
+    return !!(asset.currentMileage && asset.currentMileage > 0 && 
+              asset.estimatedLifetimeMiles && asset.estimatedLifetimeMiles > 0)
+  }
+
   // Calcular meses transcurridos desde la compra
   const calculateMonthsOwned = (purchaseDate: string): number => {
     const purchase = new Date(purchaseDate)
@@ -299,7 +305,7 @@ export default function VehicleDepreciationPage() {
   }
 
   // DEPRECIACIÓN ACUMULADA REAL (basada en tiempo transcurrido)
-  const calculateRealAccumulatedDepreciation = (asset: Asset): number => {
+  const calculateTimeBasedAccumulatedDepreciation = (asset: Asset): number => {
     const monthsOwned = calculateMonthsOwned(asset.purchaseDate)
     const totalMonths = asset.usefulLife * 12
     const monthsToDepreciate = Math.min(monthsOwned, totalMonths)
@@ -308,22 +314,6 @@ export default function VehicleDepreciationPage() {
     const accumulatedDep = (depreciableAmount / totalMonths) * monthsToDepreciate
     
     return Math.min(accumulatedDep, depreciableAmount) // No exceder el monto depreciable
-  }
-
-  // VALOR EN LIBROS REAL (calculado)
-  const calculateRealBookValue = (asset: Asset): number => {
-    const accumulatedDep = calculateRealAccumulatedDepreciation(asset)
-    const bookValue = asset.purchasePrice - accumulatedDep
-    return Math.max(bookValue, asset.salvageValue) // No menor al valor residual
-  }
-
-  // PORCENTAJE DE DEPRECIACIÓN REAL
-  const calculateRealDepreciationPercentage = (asset: Asset): string => {
-    if (asset.purchasePrice === 0) return '0.0'
-    const accumulatedDep = calculateRealAccumulatedDepreciation(asset)
-    const depreciableAmount = asset.purchasePrice - asset.salvageValue
-    if (depreciableAmount === 0) return '100.0'
-    return ((accumulatedDep / depreciableAmount) * 100).toFixed(1)
   }
 
   // DEPRECIACIÓN POR MILLA (Unit of Production Method - Florida)
@@ -335,8 +325,9 @@ export default function VehicleDepreciationPage() {
 
   // DEPRECIACIÓN ACUMULADA POR MILLAS
   const calculateMileageBasedDepreciation = (asset: Asset): number => {
-    if (!asset.currentMileage || !asset.purchaseMileage) return 0
-    const milesUsed = Math.max(0, asset.currentMileage - asset.purchaseMileage)
+    if (!asset.currentMileage) return 0
+    const purchaseMileage = asset.purchaseMileage || 0
+    const milesUsed = Math.max(0, asset.currentMileage - purchaseMileage)
     const depPerMile = calculateDepreciationPerMile(asset)
     const maxDep = asset.purchasePrice - asset.salvageValue
     return Math.min(milesUsed * depPerMile, maxDep)
@@ -347,6 +338,37 @@ export default function VehicleDepreciationPage() {
     const mileageDepreciation = calculateMileageBasedDepreciation(asset)
     const currentValue = asset.purchasePrice - mileageDepreciation
     return Math.max(currentValue, asset.salvageValue)
+  }
+
+  // DEPRECIACIÓN ACUMULADA - USA MILLAS SI ESTÁN DISPONIBLES
+  const calculateRealAccumulatedDepreciation = (asset: Asset): number => {
+    // Para vehículos con datos de millas, usar depreciación por millas
+    if (hasMileageData(asset)) {
+      return calculateMileageBasedDepreciation(asset)
+    }
+    // Fallback a depreciación por tiempo
+    return calculateTimeBasedAccumulatedDepreciation(asset)
+  }
+
+  // VALOR EN LIBROS REAL (calculado) - USA MILLAS SI ESTÁN DISPONIBLES
+  const calculateRealBookValue = (asset: Asset): number => {
+    // Para vehículos con datos de millas, usar valor por millas
+    if (hasMileageData(asset)) {
+      return calculateCurrentValueByMileage(asset)
+    }
+    // Fallback a valor por tiempo
+    const accumulatedDep = calculateTimeBasedAccumulatedDepreciation(asset)
+    const bookValue = asset.purchasePrice - accumulatedDep
+    return Math.max(bookValue, asset.salvageValue) // No menor al valor residual
+  }
+
+  // PORCENTAJE DE DEPRECIACIÓN REAL
+  const calculateRealDepreciationPercentage = (asset: Asset): string => {
+    if (asset.purchasePrice === 0) return '0.0'
+    const accumulatedDep = calculateRealAccumulatedDepreciation(asset)
+    const depreciableAmount = asset.purchasePrice - asset.salvageValue
+    if (depreciableAmount === 0) return '100.0'
+    return ((accumulatedDep / depreciableAmount) * 100).toFixed(1)
   }
 
   // DEPRECIACIÓN MACRS (Acelerada - IRS para vehículos de negocio)
