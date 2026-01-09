@@ -11,9 +11,12 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { Pagination } from "@/components/ui/pagination"
 import { 
   DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw, 
-  Trash2, Search, X, Filter, CheckSquare, Square, Eye, Edit, Plus
+  Trash2, Search, X, Filter, CheckSquare, Square, Eye, Edit, Plus,
+  Download, FileText
 } from 'lucide-react'
 import { useCompany } from "@/contexts/CompanyContext"
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 
 interface Transaction {
@@ -218,6 +221,162 @@ export default function TransactionsPage() {
 
   const hasActiveFilters = searchText || dateFrom || dateTo || minAmount || maxAmount
 
+  // Exportar a CSV
+  const exportToCSV = () => {
+    if (filteredTransactions.length === 0) {
+      globalThis.alert('No hay transacciones para exportar')
+      return
+    }
+
+    const headers = ['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Estado']
+    const rows = filteredTransactions.map(t => [
+      new Date(t.date).toLocaleDateString('es-MX'),
+      t.type === 'INCOME' ? 'Ingreso' : t.type === 'EXPENSE' ? 'Gasto' : 'Transferencia',
+      t.category || '',
+      t.description || '',
+      t.amount.toFixed(2),
+      t.status
+    ])
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = globalThis.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `transacciones_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+  }
+
+  // Exportar a PDF
+  const exportToPDF = () => {
+    if (filteredTransactions.length === 0) {
+      globalThis.alert('No hay transacciones para exportar a PDF')
+      return
+    }
+
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    
+    // Header con color corporativo
+    doc.setFillColor(0, 119, 197)
+    doc.rect(0, 0, pageWidth, 45, 'F')
+    
+    // Título
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(24)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Reporte de Transacciones', pageWidth / 2, 20, { align: 'center' })
+    
+    // Subtítulo con fecha
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    const today = new Date().toLocaleDateString('es-MX', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+    doc.text(`Generado: ${today}`, pageWidth / 2, 30, { align: 'center' })
+    
+    // Filtros aplicados
+    let filterText = 'Todas las transacciones'
+    const filters: string[] = []
+    if (filter !== 'ALL') filters.push(filter === 'INCOME' ? 'Solo Ingresos' : 'Solo Gastos')
+    if (dateFrom) filters.push(`Desde: ${dateFrom}`)
+    if (dateTo) filters.push(`Hasta: ${dateTo}`)
+    if (minAmount) filters.push(`Mín: $${minAmount}`)
+    if (maxAmount) filters.push(`Máx: $${maxAmount}`)
+    if (filters.length > 0) filterText = filters.join(' | ')
+    
+    doc.setFontSize(9)
+    doc.text(filterText, pageWidth / 2, 38, { align: 'center' })
+    
+    // Resumen estadístico
+    doc.setTextColor(51, 51, 51)
+    doc.setFillColor(248, 250, 252)
+    doc.roundedRect(14, 52, pageWidth - 28, 28, 3, 3, 'F')
+    
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('RESUMEN FINANCIERO', 20, 62)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    
+    const incomeTotal = filteredTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0)
+    const expenseTotal = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0)
+    const netBalance = incomeTotal - expenseTotal
+    
+    doc.setTextColor(16, 128, 0)
+    doc.text(`Ingresos: $${incomeTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 20, 72)
+    doc.setTextColor(220, 38, 38)
+    doc.text(`Gastos: $${expenseTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 75, 72)
+    doc.setTextColor(netBalance >= 0 ? 0 : 220, netBalance >= 0 ? 119 : 38, netBalance >= 0 ? 197 : 38)
+    doc.text(`Balance: $${netBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 130, 72)
+    doc.setTextColor(51, 51, 51)
+    doc.text(`Total: ${filteredTransactions.length} transacciones`, 175, 72)
+    
+    // Tabla de transacciones
+    const tableData = filteredTransactions.map(t => [
+      new Date(t.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }),
+      t.type === 'INCOME' ? '↑ Ingreso' : t.type === 'EXPENSE' ? '↓ Gasto' : '⇄ Transfer',
+      t.category || '-',
+      (t.description || '-').length > 30 ? (t.description || '').substring(0, 30) + '...' : (t.description || '-'),
+      `$${t.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      t.status
+    ])
+    
+    autoTable(doc, {
+      startY: 88,
+      head: [['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Estado']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [0, 119, 197],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9,
+        halign: 'center'
+      },
+      bodyStyles: {
+        fontSize: 8,
+        cellPadding: 3
+      },
+      columnStyles: {
+        0: { cellWidth: 24, halign: 'center' },
+        1: { cellWidth: 22, halign: 'center' },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 55 },
+        4: { cellWidth: 28, halign: 'right' },
+        5: { cellWidth: 22, halign: 'center' }
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      margin: { left: 14, right: 14 },
+      didDrawPage: (data) => {
+        const pageCount = doc.getNumberOfPages()
+        doc.setFontSize(8)
+        doc.setTextColor(128, 128, 128)
+        doc.text(
+          `Página ${data.pageNumber} de ${pageCount}`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        )
+        doc.text(
+          'ComputoPlus - Sistema de Contabilidad',
+          14,
+          doc.internal.pageSize.getHeight() - 10
+        )
+      }
+    })
+    
+    // Guardar PDF
+    const typeLabel = filter === 'INCOME' ? 'ingresos' : filter === 'EXPENSE' ? 'gastos' : 'transacciones'
+    const fileName = `reporte_${typeLabel}_${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(fileName)
+  }
+
   return (
     <CompanyTabsLayout>
       <div className="space-y-6">
@@ -247,6 +406,19 @@ export default function TransactionsPage() {
             <Button size="sm" onClick={() => setShowFilters(!showFilters)} variant="outline" className="flex-1 sm:flex-none">
               <Filter className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Filtros</span> {hasActiveFilters && '●'}
+            </Button>
+            <Button size="sm" onClick={exportToCSV} variant="outline" className="flex-1 sm:flex-none">
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">CSV</span>
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={exportToPDF} 
+              variant="outline" 
+              className="flex-1 sm:flex-none text-[#0077C5] border-[#0077C5] hover:bg-[#0077C5] hover:text-white"
+            >
+              <FileText className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">PDF</span>
             </Button>
             <Button size="sm" onClick={loadTransactions} variant="outline" className="flex-1 sm:flex-none">
               <RefreshCw className="h-4 w-4" />
