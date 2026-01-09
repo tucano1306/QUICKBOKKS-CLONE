@@ -246,308 +246,309 @@ export default function FirmDashboardPage() {
           <p className="text-sm text-gray-600">Dashboard de Firma Contable</p>
         </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Clientes Activos</p>
-              <p className="text-3xl font-bold text-gray-900">{dashboard.activeClients}</p>
-              <p className="text-xs text-gray-400 mt-1">de {dashboard.totalClients} total</p>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Clientes Activos</p>
+                <p className="text-3xl font-bold text-gray-900">{dashboard.activeClients}</p>
+                <p className="text-xs text-gray-400 mt-1">de {dashboard.totalClients} total</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <Users className="w-6 h-6 text-blue-600" />
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Ingresos Mensuales</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  ${dashboard.totalRevenue.toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">fees fijos</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <DollarSign className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Horas No Facturadas</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {dashboard.pendingBillableHours.toFixed(1)}h
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  ${dashboard.unbilledAmount.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-full">
+                <Clock className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Engagements Activos</p>
+                <p className="text-3xl font-bold text-gray-900">{dashboard.engagementSummary.active}</p>
+                <p className="text-xs text-red-500 mt-1">
+                  {dashboard.engagementSummary.overdue} vencidos
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <FileText className="w-6 h-6 text-purple-600" />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Ingresos Mensuales</p>
-              <p className="text-3xl font-bold text-gray-900">
-                ${dashboard.totalRevenue.toLocaleString()}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">fees fijos</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <DollarSign className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Horas No Facturadas</p>
-              <p className="text-3xl font-bold text-gray-900">
-                {dashboard.pendingBillableHours.toFixed(1)}h
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                ${dashboard.unbilledAmount.toLocaleString()}
-              </p>
-            </div>
-            <div className="p-3 bg-orange-100 rounded-full">
-              <Clock className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Engagements Activos</p>
-              <p className="text-3xl font-bold text-gray-900">{dashboard.engagementSummary.active}</p>
-              <p className="text-xs text-red-500 mt-1">
-                {dashboard.engagementSummary.overdue} vencidos
-              </p>
-            </div>
-            <div className="p-3 bg-purple-100 rounded-full">
-              <FileText className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Alertas */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-sm">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Bell className="w-5 h-5 text-red-500" />
-                Alertas
-              </h2>
-              <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full">
-                {dashboard.clientAlerts.length}
-              </span>
-            </div>
-            <div className="divide-y max-h-80 overflow-y-auto">
-              {dashboard.clientAlerts.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  Sin alertas pendientes
-                </div>
-              ) : (
-                dashboard.clientAlerts.slice(0, 5).map(alert => (
-                  <div key={alert.id} className="p-4 hover:bg-gray-50">
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-full ${
-                        alert.severity === 'CRITICAL' ? 'bg-red-100' :
-                        alert.severity === 'WARNING' ? 'bg-yellow-100' : 'bg-blue-100'
-                      }`}>
-                        <AlertTriangle className={`w-4 h-4 ${
-                          alert.severity === 'CRITICAL' ? 'text-red-600' :
-                          alert.severity === 'WARNING' ? 'text-yellow-600' : 'text-blue-600'
-                        }`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{alert.title}</p>
-                        <p className="text-xs text-gray-500 truncate">{alert.companyName}</p>
-                        <p className="text-xs text-gray-400 mt-1">{alert.message}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Alertas */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-red-500" />
+                  Alertas
+                </h2>
+                <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full">
+                  {dashboard.clientAlerts.length}
+                </span>
+              </div>
+              <div className="divide-y max-h-80 overflow-y-auto">
+                {dashboard.clientAlerts.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    Sin alertas pendientes
+                  </div>
+                ) : (
+                  dashboard.clientAlerts.slice(0, 5).map(alert => (
+                    <div key={alert.id} className="p-4 hover:bg-gray-50">
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2 rounded-full ${
+                          alert.severity === 'CRITICAL' ? 'bg-red-100' :
+                          alert.severity === 'WARNING' ? 'bg-yellow-100' : 'bg-blue-100'
+                        }`}>
+                          <AlertTriangle className={`w-4 h-4 ${
+                            alert.severity === 'CRITICAL' ? 'text-red-600' :
+                            alert.severity === 'WARNING' ? 'text-yellow-600' : 'text-blue-600'
+                          }`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">{alert.title}</p>
+                          <p className="text-xs text-gray-500 truncate">{alert.companyName}</p>
+                          <p className="text-xs text-gray-400 mt-1">{alert.message}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))
+                )}
+              </div>
+              {dashboard.clientAlerts.length > 5 && (
+                <div className="p-3 border-t">
+                  <Link 
+                    href="/firm/alerts" 
+                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
+                  >
+                    Ver todas ({dashboard.clientAlerts.length})
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
               )}
             </div>
-            {dashboard.clientAlerts.length > 5 && (
+          </div>
+
+          {/* Deadlines próximos */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-500" />
+                  Próximos Vencimientos
+                </h2>
+                <span className="text-xs text-gray-500">14 días</span>
+              </div>
+              <div className="divide-y max-h-80 overflow-y-auto">
+                {dashboard.upcomingDeadlines.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    Sin vencimientos próximos
+                  </div>
+                ) : (
+                  dashboard.upcomingDeadlines.slice(0, 5).map(deadline => (
+                    <div key={deadline.id} className="p-4 hover:bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {deadline.description}
+                          </p>
+                          <p className="text-xs text-gray-500">{deadline.companyName}</p>
+                        </div>
+                        <div className={`text-right ${
+                          deadline.status === 'OVERDUE' ? 'text-red-600' :
+                          deadline.status === 'DUE_TODAY' ? 'text-orange-600' : 'text-gray-600'
+                        }`}>
+                          <p className="text-sm font-medium">
+                            {deadline.status === 'OVERDUE' ? 'Vencido' :
+                             deadline.status === 'DUE_TODAY' ? 'Hoy' :
+                             `${deadline.daysRemaining}d`}
+                          </p>
+                          <p className="text-xs">
+                            {new Date(deadline.deadline).toLocaleDateString('es-ES', { 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              {dashboard.upcomingDeadlines.length > 5 && (
+                <div className="p-3 border-t">
+                  <Link 
+                    href="/firm/calendar" 
+                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
+                  >
+                    Ver calendario completo
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Utilización del Staff */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-green-500" />
+                  Utilización del Equipo
+                </h2>
+                <span className="text-xs text-gray-500">Este mes</span>
+              </div>
+              <div className="divide-y max-h-80 overflow-y-auto">
+                {dashboard.staffUtilization.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    Sin datos de utilización
+                  </div>
+                ) : (
+                  dashboard.staffUtilization.map(staff => (
+                    <div key={staff.staffId} className="p-4 hover:bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{staff.staffName}</p>
+                          <p className="text-xs text-gray-500">{staff.role}</p>
+                        </div>
+                        <span className={`text-sm font-medium ${
+                          staff.utilizationRate >= 80 ? 'text-green-600' :
+                          staff.utilizationRate >= 60 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {staff.utilizationRate.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            staff.utilizationRate >= 80 ? 'bg-green-500' :
+                            staff.utilizationRate >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${Math.min(staff.utilizationRate, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {staff.billableHours.toFixed(1)}h facturables de {staff.totalHours.toFixed(1)}h
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
               <div className="p-3 border-t">
                 <Link 
-                  href="/firm/alerts" 
+                  href="/firm/reports/utilization" 
                   className="text-sm text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
                 >
-                  Ver todas ({dashboard.clientAlerts.length})
+                  Ver reporte completo
                   <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
-        {/* Deadlines próximos */}
-        <div className="lg:col-span-1">
+        {/* Clientes Top */}
+        <div className="mt-6">
           <div className="bg-white rounded-xl shadow-sm">
             <div className="p-4 border-b flex items-center justify-between">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-blue-500" />
-                Próximos Vencimientos
+                <TrendingUp className="w-5 h-5 text-blue-500" />
+                Clientes por Ingresos
               </h2>
-              <span className="text-xs text-gray-500">14 días</span>
-            </div>
-            <div className="divide-y max-h-80 overflow-y-auto">
-              {dashboard.upcomingDeadlines.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  Sin vencimientos próximos
-                </div>
-              ) : (
-                dashboard.upcomingDeadlines.slice(0, 5).map(deadline => (
-                  <div key={deadline.id} className="p-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {deadline.description}
-                        </p>
-                        <p className="text-xs text-gray-500">{deadline.companyName}</p>
-                      </div>
-                      <div className={`text-right ${
-                        deadline.status === 'OVERDUE' ? 'text-red-600' :
-                        deadline.status === 'DUE_TODAY' ? 'text-orange-600' : 'text-gray-600'
-                      }`}>
-                        <p className="text-sm font-medium">
-                          {deadline.status === 'OVERDUE' ? 'Vencido' :
-                           deadline.status === 'DUE_TODAY' ? 'Hoy' :
-                           `${deadline.daysRemaining}d`}
-                        </p>
-                        <p className="text-xs">
-                          {new Date(deadline.deadline).toLocaleDateString('es-ES', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            {dashboard.upcomingDeadlines.length > 5 && (
-              <div className="p-3 border-t">
-                <Link 
-                  href="/firm/calendar" 
-                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
-                >
-                  Ver calendario completo
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Utilización del Staff */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-sm">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-green-500" />
-                Utilización del Equipo
-              </h2>
-              <span className="text-xs text-gray-500">Este mes</span>
-            </div>
-            <div className="divide-y max-h-80 overflow-y-auto">
-              {dashboard.staffUtilization.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  Sin datos de utilización
-                </div>
-              ) : (
-                dashboard.staffUtilization.map(staff => (
-                  <div key={staff.staffId} className="p-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{staff.staffName}</p>
-                        <p className="text-xs text-gray-500">{staff.role}</p>
-                      </div>
-                      <span className={`text-sm font-medium ${
-                        staff.utilizationRate >= 80 ? 'text-green-600' :
-                        staff.utilizationRate >= 60 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {staff.utilizationRate.toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${
-                          staff.utilizationRate >= 80 ? 'bg-green-500' :
-                          staff.utilizationRate >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${Math.min(staff.utilizationRate, 100)}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {staff.billableHours.toFixed(1)}h facturables de {staff.totalHours.toFixed(1)}h
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="p-3 border-t">
-              <Link 
-                href="/firm/reports/utilization" 
-                className="text-sm text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
+              <Link
+                href="/firm/clients"
+                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
               >
-                Ver reporte completo
+                Ver todos
                 <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Clientes Top */}
-      <div className="mt-6">
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-500" />
-              Clientes por Ingresos
-            </h2>
-            <Link
-              href="/firm/clients"
-              className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
-            >
-              Ver todos
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cliente
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fee Mensual
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Facturado
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {dashboard.revenueByClient.slice(0, 5).map(client => (
-                  <tr key={client.clientId} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{client.companyName}</p>
-                        <p className="text-xs text-gray-500">{client.clientCode}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <p className="text-sm text-gray-900">
-                        ${client.monthlyFee.toLocaleString()}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <p className="text-sm text-gray-900">
-                        ${client.totalBilled.toLocaleString()}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <Link
-                        href={`/firm/clients/${client.clientId}`}
-                        className="text-blue-600 hover:text-blue-700 text-sm"
-                      >
-                        Ver detalle
-                      </Link>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cliente
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Fee Mensual
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Facturado
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {dashboard.revenueByClient.slice(0, 5).map(client => (
+                    <tr key={client.clientId} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{client.companyName}</p>
+                          <p className="text-xs text-gray-500">{client.clientCode}</p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <p className="text-sm text-gray-900">
+                          ${client.monthlyFee.toLocaleString()}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <p className="text-sm text-gray-900">
+                          ${client.totalBilled.toLocaleString()}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <Link
+                          href={`/firm/clients/${client.clientId}`}
+                          className="text-blue-600 hover:text-blue-700 text-sm"
+                        >
+                          Ver detalle
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
