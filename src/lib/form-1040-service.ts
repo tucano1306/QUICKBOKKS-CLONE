@@ -553,66 +553,206 @@ export async function getForm1040(userId: string, taxYear: number) {
 export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
   const suggestions: any[] = [];
   
-  // Check if using standard deduction when itemized might be better
-  if (form1040Data.line12_standardOrItemized === form1040Data.standardDeduction) {
+  // Safe access to fields
+  const agi = form1040Data.line11_adjustedGrossIncome || 0;
+  const taxableIncome = form1040Data.line15_taxableIncome || 0;
+  const totalTax = form1040Data.line24_totalTax || 0;
+  const amountOwed = form1040Data.line36_amountYouOwe || 0;
+  const refund = form1040Data.line34a_refundAmount || 0;
+  const scheduleC_netProfit = form1040Data.scheduleC_netProfit || 0;
+  const w2Wages = form1040Data.line1a_w2Wages || 0;
+  const dependents = form1040Data.dependents || [];
+  const filingStatus = form1040Data.filingStatus || 'SINGLE';
+  const standardDeduction = form1040Data.line12_standardOrItemized || 0;
+
+  // Always provide general optimization tips
+  if (agi > 0) {
     suggestions.push({
-      type: 'deduction',
-      title: 'Revisar Deducción Detallada',
-      description: 'Actualmente está usando la deducción estándar. Revise si tiene suficientes gastos deducibles (hipoteca, impuestos estatales, donaciones) que excedan la deducción estándar.',
+      type: 'general',
+      title: '💡 Estrategia de Planificación Tributaria',
+      description: `Con un AGI de $${agi.toFixed(2)}, considere estrategias de planificación fiscal durante el año para minimizar impuestos futuros. Esto incluye: contribuciones a cuentas de retiro, gastos médicos agrupados, y timing de ingresos/deducciones.`,
       potentialSavings: null
     });
   }
 
-  // Check for retirement contributions
-  if (form1040Data.scheduleC_netProfit > 0) {
-    const maxSEPContribution = Math.min(form1040Data.scheduleC_netProfit * 0.25, 69000);
+  // Retirement contribution suggestions
+  if (w2Wages > 0 || scheduleC_netProfit > 0) {
+    const totalEarnings = w2Wages + scheduleC_netProfit;
+    const iraContributionLimit = 7000; // 2024 limit ($6,500 + $1,000 catch-up if 50+)
+    
     suggestions.push({
       type: 'retirement',
-      title: 'Contribución SEP-IRA',
-      description: `Como trabajador independiente, puede contribuir hasta $${maxSEPContribution.toFixed(0)} a una SEP-IRA y reducir su ingreso gravable.`,
-      potentialSavings: maxSEPContribution * 0.24 // Assuming 24% bracket
+      title: '🏦 Contribución a IRA Tradicional',
+      description: `Puede contribuir hasta $${iraContributionLimit.toLocaleString()} a una IRA tradicional antes del 15 de abril del próximo año y reducir su AGI. Esto puede bajar su tasa impositiva efectiva y aumentar su reembolso.`,
+      potentialSavings: iraContributionLimit * 0.22 // Assuming 22% bracket
     });
   }
 
-  // Check for health insurance deduction
-  if (form1040Data.scheduleC_netProfit > 0) {
+  // SEP-IRA for self-employed
+  if (scheduleC_netProfit > 400) {
+    const maxSEPContribution = Math.min(scheduleC_netProfit * 0.20, 69000); // 20% for Schedule C
+    suggestions.push({
+      type: 'retirement',
+      title: '💼 SEP-IRA para Trabajadores Independientes',
+      description: `Como trabajador independiente con ganancia neta de $${scheduleC_netProfit.toFixed(2)}, puede contribuir hasta $${maxSEPContribution.toFixed(0)} a una SEP-IRA. Esta contribución reduce directamente su ingreso gravable.`,
+      potentialSavings: maxSEPContribution * 0.24
+    });
+
+    // Health insurance deduction
     suggestions.push({
       type: 'health',
-      title: 'Deducción de Seguro de Salud',
-      description: 'Los trabajadores independientes pueden deducir el 100% de las primas de seguro de salud como un ajuste al ingreso.',
-      potentialSavings: null
+      title: '🏥 Deducción de Seguro de Salud',
+      description: 'Los trabajadores independientes pueden deducir el 100% de las primas de seguro de salud (medical, dental, long-term care) para usted, su cónyuge y dependientes como un ajuste al ingreso (above-the-line deduction). Esta deducción reduce su AGI y no está limitada por el 7.5% del AGI.',
+      potentialSavings: 12000 * 0.24 // Estimate $12k annual premium
     });
-  }
 
-  // Check for home office deduction
-  if (form1040Data.scheduleC_netProfit > 0) {
+    // Home office deduction
     suggestions.push({
       type: 'business',
-      title: 'Deducción de Oficina en Casa',
-      description: 'Si usa una parte de su hogar exclusivamente para negocios, puede calificar para la deducción de oficina en casa.',
-      potentialSavings: null
+      title: '🏠 Deducción de Oficina en Casa',
+      description: 'Si usa una parte de su hogar EXCLUSIVAMENTE para negocios de manera regular, puede deducir: (1) Método simplificado: $5 por pie cuadrado hasta 300 sq ft = $1,500 max, o (2) Método real: porcentaje de hipoteca/renta, utilities, seguros, reparaciones, depreciación.',
+      potentialSavings: 1500 * 0.24
+    });
+
+    // QBI Deduction
+    if (scheduleC_netProfit > 0 && taxableIncome < 191950) {
+      const qbiDeduction = Math.min(scheduleC_netProfit * 0.20, taxableIncome * 0.20);
+      suggestions.push({
+        type: 'business',
+        title: '📊 Deducción QBI (Qualified Business Income)',
+        description: `Puede calificar para una deducción del 20% de su ingreso calificado de negocio (QBI). Esto podría ser hasta $${qbiDeduction.toFixed(2)}. Esta deducción reduce directamente su ingreso gravable sin necesidad de gastos adicionales.`,
+        potentialSavings: qbiDeduction * 0.24
+      });
+    }
+
+    // Mileage tracking
+    suggestions.push({
+      type: 'business',
+      title: '🚗 Deducción de Millas de Negocio',
+      description: 'Rastree TODAS las millas de negocio. En 2024, la tasa es $0.67 por milla. Si maneja 10,000 millas al año para negocios = $6,700 de deducción. Use una app como MileIQ para rastrear automáticamente.',
+      potentialSavings: 6700 * 0.24
     });
   }
 
-  // Check for estimated payments
-  if (form1040Data.line36_amountYouOwe > 1000) {
+  // Estimated tax payments to avoid penalties
+  if (amountOwed > 1000) {
+    const penalty = amountOwed * 0.05;
     suggestions.push({
       type: 'planning',
-      title: 'Pagos Estimados Trimestrales',
-      description: 'Debe más de $1,000 en impuestos. Considere hacer pagos estimados trimestrales para evitar multas por pago insuficiente.',
-      potentialSavings: form1040Data.line36_amountYouOwe * 0.05 // Approximate penalty
+      title: '⚠️ Evite Multas con Pagos Estimados',
+      description: `Debe $${amountOwed.toFixed(2)} en impuestos. Si debe más de $1,000, puede enfrentar multas por pago insuficiente. Haga pagos estimados trimestrales en 2026 (fechas: 4/15, 6/15, 9/15, 1/15/2027). Pague al menos el 90% del impuesto de 2026 o 100% del impuesto de 2025.`,
+      potentialSavings: penalty
     });
   }
 
-  // Check for child tax credit
-  if (form1040Data.dependents && form1040Data.dependents.length > 0) {
+  // HSA contributions
+  if (w2Wages > 0 || scheduleC_netProfit > 0) {
+    const hsaLimit = filingStatus.includes('MARRIED') ? 8300 : 4150; // 2024 family/individual limits
+    suggestions.push({
+      type: 'health',
+      title: '💊 Health Savings Account (HSA)',
+      description: `Si tiene un plan de salud con deducible alto (HDHP), puede contribuir hasta $${hsaLimit.toLocaleString()} a una HSA. Triple beneficio tributario: (1) Deducible al contribuir, (2) Crece sin impuestos, (3) Retiros sin impuestos para gastos médicos calificados.`,
+      potentialSavings: hsaLimit * 0.22
+    });
+  }
+
+  // Child Tax Credit optimization
+  if (dependents && dependents.length > 0) {
+    const eligibleChildren = dependents.filter((d: any) => d.childTaxCredit).length;
+    const potentialCredit = eligibleChildren * 2000;
+    
+    if (potentialCredit > 0) {
+      suggestions.push({
+        type: 'credits',
+        title: '👨‍👩‍👧‍👦 Maximice Child Tax Credit',
+        description: `Tiene ${eligibleChildren} niño(s) elegible(s) para el Child Tax Credit. Asegúrese de: (1) Tener SSN válido para cada niño, (2) El niño vivió con usted 6+ meses, (3) El niño es menor de 17 años al final del año. Crédito potencial: $${potentialCredit.toLocaleString()}. Hasta $1,700 por niño es reembolsable.`,
+        potentialSavings: potentialCredit
+      });
+    }
+
+    // Dependent Care Credit
     suggestions.push({
       type: 'credits',
-      title: 'Crédito Tributario por Hijos',
-      description: 'Verifique que todos sus dependientes elegibles estén reclamando el máximo crédito disponible ($2,000 por hijo menor de 17 años).',
+      title: '👶 Crédito por Cuidado de Dependientes',
+      description: 'Si paga por cuidado de niños menores de 13 años para poder trabajar, puede calificar para el Child and Dependent Care Credit. Hasta $3,000 en gastos por 1 niño ($6,000 por 2+). El crédito es 20-35% de los gastos según su AGI.',
+      potentialSavings: 6000 * 0.35
+    });
+  }
+
+  // Itemized deductions review
+  if (standardDeduction > 0) {
+    const threshold = filingStatus.includes('MARRIED') ? 29200 : 
+                      filingStatus === 'HEAD_OF_HOUSEHOLD' ? 21900 : 14600;
+    
+    suggestions.push({
+      type: 'deduction',
+      title: '📋 Revise si Itemizar es Mejor',
+      description: `Está usando la deducción estándar de $${standardDeduction.toFixed(2)}. Si tiene: hipoteca ($750k límite), impuestos estatales/locales ($10k límite), donaciones caritativas, gastos médicos (>7.5% AGI), considere itemizar. Si sus deducciones detalladas > $${threshold.toLocaleString()}, ahorrará más.`,
       potentialSavings: null
     });
   }
+
+  // Charitable contributions
+  suggestions.push({
+    type: 'deduction',
+    title: '❤️ Donaciones Caritativas',
+    description: 'Haga donaciones a organizaciones 501(c)(3) calificadas antes del 31 de diciembre. Si dona activos apreciados (acciones que han subido de valor), evita pagar impuestos sobre las ganancias de capital Y puede deducir el valor total de mercado. Estrategia: Done activos apreciados en vez de efectivo.',
+    potentialSavings: null
+  });
+
+  // Tax loss harvesting
+  if (form1040Data.line7_capitalGainLoss !== undefined) {
+    suggestions.push({
+      type: 'investment',
+      title: '📈 Tax Loss Harvesting',
+      description: 'Revise su portafolio de inversiones. Puede vender inversiones con pérdidas para compensar ganancias de capital. Las pérdidas netas de capital pueden deducir hasta $3,000 de ingreso ordinario por año. Las pérdidas adicionales se trasladan a años futuros.',
+      potentialSavings: 3000 * 0.22
+    });
+  }
+
+  // Roth conversion strategy
+  if (refund > 5000 || (agi > 0 && agi < 100000)) {
+    suggestions.push({
+      type: 'retirement',
+      title: '💰 Considere Conversión Roth',
+      description: 'Si su ingreso es bajo este año, considere convertir parte de su IRA tradicional a Roth IRA. Pagará impuestos ahora a una tasa potencialmente más baja, pero los retiros futuros serán libres de impuestos. Estrategia útil en años de bajo ingreso o jubilación temprana.',
+      potentialSavings: null
+    });
+  }
+
+  // Energy credits
+  suggestions.push({
+    type: 'credits',
+    title: '🌞 Créditos de Energía',
+    description: 'Créditos disponibles para mejoras de energía: (1) 30% de crédito para paneles solares (sin límite), (2) 30% hasta $1,200 para ventanas/puertas eficientes, (3) 30% hasta $2,000 para bombas de calor. Estos créditos reducen su impuesto dólar por dólar.',
+    potentialSavings: null
+  });
+
+  // Student loan interest
+  if (w2Wages > 0 && agi < 185000) {
+    suggestions.push({
+      type: 'deduction',
+      title: '🎓 Deducción de Intereses de Préstamos Estudiantiles',
+      description: 'Puede deducir hasta $2,500 en intereses de préstamos estudiantiles como un ajuste al ingreso (above-the-line). No necesita itemizar. La deducción se elimina gradualmente para AGI > $75k (soltero) o $155k (casado).',
+      potentialSavings: 2500 * 0.22
+    });
+  }
+
+  // State and local taxes
+  suggestions.push({
+    type: 'planning',
+    title: '🏛️ Planificación de Impuestos Estatales',
+    description: 'El límite SALT (State and Local Taxes) es $10,000. Si está cerca de este límite, considere: (1) Prepagar impuestos estatales en enero, (2) Pagar impuestos de propiedad por adelantado, (3) Hacer donaciones caritativas que den créditos estatales.',
+    potentialSavings: null
+  });
+
+  // Always add final tip
+  suggestions.push({
+    type: 'general',
+    title: '📚 Consulte con un Profesional',
+    description: 'Estas sugerencias son generales. Para maximizar ahorros y asegurar cumplimiento, consulte con un CPA o Enrolled Agent. El costo de asesoría profesional ($200-500) puede ahorrarle miles en impuestos y evitar errores costosos.',
+    potentialSavings: null
+  });
 
   return suggestions;
 }
