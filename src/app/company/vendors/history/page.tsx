@@ -183,16 +183,16 @@ export default function VendorHistoryPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Historial de Compras</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Historial de Compras</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Registro completo de transacciones con proveedores
             </p>
           </div>
-          <Button variant="outline" onClick={() => {
+          <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => {
             const csv = 'ID,Proveedor,Tipo,Fecha,Monto,Balance,Estado\n' + 
               filteredTransactions.map(t => 
                 `${t.transactionId},"${t.vendor}",${t.type},${t.date},$${t.amount},$${t.balance},${t.status}`
@@ -205,76 +205,76 @@ export default function VendorHistoryPage() {
             a.click()
             URL.revokeObjectURL(url)
           }}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar Historial
+            <Download className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Exportar Historial</span>
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-blue-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900 truncate">
                 ${totalPurchases.toLocaleString()}
               </div>
-              <div className="text-sm text-blue-700">Total Comprado</div>
+              <div className="text-xs sm:text-sm text-blue-700">Total Comprado</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingDown className="w-8 h-8 text-green-600" />
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-lg sm:text-2xl font-bold text-green-900 truncate">
                 ${totalPayments.toLocaleString()}
               </div>
-              <div className="text-sm text-green-700">Total Pagado</div>
+              <div className="text-xs sm:text-sm text-green-700">Total Pagado</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-orange-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-lg sm:text-2xl font-bold text-orange-900 truncate">
                 ${currentBalance.toLocaleString()}
               </div>
-              <div className="text-sm text-orange-700">Saldo Pendiente</div>
+              <div className="text-xs sm:text-sm text-orange-700">Saldo Pendiente</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <History className="w-8 h-8 text-purple-600" />
+                <History className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">{transactionsThisMonth}</div>
-              <div className="text-sm text-purple-700">Transacciones Este Mes</div>
+              <div className="text-xl sm:text-3xl font-bold text-purple-900">{transactionsThisMonth}</div>
+              <div className="text-xs sm:text-sm text-purple-700">Este Mes</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="relative">
+          <CardContent className="p-3 sm:p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="relative sm:col-span-2 lg:col-span-1">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Buscar transacciones..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-sm"
                 />
               </div>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 py-2 border rounded-lg text-sm"
                 value={filterVendor}
                 onChange={(e) => setFilterVendor(e.target.value)}
               >
@@ -286,7 +286,7 @@ export default function VendorHistoryPage() {
                 ))}
               </select>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 py-2 border rounded-lg text-sm"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
@@ -297,7 +297,7 @@ export default function VendorHistoryPage() {
                 <option value="return">Devoluciones</option>
               </select>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 py-2 border rounded-lg text-sm"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
@@ -312,11 +312,52 @@ export default function VendorHistoryPage() {
 
         {/* Transactions Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Transacciones ({filteredTransactions.length})</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Transacciones ({filteredTransactions.length})</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
+            {/* Vista Móvil - Cards */}
+            <div className="block md:hidden divide-y divide-gray-100">
+              {filteredTransactions.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  <History className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No hay transacciones</p>
+                </div>
+              ) : (
+                filteredTransactions.map((transaction) => (
+                  <div key={transaction.id} className="p-3 hover:bg-gray-50">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-mono text-sm font-semibold text-blue-600">{transaction.transactionId}</p>
+                        <p className="text-sm text-gray-900">{transaction.vendor}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-sm font-bold ${transaction.amount < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                          ${Math.abs(transaction.amount).toLocaleString()}
+                        </div>
+                        {transaction.balance > 0 && (
+                          <div className="text-xs text-orange-600">Saldo: ${transaction.balance.toLocaleString()}</div>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-1">{transaction.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {getTypeBadge(transaction.type)}
+                        <span className="text-xs text-gray-500">{transaction.status}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(transaction.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Vista Desktop - Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -399,7 +440,7 @@ export default function VendorHistoryPage() {
 
         {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-blue-600 rounded-lg">
                 <History className="w-6 h-6 text-white" />

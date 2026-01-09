@@ -207,7 +207,7 @@ export default function CustomerTransactionsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <Card className="relative overflow-hidden border-blue-200 bg-gradient-to-br from-blue-50 to-white hover:shadow-lg transition-all duration-300">
             <CardContent className="p-4 sm:p-6">
               <div className="absolute -right-8 -top-8 w-32 h-32 bg-blue-100 rounded-full opacity-20"></div>
@@ -279,20 +279,20 @@ export default function CustomerTransactionsPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="relative">
+          <CardContent className="p-3 sm:p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+              <div className="relative sm:col-span-2 lg:col-span-1">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-sm"
                 />
               </div>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 py-2 border rounded-lg text-sm"
                 value={filterCustomer}
                 onChange={(e) => setFilterCustomer(e.target.value)}
               >
@@ -304,7 +304,7 @@ export default function CustomerTransactionsPage() {
                 ))}
               </select>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 py-2 border rounded-lg text-sm"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
@@ -315,7 +315,7 @@ export default function CustomerTransactionsPage() {
                 <option value="estimate">Cotizaciones</option>
               </select>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 py-2 border rounded-lg text-sm"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
@@ -327,7 +327,7 @@ export default function CustomerTransactionsPage() {
                 <option value="draft">Borradores</option>
               </select>
               <select 
-                className="px-4 py-2 border rounded-lg"
+                className="px-3 py-2 border rounded-lg text-sm"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
@@ -342,11 +342,62 @@ export default function CustomerTransactionsPage() {
 
         {/* Transactions Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Transacciones ({filteredTransactions.length})</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Transacciones ({filteredTransactions.length})</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
+            {/* Vista Móvil - Cards */}
+            <div className="block md:hidden divide-y divide-gray-100">
+              {filteredTransactions.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  <Receipt className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No hay transacciones</p>
+                </div>
+              ) : (
+                filteredTransactions.map((transaction) => (
+                  <div key={transaction.id} className="p-3 hover:bg-gray-50">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-mono text-sm font-semibold text-blue-600">{transaction.documentNumber}</p>
+                        <p className="text-sm text-gray-900">{transaction.customerName}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-sm font-bold ${transaction.amount < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                          ${Math.abs(transaction.amount).toLocaleString()}
+                        </div>
+                        {transaction.balance > 0 && (
+                          <div className="text-xs text-orange-600">
+                            Saldo: ${transaction.balance.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-1">{transaction.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {getTypeBadge(transaction.type)}
+                        {getStatusBadge(transaction.status)}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(transaction.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-2 pt-2 border-t">
+                      <button className="flex-1 p-1.5 text-blue-600 hover:bg-blue-50 rounded text-xs flex items-center justify-center gap-1">
+                        <Eye className="w-3.5 h-3.5" /> Ver
+                      </button>
+                      <button className="flex-1 p-1.5 text-gray-600 hover:bg-gray-100 rounded text-xs flex items-center justify-center gap-1">
+                        <Download className="w-3.5 h-3.5" /> Descargar
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Vista Desktop - Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -435,7 +486,7 @@ export default function CustomerTransactionsPage() {
 
         {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-blue-600 rounded-lg">
                 <Receipt className="w-6 h-6 text-white" />

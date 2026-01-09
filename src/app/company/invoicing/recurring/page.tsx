@@ -253,39 +253,39 @@ export default function RecurringInvoicesPage() {
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-blue-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-lg sm:text-2xl font-bold text-blue-900">
                 ${totalRevenue.toLocaleString()}
               </div>
-              <div className="text-sm text-blue-700">Ingresos Anuales Proyectados</div>
+              <div className="text-xs sm:text-sm text-blue-700">Ingresos Anuales Proyectados</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle2 className="w-8 h-8 text-purple-600" />
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">{totalGenerated}</div>
-              <div className="text-sm text-purple-700">Facturas Generadas</div>
+              <div className="text-2xl sm:text-3xl font-bold text-purple-900">{totalGenerated}</div>
+              <div className="text-xs sm:text-sm text-purple-700">Facturas Generadas</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-orange-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">
+              <div className="text-2xl sm:text-3xl font-bold text-orange-900">
                 {recurringInvoices.filter(i => 
                   i.status === 'active' && 
                   new Date(i.nextInvoice) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 ).length}
               </div>
-              <div className="text-sm text-orange-700">Próximas 7 Días</div>
+              <div className="text-xs sm:text-sm text-orange-700">Próximas 7 Días</div>
             </CardContent>
           </Card>
         </div>
@@ -323,26 +323,26 @@ export default function RecurringInvoicesPage() {
         <div className="grid grid-cols-1 gap-4">
           {filteredInvoices.map((invoice) => (
             <Card key={invoice.id} className="hover:shadow-lg transition">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Repeat className="w-5 h-5 text-blue-600" />
-                      <h3 className="text-lg font-semibold text-gray-900">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <Repeat className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                         {invoice.templateName}
                       </h3>
                       {getStatusBadge(invoice.status)}
                       {invoice.autoSend && (
-                        <Badge className="bg-blue-100 text-blue-700">
+                        <Badge className="bg-blue-100 text-blue-700 text-xs">
                           Envío Automático
                         </Badge>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-4">
                       <div>
                         <label className="text-xs text-gray-600">Cliente</label>
-                        <p className="text-sm font-medium text-gray-900">{invoice.customer}</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{invoice.customer}</p>
                       </div>
                       <div>
                         <label className="text-xs text-gray-600">Monto</label>
@@ -364,7 +364,7 @@ export default function RecurringInvoicesPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-3">
                       <div>
                         <label className="text-xs text-gray-600">Fecha Inicio</label>
                         <div className="flex items-center gap-1 text-sm text-gray-900">
@@ -376,16 +376,16 @@ export default function RecurringInvoicesPage() {
                         <label className="text-xs text-gray-600">Próxima Factura</label>
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-orange-600" />
-                          <span className="text-sm font-medium text-orange-600">
+                          <span className="text-xs sm:text-sm font-medium text-orange-600">
                             {new Date(invoice.nextInvoice).toLocaleDateString('es-MX')}
                           </span>
-                          <span className="text-xs text-gray-500">
-                            ({getDaysUntilNext(invoice.nextInvoice)})
-                          </span>
                         </div>
+                        <span className="text-xs text-gray-500">
+                          ({getDaysUntilNext(invoice.nextInvoice)})
+                        </span>
                       </div>
                       {invoice.lastGenerated && (
-                        <div>
+                        <div className="hidden sm:block">
                           <label className="text-xs text-gray-600">Última Generada</label>
                           <div className="flex items-center gap-1 text-sm text-gray-700">
                             <Clock className="w-3 h-3" />
@@ -394,7 +394,7 @@ export default function RecurringInvoicesPage() {
                         </div>
                       )}
                       {invoice.endDate && (
-                        <div>
+                        <div className="hidden sm:block">
                           <label className="text-xs text-gray-600">Fecha Fin</label>
                           <div className="flex items-center gap-1 text-sm text-gray-700">
                             <Calendar className="w-3 h-3" />
@@ -405,30 +405,30 @@ export default function RecurringInvoicesPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 ml-4">
+                  <div className="flex flex-row sm:flex-col gap-2 sm:ml-4">
                     {invoice.status === 'active' && (
-                      <Button size="sm" variant="outline">
-                        <Pause className="w-4 h-4 mr-1" />
-                        Pausar
+                      <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
+                        <Pause className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Pausar</span>
                       </Button>
                     )}
                     {invoice.status === 'paused' && (
-                      <Button size="sm" variant="outline">
-                        <Play className="w-4 h-4 mr-1" />
-                        Reanudar
+                      <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
+                        <Play className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Reanudar</span>
                       </Button>
                     )}
-                    <Button size="sm" variant="outline">
-                      <Eye className="w-4 h-4 mr-1" />
-                      Ver
+                    <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
+                      <Eye className="w-4 h-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Ver</span>
                     </Button>
-                    <Button size="sm" variant="outline">
-                      <Edit className="w-4 h-4 mr-1" />
-                      Editar
+                    <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
+                      <Edit className="w-4 h-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Editar</span>
                     </Button>
-                    <Button size="sm" variant="outline" className="text-red-600">
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Eliminar
+                    <Button size="sm" variant="outline" className="text-red-600 flex-1 sm:flex-none">
+                      <Trash2 className="w-4 h-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Eliminar</span>
                     </Button>
                   </div>
                 </div>
@@ -457,18 +457,18 @@ export default function RecurringInvoicesPage() {
 
         {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
-                <Repeat className="w-6 h-6 text-white" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-blue-600 rounded-lg flex-shrink-0">
+                <Repeat className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-blue-900 mb-2">Automatiza tu Facturación</h3>
-                <p className="text-blue-700 text-sm mb-2">
+                <h3 className="text-sm sm:text-base font-semibold text-blue-900 mb-1 sm:mb-2">Automatiza tu Facturación</h3>
+                <p className="text-blue-700 text-xs sm:text-sm mb-2">
                   Las facturas recurrentes te permiten configurar una vez y olvidarte. El sistema generará y 
                   enviará automáticamente las facturas según la frecuencia configurada.
                 </p>
-                <ul className="text-blue-700 text-sm space-y-1">
+                <ul className="text-blue-700 text-xs sm:text-sm space-y-1">
                   <li>• Configura la frecuencia: diaria, semanal, mensual, trimestral o anual</li>
                   <li>• Envío automático por correo electrónico</li>
                   <li>• Establece fechas de inicio y fin opcionales</li>

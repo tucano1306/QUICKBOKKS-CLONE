@@ -378,24 +378,24 @@ export default function PaymentLinksPage() {
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-900">{stats.active}</div>
-              <div className="text-sm text-green-700">Links Activos</div>
+              <div className="text-xl sm:text-2xl font-bold text-green-900">{stats.active}</div>
+              <div className="text-xs sm:text-sm text-green-700">Links Activos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-purple-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-lg sm:text-2xl font-bold text-purple-900">
                 ${stats.paidAmount.toLocaleString()}
               </div>
-              <div className="text-sm text-purple-700">Cobrado vía Links</div>
+              <div className="text-xs sm:text-sm text-purple-700">Cobrado vía Links</div>
             </CardContent>
           </Card>
 

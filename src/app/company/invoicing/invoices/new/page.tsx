@@ -453,19 +453,19 @@ export default function NewInvoicePage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="w-8 h-8 text-blue-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Nueva Factura
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               Crea una factura profesional para tu cliente
             </p>
           </div>
-          <Badge className="text-lg px-4 py-2 bg-blue-100 text-blue-700">
+          <Badge className="text-sm sm:text-lg px-3 py-1 sm:px-4 sm:py-2 bg-blue-100 text-blue-700 w-fit">
             {invoiceNumber}
           </Badge>
         </div>

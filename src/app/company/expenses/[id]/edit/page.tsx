@@ -344,39 +344,38 @@ export default function EditExpensePage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/company/expenses/${expenseId}`)}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Editar Gasto
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Modifica los datos del gasto
-              </p>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/company/expenses/${expenseId}`)}
+            className="w-fit"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
+          </Button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              Editar Gasto
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              Modifica los datos del gasto
+            </p>
           </div>
         </div>
 
         {/* Message */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+          <div className={`p-3 sm:p-4 rounded-lg flex items-center gap-2 text-sm ${
             message.type === 'success' 
               ? 'bg-green-50 text-green-800 border border-green-200' 
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}>
             {message.type === 'success' 
-              ? <CheckCircle className="h-5 w-5" /> 
-              : <AlertCircle className="h-5 w-5" />}
+              ? <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" /> 
+              : <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />}
             <span>{message.text}</span>
           </div>
         )}

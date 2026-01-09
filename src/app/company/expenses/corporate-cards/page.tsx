@@ -164,16 +164,16 @@ export default function CorporateCardsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tarjetas Corporativas</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tarjetas Corporativas</h1>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               Gestiona tarjetas empresariales y sincroniza transacciones automáticamente
             </p>
           </div>
-          <Button onClick={() => setShowAddModal(true)}>
+          <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Agregar Tarjeta
           </Button>
@@ -190,54 +190,54 @@ export default function CorporateCardsPage() {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-blue-600">Total Tarjetas</p>
-                <p className="text-2xl font-bold text-blue-900 mt-1">{stats.totalCards}</p>
+                <p className="text-xs sm:text-sm font-medium text-blue-600">Total Tarjetas</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-900 mt-1">{stats.totalCards}</p>
                 <p className="text-xs text-blue-600 mt-1">{stats.activeCards} activas</p>
               </div>
-              <CreditCard className="h-8 w-8 text-blue-600 opacity-50" />
+              <CreditCard className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 opacity-50 hidden sm:block" />
             </div>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100">
+          <Card className="p-3 sm:p-5 bg-gradient-to-br from-purple-50 to-purple-100">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-purple-600">Gastado Este Mes</p>
-                <p className="text-2xl font-bold text-purple-900 mt-1">
+                <p className="text-xs sm:text-sm font-medium text-purple-600">Gastado Este Mes</p>
+                <p className="text-lg sm:text-2xl font-bold text-purple-900 mt-1">
                   ${stats.totalSpent.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </p>
                 <p className="text-xs text-purple-600 mt-1">Consumido</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-purple-600 opacity-50" />
+              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 opacity-50 hidden sm:block" />
             </div>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100">
+          <Card className="p-3 sm:p-5 bg-gradient-to-br from-green-50 to-green-100">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-green-600">Crédito Disponible</p>
-                <p className="text-2xl font-bold text-green-900 mt-1">
+                <p className="text-xs sm:text-sm font-medium text-green-600">Crédito Disponible</p>
+                <p className="text-lg sm:text-2xl font-bold text-green-900 mt-1">
                   ${stats.availableCredit.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </p>
                 <p className="text-xs text-green-600 mt-1">Disponible</p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-600 opacity-50" />
+              <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 opacity-50 hidden sm:block" />
             </div>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-orange-50 to-orange-100">
+          <Card className="p-3 sm:p-5 bg-gradient-to-br from-orange-50 to-orange-100">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-orange-600">Última Sincronización</p>
-                <p className="text-2xl font-bold text-orange-900 mt-1">
+                <p className="text-xs sm:text-sm font-medium text-orange-600">Última Sincronización</p>
+                <p className="text-lg sm:text-2xl font-bold text-orange-900 mt-1">
                   {cards.length > 0 ? 'Hoy' : '-'}
                 </p>
                 <p className="text-xs text-orange-600 mt-1">Actualizado</p>
               </div>
-              <Calendar className="h-8 w-8 text-orange-600 opacity-50" />
+              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600 opacity-50 hidden sm:block" />
             </div>
           </Card>
         </div>

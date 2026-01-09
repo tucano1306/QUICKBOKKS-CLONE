@@ -282,36 +282,36 @@ export default function PaymentsPage() {
           </Card>
 
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CreditCard className="w-8 h-8 text-blue-600" />
+                <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-900">{totalPayments}</div>
-              <div className="text-sm text-blue-700">Pagos Recibidos</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-900">{totalPayments}</div>
+              <div className="text-xs sm:text-sm text-blue-700">Pagos Recibidos</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-orange-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-lg sm:text-2xl font-bold text-orange-900">
                 ${pendingAmount.toLocaleString()}
               </div>
-              <div className="text-sm text-orange-700">En Proceso</div>
+              <div className="text-xs sm:text-sm text-orange-700">En Proceso</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="w-8 h-8 text-red-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
               </div>
-              <div className="text-2xl font-bold text-red-900">
+              <div className="text-lg sm:text-2xl font-bold text-red-900">
                 ${totalFees.toLocaleString()}
               </div>
-              <div className="text-sm text-red-700">Comisiones Pagadas</div>
+              <div className="text-xs sm:text-sm text-red-700">Comisiones Pagadas</div>
             </CardContent>
           </Card>
         </div>

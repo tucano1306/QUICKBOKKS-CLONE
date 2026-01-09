@@ -98,15 +98,15 @@ export default function NewTransactionPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 px-3 sm:px-0">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => router.back()}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <Button variant="ghost" onClick={() => router.back()} size="sm" className="w-fit">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               {formData.type === 'INCOME' ? (
                 <span className="flex items-center gap-2">
                   <TrendingUp className="h-6 w-6 text-green-600" />

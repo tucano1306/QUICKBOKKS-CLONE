@@ -232,14 +232,14 @@ export default function CategoriesPage() {
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Categorías de Gastos</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Categorías de Gastos</h1>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               Organiza tus gastos por tipo y configura tasas de impuestos
             </p>
           </div>
-          <Button onClick={() => setShowModal(true)}>
+          <Button onClick={() => setShowModal(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Nueva Categoría
           </Button>

@@ -254,53 +254,58 @@ export default function TransactionDetailPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 px-3 sm:px-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push('/company/transactions')}
+              className="w-fit"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 Detalle de Transacción
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 ID: {transaction.id.slice(0, 8)}...
               </p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => router.push(`/company/transactions/${transaction.id}/edit`)}
+              className="flex-1 sm:flex-none"
             >
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
+              <Edit className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
             <Button
               variant="destructive"
+              size="sm"
               onClick={handleDelete}
               disabled={deleting}
+              className="flex-1 sm:flex-none"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              {deleting ? 'Eliminando...' : 'Eliminar'}
+              <Trash2 className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{deleting ? 'Eliminando...' : 'Eliminar'}</span>
             </Button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column - Main Info */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <Card className={isIncome ? 'border-green-200' : 'border-red-200'}>
-              <CardHeader className={isIncome ? 'bg-green-50' : 'bg-red-50'}>
-                <CardTitle className="flex items-center gap-2">
+              <CardHeader className={`${isIncome ? 'bg-green-50' : 'bg-red-50'} p-3 sm:p-6`}>
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   {isIncome ? (
                     <TrendingUp className="h-5 w-5 text-green-600" />
                   ) : (
@@ -317,13 +322,13 @@ export default function TransactionDetailPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <span className="text-sm font-medium text-gray-500 flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
                       Monto
                     </span>
-                    <p className={`text-3xl font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`text-2xl sm:text-3xl font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
                       {isIncome ? '+' : '-'}${transaction.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
@@ -332,7 +337,7 @@ export default function TransactionDetailPage() {
                       <Calendar className="h-4 w-4" />
                       Fecha
                     </span>
-                    <p className="text-lg font-medium text-gray-900">
+                    <p className="text-base sm:text-lg font-medium text-gray-900">
                       {new Date(transaction.date).toLocaleDateString('es-MX', {
                         year: 'numeric',
                         month: 'long',

@@ -202,39 +202,44 @@ export default function ExpenseDetailPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push('/company/expenses/list')}
+              className="w-fit"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 Detalle del Gasto
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 ID: {expense.id.slice(0, 8)}...
               </p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => router.push(`/company/expenses/${expense.id}/edit`)}
+              className="flex-1 sm:flex-none"
             >
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </Button>
             <Button
               variant="destructive"
+              size="sm"
               onClick={handleDelete}
               disabled={deleting}
+              className="flex-1 sm:flex-none"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               {deleting ? 'Eliminando...' : 'Eliminar'}

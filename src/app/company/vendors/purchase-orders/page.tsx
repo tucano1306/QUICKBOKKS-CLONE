@@ -591,21 +591,21 @@ export default function PurchaseOrdersPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Órdenes de Compra</h1>
-            <p className="text-sm text-gray-600">Controla requisiciones, recepciones y seguimiento de proveedores</p>
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Órdenes de Compra</h1>
+            <p className="text-xs sm:text-sm text-gray-600">Controla requisiciones, recepciones y seguimiento de proveedores</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" disabled={exporting} onClick={() => handleExport('csv')}>
-              <Download className="mr-2 h-4 w-4" /> {exporting ? 'Exportando...' : 'Exportar CSV'}
+            <Button variant="outline" size="sm" disabled={exporting} onClick={() => handleExport('csv')}>
+              <Download className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">{exporting ? 'Exportando...' : 'Exportar CSV'}</span>
             </Button>
-            <Button variant="outline" disabled={exporting} onClick={() => handleExport('json')}>
-              <Download className="mr-2 h-4 w-4" /> Exportar JSON
+            <Button variant="outline" size="sm" disabled={exporting} onClick={() => handleExport('json')}>
+              <Download className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Exportar JSON</span>
             </Button>
-            <Button onClick={openCreateForm}>
-              <Plus className="mr-2 h-4 w-4" /> Nueva Orden
+            <Button size="sm" onClick={openCreateForm}>
+              <Plus className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Nueva Orden</span>
             </Button>
           </div>
         </div>
@@ -628,77 +628,82 @@ export default function PurchaseOrdersPage() {
           </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
           <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
-            <CardContent className="p-6">
-              <ShoppingBag className="mb-3 h-8 w-8 text-blue-600" />
-              <div className="text-3xl font-bold text-blue-900">{orders.length}</div>
-              <p className="text-sm text-blue-700">Órdenes registradas</p>
+            <CardContent className="p-3 sm:p-6">
+              <ShoppingBag className="mb-2 sm:mb-3 h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+              <div className="text-xl sm:text-3xl font-bold text-blue-900">{orders.length}</div>
+              <p className="text-xs sm:text-sm text-blue-700">Órdenes registradas</p>
             </CardContent>
           </Card>
           <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100">
-            <CardContent className="p-6">
-              <Clock className="mb-3 h-8 w-8 text-purple-600" />
-              <div className="text-3xl font-bold text-purple-900">{pendingCount}</div>
-              <p className="text-sm text-purple-700">En proceso</p>
+            <CardContent className="p-3 sm:p-6">
+              <Clock className="mb-2 sm:mb-3 h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
+              <div className="text-xl sm:text-3xl font-bold text-purple-900">{pendingCount}</div>
+              <p className="text-xs sm:text-sm text-purple-700">En proceso</p>
             </CardContent>
           </Card>
           <Card className="border-green-200 bg-gradient-to-br from-green-50 to-green-100">
-            <CardContent className="p-6">
-              <CheckCircle2 className="mb-3 h-8 w-8 text-green-600" />
-              <div className="text-3xl font-bold text-green-900">{receivedThisMonth}</div>
-              <p className="text-sm text-green-700">Recibidas este mes</p>
+            <CardContent className="p-3 sm:p-6">
+              <CheckCircle2 className="mb-2 sm:mb-3 h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+              <div className="text-xl sm:text-3xl font-bold text-green-900">{receivedThisMonth}</div>
+              <p className="text-xs sm:text-sm text-green-700">Recibidas este mes</p>
             </CardContent>
           </Card>
           <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
-            <CardContent className="p-6">
-              <DollarSign className="mb-3 h-8 w-8 text-orange-600" />
-              <div className="text-2xl font-bold text-orange-900">{formatCurrency(totalValue)}</div>
-              <p className="text-sm text-orange-700">Valor total</p>
+            <CardContent className="p-3 sm:p-6">
+              <DollarSign className="mb-2 sm:mb-3 h-6 w-6 sm:h-8 sm:w-8 text-orange-600" />
+              <div className="text-lg sm:text-2xl font-bold text-orange-900 truncate">{formatCurrency(totalValue)}</div>
+              <p className="text-xs sm:text-sm text-orange-700">Valor total</p>
             </CardContent>
           </Card>
         </div>
 
         <Card>
-          <CardContent className="space-y-4 p-4">
-            <div className="flex flex-wrap gap-4">
-              <div className="relative min-w-[240px] flex-1">
+          <CardContent className="space-y-4 p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+              <div className="relative min-w-0 flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Buscar por número, proveedor o descripción"
-                  className="pl-10"
+                  placeholder="Buscar por número, proveedor..."
+                  className="pl-10 text-sm"
                 />
               </div>
-              <select
-                className="rounded-lg border px-4 py-2 text-sm"
-                value={filterStatus}
-                onChange={(event) => setFilterStatus(event.target.value as PurchaseOrderStatus | 'all')}
-              >
-                <option value="all">Todos los estados</option>
-                {STATUS_VALUES.map((statusValue) => (
-                  <option key={statusValue} value={statusValue}>
-                    {statusMeta[statusValue].label}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="rounded-lg border px-4 py-2 text-sm"
-                value={filterVendor}
-                onChange={(event) => setFilterVendor(event.target.value)}
-              >
-                <option value="all">Todos los proveedores</option>
-                {vendorOptions.map((vendor) => (
-                  <option key={vendor.id} value={vendor.id}>
-                    {vendor.vendorNumber ? `${vendor.vendorNumber} · ${vendor.name}` : vendor.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-wrap gap-2">
+                <select
+                  className="flex-1 sm:flex-none rounded-lg border px-3 py-2 text-sm"
+                  value={filterStatus}
+                  onChange={(event) => setFilterStatus(event.target.value as PurchaseOrderStatus | 'all')}
+                >
+                  <option value="all">Todos los estados</option>
+                  {STATUS_VALUES.map((statusValue) => (
+                    <option key={statusValue} value={statusValue}>
+                      {statusMeta[statusValue].label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="flex-1 sm:flex-none rounded-lg border px-3 py-2 text-sm"
+                  value={filterVendor}
+                  onChange={(event) => setFilterVendor(event.target.value)}
+                >
+                  <option value="all">Todos proveedores</option>
+                  {vendorOptions.map((vendor) => (
+                    <option key={vendor.id} value={vendor.id}>
+                      {vendor.vendorNumber ? `${vendor.vendorNumber} · ${vendor.name}` : vendor.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <DatePicker value={startDate} onChange={(date: string) => setStartDate(date)} placeholder="Desde" />
               <DatePicker value={endDate} onChange={(date: string) => setEndDate(date)} placeholder="Hasta" />
               <Button
                 variant="ghost"
+                size="sm"
                 onClick={() => {
                   setFilterStatus('all')
                   setFilterVendor('all')
@@ -710,15 +715,15 @@ export default function PurchaseOrdersPage() {
                 Limpiar filtros
               </Button>
             </div>
-            <div className="grid gap-4 text-sm text-gray-600 md:grid-cols-3">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-gray-100 text-gray-700">Borradores {formatCurrency(metrics.draft || 0)}</Badge>
+            <div className="grid gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 grid-cols-3">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Badge className="bg-gray-100 text-gray-700 text-xs">Borradores {formatCurrency(metrics.draft || 0)}</Badge>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge className="bg-blue-100 text-blue-700">Pendientes {formatCurrency(metrics.pending || 0)}</Badge>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Badge className="bg-blue-100 text-blue-700 text-xs">Pendientes {formatCurrency(metrics.pending || 0)}</Badge>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge className="bg-green-100 text-green-700">Recibidas {formatCurrency(metrics.received || 0)}</Badge>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Badge className="bg-green-100 text-green-700 text-xs">Recibidas {formatCurrency(metrics.received || 0)}</Badge>
               </div>
             </div>
           </CardContent>
@@ -917,11 +922,59 @@ export default function PurchaseOrdersPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Listado</CardTitle>
-              <p className="text-sm text-gray-500">{orders.length} órdenes</p>
+              <CardTitle className="text-base sm:text-lg">Listado</CardTitle>
+              <p className="text-xs sm:text-sm text-gray-500">{orders.length} órdenes</p>
             </div>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent className="p-0">
+            {/* Mobile Card View */}
+            <div className="block md:hidden divide-y">
+              {orders.length === 0 && (
+                <div className="py-10 text-center text-sm text-gray-500">
+                  Aún no tienes órdenes registradas. Crea la primera para conectar inventario con compras.
+                </div>
+              )}
+              {orders.map((order) => (
+                <div key={order.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-semibold text-sm">{order.poNumber}</div>
+                      <div className="text-xs text-gray-500">{order.description || '—'}</div>
+                    </div>
+                    <StatusBadge status={order.status} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-500">Proveedor:</span>
+                      <div className="text-xs font-medium">{order.vendorName || 'Proveedor'}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Fecha:</span>
+                      <div className="text-xs">{formatDate(order.orderDate)}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="text-lg font-bold text-green-600">{formatCurrency(order.total || 0)}</div>
+                    <div className="flex flex-wrap gap-1">
+                      <Button size="sm" variant="outline" onClick={() => openDetail(order)}>
+                        <Eye className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => openEditForm(order)}>
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleSendOrder(order)}>
+                        <Send className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleStatusChange(order.id, 'RECEIVED')}>
+                        <Truck className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -998,6 +1051,7 @@ export default function PurchaseOrdersPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
 

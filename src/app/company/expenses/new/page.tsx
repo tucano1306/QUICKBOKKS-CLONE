@@ -350,26 +350,25 @@ export default function NewExpensePage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/company/expenses/list')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Nuevo Gasto
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Registrar un nuevo gasto de la empresa
-              </p>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/company/expenses/list')}
+            className="w-fit"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
+          </Button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              Nuevo Gasto
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              Registrar un nuevo gasto de la empresa
+            </p>
           </div>
         </div>
 

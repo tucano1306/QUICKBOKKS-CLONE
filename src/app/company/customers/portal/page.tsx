@@ -383,19 +383,19 @@ export default function CustomerPortalPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="flex-1 relative">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="Buscar por nombre o email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-sm"
                 />
               </div>
               <select
-                className="px-4 py-2 border rounded-lg bg-white"
+                className="w-full sm:w-auto px-3 py-2 border rounded-lg bg-white text-sm"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
@@ -410,32 +410,37 @@ export default function CustomerPortalPage() {
 
         {/* Customer Portals List */}
         {filteredPortals.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4">
             {filteredPortals.map((portal) => (
               <Card key={portal.id} className="hover:shadow-lg transition">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Globe className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">{portal.customerName}</h3>
-                          <p className="text-sm text-gray-600">{portal.email}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900">{portal.customerName}</h3>
+                            <p className="text-xs sm:text-sm text-gray-600 truncate">{portal.email}</p>
+                          </div>
                         </div>
                         {getStatusBadge(portal.status)}
                       </div>
 
                       {/* Portal URL */}
-                      <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                        <div className="flex items-center gap-2">
-                          <LinkIcon className="w-4 h-4 text-gray-500" />
-                          <code className="text-sm text-gray-700 flex-1">{portal.portalUrl}</code>
+                      <div className="bg-gray-50 p-2 sm:p-3 rounded-lg mb-3 sm:mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <LinkIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                            <code className="text-xs sm:text-sm text-gray-700 truncate">{portal.portalUrl}</code>
+                          </div>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => copyToClipboard(portal.portalUrl, portal.id)}
+                            className="w-full sm:w-auto"
                           >
                             {copiedUrl === portal.id ? (
                               <>
@@ -453,7 +458,7 @@ export default function CustomerPortalPage() {
                       </div>
 
                       {/* Info Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
                         <div>
                           <span className="text-xs text-gray-600">Creado</span>
                           <p className="text-sm font-medium">
@@ -483,37 +488,37 @@ export default function CustomerPortalPage() {
                       </div>
 
                       {/* Features */}
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
                         {portal.features.viewInvoices && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">
-                            <FileText className="w-3 h-3" /> Ver Facturas
+                          <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-50 text-blue-700 rounded text-xs">
+                            <FileText className="w-3 h-3" /> <span className="hidden sm:inline">Ver</span> Facturas
                           </span>
                         )}
                         {portal.features.makePayments && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs">
+                          <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-50 text-green-700 rounded text-xs">
                             <CreditCard className="w-3 h-3" /> Pagos
                           </span>
                         )}
                         {portal.features.downloadDocuments && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
-                            <Download className="w-3 h-3" /> Descargas
+                          <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-50 text-purple-700 rounded text-xs">
+                            <Download className="w-3 h-3" /> <span className="hidden sm:inline">Descargas</span>
                           </span>
                         )}
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-col gap-2 ml-4">
-                      <Button size="sm" variant="outline">
-                        <Eye className="w-4 h-4 mr-1" /> Ver
+                    <div className="flex sm:flex-col gap-2 sm:ml-4">
+                      <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
+                        <Eye className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Ver</span>
                       </Button>
                       {portal.status === 'pending' && (
-                        <Button size="sm" variant="outline">
-                          <Mail className="w-4 h-4 mr-1" /> Reenviar
+                        <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
+                          <Mail className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Reenviar</span>
                         </Button>
                       )}
-                      <Button size="sm" variant="outline">
-                        <Key className="w-4 h-4 mr-1" /> Reset
+                      <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
+                        <Key className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Reset</span>
                       </Button>
                     </div>
                   </div>

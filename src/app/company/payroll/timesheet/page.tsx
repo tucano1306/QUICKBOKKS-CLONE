@@ -385,10 +385,78 @@ export default function TimesheetPage() {
         {/* Timesheets Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Registros de Asistencia ({filteredTimesheets.length})</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Registros de Asistencia ({filteredTimesheets.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="block md:hidden divide-y">
+              {filteredTimesheets.map((ts) => (
+                <div key={ts.id} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-sm">{ts.employee}</div>
+                      <div className="text-xs text-gray-500">{ts.employeeId} • {ts.department}</div>
+                    </div>
+                    {getStatusBadge(ts.status)}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-500">Período:</span>
+                      <div className="text-xs">
+                        {new Date(ts.weekStarting).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })} - {new Date(ts.weekEnding).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Regulares:</span>
+                      <span className="ml-1 font-semibold">{ts.regularHours}h</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Extra:</span>
+                      <span className="ml-1 font-semibold text-orange-600">
+                        {ts.overtimeHours > 0 ? `${ts.overtimeHours}h` : '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Doble:</span>
+                      <span className="ml-1 font-semibold text-red-600">
+                        {ts.doubleTimeHours > 0 ? `${ts.doubleTimeHours}h` : '-'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div>
+                      <span className="text-sm text-gray-500">Total:</span>
+                      <span className="ml-2 text-lg font-bold text-blue-600">{ts.totalHours}h</span>
+                      <span className="ml-2 text-xs text-gray-500 flex items-center gap-1 inline-flex">
+                        <Coffee className="w-3 h-3" /> {ts.breakHours}h
+                      </span>
+                    </div>
+                    <div className="flex gap-1">
+                      {ts.status === 'submitted' && (
+                        <>
+                          <Button size="sm" variant="outline" className="text-green-600">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-red-600">
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
+                      {ts.status === 'draft' && (
+                        <button className="p-1 text-gray-600 hover:bg-gray-100 rounded">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button className="p-1 text-blue-600 hover:bg-blue-50 rounded">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -477,7 +545,7 @@ export default function TimesheetPage() {
 
         {/* Info */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-blue-600 rounded-lg">
                 <Clock className="w-6 h-6 text-white" />

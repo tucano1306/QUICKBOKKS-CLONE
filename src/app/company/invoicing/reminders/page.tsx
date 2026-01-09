@@ -275,32 +275,32 @@ export default function RemindersPage() {
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Send className="w-8 h-8 text-green-600" />
+                <Send className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <div className="text-3xl font-bold text-green-900">{totalSent}</div>
-              <div className="text-sm text-green-700">Enviados Este Mes</div>
+              <div className="text-2xl sm:text-3xl font-bold text-green-900">{totalSent}</div>
+              <div className="text-xs sm:text-sm text-green-700">Enviados Este Mes</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="w-8 h-8 text-orange-600" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">{pendingToday}</div>
-              <div className="text-sm text-orange-700">Programados Hoy</div>
+              <div className="text-2xl sm:text-3xl font-bold text-orange-900">{pendingToday}</div>
+              <div className="text-xs sm:text-sm text-orange-700">Programados Hoy</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <CheckCircle2 className="w-8 h-8 text-purple-600" />
+                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-900">94%</div>
-              <div className="text-sm text-purple-700">Tasa de Entrega</div>
+              <div className="text-2xl sm:text-3xl font-bold text-purple-900">94%</div>
+              <div className="text-xs sm:text-sm text-purple-700">Tasa de Entrega</div>
             </CardContent>
           </Card>
         </div>

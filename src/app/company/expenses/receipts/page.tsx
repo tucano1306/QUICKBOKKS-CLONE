@@ -232,25 +232,25 @@ export default function ReceiptsPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Message Feedback */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 ${
+          <div className={`p-3 sm:p-4 rounded-lg flex items-center gap-2 text-sm ${
             message.type === 'success' 
               ? 'bg-green-50 text-green-800 border border-green-200' 
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}>
             {message.type === 'success' 
-              ? <CheckCircle className="h-5 w-5" /> 
-              : <AlertCircle className="h-5 w-5" />}
+              ? <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" /> 
+              : <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />}
             <span>{message.text}</span>
           </div>
         )}
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Captura de Recibos</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Captura de Recibos</h1>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
             Digitaliza tus recibos con tecnología OCR automática
           </p>
         </div>
@@ -262,10 +262,10 @@ export default function ReceiptsPage() {
         )}
 
         {/* Upload Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Upload Card */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Subir Recibo</h2>
+          <Card className="p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Subir Recibo</h2>
 
             {/* Drag and Drop Zone */}
             <label

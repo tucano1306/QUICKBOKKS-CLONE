@@ -204,23 +204,24 @@ export default function EditTransactionPage() {
 
   return (
     <CompanyTabsLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 px-3 sm:px-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push(`/company/transactions/${transactionId}`)}
+              className="w-fit"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 Editar Transacción
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Modifica los datos de la transacción
               </p>
             </div>
@@ -258,8 +259,8 @@ export default function EditTransactionPage() {
               {/* Type */}
               <div className="space-y-2">
                 <Label>Tipo de Transacción</Label>
-                <div className="flex gap-4">
-                  <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <label className={`flex items-center justify-center gap-2 p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${
                     formData.type === 'INCOME' 
                       ? 'border-green-500 bg-green-50 text-green-700' 
                       : 'border-gray-200 hover:border-green-300'
@@ -272,10 +273,10 @@ export default function EditTransactionPage() {
                       onChange={handleChange}
                       className="sr-only"
                     />
-                    <TrendingUp className="h-5 w-5" />
-                    <span className="font-medium">Ingreso</span>
+                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="font-medium text-sm sm:text-base">Ingreso</span>
                   </label>
-                  <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  <label className={`flex items-center justify-center gap-2 p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${
                     formData.type === 'EXPENSE' 
                       ? 'border-red-500 bg-red-50 text-red-700' 
                       : 'border-gray-200 hover:border-red-300'
@@ -288,8 +289,8 @@ export default function EditTransactionPage() {
                       onChange={handleChange}
                       className="sr-only"
                     />
-                    <TrendingDown className="h-5 w-5" />
-                    <span className="font-medium">Gasto</span>
+                    <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="font-medium text-sm sm:text-base">Gasto</span>
                   </label>
                 </div>
               </div>

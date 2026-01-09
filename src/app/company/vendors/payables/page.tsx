@@ -574,11 +574,64 @@ export default function VendorPayablesPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Facturas por Pagar ({filteredPayables.length})</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Facturas por Pagar ({filteredPayables.length})</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
+            {/* Vista Móvil - Cards */}
+            <div className="block md:hidden divide-y divide-gray-100">
+              {filteredPayables.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No hay facturas por pagar</p>
+                </div>
+              ) : (
+                filteredPayables.map((payable) => (
+                  <div key={payable.id} className="p-3 hover:bg-gray-50">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-mono text-sm font-semibold text-blue-600">{payable.billNumber}</p>
+                        <p className="text-sm text-gray-900">{payable.vendor?.name || 'Proveedor'}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-gray-900">${payable.total.toLocaleString()}</div>
+                        {payable.balance > 0 && (
+                          <div className="text-xs text-orange-600">Saldo: ${payable.balance.toLocaleString()}</div>
+                        )}
+                      </div>
+                    </div>
+                    {payable.description && (
+                      <p className="text-xs text-gray-600 mb-2 line-clamp-1">{payable.description}</p>
+                    )}
+                    <div className="flex items-center justify-between mb-2">
+                      {getStatusBadge(payable.status)}
+                      <div className="text-xs text-gray-500">
+                        Vence: {new Date(payable.dueDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                      </div>
+                    </div>
+                    <div className="flex gap-1 pt-2 border-t">
+                      {payable.status !== 'PAID' && (
+                        <Button size="sm" variant="outline" className="flex-1 text-xs h-8" onClick={() => handleMarkAsPaid(payable)}>
+                          <CreditCard className="w-3.5 h-3.5 mr-1" /> Pagar
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => { setDetailPayable(payable); setShowDetailModal(true); }}>
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => openEditModal(payable)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 px-2 text-red-600" onClick={() => setDeleteTarget(payable)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Vista Desktop - Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>

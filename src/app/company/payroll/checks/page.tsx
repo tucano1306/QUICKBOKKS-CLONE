@@ -410,10 +410,65 @@ export default function PayrollChecksPage() {
         {/* Checks Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Registro de Cheques ({filteredChecks.length})</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Registro de Cheques ({filteredChecks.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="block md:hidden divide-y">
+              {filteredChecks.map((check) => (
+                <div key={check.id} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm">{check.employeeName}</div>
+                        <div className="text-xs text-gray-500">{check.employeeId}</div>
+                      </div>
+                    </div>
+                    {getStatusBadge(check.status)}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-500">Cheque:</span>
+                      <span className="ml-1 font-mono font-semibold text-blue-600">#{check.checkNumber}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Fecha:</span>
+                      <span className="ml-1">{new Date(check.checkDate).toLocaleDateString('es-MX')}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Bruto:</span>
+                      <span className="ml-1">${check.grossPay.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Deducciones:</span>
+                      <span className="ml-1 text-red-600">-${check.deductions.toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div>
+                      <span className="text-sm text-gray-500">Neto:</span>
+                      <span className="ml-2 text-lg font-bold text-green-600">${check.netPay.toLocaleString()}</span>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline">
+                        <Eye className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="outline">
+                        <Printer className="w-3 h-3" />
+                      </Button>
+                      {check.status === 'pending' && (
+                        <Button size="sm">Emitir</Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -509,7 +564,7 @@ export default function PayrollChecksPage() {
 
         {/* Info Card */}
         <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-blue-600 rounded-lg">
                 <FileText className="w-6 h-6 text-white" />
