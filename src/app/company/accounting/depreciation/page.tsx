@@ -84,7 +84,7 @@ export default function VehicleDepreciationPage() {
     // Campos de millas
     currentMileage: '',
     purchaseMileage: '',
-    estimatedLifetimeMiles: '150000',
+    estimatedLifetimeMiles: '200000',
     yearModel: new Date().getFullYear().toString(),
     vin: ''
   })
@@ -143,7 +143,7 @@ export default function VehicleDepreciationPage() {
           // Campos de millas
           currentMileage: newAsset.currentMileage ? parseInt(newAsset.currentMileage) : null,
           purchaseMileage: newAsset.purchaseMileage ? parseInt(newAsset.purchaseMileage) : null,
-          estimatedLifetimeMiles: newAsset.estimatedLifetimeMiles ? parseInt(newAsset.estimatedLifetimeMiles) : 150000,
+          estimatedLifetimeMiles: newAsset.estimatedLifetimeMiles ? parseInt(newAsset.estimatedLifetimeMiles) : 200000,
           yearModel: newAsset.yearModel ? parseInt(newAsset.yearModel) : null,
           vin: newAsset.vin || null
         })
@@ -161,7 +161,7 @@ export default function VehicleDepreciationPage() {
           usefulLife: '5',
           currentMileage: '',
           purchaseMileage: '',
-          estimatedLifetimeMiles: '150000',
+          estimatedLifetimeMiles: '200000',
           yearModel: new Date().getFullYear().toString(),
           vin: ''
         })
@@ -794,7 +794,9 @@ export default function VehicleDepreciationPage() {
                           type="number"
                           value={newAsset.currentMileage}
                           onChange={(e) => setNewAsset({ ...newAsset, currentMileage: e.target.value })}
-                          placeholder="0"
+                          placeholder="Ej: 125000"
+                          min="0"
+                          max="999999"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       </div>
@@ -806,7 +808,9 @@ export default function VehicleDepreciationPage() {
                           type="number"
                           value={newAsset.estimatedLifetimeMiles}
                           onChange={(e) => setNewAsset({ ...newAsset, estimatedLifetimeMiles: e.target.value })}
-                          placeholder="150000"
+                          placeholder="200000"
+                          min="0"
+                          max="999999"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       </div>
@@ -1193,6 +1197,8 @@ export default function VehicleDepreciationPage() {
                         name="currentMileage"
                         defaultValue={selectedAsset.currentMileage || ''}
                         min="0"
+                        max="999999"
+                        placeholder="Ej: 125000"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
