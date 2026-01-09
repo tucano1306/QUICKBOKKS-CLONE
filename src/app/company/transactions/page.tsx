@@ -428,9 +428,9 @@ export default function TransactionsPage() {
               size="sm"
               onClick={deleteSelected}
               disabled={deleting}
+              title={deleting ? 'Eliminando...' : 'Eliminar seleccionados'}
             >
-              <Trash2 className="h-4 w-4 mr-1" />
-              {deleting ? 'Eliminando...' : 'Eliminar'}
+              <Trash2 className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={clearSelection}>
               <X className="h-4 w-4" />
@@ -568,10 +568,10 @@ export default function TransactionsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => deleteTransaction(t.id)}
-                          className="flex-1 text-red-600 hover:text-red-800 hover:bg-red-100 h-8 text-xs"
+                          className="flex-1 text-red-600 hover:text-red-800 hover:bg-red-100 h-8"
+                          title="Eliminar"
                         >
-                          <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          Eliminar
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
