@@ -243,6 +243,7 @@ const tabSections: TabSection[] = [
     icon: FileCheck,
     color: 'yellow',
     submenus: [
+      { name: 'Form 1040 (Individual)', href: '/company/taxes/form-1040', description: 'Declaración de impuestos individual' },
       { name: 'Información Fiscal', href: '/company/taxes/info', description: 'Configuración tributaria' },
       { name: 'Gastos Deducibles', href: '/company/taxes/deductions', description: 'Deducciones fiscales' },
       { name: 'Estimación de Impuestos', href: '/company/taxes/estimates', description: 'Calcular impuestos' },

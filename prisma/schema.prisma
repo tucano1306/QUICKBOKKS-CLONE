@@ -1845,6 +1845,195 @@ model TaxFormW3 {
   @@map("tax_form_w3")
 }
 
+// ============== IRS FORM 1040 - U.S. INDIVIDUAL INCOME TAX RETURN ==============
+model TaxForm1040 {
+  id                          String         @id @default(cuid())
+  userId                      String
+  companyId                   String?
+  taxYear                     Int
+  
+  // Filing Status (Line 1-5)
+  filingStatus                FilingStatus1040 @default(SINGLE)
+  
+  // Personal Information
+  firstName                   String
+  middleInitial               String?
+  lastName                    String
+  ssn                         String
+  spouseFirstName             String?
+  spouseMiddleInitial         String?
+  spouseLastName              String?
+  spouseSsn                   String?
+  homeAddress                 String
+  aptNo                       String?
+  city                        String
+  state                       String
+  zipCode                     String
+  foreignCountry              String?
+  foreignProvince             String?
+  foreignPostalCode           String?
+  
+  // Presidential Election Campaign
+  youCampaignFund             Boolean        @default(false)
+  spouseCampaignFund          Boolean        @default(false)
+  
+  // Digital Assets Question
+  digitalAssetsQuestion       Boolean        @default(false)
+  
+  // Standard Deduction Checkboxes
+  youAsDependent              Boolean        @default(false)
+  spouseAsDependent           Boolean        @default(false)
+  spouseItemizesSeparately    Boolean        @default(false)
+  youBornBefore1960           Boolean        @default(false)
+  youBlind                    Boolean        @default(false)
+  spouseBornBefore1960        Boolean        @default(false)
+  spouseBlind                 Boolean        @default(false)
+  
+  // Dependents (stored as JSON array)
+  dependents                  Json?          // Array of {firstName, lastName, ssn, relationship, childTaxCredit, creditOtherDependents}
+  
+  // Income Section
+  line1a_w2Wages              Float          @default(0)  // Wages, salaries, tips (W-2 Box 1)
+  line1b_householdWages       Float          @default(0)  // Household employee wages
+  line1c_tipIncome            Float          @default(0)  // Tip income not reported
+  line1d_medicaidWaiver       Float          @default(0)  // Medicaid waiver payments
+  line1e_dependentCareBenefits Float         @default(0)  // Dependent care benefits
+  line1f_employerAdoption     Float          @default(0)  // Employer-provided adoption benefits
+  line1g_form8919Wages        Float          @default(0)  // Wages from Form 8919
+  line1h_otherEarnedIncome    Float          @default(0)  // Other earned income
+  line1i_nontaxableCombatPay  Float          @default(0)  // Nontaxable combat pay
+  line1z_totalIncome          Float          @default(0)  // Add lines 1a-1h
+  
+  line2a_taxExemptInterest    Float          @default(0)  // Tax-exempt interest
+  line2b_taxableInterest      Float          @default(0)  // Taxable interest
+  line3a_qualifiedDividends   Float          @default(0)  // Qualified dividends
+  line3b_ordinaryDividends    Float          @default(0)  // Ordinary dividends
+  line4a_iraDistributions     Float          @default(0)  // IRA distributions
+  line4b_taxableIRA           Float          @default(0)  // Taxable amount
+  line5a_pensionsAnnuities    Float          @default(0)  // Pensions and annuities
+  line5b_taxablePensions      Float          @default(0)  // Taxable amount
+  line6a_socialSecurity       Float          @default(0)  // Social security benefits
+  line6b_taxableSocialSecurity Float         @default(0)  // Taxable amount
+  line6c_lumpSumElection      Boolean        @default(false)
+  line7_capitalGainLoss       Float          @default(0)  // Capital gain or loss (Schedule D)
+  line8_otherIncome           Float          @default(0)  // Other income from Schedule 1
+  line9_totalIncome           Float          @default(0)  // Add lines 1z, 2b, 3b, 4b, 5b, 6b, 7, 8
+  
+  // Adjustments to Income
+  line10_adjustments          Float          @default(0)  // Adjustments from Schedule 1
+  line11_adjustedGrossIncome  Float          @default(0)  // AGI (Line 9 - Line 10)
+  
+  // Deductions
+  line12_standardOrItemized   Float          @default(0)  // Standard deduction or itemized
+  line13_qbiDeduction         Float          @default(0)  // Qualified business income deduction
+  line14_totalDeductions      Float          @default(0)  // Add lines 12 and 13
+  line15_taxableIncome        Float          @default(0)  // Line 11 - Line 14
+  
+  // Tax and Credits
+  line16_tax                  Float          @default(0)  // Tax from tables or Schedule D
+  line17_schedule2Tax         Float          @default(0)  // Amount from Schedule 2
+  line18_totalTax             Float          @default(0)  // Add lines 16 and 17
+  line19_childTaxCredit       Float          @default(0)  // Child tax credit
+  line20_schedule3Credits     Float          @default(0)  // Amount from Schedule 3
+  line21_totalCredits         Float          @default(0)  // Add lines 19 and 20
+  line22_netTax               Float          @default(0)  // Line 18 - Line 21
+  line23_otherTaxes           Float          @default(0)  // Other taxes from Schedule 2
+  line24_totalTax             Float          @default(0)  // Add lines 22 and 23
+  
+  // Payments
+  line25a_w2Withholding       Float          @default(0)  // Federal tax withheld from W-2
+  line25b_1099Withholding     Float          @default(0)  // Federal tax withheld from 1099
+  line25c_otherWithholding    Float          @default(0)  // Other withholding
+  line25d_totalWithholding    Float          @default(0)  // Add lines 25a-25c
+  line26_estimatedPayments    Float          @default(0)  // Estimated tax payments
+  line27_earnedIncomeCredit   Float          @default(0)  // Earned income credit (EIC)
+  line28_additionalChildCredit Float         @default(0)  // Additional child tax credit
+  line29_americanOpportunity  Float          @default(0)  // American opportunity credit
+  line30_schedule3Payments    Float          @default(0)  // Amount from Schedule 3
+  line31_totalOtherPayments   Float          @default(0)  // Add lines 27-30
+  line32_totalPayments        Float          @default(0)  // Add lines 25d, 26, and 31
+  
+  // Refund or Amount Owed
+  line33_overpayment          Float          @default(0)  // If line 32 > line 24
+  line34a_refundAmount        Float          @default(0)  // Amount to be refunded
+  line34b_routingNumber       String?
+  line34c_accountType         String?        // "Checking" or "Savings"
+  line34d_accountNumber       String?
+  line35_appliedToNext        Float          @default(0)  // Applied to estimated tax
+  line36_amountYouOwe         Float          @default(0)  // If line 24 > line 32
+  line37_estimatedPenalty     Float          @default(0)  // Estimated tax penalty
+  
+  // Third Party Designee
+  thirdPartyDesignee          Boolean        @default(false)
+  designeeName                String?
+  designeePhone               String?
+  designeePIN                 String?
+  
+  // Signature Information
+  occupation                  String?
+  spouseOccupation            String?
+  identityProtectionPIN       String?
+  spouseIdentityProtectionPIN String?
+  
+  // Preparer Information
+  preparerName                String?
+  preparerPTIN                String?
+  preparerFirmName            String?
+  preparerFirmEIN             String?
+  preparerFirmAddress         String?
+  preparerFirmPhone           String?
+  selfPrepared                Boolean        @default(true)
+  
+  // Attached Schedules
+  hasSchedule1                Boolean        @default(false)
+  hasSchedule2                Boolean        @default(false)
+  hasSchedule3                Boolean        @default(false)
+  hasScheduleA                Boolean        @default(false)
+  hasScheduleB                Boolean        @default(false)
+  hasScheduleC                Boolean        @default(false)
+  hasScheduleD                Boolean        @default(false)
+  hasScheduleE                Boolean        @default(false)
+  hasScheduleSE               Boolean        @default(false)
+  
+  // Schedule C Data (Self-Employment)
+  scheduleC_grossReceipts     Float          @default(0)
+  scheduleC_returns           Float          @default(0)
+  scheduleC_otherIncome       Float          @default(0)
+  scheduleC_grossIncome       Float          @default(0)
+  scheduleC_expenses          Float          @default(0)
+  scheduleC_netProfit         Float          @default(0)
+  
+  // AI Assistant Data
+  aiSuggestions               Json?          // AI-generated suggestions for optimization
+  aiAnalysis                  Json?          // AI analysis of the tax situation
+  
+  // Status and Metadata
+  status                      TaxFormStatus  @default(DRAFT)
+  filedDate                   DateTime?
+  acceptedDate                DateTime?
+  rejectedReason              String?
+  confirmationNumber          String?
+  pdfUrl                      String?
+  createdAt                   DateTime       @default(now())
+  updatedAt                   DateTime       @updatedAt
+
+  @@unique([userId, taxYear])
+  @@index([userId])
+  @@index([companyId])
+  @@index([taxYear])
+  @@index([status])
+  @@map("tax_form_1040")
+}
+
+// Filing Status for Form 1040
+enum FilingStatus1040 {
+  SINGLE                          // Single
+  MARRIED_FILING_JOINTLY          // Married filing jointly
+  MARRIED_FILING_SEPARATELY       // Married filing separately
+  HEAD_OF_HOUSEHOLD               // Head of household
+  QUALIFYING_SURVIVING_SPOUSE     // Qualifying surviving spouse
+}
+
 model SalesTaxFiling {
   id                 String          @id @default(cuid())
   userId             String
