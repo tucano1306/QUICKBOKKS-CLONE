@@ -301,7 +301,7 @@ export default function TurboTaxPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Account Mapping to TurboTax Forms</CardTitle>
-              <Button variant="outline" size="sm">Review All Mappings</Button>
+              <Button variant="outline" size="sm" onClick={() => setMessage({ type: 'success', text: 'Revise cada mapeo y actualice si es necesario. Los items marcados como "Review" necesitan su atención.' })}>Review All Mappings</Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -364,7 +364,7 @@ export default function TurboTaxPage() {
                         <td className="px-4 py-3"><div className="text-sm text-gray-700">{import_item.duration}</div></td>
                         <td className="px-4 py-3 text-center"><div className={`text-sm font-semibold ${import_item.errors === 0 ? 'text-green-600' : 'text-red-600'}`}>{import_item.errors}</div></td>
                         <td className="px-4 py-3 text-center">{getImportStatusBadge(import_item.status)}</td>
-                        <td className="px-4 py-3"><Button size="sm" variant="outline">View Details</Button></td>
+                        <td className="px-4 py-3"><Button size="sm" variant="outline" onClick={() => setMessage({ type: 'success', text: `Importación del ${new Date(import_item.date).toLocaleDateString()}: ${import_item.recordsImported} registros sincronizados en ${import_item.duration}` })}>View Details</Button></td>
                       </tr>
                     ))}
                   </tbody>

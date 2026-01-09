@@ -104,54 +104,137 @@ export default function TaxExportPage() {
     if (!activeCompany?.id) return
     
     setExporting(true)
+    setMessage(null)
+    
     try {
-      const response = await fetch('/api/taxes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'export',
-          companyId: activeCompany.id,
-          year: selectedYear,
-          format: formatId,
-          dateRange
-        })
+      // Construir URL para descarga directa
+      const params = new URLSearchParams({
+        companyId: activeCompany.id,
+        format: formatId,
+        year: selectedYear,
+        startDate: dateRange.start,
+        endDate: dateRange.end
       })
       
-      const data = await response.json()
-      if (data.success && data.export) {
-        // Add to history
-        const newExport: ExportHistory = {
-          id: Date.now().toString(),
-          format: formatId.toUpperCase(),
-          taxSoftware: 'Manual Export',
-          dateExported: new Date().toISOString(),
-          dateRange: `${dateRange.start} - ${dateRange.end}`,
-          fileSize: data.export.fileSize,
-          recordCount: data.export.recordCount,
-          status: 'success',
-          fileName: data.export.fileName
-        }
-        setExportHistory(prev => [newExport, ...prev])
-        
-        // If JSON, show data
-        if (formatId === 'json' && data.data) {
-          const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' })
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = data.export.fileName
-          a.click()
-          URL.revokeObjectURL(url)
-        } else {
-          setMessage({ type: 'success', text: `Exportación completada: ${data.export.fileName} (${data.export.recordCount} registros)` }); setTimeout(() => setMessage(null), 3000)
-        }
+      const response = await fetch(`/api/taxes/download?${params}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al exportar')
       }
+      
+      // Obtener el nombre del archivo del header
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let fileName = `tax_export_${selectedYear}.${formatId}`
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/)
+        if (match) fileName = match[1]
+      }
+      
+      // Descargar el archivo
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      // Agregar al historial
+      const newExport: ExportHistory = {
+        id: Date.now().toString(),
+        format: formatId.toUpperCase(),
+        taxSoftware: getFormatSoftware(formatId),
+        dateExported: new Date().toISOString(),
+        dateRange: `${dateRange.start} - ${dateRange.end}`,
+        fileSize: `${(blob.size / 1024).toFixed(1)} KB`,
+        recordCount: exportStats ? (exportStats.invoiceCount + exportStats.expenseCount) : 0,
+        status: 'success',
+        fileName
+      }
+      setExportHistory(prev => [newExport, ...prev])
+      
+      // Guardar en localStorage para persistencia
+      const storedHistory = localStorage.getItem(`taxExportHistory_${activeCompany.id}`)
+      const history = storedHistory ? JSON.parse(storedHistory) : []
+      history.unshift(newExport)
+      localStorage.setItem(`taxExportHistory_${activeCompany.id}`, JSON.stringify(history.slice(0, 50)))
+      
+      setMessage({ type: 'success', text: `✅ Exportación completada: ${fileName}` })
+      setTimeout(() => setMessage(null), 5000)
+      
     } catch (error) {
       console.error('Error exporting:', error)
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Error al exportar datos' })
+      setTimeout(() => setMessage(null), 5000)
     } finally {
       setExporting(false)
     }
   }
+
+  const handleDownloadFromHistory = async (exportItem: ExportHistory) => {
+    if (!activeCompany?.id) return
+    
+    // Extraer formato del nombre del archivo
+    const format = exportItem.format.toLowerCase()
+    const [startDate, endDate] = exportItem.dateRange.split(' - ')
+    
+    const params = new URLSearchParams({
+      companyId: activeCompany.id,
+      format: format === 'xlsx' ? 'excel' : format,
+      year: selectedYear,
+      startDate: startDate.trim(),
+      endDate: endDate.trim()
+    })
+    
+    try {
+      const response = await fetch(`/api/taxes/download?${params}`)
+      if (!response.ok) throw new Error('Error al descargar')
+      
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = exportItem.fileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading:', error)
+      setMessage({ type: 'error', text: 'Error al descargar el archivo' })
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
+  const getFormatSoftware = (format: string): string => {
+    const mapping: Record<string, string> = {
+      txf: 'TurboTax/H&R Block',
+      iif: 'QuickBooks',
+      csv: 'Excel/Sheets',
+      excel: 'Microsoft Excel',
+      pdf: 'CPA Review',
+      json: 'API Integration'
+    }
+    return mapping[format] || 'Manual Export'
+  }
+
+  // Cargar historial del localStorage
+  useEffect(() => {
+    if (activeCompany?.id) {
+      const storedHistory = localStorage.getItem(`taxExportHistory_${activeCompany.id}`)
+      if (storedHistory) {
+        try {
+          const history = JSON.parse(storedHistory)
+          setExportHistory(history)
+        } catch {
+          // Ignorar errores de parsing
+        }
+      }
+    }
+  }, [activeCompany?.id])
 
   const exportFormats: ExportFormat[] = [
     {
@@ -434,7 +517,7 @@ export default function TaxExportPage() {
                         <td className="px-4 py-3 text-right"><div className="text-sm text-gray-900">{export_item.fileSize}</div></td>
                         <td className="px-4 py-3 text-center">{getStatusBadge(export_item.status)}</td>
                         <td className="px-4 py-3">
-                          <Button size="sm" variant="outline"><Download className="w-3 h-3 mr-1" />Download</Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDownloadFromHistory(export_item)}><Download className="w-3 h-3 mr-1" />Download</Button>
                         </td>
                       </tr>
                     ))}

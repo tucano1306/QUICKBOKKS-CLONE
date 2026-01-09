@@ -396,7 +396,7 @@ export default function TaxEstimatesPage() {
                           <td className="px-4 py-3 text-center">{getStatusBadge(estimate.status)}</td>
                           <td className="px-4 py-3">
                             {estimate.status === 'pending' ? (
-                              <Button size="sm" variant="outline">Make Payment</Button>
+                              <Button size="sm" variant="outline" onClick={() => window.open('https://www.eftps.gov/', '_blank')}>Make Payment</Button>
                             ) : (
                               <div className="text-xs text-gray-500">{estimate.paidDate && `Paid: ${new Date(estimate.paidDate).toLocaleDateString()}`}</div>
                             )}

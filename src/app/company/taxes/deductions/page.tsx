@@ -389,8 +389,8 @@ export default function TaxDeductionsPage() {
                         <td className="px-4 py-3 text-center">{getStatusBadge(deduction.status)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-1">
-                            <Button size="sm" variant="outline" className="h-8 px-2"><Upload className="w-4 h-4" /></Button>
-                            <Button size="sm" variant="outline" className="h-8 px-2"><FileText className="w-4 h-4" /></Button>
+                            <Button size="sm" variant="outline" className="h-8 px-2" title="Subir documentos" onClick={() => alert(`Subir documentos para: ${deduction.description}`)}><Upload className="w-4 h-4" /></Button>
+                            <Button size="sm" variant="outline" className="h-8 px-2" title="Ver detalles" onClick={() => alert(`Deducción: ${deduction.subcategory}\nMonto: $${deduction.amount.toLocaleString()}\nDocumentos: ${deduction.documentCount}`)}><FileText className="w-4 h-4" /></Button>
                           </div>
                         </td>
                       </tr>
