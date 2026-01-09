@@ -81,9 +81,10 @@ export async function GET() {
       },
     })
 
-    // Total customers
+    // Total customers - filtrar por userId del usuario actual
     const totalCustomers = await prisma.customer.count({
       where: {
+        userId: session.user.id,
         status: 'ACTIVE',
       },
     })
