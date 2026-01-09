@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
       .filter(d => d.taxDeductible)
       .reduce((sum, d) => sum + d.deductibleAmount, 0)
 
-    // Generar estimaciones trimestrales
+    // Generar estimaciones trimestrales (sin asumir pagos, solo mostrar obligaciones)
     const quarterlyEstimates = [
       {
         quarter: 'Q1 ' + year,
@@ -142,37 +142,37 @@ export async function GET(request: NextRequest) {
         previousPayments: 0,
         amountDue: totalEstimatedTax / 4,
         status: getQuarterStatus(1, parseInt(year)),
-        paidAmount: getQuarterStatus(1, parseInt(year)) === 'paid' ? totalEstimatedTax / 4 : undefined
+        paidAmount: undefined // No asumimos pagos sin registro real
       },
       {
         quarter: 'Q2 ' + year,
         dueDate: `${year}-06-15`,
         estimatedIncome: totalRevenue / 4,
         estimatedTax: totalEstimatedTax / 4,
-        previousPayments: totalEstimatedTax / 4,
+        previousPayments: 0, // Sin registro de pagos previos
         amountDue: totalEstimatedTax / 4,
         status: getQuarterStatus(2, parseInt(year)),
-        paidAmount: getQuarterStatus(2, parseInt(year)) === 'paid' ? totalEstimatedTax / 4 : undefined
+        paidAmount: undefined
       },
       {
         quarter: 'Q3 ' + year,
         dueDate: `${year}-09-15`,
         estimatedIncome: totalRevenue / 4,
         estimatedTax: totalEstimatedTax / 4,
-        previousPayments: (totalEstimatedTax / 4) * 2,
+        previousPayments: 0,
         amountDue: totalEstimatedTax / 4,
         status: getQuarterStatus(3, parseInt(year)),
-        paidAmount: getQuarterStatus(3, parseInt(year)) === 'paid' ? totalEstimatedTax / 4 : undefined
+        paidAmount: undefined
       },
       {
         quarter: 'Q4 ' + year,
         dueDate: `${parseInt(year) + 1}-01-15`,
         estimatedIncome: totalRevenue / 4,
         estimatedTax: totalEstimatedTax / 4,
-        previousPayments: (totalEstimatedTax / 4) * 3,
+        previousPayments: 0,
         amountDue: totalEstimatedTax / 4,
         status: getQuarterStatus(4, parseInt(year)),
-        paidAmount: getQuarterStatus(4, parseInt(year)) === 'paid' ? totalEstimatedTax / 4 : undefined
+        paidAmount: undefined
       }
     ]
 
@@ -594,18 +594,21 @@ function getQuarterStatus(quarter: number, year: number): 'paid' | 'pending' | '
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth() + 1
   
-  if (year < currentYear) return 'paid'
-  if (year > currentYear) return 'pending'
-  
-  const quarterDueDates = [4, 6, 9, 1] // April, June, September, January (next year)
-  const dueMonth = quarterDueDates[quarter - 1]
-  
-  if (quarter === 4) {
-    return 'pending' // Q4 due in January next year
+  // Fechas de vencimiento de cada trimestre
+  const quarterDueDates: Record<number, { month: number; day: number; nextYear?: boolean }> = {
+    1: { month: 4, day: 15 },   // Q1 - April 15
+    2: { month: 6, day: 15 },   // Q2 - June 15
+    3: { month: 9, day: 15 },   // Q3 - September 15
+    4: { month: 1, day: 15, nextYear: true } // Q4 - January 15 next year
   }
   
-  if (currentMonth > dueMonth + 1) return 'paid'
-  if (currentMonth === dueMonth || currentMonth === dueMonth + 1) return 'pending'
+  const dueDate = quarterDueDates[quarter]
+  const dueYear = dueDate.nextYear ? year + 1 : year
+  const dueDateObj = new Date(dueYear, dueDate.month - 1, dueDate.day)
+  
+  // Si la fecha de vencimiento ya pasó, está overdue (no asumimos paid sin registro)
+  if (now > dueDateObj) return 'overdue'
+  
   return 'pending'
 }
 
