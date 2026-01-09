@@ -723,7 +723,7 @@ export default function ExpensesListPage() {
         </Card>
 
         {/* Expenses List */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-visible">
           {/* Vista Móvil - Cards */}
           <div className="block md:hidden">
             {!Array.isArray(filteredExpenses) || filteredExpenses.length === 0 ? (
@@ -741,7 +741,8 @@ export default function ExpensesListPage() {
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {paginatedExpenses.map(expense => (
+                {/* Mostrar TODOS los gastos filtrados en móvil, sin paginación para evitar confusión */}
+                {filteredExpenses.map(expense => (
                   <div 
                     key={expense.id} 
                     className={`p-4 ${selectedExpenses.has(expense.id) ? 'bg-blue-50' : ''}`}
