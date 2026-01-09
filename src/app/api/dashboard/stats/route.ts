@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
       where: {
         ...baseInvoiceFilter,
         status: {
-          in: ['SENT', 'VIEWED', 'PARTIAL', 'PENDING'],
+          in: ['DRAFT', 'SENT', 'VIEWED', 'PARTIAL'],
         },
       },
     })
