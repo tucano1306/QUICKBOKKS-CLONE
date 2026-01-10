@@ -1156,7 +1156,12 @@ async function fillForm1040(params: any, userId: string): Promise<any> {
   const calculatedPayments = {
     withholding: payments.withholding || 0,
     estimatedPayments: payments.estimatedPayments || 0,
-    totalPayments: (payments.withholding || 0) + (payments.estimatedPayments || 0),
+    earnedIncomeCredit: payments.earnedIncomeCredit || 0,
+    additionalChildCredit: payments.additionalChildCredit || 0,
+    otherPayments: payments.otherPayments || 0,
+    totalPayments: (payments.withholding || 0) + (payments.estimatedPayments || 0) + 
+                   (payments.earnedIncomeCredit || 0) + (payments.additionalChildCredit || 0) + 
+                   (payments.otherPayments || 0),
   };
 
   // Buscar companyId del usuario

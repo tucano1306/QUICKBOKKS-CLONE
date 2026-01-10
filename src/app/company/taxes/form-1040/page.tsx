@@ -184,6 +184,7 @@ export default function Form1040Page() {
 
   useEffect(() => {
     loadExistingForm()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taxYear])
 
   const loadExistingForm = async () => {
