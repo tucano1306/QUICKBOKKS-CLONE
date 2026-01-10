@@ -56,6 +56,9 @@ interface Dependent {
   creditOtherDependents: boolean
 }
 
+// Clave para guardar borrador en localStorage
+const FORM_1040_DRAFT_KEY = 'form1040_draft'
+
 export default function Form1040Page() {
   const router = useRouter()
   const { status } = useSession()
@@ -64,6 +67,7 @@ export default function Form1040Page() {
   // Form State
   const currentYear = new Date().getFullYear()
   const [taxYear, setTaxYear] = useState<number>(currentYear - 1)
+  const [draftLoaded, setDraftLoaded] = useState(false)
   const [filingStatus, setFilingStatus] = useState<string>('SINGLE')
   const [loading, setLoading] = useState(false)
   const [existingForm, setExistingForm] = useState<any>(null)
@@ -129,6 +133,55 @@ export default function Form1040Page() {
     }
   }, [status, router])
 
+  // Cargar borrador de localStorage al iniciar
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !draftLoaded) {
+      const savedDraft = localStorage.getItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`)
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft)
+          populateDraftFromData(draft)
+          toast.success('Borrador recuperado automáticamente', { icon: '📋' })
+        } catch (e) {
+          console.error('Error parsing draft:', e)
+        }
+      }
+      setDraftLoaded(true)
+    }
+  }, [taxYear, draftLoaded])
+
+  // Guardar borrador en localStorage cuando cambien los datos importantes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && draftLoaded) {
+      const draft = {
+        taxYear,
+        filingStatus,
+        firstName, middleInitial, lastName, ssn,
+        spouseFirstName, spouseMiddleInitial, spouseLastName, spouseSsn,
+        homeAddress, aptNo, city, state, zipCode,
+        youBornBefore1960, youBlind, spouseBornBefore1960, spouseBlind,
+        wages, taxableInterest, ordinaryDividends, qualifiedDividends,
+        iraDistributions, taxableIRA, pensionsAnnuities, taxablePensions,
+        socialSecurity, taxableSocialSecurity, capitalGainLoss, otherIncome,
+        scheduleC_grossReceipts, scheduleC_expenses,
+        withholding, estimatedPayments,
+        dependents,
+        lastSaved: new Date().toISOString()
+      }
+      localStorage.setItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`, JSON.stringify(draft))
+    }
+  }, [
+    taxYear, filingStatus, firstName, middleInitial, lastName, ssn,
+    spouseFirstName, spouseMiddleInitial, spouseLastName, spouseSsn,
+    homeAddress, aptNo, city, state, zipCode,
+    youBornBefore1960, youBlind, spouseBornBefore1960, spouseBlind,
+    wages, taxableInterest, ordinaryDividends, qualifiedDividends,
+    iraDistributions, taxableIRA, pensionsAnnuities, taxablePensions,
+    socialSecurity, taxableSocialSecurity, capitalGainLoss, otherIncome,
+    scheduleC_grossReceipts, scheduleC_expenses,
+    withholding, estimatedPayments, dependents, draftLoaded
+  ])
+
   useEffect(() => {
     loadExistingForm()
   }, [taxYear])
@@ -191,6 +244,57 @@ export default function Form1040Page() {
     setDependents(data.dependents || [])
   }
 
+  // Función para cargar datos desde borrador de localStorage
+  const populateDraftFromData = (draft: any) => {
+    if (draft.filingStatus) setFilingStatus(draft.filingStatus)
+    if (draft.firstName) setFirstName(draft.firstName)
+    if (draft.middleInitial) setMiddleInitial(draft.middleInitial)
+    if (draft.lastName) setLastName(draft.lastName)
+    if (draft.ssn) setSsn(draft.ssn)
+    if (draft.spouseFirstName) setSpouseFirstName(draft.spouseFirstName)
+    if (draft.spouseMiddleInitial) setSpouseMiddleInitial(draft.spouseMiddleInitial)
+    if (draft.spouseLastName) setSpouseLastName(draft.spouseLastName)
+    if (draft.spouseSsn) setSpouseSsn(draft.spouseSsn)
+    if (draft.homeAddress) setHomeAddress(draft.homeAddress)
+    if (draft.aptNo) setAptNo(draft.aptNo)
+    if (draft.city) setCity(draft.city)
+    if (draft.state) setState(draft.state)
+    if (draft.zipCode) setZipCode(draft.zipCode)
+    
+    setYouBornBefore1960(draft.youBornBefore1960 || false)
+    setYouBlind(draft.youBlind || false)
+    setSpouseBornBefore1960(draft.spouseBornBefore1960 || false)
+    setSpouseBlind(draft.spouseBlind || false)
+
+    if (draft.wages !== undefined) setWages(draft.wages)
+    if (draft.taxableInterest !== undefined) setTaxableInterest(draft.taxableInterest)
+    if (draft.ordinaryDividends !== undefined) setOrdinaryDividends(draft.ordinaryDividends)
+    if (draft.qualifiedDividends !== undefined) setQualifiedDividends(draft.qualifiedDividends)
+    if (draft.iraDistributions !== undefined) setIraDistributions(draft.iraDistributions)
+    if (draft.taxableIRA !== undefined) setTaxableIRA(draft.taxableIRA)
+    if (draft.pensionsAnnuities !== undefined) setPensionsAnnuities(draft.pensionsAnnuities)
+    if (draft.taxablePensions !== undefined) setTaxablePensions(draft.taxablePensions)
+    if (draft.socialSecurity !== undefined) setSocialSecurity(draft.socialSecurity)
+    if (draft.taxableSocialSecurity !== undefined) setTaxableSocialSecurity(draft.taxableSocialSecurity)
+    if (draft.capitalGainLoss !== undefined) setCapitalGainLoss(draft.capitalGainLoss)
+    if (draft.otherIncome !== undefined) setOtherIncome(draft.otherIncome)
+
+    if (draft.scheduleC_grossReceipts !== undefined) setScheduleC_grossReceipts(draft.scheduleC_grossReceipts)
+    if (draft.scheduleC_expenses !== undefined) setScheduleC_expenses(draft.scheduleC_expenses)
+
+    if (draft.withholding !== undefined) setWithholding(draft.withholding)
+    if (draft.estimatedPayments !== undefined) setEstimatedPayments(draft.estimatedPayments)
+
+    if (draft.dependents) setDependents(draft.dependents)
+  }
+
+  // Limpiar borrador después de guardar exitosamente
+  const clearDraft = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`)
+    }
+  }
+
   const handleAutoPopulate = async () => {
     if (!activeCompany?.id) {
       toast.error('Seleccione una empresa primero')
@@ -204,24 +308,66 @@ export default function Form1040Page() {
         const result = await response.json()
         const autoData = result.data || result.autoData
 
+        // Variables temporales para actualizar el estado
+        let newWages = wages
+        let newTaxableInterest = taxableInterest
+        let newOrdinaryDividends = ordinaryDividends
+        let newQualifiedDividends = qualifiedDividends
+        let newOtherIncome = otherIncome
+        let newScheduleC_grossReceipts = scheduleC_grossReceipts
+        let newScheduleC_expenses = scheduleC_expenses
+        let newWithholding = withholding
+
         if (autoData.income) {
-          setWages(autoData.income.wages || 0)
-          setTaxableInterest(autoData.income.taxableInterest || 0)
-          setOrdinaryDividends(autoData.income.ordinaryDividends || 0)
-          setQualifiedDividends(autoData.income.qualifiedDividends || 0)
-          setOtherIncome(autoData.income.otherIncome || 0)
+          newWages = autoData.income.wages || 0
+          newTaxableInterest = autoData.income.taxableInterest || 0
+          newOrdinaryDividends = autoData.income.ordinaryDividends || 0
+          newQualifiedDividends = autoData.income.qualifiedDividends || 0
+          newOtherIncome = autoData.income.otherIncome || 0
+          
+          setWages(newWages)
+          setTaxableInterest(newTaxableInterest)
+          setOrdinaryDividends(newOrdinaryDividends)
+          setQualifiedDividends(newQualifiedDividends)
+          setOtherIncome(newOtherIncome)
         }
 
         if (autoData.scheduleC) {
-          setScheduleC_grossReceipts(autoData.scheduleC.grossReceipts || 0)
-          setScheduleC_expenses(autoData.scheduleC.expenses || 0)
+          newScheduleC_grossReceipts = autoData.scheduleC.grossReceipts || 0
+          newScheduleC_expenses = autoData.scheduleC.expenses || 0
+          
+          setScheduleC_grossReceipts(newScheduleC_grossReceipts)
+          setScheduleC_expenses(newScheduleC_expenses)
         }
 
         if (autoData.payments) {
-          setWithholding(autoData.payments.withholding || 0)
+          newWithholding = autoData.payments.withholding || 0
+          setWithholding(newWithholding)
         }
 
-        toast.success('Datos cargados desde la empresa')
+        // Mostrar resumen de lo que se cargó
+        const loadedItems = []
+        if (autoData.income) loadedItems.push('Ingresos')
+        if (autoData.scheduleC) loadedItems.push('Schedule C')
+        if (autoData.payments) loadedItems.push('Pagos/Retenciones')
+        
+        toast.success(
+          `✅ Datos cargados: ${loadedItems.join(', ')}\n📋 Los datos se guardan automáticamente como borrador`,
+          { duration: 4000 }
+        )
+
+        // Informar al usuario sobre el guardado automático de borrador
+        if (firstName && lastName && ssn && homeAddress && city && state && zipCode) {
+          toast.success(
+            '💾 Información personal completa detectada. Presione "Guardar Formulario" para guardar en la base de datos.',
+            { duration: 5000 }
+          )
+        } else {
+          toast(
+            '📝 Complete la información personal (nombre, SSN, dirección) para poder guardar el formulario.',
+            { duration: 5000, icon: 'ℹ️' }
+          )
+        }
       } else {
         throw new Error('Error al cargar datos')
       }
@@ -308,7 +454,9 @@ export default function Form1040Page() {
         if (result.aiSuggestions) {
           setAISuggestions(result.aiSuggestions)
         }
-        toast.success('Form 1040 guardado correctamente')
+        // Limpiar borrador después de guardar exitosamente
+        clearDraft()
+        toast.success('✅ Form 1040 guardado correctamente en la base de datos')
         loadExistingForm()
       } else {
         throw new Error('Error al guardar')
@@ -427,6 +575,34 @@ export default function Form1040Page() {
             </Select>
           </div>
         </div>
+
+        {/* Draft Status Card - Mostrar si hay datos sin guardar */}
+        {!existingForm && draftLoaded && (firstName || wages > 0 || scheduleC_grossReceipts > 0) && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-6 h-6 text-amber-600" />
+                  <div>
+                    <p className="font-semibold text-amber-800">📋 Borrador en Progreso</p>
+                    <p className="text-sm text-amber-700">
+                      Sus datos se guardan automáticamente en el navegador. Complete la información personal para guardar en la base de datos.
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={clearDraft}
+                  className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpiar Borrador
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Status Card */}
         {existingForm && (
