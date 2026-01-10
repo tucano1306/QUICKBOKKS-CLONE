@@ -308,7 +308,8 @@ export default function NewExpensePage() {
           amount: Number.parseFloat(formData.amount),
           employeeId: formData.employeeId || null,
           classId: formData.classId || null,
-          locationId: formData.locationId || null
+          locationId: formData.locationId || null,
+          companyId: activeCompany?.id // CRÍTICO: pasar companyId activo
         })
       })
 

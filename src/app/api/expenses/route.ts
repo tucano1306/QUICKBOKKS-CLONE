@@ -81,6 +81,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const categoryId = searchParams.get('categoryId')
+    const companyIdParam = searchParams.get('companyId')
     
     // Validate pagination
     const { page, limit, error: paginationError } = validatePagination(request)
@@ -88,13 +89,29 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit
 
+    // Construir filtro base - SIEMPRE filtrar por companyId si está disponible
+    // para evitar cruce de datos entre empresas
+    let companyId = companyIdParam
+    if (!companyId) {
+      // Buscar la compañía del usuario actual
+      const userCompany = await prisma.companyUser.findFirst({
+        where: { userId: session.user.id },
+        select: { companyId: true }
+      })
+      companyId = userCompany?.companyId || null
+    }
+
+    // Construir where clause con aislamiento de datos por empresa
+    const whereClause = {
+      userId: session.user.id,
+      ...(companyId && { companyId }), // CRÍTICO: filtrar por empresa
+      ...(status && { status: status as any }),
+      ...(categoryId && { categoryId }),
+    }
+
     const [expenses, total] = await Promise.all([
       prisma.expense.findMany({
-        where: {
-          userId: session.user.id,
-          ...(status && { status: status as any }),
-          ...(categoryId && { categoryId }),
-        },
+        where: whereClause,
         include: {
           category: true,
         },
@@ -105,11 +122,7 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       prisma.expense.count({
-        where: {
-          userId: session.user.id,
-          ...(status && { status: status as any }),
-          ...(categoryId && { categoryId }),
-        },
+        where: whereClause,
       }),
     ])
 
@@ -156,13 +169,18 @@ export async function POST(request: NextRequest) {
       taxAmount,
       notes,
       attachments,
+      companyId: requestCompanyId, // Acepta companyId explícito del frontend
     } = body
 
-    // Buscar companyId del usuario
-    const userCompany = await prisma.companyUser.findFirst({
-      where: { userId: session.user.id },
-      select: { companyId: true }
-    });
+    // Usar companyId del request o buscar del usuario
+    let companyId = requestCompanyId
+    if (!companyId) {
+      const userCompany = await prisma.companyUser.findFirst({
+        where: { userId: session.user.id },
+        select: { companyId: true }
+      })
+      companyId = userCompany?.companyId || null
+    }
 
     // ATÓMICO: Crear gasto Y journal entry en la misma transacción de BD
     const result = await prisma.$transaction(async (tx) => {
@@ -170,7 +188,7 @@ export async function POST(request: NextRequest) {
       const expense = await tx.expense.create({
         data: {
           userId: session.user.id,
-          companyId: userCompany?.companyId || null,
+          companyId: companyId || null,
           categoryId,
           amount: Number.parseFloat(amount),
           date: parseDate(date),
@@ -190,9 +208,8 @@ export async function POST(request: NextRequest) {
       });
 
       // 2. Si hay companyId, crear Journal Entry (opcional, no bloqueante)
-      if (userCompany?.companyId) {
+      if (companyId) {
         try {
-          const companyId = userCompany.companyId;
           const expDate = parseDate(date);
           const categoryName = expense.category?.name || 'General';
           const expAmount = Number.parseFloat(amount);

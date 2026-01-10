@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,7 @@ interface Expense {
 export default function ExpensesListPage() {
   const router = useRouter()
   const { status } = useSession()
+  const { activeCompany } = useCompany()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,17 +92,20 @@ export default function ExpensesListPage() {
 
   // Load expenses and categories
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && activeCompany) {
       loadData()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status])
+  }, [status, activeCompany])
 
   const loadData = async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
     try {
       // Load expenses - usar limit=2000 para cargar todos los gastos
-      const expensesRes = await fetch('/api/expenses?limit=2000')
+      // CRÍTICO: pasar companyId para evitar cruce de datos entre empresas
+      const expensesRes = await fetch(`/api/expenses?limit=2000&companyId=${activeCompany.id}`)
       if (expensesRes.ok) {
         const expensesData = await expensesRes.json()
         // La API puede devolver { data: [...] } o un array directo

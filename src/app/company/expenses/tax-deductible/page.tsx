@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,6 +35,7 @@ interface DeductibleExpense {
 export default function TaxDeductibleExpensesPage() {
   const router = useRouter()
   const { status } = useSession()
+  const { activeCompany } = useCompany()
   const [expenses, setExpenses] = useState<DeductibleExpense[]>([])
   const [filteredExpenses, setFilteredExpenses] = useState<DeductibleExpense[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,17 +59,20 @@ export default function TaxDeductibleExpensesPage() {
   }, [status, router])
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && activeCompany) {
       loadData()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status])
+  }, [status, activeCompany])
 
   const loadData = async () => {
+    if (!activeCompany) return
+    
     setLoading(true)
     try {
       // Load deductible expenses - usar limit=500 para cargar todos
-      const response = await fetch('/api/expenses?deductible=true&limit=500')
+      // CRÍTICO: pasar companyId para evitar cruce de datos entre empresas
+      const response = await fetch(`/api/expenses?deductible=true&limit=500&companyId=${activeCompany.id}`)
       if (response.ok) {
         const data = await response.json()
         const dataArray = Array.isArray(data) ? data : (data.data || [])
