@@ -96,6 +96,27 @@ Tu nombre es "FinanceBot" y tienes las siguientes capacidades:
 5. **Análisis financiero**: Detectar anomalías, identificar oportunidades de ahorro, forecasting.
 6. **Búsqueda inteligente**: Buscar transacciones, facturas, gastos por múltiples criterios.
 7. **Automatizaciones**: Configurar reglas automáticas, recordatorios, alertas.
+8. **LLENAR FORM 1040 (IMPUESTOS)**: Puedes llenar el formulario IRS Form 1040 con datos que el usuario te proporcione. 
+   - SABES EXACTAMENTE dónde va cada tipo de ingreso y gasto en el formulario
+   - Conoces todas las líneas del Form 1040 y Schedule C
+   - Puedes explicar dónde poner cada tipo de gasto (seguros, salarios, licencias, vehículo, etc.)
+   - Calculas deducciones y estimados de impuestos
+
+GUÍA DE UBICACIÓN EN FORM 1040 (Memoriza esto):
+- Salarios W-2 → Línea 1a
+- Ingresos de negocio → Schedule C → Línea 8
+- Gastos de negocio → Schedule C:
+  * Publicidad → Línea 8
+  * Vehículo → Línea 9
+  * Seguros → Línea 15
+  * Servicios profesionales → Línea 17
+  * Alquiler → Línea 20b
+  * Suministros → Línea 22
+  * Licencias e impuestos → Línea 23
+  * Viajes → Línea 24a
+  * Comidas (50%) → Línea 24b
+  * Servicios públicos → Línea 25
+  * Salarios a empleados → Línea 26
 
 REGLAS IMPORTANTES:
 - DEBES usar las funciones disponibles para ejecutar acciones reales en el sistema
@@ -106,6 +127,10 @@ REGLAS IMPORTANTES:
 - Habla siempre en español de manera profesional pero amigable
 - Cuando crees entidades (facturas, gastos), proporciona los IDs generados
 - Si detectas errores o inconsistencias, alertar al usuario
+- CUANDO EL USUARIO PREGUNTE SOBRE IMPUESTOS O FORM 1040:
+  * Usa fill_form_1040 para guardar datos en el formulario
+  * Usa get_form_1040_help para explicar dónde van los gastos
+  * Usa calculate_tax_deductions para estimar deducciones
 
 FORMATO DE RESPUESTA:
 - Sé conciso pero completo
@@ -323,6 +348,142 @@ const AGENT_FUNCTIONS = [
         },
       },
       required: ['description', 'amount'],
+    },
+  },
+  // ============== FUNCIONES FORM 1040 ==============
+  {
+    name: 'fill_form_1040',
+    description: 'Llena el formulario IRS Form 1040 con los datos proporcionados. Usa esta función cuando el usuario te proporcione información de ingresos, gastos de negocio, deducciones, etc. La IA sabe exactamente en qué línea del formulario va cada dato.',
+    parameters: {
+      type: 'object',
+      properties: {
+        taxYear: {
+          type: 'number',
+          description: 'Año fiscal (ej: 2025)',
+        },
+        personalInfo: {
+          type: 'object',
+          description: 'Información personal del contribuyente',
+          properties: {
+            firstName: { type: 'string', description: 'Nombre' },
+            middleInitial: { type: 'string', description: 'Inicial del segundo nombre' },
+            lastName: { type: 'string', description: 'Apellido' },
+            ssn: { type: 'string', description: 'Número de Seguro Social (SSN)' },
+            homeAddress: { type: 'string', description: 'Dirección' },
+            city: { type: 'string', description: 'Ciudad' },
+            state: { type: 'string', description: 'Estado (ej: FL)' },
+            zipCode: { type: 'string', description: 'Código postal' },
+          },
+        },
+        filingStatus: {
+          type: 'string',
+          enum: ['SINGLE', 'MARRIED_FILING_JOINTLY', 'MARRIED_FILING_SEPARATELY', 'HEAD_OF_HOUSEHOLD', 'QUALIFYING_SURVIVING_SPOUSE'],
+          description: 'Estado civil para declarar',
+        },
+        income: {
+          type: 'object',
+          description: 'Ingresos del año',
+          properties: {
+            wages: { type: 'number', description: 'Salarios W-2 (Línea 1a)' },
+            taxableInterest: { type: 'number', description: 'Intereses gravables (Línea 2b)' },
+            ordinaryDividends: { type: 'number', description: 'Dividendos ordinarios (Línea 3b)' },
+            qualifiedDividends: { type: 'number', description: 'Dividendos calificados (Línea 3a)' },
+            iraDistributions: { type: 'number', description: 'Distribuciones IRA (Línea 4a)' },
+            taxableIRA: { type: 'number', description: 'Distribuciones IRA gravables (Línea 4b)' },
+            pensionsAnnuities: { type: 'number', description: 'Pensiones y anualidades (Línea 5a)' },
+            taxablePensions: { type: 'number', description: 'Pensiones gravables (Línea 5b)' },
+            socialSecurity: { type: 'number', description: 'Beneficios de Seguro Social (Línea 6a)' },
+            taxableSocialSecurity: { type: 'number', description: 'Seguro Social gravable (Línea 6b)' },
+            capitalGainLoss: { type: 'number', description: 'Ganancia/pérdida de capital (Línea 7)' },
+            otherIncome: { type: 'number', description: 'Otros ingresos (Línea 8)' },
+          },
+        },
+        scheduleC: {
+          type: 'object',
+          description: 'Negocio propio / Self-Employment (Schedule C)',
+          properties: {
+            grossReceipts: { type: 'number', description: 'Ingresos brutos del negocio' },
+            expenses: { type: 'number', description: 'Total de gastos del negocio' },
+            // Gastos detallados de Schedule C
+            advertising: { type: 'number', description: 'Publicidad y marketing' },
+            carAndTruck: { type: 'number', description: 'Gastos de vehículo (millas o gastos reales)' },
+            commissions: { type: 'number', description: 'Comisiones y honorarios' },
+            insurance: { type: 'number', description: 'Seguros del negocio (salud, responsabilidad, etc.)' },
+            legalAndProfessional: { type: 'number', description: 'Servicios legales y profesionales (contadores, abogados)' },
+            officeExpense: { type: 'number', description: 'Gastos de oficina' },
+            rentOrLease: { type: 'number', description: 'Alquiler o arrendamiento de local/equipo' },
+            repairs: { type: 'number', description: 'Reparaciones y mantenimiento' },
+            supplies: { type: 'number', description: 'Suministros y materiales' },
+            taxes: { type: 'number', description: 'Impuestos y licencias del negocio' },
+            travel: { type: 'number', description: 'Viajes de negocio' },
+            meals: { type: 'number', description: 'Comidas de negocio (50% deducible)' },
+            utilities: { type: 'number', description: 'Servicios públicos (electricidad, agua, internet)' },
+            wages: { type: 'number', description: 'Salarios pagados a empleados' },
+            otherExpenses: { type: 'number', description: 'Otros gastos del negocio' },
+          },
+        },
+        payments: {
+          type: 'object',
+          description: 'Pagos y retenciones de impuestos',
+          properties: {
+            withholding: { type: 'number', description: 'Retención federal de W-2 (Línea 25a)' },
+            estimatedPayments: { type: 'number', description: 'Pagos estimados realizados (Línea 26)' },
+          },
+        },
+        dependents: {
+          type: 'array',
+          description: 'Dependientes',
+          items: {
+            type: 'object',
+            properties: {
+              firstName: { type: 'string' },
+              lastName: { type: 'string' },
+              ssn: { type: 'string' },
+              relationship: { type: 'string', description: 'Relación (hijo, hija, padre, etc.)' },
+              childTaxCredit: { type: 'boolean', description: '¿Califica para crédito tributario por hijos?' },
+            },
+          },
+        },
+      },
+      required: ['taxYear'],
+    },
+  },
+  {
+    name: 'get_form_1040_help',
+    description: 'Proporciona ayuda y explicación sobre dónde van los datos en el Form 1040. Explica las líneas específicas y qué información pertenece a cada sección.',
+    parameters: {
+      type: 'object',
+      properties: {
+        question: {
+          type: 'string',
+          description: 'Pregunta sobre el Form 1040 (ej: "¿Dónde pongo los gastos de seguro?")',
+        },
+        expenseType: {
+          type: 'string',
+          description: 'Tipo de gasto o ingreso sobre el que pregunta',
+        },
+      },
+      required: ['question'],
+    },
+  },
+  {
+    name: 'calculate_tax_deductions',
+    description: 'Calcula las deducciones fiscales óptimas para el contribuyente basándose en sus datos',
+    parameters: {
+      type: 'object',
+      properties: {
+        filingStatus: {
+          type: 'string',
+          enum: ['SINGLE', 'MARRIED_FILING_JOINTLY', 'MARRIED_FILING_SEPARATELY', 'HEAD_OF_HOUSEHOLD'],
+          description: 'Estado civil',
+        },
+        totalIncome: { type: 'number', description: 'Ingreso total' },
+        businessExpenses: { type: 'number', description: 'Gastos de negocio' },
+        homeOffice: { type: 'boolean', description: '¿Usa oficina en casa?' },
+        vehicleExpenses: { type: 'number', description: 'Gastos de vehículo' },
+        healthInsurance: { type: 'number', description: 'Seguro de salud pagado' },
+      },
+      required: ['filingStatus', 'totalIncome'],
     },
   },
 ];
@@ -913,6 +1074,456 @@ async function categorizeExpense(params: any): Promise<any> {
   };
 }
 
+// ============== FUNCIONES FORM 1040 ==============
+
+/**
+ * Llena el Form 1040 con los datos proporcionados por el usuario
+ * La IA mapea automáticamente cada dato a la línea correcta del formulario
+ */
+async function fillForm1040(params: any, userId: string): Promise<any> {
+  const { saveForm1040 } = await import('./form-1040-service');
+  
+  const taxYear = params.taxYear || new Date().getFullYear() - 1;
+  
+  // Construir datos de income
+  const income = params.income || {};
+  const calculatedIncome = {
+    wages: income.wages || 0,
+    taxableInterest: income.taxableInterest || 0,
+    ordinaryDividends: income.ordinaryDividends || 0,
+    qualifiedDividends: income.qualifiedDividends || 0,
+    iraDistributions: income.iraDistributions || 0,
+    taxableIRA: income.taxableIRA || 0,
+    pensionsAnnuities: income.pensionsAnnuities || 0,
+    taxablePensions: income.taxablePensions || 0,
+    socialSecurity: income.socialSecurity || 0,
+    taxableSocialSecurity: income.taxableSocialSecurity || 0,
+    capitalGainLoss: income.capitalGainLoss || 0,
+    otherIncome: income.otherIncome || 0,
+    totalIncome: (income.wages || 0) + (income.taxableInterest || 0) + 
+                 (income.ordinaryDividends || 0) + (income.taxableIRA || 0) + 
+                 (income.taxablePensions || 0) + (income.taxableSocialSecurity || 0) + 
+                 (income.capitalGainLoss || 0) + (income.otherIncome || 0),
+  };
+
+  // Construir Schedule C (negocio)
+  const scheduleC = params.scheduleC || {};
+  let totalScheduleCExpenses = scheduleC.expenses || 0;
+  
+  // Si hay gastos detallados, sumarlos
+  if (!totalScheduleCExpenses && scheduleC) {
+    totalScheduleCExpenses = (scheduleC.advertising || 0) + 
+      (scheduleC.carAndTruck || 0) + 
+      (scheduleC.commissions || 0) + 
+      (scheduleC.insurance || 0) + 
+      (scheduleC.legalAndProfessional || 0) + 
+      (scheduleC.officeExpense || 0) + 
+      (scheduleC.rentOrLease || 0) + 
+      (scheduleC.repairs || 0) + 
+      (scheduleC.supplies || 0) + 
+      (scheduleC.taxes || 0) + 
+      (scheduleC.travel || 0) + 
+      (Math.round((scheduleC.meals || 0) * 0.5)) + // 50% deducible
+      (scheduleC.utilities || 0) + 
+      (scheduleC.wages || 0) + 
+      (scheduleC.otherExpenses || 0);
+  }
+
+  const calculatedScheduleC = {
+    grossReceipts: scheduleC.grossReceipts || 0,
+    expenses: totalScheduleCExpenses,
+    netProfit: (scheduleC.grossReceipts || 0) - totalScheduleCExpenses,
+    // Detalle de gastos
+    advertising: scheduleC.advertising || 0,
+    carAndTruck: scheduleC.carAndTruck || 0,
+    commissions: scheduleC.commissions || 0,
+    insurance: scheduleC.insurance || 0,
+    legalAndProfessional: scheduleC.legalAndProfessional || 0,
+    officeExpense: scheduleC.officeExpense || 0,
+    rentOrLease: scheduleC.rentOrLease || 0,
+    repairs: scheduleC.repairs || 0,
+    supplies: scheduleC.supplies || 0,
+    taxes: scheduleC.taxes || 0,
+    travel: scheduleC.travel || 0,
+    meals: scheduleC.meals || 0,
+    utilities: scheduleC.utilities || 0,
+    wages: scheduleC.wages || 0,
+    otherExpenses: scheduleC.otherExpenses || 0,
+  };
+
+  // Pagos
+  const payments = params.payments || {};
+  const calculatedPayments = {
+    withholding: payments.withholding || 0,
+    estimatedPayments: payments.estimatedPayments || 0,
+    totalPayments: (payments.withholding || 0) + (payments.estimatedPayments || 0),
+  };
+
+  // Buscar companyId del usuario
+  const userCompany = await prisma.companyUser.findFirst({
+    where: { userId },
+    select: { companyId: true }
+  });
+
+  try {
+    const form1040 = await saveForm1040(
+      {
+        userId,
+        companyId: userCompany?.companyId,
+        taxYear,
+        filingStatus: params.filingStatus || 'SINGLE',
+        personalInfo: params.personalInfo || {},
+        additionalDeductions: {},
+        dependents: params.dependents || [],
+      },
+      {
+        income: calculatedIncome,
+        scheduleC: calculatedScheduleC,
+        payments: calculatedPayments,
+      }
+    );
+
+    // Crear resumen de lo que se llenó
+    const summary = [];
+    if (calculatedIncome.totalIncome > 0) {
+      summary.push(`📊 Ingresos Totales: $${calculatedIncome.totalIncome.toLocaleString()}`);
+    }
+    if (calculatedScheduleC.grossReceipts > 0) {
+      summary.push(`💼 Schedule C - Ingresos del Negocio: $${calculatedScheduleC.grossReceipts.toLocaleString()}`);
+      summary.push(`📝 Schedule C - Gastos del Negocio: $${calculatedScheduleC.expenses.toLocaleString()}`);
+      summary.push(`✅ Schedule C - Ganancia Neta: $${calculatedScheduleC.netProfit.toLocaleString()}`);
+    }
+    if (calculatedPayments.totalPayments > 0) {
+      summary.push(`💰 Pagos/Retenciones: $${calculatedPayments.totalPayments.toLocaleString()}`);
+    }
+
+    return {
+      success: true,
+      message: `✅ Form 1040 para ${taxYear} ha sido llenado correctamente`,
+      formId: form1040.id,
+      summary: summary.join('\n'),
+      details: {
+        taxYear,
+        income: calculatedIncome,
+        scheduleC: calculatedScheduleC,
+        payments: calculatedPayments,
+        filingStatus: params.filingStatus || 'SINGLE',
+      },
+      nextSteps: [
+        'Revise los datos en la página del Form 1040',
+        'Complete la información personal si no la proporcionó',
+        'Guarde el formulario para ver los cálculos de impuestos',
+      ],
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+      message: 'Error al guardar el Form 1040. Por favor intente de nuevo.',
+    };
+  }
+}
+
+/**
+ * Proporciona ayuda sobre dónde van los datos en el Form 1040
+ */
+async function getForm1040Help(params: any): Promise<any> {
+  const question = params.question?.toLowerCase() || '';
+  const expenseType = params.expenseType?.toLowerCase() || '';
+  
+  // Base de conocimiento sobre Form 1040
+  const form1040Knowledge: Record<string, any> = {
+    // Seguros
+    seguro: {
+      line: 'Schedule C, Línea 15 (Insurance)',
+      explanation: '🏥 Los seguros del negocio (responsabilidad civil, salud para empleados, propiedad) van en Schedule C Línea 15. El seguro de salud del dueño puede ser deducible en la Línea 16 del Form 1040 como ajuste.',
+      deductible: true,
+    },
+    insurance: {
+      line: 'Schedule C, Línea 15',
+      explanation: '🏥 Business insurance goes on Schedule C Line 15. Self-employed health insurance is an above-the-line deduction on Form 1040 Line 16.',
+      deductible: true,
+    },
+    // Salarios
+    salario: {
+      line: 'Schedule C, Línea 26 (Wages)',
+      explanation: '👥 Los salarios pagados a empleados van en Schedule C Línea 26. Incluye sueldos, bonos y comisiones. No incluya su propio "salario" como dueño - eso es ganancia del negocio.',
+      deductible: true,
+    },
+    wages: {
+      line: 'Schedule C, Línea 26',
+      explanation: '👥 Wages paid to employees go on Schedule C Line 26. This includes salaries, bonuses, and commissions.',
+      deductible: true,
+    },
+    // Licencias
+    licencia: {
+      line: 'Schedule C, Línea 23 (Taxes and Licenses)',
+      explanation: '📜 Las licencias de negocio, permisos y registros van en Schedule C Línea 23 junto con impuestos del negocio (no impuestos federales sobre la renta).',
+      deductible: true,
+    },
+    license: {
+      line: 'Schedule C, Línea 23',
+      explanation: '📜 Business licenses, permits, and registrations go on Schedule C Line 23 along with business taxes.',
+      deductible: true,
+    },
+    // Vehículo
+    vehiculo: {
+      line: 'Schedule C, Línea 9 (Car and Truck Expenses)',
+      explanation: '🚗 Gastos de vehículo para negocio van en Schedule C Línea 9. Puede usar el método estándar ($0.67/milla en 2024) o gastos reales (gasolina, seguro, mantenimiento).',
+      deductible: true,
+    },
+    car: {
+      line: 'Schedule C, Línea 9',
+      explanation: '🚗 Vehicle expenses for business go on Schedule C Line 9. Use standard mileage rate or actual expenses.',
+      deductible: true,
+    },
+    // Publicidad
+    publicidad: {
+      line: 'Schedule C, Línea 8 (Advertising)',
+      explanation: '📢 Gastos de publicidad y marketing van en Schedule C Línea 8. Incluye anuncios online, tarjetas de presentación, letreros, etc.',
+      deductible: true,
+    },
+    advertising: {
+      line: 'Schedule C, Línea 8',
+      explanation: '📢 Advertising and marketing expenses go on Schedule C Line 8.',
+      deductible: true,
+    },
+    // Alquiler
+    alquiler: {
+      line: 'Schedule C, Línea 20b (Rent - Other)',
+      explanation: '🏢 Alquiler de local comercial o equipo va en Schedule C Línea 20b. Si trabaja desde casa, puede usar la deducción de oficina en casa.',
+      deductible: true,
+    },
+    rent: {
+      line: 'Schedule C, Línea 20b',
+      explanation: '🏢 Rent for business property or equipment goes on Schedule C Line 20b.',
+      deductible: true,
+    },
+    // Servicios profesionales
+    contador: {
+      line: 'Schedule C, Línea 17 (Legal and Professional Services)',
+      explanation: '⚖️ Honorarios de contadores, abogados y otros profesionales van en Schedule C Línea 17.',
+      deductible: true,
+    },
+    legal: {
+      line: 'Schedule C, Línea 17',
+      explanation: '⚖️ Legal and professional fees go on Schedule C Line 17.',
+      deductible: true,
+    },
+    // Suministros
+    suministros: {
+      line: 'Schedule C, Línea 22 (Supplies)',
+      explanation: '📦 Suministros y materiales del negocio van en Schedule C Línea 22. Incluye materiales de oficina, herramientas pequeñas, etc.',
+      deductible: true,
+    },
+    supplies: {
+      line: 'Schedule C, Línea 22',
+      explanation: '📦 Business supplies and materials go on Schedule C Line 22.',
+      deductible: true,
+    },
+    // Comidas
+    comida: {
+      line: 'Schedule C, Línea 24b (Meals - 50%)',
+      explanation: '🍽️ Comidas de negocio son 50% deducibles y van en Schedule C Línea 24b. Debe haber propósito de negocio claro.',
+      deductible: true,
+      percentage: 50,
+    },
+    meals: {
+      line: 'Schedule C, Línea 24b',
+      explanation: '🍽️ Business meals are 50% deductible on Schedule C Line 24b.',
+      deductible: true,
+      percentage: 50,
+    },
+    // Viajes
+    viaje: {
+      line: 'Schedule C, Línea 24a (Travel)',
+      explanation: '✈️ Gastos de viaje de negocio (hotel, avión, etc.) van en Schedule C Línea 24a. Deben ser viajes lejos de su área de trabajo normal.',
+      deductible: true,
+    },
+    travel: {
+      line: 'Schedule C, Línea 24a',
+      explanation: '✈️ Business travel expenses go on Schedule C Line 24a.',
+      deductible: true,
+    },
+    // Utilidades
+    utilidad: {
+      line: 'Schedule C, Línea 25 (Utilities)',
+      explanation: '💡 Servicios públicos del negocio (electricidad, agua, internet, teléfono) van en Schedule C Línea 25.',
+      deductible: true,
+    },
+    utilities: {
+      line: 'Schedule C, Línea 25',
+      explanation: '💡 Business utilities go on Schedule C Line 25.',
+      deductible: true,
+    },
+    // Ingresos
+    ingreso: {
+      line: 'Form 1040, Líneas 1-8 + Schedule C',
+      explanation: '💵 Los ingresos dependen del tipo: Salarios W-2 → Línea 1a. Negocio propio → Schedule C → Línea 8. Intereses → Línea 2b. Dividendos → Línea 3b.',
+      deductible: false,
+    },
+  };
+
+  // Buscar respuesta
+  let response = null;
+  for (const [key, value] of Object.entries(form1040Knowledge)) {
+    if (question.includes(key) || expenseType.includes(key)) {
+      response = value;
+      break;
+    }
+  }
+
+  if (!response) {
+    // Respuesta genérica con guía completa
+    return {
+      success: true,
+      message: '📋 Guía Rápida del Form 1040 para Negocios:',
+      guide: {
+        scheduleC: {
+          title: 'Schedule C - Ganancias/Pérdidas del Negocio',
+          lines: {
+            'Línea 1': 'Ingresos brutos del negocio',
+            'Línea 8': 'Publicidad y marketing',
+            'Línea 9': 'Gastos de vehículo',
+            'Línea 15': 'Seguros del negocio',
+            'Línea 17': 'Servicios legales y profesionales',
+            'Línea 20b': 'Alquiler de local/equipo',
+            'Línea 22': 'Suministros',
+            'Línea 23': 'Impuestos y licencias',
+            'Línea 24a': 'Viajes de negocio',
+            'Línea 24b': 'Comidas (50% deducible)',
+            'Línea 25': 'Servicios públicos',
+            'Línea 26': 'Salarios a empleados',
+            'Línea 27': 'Otros gastos',
+          },
+        },
+        form1040: {
+          title: 'Form 1040 Principal',
+          lines: {
+            'Línea 1a': 'Salarios W-2',
+            'Línea 2b': 'Intereses gravables',
+            'Línea 3b': 'Dividendos ordinarios',
+            'Línea 8': 'Otros ingresos (incluye Schedule C)',
+            'Línea 12': 'Deducción estándar',
+            'Línea 25a': 'Retención federal W-2',
+            'Línea 26': 'Pagos estimados',
+          },
+        },
+      },
+      tip: '💡 Si me dice qué tipo de gasto tiene, le digo exactamente dónde ponerlo.',
+    };
+  }
+
+  return {
+    success: true,
+    ...response,
+    tip: 'Si necesita ayuda con otro gasto, solo pregúnteme.',
+  };
+}
+
+/**
+ * Calcula las deducciones fiscales óptimas
+ */
+async function calculateTaxDeductions(params: any): Promise<any> {
+  const { calculateStandardDeduction } = await import('./form-1040-service');
+  
+  const filingStatus = params.filingStatus || 'SINGLE';
+  const totalIncome = params.totalIncome || 0;
+  const businessExpenses = params.businessExpenses || 0;
+  const vehicleExpenses = params.vehicleExpenses || 0;
+  const healthInsurance = params.healthInsurance || 0;
+  
+  // Calcular deducción estándar
+  const standardDeduction = calculateStandardDeduction(filingStatus);
+  
+  // Calcular deducciones itemizadas potenciales
+  const itemizedDeductions = {
+    stateAndLocalTaxes: Math.min(10000, totalIncome * 0.05), // SALT cap $10,000
+    mortgageInterest: 0, // Usuario debe proporcionar
+    charitableContributions: 0, // Usuario debe proporcionar
+    medicalExpenses: 0, // Solo si excede 7.5% del AGI
+  };
+  
+  const totalItemized = Object.values(itemizedDeductions).reduce((a, b) => a + b, 0);
+  
+  // Deducciones del negocio (Schedule C)
+  const businessDeductions = {
+    totalExpenses: businessExpenses,
+    vehicleExpenses: vehicleExpenses,
+    healthInsurance: healthInsurance, // Deducción above-the-line
+    selfEmploymentTax: (totalIncome - businessExpenses) * 0.0765, // 7.65% deducción SE tax
+    qbiDeduction: Math.min((totalIncome - businessExpenses) * 0.20, 0), // 20% QBI si califica
+  };
+  
+  // Recomendación
+  const recommendItemized = totalItemized > standardDeduction;
+  
+  return {
+    success: true,
+    analysis: {
+      standardDeduction,
+      itemizedDeductions: totalItemized,
+      recommendation: recommendItemized ? 'ITEMIZAR' : 'DEDUCCIÓN ESTÁNDAR',
+      savings: recommendItemized 
+        ? totalItemized - standardDeduction 
+        : standardDeduction - totalItemized,
+    },
+    businessDeductions,
+    taxEstimate: {
+      adjustedGrossIncome: totalIncome - businessExpenses - healthInsurance,
+      taxableIncome: Math.max(0, totalIncome - businessExpenses - healthInsurance - standardDeduction),
+      estimatedTax: calculateEstimatedTax(totalIncome - businessExpenses - healthInsurance - standardDeduction, filingStatus),
+      selfEmploymentTax: (totalIncome - businessExpenses) * 0.153, // 15.3% SE tax
+    },
+    tips: [
+      '💡 Maximice las deducciones del Schedule C documentando todos los gastos',
+      '🚗 Use el método estándar de millas si sus gastos reales son menores',
+      '🏥 El seguro de salud por cuenta propia es una deducción above-the-line',
+      '📱 No olvide deducir el % de uso comercial de celular e internet',
+    ],
+  };
+}
+
+// Helper para calcular impuesto estimado
+function calculateEstimatedTax(taxableIncome: number, filingStatus: string): number {
+  if (taxableIncome <= 0) return 0;
+  
+  // Tax brackets 2024 simplificados
+  const brackets = filingStatus === 'MARRIED_FILING_JOINTLY' 
+    ? [
+        { limit: 23200, rate: 0.10 },
+        { limit: 94300, rate: 0.12 },
+        { limit: 201050, rate: 0.22 },
+        { limit: 383900, rate: 0.24 },
+        { limit: 487450, rate: 0.32 },
+        { limit: 731200, rate: 0.35 },
+        { limit: Infinity, rate: 0.37 },
+      ]
+    : [
+        { limit: 11600, rate: 0.10 },
+        { limit: 47150, rate: 0.12 },
+        { limit: 100525, rate: 0.22 },
+        { limit: 191950, rate: 0.24 },
+        { limit: 243725, rate: 0.32 },
+        { limit: 609350, rate: 0.35 },
+        { limit: Infinity, rate: 0.37 },
+      ];
+
+  let tax = 0;
+  let remainingIncome = taxableIncome;
+  let previousLimit = 0;
+
+  for (const bracket of brackets) {
+    const taxableInBracket = Math.min(remainingIncome, bracket.limit - previousLimit);
+    if (taxableInBracket <= 0) break;
+    tax += taxableInBracket * bracket.rate;
+    remainingIncome -= taxableInBracket;
+    previousLimit = bracket.limit;
+  }
+
+  return Math.round(tax);
+}
+
 // ============== EJECUCIÓN DE FUNCIONES ==============
 
 async function executeFunction(
@@ -939,6 +1550,13 @@ async function executeFunction(
       return await analyzeExpenses(args, userId);
     case 'categorize_expense':
       return await categorizeExpense(args);
+    // ========== FUNCIONES FORM 1040 ==========
+    case 'fill_form_1040':
+      return await fillForm1040(args, userId);
+    case 'get_form_1040_help':
+      return await getForm1040Help(args);
+    case 'calculate_tax_deductions':
+      return await calculateTaxDeductions(args);
     default:
       throw new Error(`Función desconocida: ${functionName}`);
   }
