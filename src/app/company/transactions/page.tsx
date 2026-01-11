@@ -49,6 +49,10 @@ export default function TransactionsPage() {
   const [maxAmount, setMaxAmount] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
+  // Filtro por mes y año específico
+  const [filterMonth, setFilterMonth] = useState('')
+  const [filterYear, setFilterYear] = useState('')
+
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
@@ -110,15 +114,31 @@ export default function TransactionsPage() {
       
       // Filtro por monto máximo
       if (maxAmount && t.amount > Number.parseFloat(maxAmount)) return false
+
+      // Filtro por mes y año específico
+      if (filterMonth || filterYear) {
+        const transDate = new Date(t.date)
+        if (filterMonth && filterYear) {
+          const month = parseInt(filterMonth)
+          const year = parseInt(filterYear)
+          if (transDate.getMonth() + 1 !== month || transDate.getFullYear() !== year) return false
+        } else if (filterMonth) {
+          const month = parseInt(filterMonth)
+          if (transDate.getMonth() + 1 !== month) return false
+        } else if (filterYear) {
+          const year = parseInt(filterYear)
+          if (transDate.getFullYear() !== year) return false
+        }
+      }
       
       return true
     })
-  }, [transactions, filter, searchText, dateFrom, dateTo, minAmount, maxAmount])
+  }, [transactions, filter, searchText, dateFrom, dateTo, minAmount, maxAmount, filterMonth, filterYear])
 
   // Reset página cuando cambian filtros
   useEffect(() => {
     setCurrentPage(1)
-  }, [filter, searchText, dateFrom, dateTo, minAmount, maxAmount])
+  }, [filter, searchText, dateFrom, dateTo, minAmount, maxAmount, filterMonth, filterYear])
 
   // Calcular datos paginados
   const paginatedTransactions = useMemo(() => {
@@ -217,9 +237,11 @@ export default function TransactionsPage() {
     setMinAmount('')
     setMaxAmount('')
     setFilter('ALL')
+    setFilterMonth('')
+    setFilterYear('')
   }
 
-  const hasActiveFilters = searchText || dateFrom || dateTo || minAmount || maxAmount
+  const hasActiveFilters = searchText || dateFrom || dateTo || minAmount || maxAmount || filterMonth || filterYear
 
   // Exportar a CSV
   const exportToCSV = () => {
@@ -490,6 +512,65 @@ export default function TransactionsPage() {
                     onChange={(e) => setMaxAmount(e.target.value)}
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Segunda fila - Filtro por Mes y Año */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
+              {/* Filtro por Mes */}
+              <div>
+                <label htmlFor="trans-filter-month" className="text-sm font-medium mb-1 block">📅 Mes específico</label>
+                <select
+                  id="trans-filter-month"
+                  value={filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Todos los meses</option>
+                  <option value="1">Enero</option>
+                  <option value="2">Febrero</option>
+                  <option value="3">Marzo</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Mayo</option>
+                  <option value="6">Junio</option>
+                  <option value="7">Julio</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+              </div>
+
+              {/* Filtro por Año */}
+              <div>
+                <label htmlFor="trans-filter-year" className="text-sm font-medium mb-1 block">📆 Año específico</label>
+                <select
+                  id="trans-filter-year"
+                  value={filterYear}
+                  onChange={(e) => setFilterYear(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Todos los años</option>
+                  {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                    <option key={year} value={year.toString()}>{year}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Indicador de filtro activo */}
+              <div className="flex items-end lg:col-span-2">
+                {(filterMonth || filterYear) && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg text-sm text-green-700">
+                    <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
+                    <button 
+                      onClick={() => { setFilterMonth(''); setFilterYear(''); }}
+                      className="text-green-500 hover:text-green-700 font-medium"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             

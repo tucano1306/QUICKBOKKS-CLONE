@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Search, Edit, Trash2, DollarSign, Calendar, User, FileText, PlusCircle, Send, Download, Eye } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, DollarSign, Calendar, User, FileText, PlusCircle, Send, Download, Eye, Filter, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Invoice {
@@ -52,6 +52,13 @@ export default function InvoicesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
 
+  // Estados para filtros adicionales
+  const [filterMonth, setFilterMonth] = useState<string>('')
+  const [filterYear, setFilterYear] = useState<string>('')
+  const [minAmount, setMinAmount] = useState<string>('')
+  const [maxAmount, setMaxAmount] = useState<string>('')
+  const [showFilters, setShowFilters] = useState(false)
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
@@ -69,7 +76,8 @@ export default function InvoicesPage() {
       filtered = filtered.filter(
         (invoice) =>
           invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          invoice.customer?.name.toLowerCase().includes(searchTerm.toLowerCase())
+          invoice.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          invoice.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -77,9 +85,53 @@ export default function InvoicesPage() {
       filtered = filtered.filter((invoice) => invoice.status === statusFilter)
     }
 
+    // Filtro por mes y año específico
+    if (filterMonth || filterYear) {
+      filtered = filtered.filter((invoice) => {
+        const invoiceDate = new Date(invoice.issueDate)
+        if (filterMonth && filterYear) {
+          const month = parseInt(filterMonth)
+          const year = parseInt(filterYear)
+          return invoiceDate.getMonth() + 1 === month && invoiceDate.getFullYear() === year
+        } else if (filterMonth) {
+          const month = parseInt(filterMonth)
+          return invoiceDate.getMonth() + 1 === month
+        } else if (filterYear) {
+          const year = parseInt(filterYear)
+          return invoiceDate.getFullYear() === year
+        }
+        return true
+      })
+    }
+
+    // Filtro por monto mínimo
+    if (minAmount) {
+      const min = parseFloat(minAmount)
+      filtered = filtered.filter((invoice) => invoice.total >= min)
+    }
+
+    // Filtro por monto máximo
+    if (maxAmount) {
+      const max = parseFloat(maxAmount)
+      filtered = filtered.filter((invoice) => invoice.total <= max)
+    }
+
     setFilteredInvoices(filtered)
     setCurrentPage(1) // Reset página cuando cambian filtros
-  }, [searchTerm, statusFilter, invoices])
+  }, [searchTerm, statusFilter, invoices, filterMonth, filterYear, minAmount, maxAmount])
+
+  // Helper para verificar si hay filtros activos
+  const hasActiveFilters = searchTerm || statusFilter !== 'all' || filterMonth || filterYear || minAmount || maxAmount
+
+  // Función para limpiar todos los filtros
+  const clearFilters = () => {
+    setSearchTerm('')
+    setStatusFilter('all')
+    setFilterMonth('')
+    setFilterYear('')
+    setMinAmount('')
+    setMaxAmount('')
+  }
 
   // Datos paginados
   const paginatedInvoices = useMemo(() => {
@@ -273,8 +325,24 @@ export default function InvoicesPage() {
         <Card className="shadow-md">
           <CardHeader className="p-3 sm:p-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              <CardTitle className="text-[#0D2942] text-base sm:text-lg">Lista de Facturas</CardTitle>
+              <CardTitle className="text-[#0D2942] text-base sm:text-lg">
+                Lista de Facturas
+                {hasActiveFilters && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    ({filteredInvoices.length} de {invoices.length})
+                  </span>
+                )}
+              </CardTitle>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center gap-2"
+                >
+                  <Filter className="w-4 h-4" />
+                  Filtros {hasActiveFilters && '●'}
+                </Button>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -297,6 +365,93 @@ export default function InvoicesPage() {
                 </div>
               </div>
             </div>
+
+            {/* Panel de Filtros Expandible */}
+            {showFilters && (
+              <div className="px-3 sm:px-6 pb-4 border-t border-gray-100 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Filtro por Mes */}
+                  <div>
+                    <label htmlFor="invoice-filter-month" className="text-sm font-medium mb-1 block">📅 Mes específico</label>
+                    <select
+                      id="invoice-filter-month"
+                      value={filterMonth}
+                      onChange={(e) => setFilterMonth(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">Todos los meses</option>
+                      <option value="1">Enero</option>
+                      <option value="2">Febrero</option>
+                      <option value="3">Marzo</option>
+                      <option value="4">Abril</option>
+                      <option value="5">Mayo</option>
+                      <option value="6">Junio</option>
+                      <option value="7">Julio</option>
+                      <option value="8">Agosto</option>
+                      <option value="9">Septiembre</option>
+                      <option value="10">Octubre</option>
+                      <option value="11">Noviembre</option>
+                      <option value="12">Diciembre</option>
+                    </select>
+                  </div>
+
+                  {/* Filtro por Año */}
+                  <div>
+                    <label htmlFor="invoice-filter-year" className="text-sm font-medium mb-1 block">📆 Año específico</label>
+                    <select
+                      id="invoice-filter-year"
+                      value={filterYear}
+                      onChange={(e) => setFilterYear(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">Todos los años</option>
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                        <option key={year} value={year.toString()}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Monto mínimo */}
+                  <div>
+                    <label htmlFor="invoice-min-amount" className="text-sm font-medium mb-1 block">💵 Monto mínimo</label>
+                    <Input
+                      id="invoice-min-amount"
+                      type="number"
+                      placeholder="0"
+                      value={minAmount}
+                      onChange={(e) => setMinAmount(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Monto máximo */}
+                  <div>
+                    <label htmlFor="invoice-max-amount" className="text-sm font-medium mb-1 block">💵 Monto máximo</label>
+                    <Input
+                      id="invoice-max-amount"
+                      type="number"
+                      placeholder="∞"
+                      value={maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Indicador y botón limpiar */}
+                <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  {(filterMonth || filterYear) && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg text-sm text-green-700">
+                      <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
+                    </div>
+                  )}
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="h-4 w-4 mr-1" />
+                      Limpiar filtros
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0 sm:p-6 sm:pt-0">
             {/* Mobile View - Cards */}

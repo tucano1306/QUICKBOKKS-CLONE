@@ -79,6 +79,10 @@ export default function ExpensesListPage() {
   const [dateFrom, setDateFrom] = useState<string>('')
   const [dateTo, setDateTo] = useState<string>('')
 
+  // Estados para filtro de mes y año específico
+  const [filterMonth, setFilterMonth] = useState<string>('')
+  const [filterYear, setFilterYear] = useState<string>('')
+
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
@@ -200,10 +204,32 @@ export default function ExpensesListPage() {
       filtered = filtered.filter(e => new Date(e.date) <= toDate)
     }
 
+    // Filtro por mes y año específico
+    if (filterMonth && filterYear) {
+      const month = parseInt(filterMonth)
+      const year = parseInt(filterYear)
+      filtered = filtered.filter(e => {
+        const expenseDate = new Date(e.date)
+        return expenseDate.getMonth() + 1 === month && expenseDate.getFullYear() === year
+      })
+    } else if (filterMonth) {
+      const month = parseInt(filterMonth)
+      filtered = filtered.filter(e => {
+        const expenseDate = new Date(e.date)
+        return expenseDate.getMonth() + 1 === month
+      })
+    } else if (filterYear) {
+      const year = parseInt(filterYear)
+      filtered = filtered.filter(e => {
+        const expenseDate = new Date(e.date)
+        return expenseDate.getFullYear() === year
+      })
+    }
+
     setFilteredExpenses(filtered)
     calculateStats(filtered) // Actualizar estadísticas con datos filtrados
     setCurrentPage(1) // Reset a página 1 cuando cambian los filtros
-  }, [searchTerm, statusFilter, categoryFilter, dateFrom, dateTo, expenses])
+  }, [searchTerm, statusFilter, categoryFilter, dateFrom, dateTo, filterMonth, filterYear, expenses])
 
   // Calcular datos paginados
   const paginatedExpenses = useMemo(() => {
@@ -866,14 +892,78 @@ export default function ExpensesListPage() {
               ))}
             </select>
           </div>
+
+          {/* Segunda fila - Filtro por Mes y Año */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-3 pt-3 border-t border-gray-100">
+            {/* Filtro por Mes */}
+            <div>
+              <label htmlFor="expense-filter-month" className="block text-xs text-gray-500 mb-1">📅 Mes</label>
+              <select
+                id="expense-filter-month"
+                value={filterMonth}
+                onChange={e => setFilterMonth(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos los meses</option>
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+              </select>
+            </div>
+
+            {/* Filtro por Año */}
+            <div>
+              <label htmlFor="expense-filter-year" className="block text-xs text-gray-500 mb-1">📆 Año</label>
+              <select
+                id="expense-filter-year"
+                value={filterYear}
+                onChange={e => setFilterYear(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos los años</option>
+                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                  <option key={year} value={year.toString()}>{year}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Indicador de filtro activo */}
+            <div className="flex items-end lg:col-span-2">
+              {(filterMonth || filterYear) && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg text-sm text-blue-700">
+                  <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
+                  <button 
+                    onClick={() => { setFilterMonth(''); setFilterYear(''); }}
+                    className="text-blue-500 hover:text-blue-700 font-medium"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
           
-          {/* Segunda fila con botón de limpiar */}
+          {/* Tercera fila con botón de limpiar */}
           <div className="mt-3 flex justify-between items-center">
             <div className="text-sm text-gray-500">
               {filteredExpenses.length} de {expenses.length} gastos
               {(dateFrom || dateTo) && (
                 <span className="ml-2 text-blue-600">
                   • Filtrando por fecha
+                </span>
+              )}
+              {(filterMonth || filterYear) && (
+                <span className="ml-2 text-green-600">
+                  • Filtrando por mes/año
                 </span>
               )}
             </div>
@@ -887,6 +977,8 @@ export default function ExpensesListPage() {
                 setCategoryFilter('ALL')
                 setDateFrom('')
                 setDateTo('')
+                setFilterMonth('')
+                setFilterYear('')
               }}
             >
               <Filter className="h-4 w-4 mr-2" />
