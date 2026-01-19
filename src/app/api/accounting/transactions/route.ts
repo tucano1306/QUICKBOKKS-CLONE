@@ -47,8 +47,11 @@ export async function GET(request: NextRequest) {
         expense: { include: { category: true } },
         invoice: { include: { customer: true } }
       },
-      orderBy: { date: 'desc' },
-      take: 100
+      orderBy: [
+        { date: 'desc' },
+        { id: 'desc' }
+      ],
+      take: 1000
     })
 
     // Obtener gastos
@@ -72,8 +75,11 @@ export async function GET(request: NextRequest) {
       include: {
         category: true
       },
-      orderBy: { date: 'desc' },
-      take: 100
+      orderBy: [
+        { date: 'desc' },
+        { id: 'desc' }
+      ],
+      take: 1000
     })
 
     // Obtener facturas pagadas (ingresos)
@@ -91,8 +97,11 @@ export async function GET(request: NextRequest) {
       include: {
         customer: true
       },
-      orderBy: { paidDate: 'desc' },
-      take: 100
+      orderBy: [
+        { paidDate: 'desc' },
+        { id: 'desc' }
+      ],
+      take: 1000
     })
 
     // Combinar y formatear transacciones

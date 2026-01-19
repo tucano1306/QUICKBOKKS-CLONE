@@ -35,8 +35,11 @@ export async function GET(request: NextRequest) {
         customer: true,
         payments: true
       },
-      orderBy: { createdAt: 'desc' },
-      take: 100
+      orderBy: [
+        { createdAt: 'desc' },
+        { id: 'desc' }
+      ],
+      take: 1000
     })
 
     // Get payments
@@ -49,8 +52,11 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { paymentDate: 'desc' },
-      take: 100
+      orderBy: [
+        { paymentDate: 'desc' },
+        { id: 'desc' }
+      ],
+      take: 1000
     })
 
     // Transform to unified transaction format

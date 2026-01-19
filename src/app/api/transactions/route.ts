@@ -81,9 +81,14 @@ export async function GET(request: NextRequest) {
 
     const transactions = await prisma.transaction.findMany({
       where,
-      orderBy: { date: 'desc' },
-      take: 100
+      orderBy: [
+        { date: 'desc' },
+        { id: 'desc' }
+      ],
+      take: 1000
     })
+
+    console.log(`[Transactions API] Fetched ${transactions.length} transactions for companyId: ${companyId}`)
 
     // Calcular totales
     const income = transactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + (t.amount || 0), 0)
@@ -145,6 +150,8 @@ export async function POST(request: NextRequest) {
           notes
         }
       })
+
+      console.log(`[Transaction Created] ID: ${transaction.id}, CompanyID: ${companyId}, Type: ${type}, Amount: ${txAmount}, Date: ${txDate.toISOString()}`)
 
       // 2. Intentar crear journal entry (opcional, no bloqueante)
       let journalEntry = null;
