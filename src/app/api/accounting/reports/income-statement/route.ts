@@ -136,6 +136,18 @@ async function processLegacyData(
     include: { category: true }
   });
 
+  console.log(`📊 Income Statement - Total Expenses found: ${expenses.length}`);
+  
+  const salarioExpenses = expenses.filter(e => {
+    const catName = (e.category as any)?.name || '';
+    return catName.toLowerCase().includes('salario');
+  });
+  
+  if (salarioExpenses.length > 0) {
+    const totalSalarios = salarioExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    console.log(`💰 Salarios in Expenses table: ${salarioExpenses.length} records, Total: $${totalSalarios.toFixed(2)}`);
+  }
+
   for (const exp of expenses) {
     if (txWithJE.has(exp.id)) continue;
     legacyExpenses += exp.amount || 0;
@@ -201,6 +213,16 @@ export async function GET(request: NextRequest) {
         legacy: { income: legacyIncome, expenses: legacyExpenses }
       }
     };
+
+    // Log de resumen para debug
+    const salarioCategories = Object.values(journalData.expensesByCategory).filter(c => 
+      c.name.toLowerCase().includes('salario')
+    );
+    if (salarioCategories.length > 0) {
+      const totalSalariosInStatement = salarioCategories.reduce((sum, c) => sum + c.amount, 0);
+      console.log(`💼 Total Salarios in Income Statement: $${totalSalariosInStatement.toFixed(2)}`);
+      console.log(`📋 Breakdown:`, salarioCategories.map(c => `${c.name}: $${c.amount.toFixed(2)}`).join(', '));
+    }
 
     return NextResponse.json({ period: { startDate, endDate }, incomeStatement });
   } catch (error: unknown) {
