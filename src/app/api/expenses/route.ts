@@ -102,9 +102,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Construir where clause con aislamiento de datos por empresa
+    // Si hay companyId, filtrar por empresa (NO por userId individual)
+    // para que muestre TODOS los gastos de la empresa
     const whereClause = {
-      userId: session.user.id,
-      ...(companyId && { companyId }), // CRÍTICO: filtrar por empresa
+      ...(companyId ? { companyId } : { userId: session.user.id }), // CRÍTICO: filtrar por empresa o por usuario
       ...(status && { status: status as any }),
       ...(categoryId && { categoryId }),
     }
