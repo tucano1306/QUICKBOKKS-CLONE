@@ -45,7 +45,9 @@ interface Expense {
     type: string
   }
   employee: {
-    name: string
+    id: string
+    firstName: string
+    lastName: string
   } | null
   createdAt: string
 }
@@ -170,7 +172,11 @@ export default function ExpensesListPage() {
         const descMatch = e.description?.toLowerCase()?.includes(term) || false
         const vendorMatch = e.vendor?.toLowerCase()?.includes(term) || false
         const categoryMatch = e.category?.name?.toLowerCase()?.includes(term) || false
-        const employeeMatch = e.employee?.name?.toLowerCase()?.includes(term) || false
+        // Buscar en nombre completo del empleado (firstName + lastName)
+        const employeeFullName = e.employee 
+          ? `${e.employee.firstName} ${e.employee.lastName}`.toLowerCase()
+          : ''
+        const employeeMatch = employeeFullName.includes(term)
         const refMatch = e.reference?.toLowerCase()?.includes(term) || false
         const paymentMatch = e.paymentMethod?.toLowerCase()?.includes(term) || false
         const amountMatch = e.amount?.toString()?.includes(term) || false

@@ -114,6 +114,13 @@ export async function GET(request: NextRequest) {
         where: whereClause,
         include: {
           category: true,
+          employee: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            }
+          },
         },
         orderBy: {
           date: 'desc',
