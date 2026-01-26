@@ -163,10 +163,44 @@ export default function ExpensesListPage() {
   // Filter expenses
   useEffect(() => {
     let filtered = expenses
+    
+    console.log(`📊 Total gastos cargados: ${expenses.length}`)
 
     // Search filter - búsqueda inteligente en múltiples campos
     if (searchTerm && searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim()
+      
+      // Debug: mostrar gastos que coinciden con "salario" en cualquier campo
+      if (term.includes('salario')) {
+        const salarioMatches = expenses.filter(e => {
+          const categoryName = e.category?.name?.toLowerCase() || ''
+          return categoryName.includes('salario')
+        })
+        console.log(`💼 Gastos con categoría "Salario": ${salarioMatches.length}`)
+        console.log('📋 Categorías únicas:', [...new Set(salarioMatches.map(e => e.category?.name))].join(', '))
+        
+        // Buscar el gasto del 31/12/2025 por $1,819.16
+        const dec31Expense = expenses.find(e => {
+          const date = new Date(e.date)
+          return date.getDate() === 31 && 
+                 date.getMonth() === 11 && 
+                 date.getFullYear() === 2025 &&
+                 Math.abs(e.amount - 1819.16) < 0.01
+        })
+        
+        if (dec31Expense) {
+          console.log('🎯 Gasto del 31/12/2025 encontrado:', {
+            fecha: new Date(dec31Expense.date).toLocaleDateString('es-MX'),
+            monto: dec31Expense.amount,
+            categoria: dec31Expense.category?.name,
+            descripcion: dec31Expense.description,
+            vendor: dec31Expense.vendor
+          })
+        } else {
+          console.log('❌ Gasto del 31/12/2025 por $1,819.16 NO encontrado en expenses')
+        }
+      }
+      
       filtered = filtered.filter(e => {
         // Verificar cada campo de forma segura
         const descMatch = e.description?.toLowerCase()?.includes(term) || false
