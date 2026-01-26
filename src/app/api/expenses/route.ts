@@ -101,6 +101,20 @@ export async function GET(request: NextRequest) {
       companyId = userCompany?.companyId || null
     }
 
+    // Si se proporciona companyId, verificar que el usuario tenga acceso
+    if (companyId) {
+      const hasAccess = await prisma.companyUser.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: companyId
+        }
+      })
+      
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+      }
+    }
+
     // Construir where clause con aislamiento de datos por empresa
     // Si hay companyId, filtrar por empresa (NO por userId individual)
     // para que muestre TODOS los gastos de la empresa
@@ -109,6 +123,9 @@ export async function GET(request: NextRequest) {
       ...(status && { status: status as any }),
       ...(categoryId && { categoryId }),
     }
+    
+    console.log('🔍 Expenses API - whereClause:', JSON.stringify(whereClause))
+    console.log('🔍 Expenses API - limit:', limit, 'skip:', skip)
 
     const [expenses, total] = await Promise.all([
       prisma.expense.findMany({
@@ -133,6 +150,8 @@ export async function GET(request: NextRequest) {
         where: whereClause,
       }),
     ])
+
+    console.log('✅ Expenses API - Resultados:', expenses.length, 'de', total, 'total')
 
     return NextResponse.json({
       data: expenses,

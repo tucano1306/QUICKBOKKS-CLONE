@@ -143,7 +143,7 @@ export default function CustomersPage() {
     if (!activeCompany) return
     
     try {
-      const response = await fetch(`/api/customers?companyId=${activeCompany.id}`)
+      const response = await fetch(`/api/customers?companyId=${activeCompany.id}&limit=5000`)
       if (response.ok) {
         const result = await response.json()
         const data = result.data || result

@@ -145,7 +145,7 @@ export default function InvoicesPage() {
     if (!activeCompany) return
     
     try {
-      const response = await fetch(`/api/invoices?companyId=${activeCompany.id}`)
+      const response = await fetch(`/api/invoices?companyId=${activeCompany.id}&limit=5000`)
       if (response.ok) {
         const result = await response.json()
         const data = result.data || result

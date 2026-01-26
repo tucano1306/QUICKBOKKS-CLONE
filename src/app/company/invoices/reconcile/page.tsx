@@ -72,7 +72,7 @@ export default function ReconcilePage() {
     setIsLoading(true)
     try {
       // Fetch unpaid/overdue invoices
-      const invoicesRes = await fetch(`/api/invoices?companyId=${activeCompany.id}&status=PENDING,OVERDUE`)
+      const invoicesRes = await fetch(`/api/invoices?companyId=${activeCompany.id}&status=PENDING,OVERDUE&limit=5000`)
       const invoicesData = await invoicesRes.json()
       
       // Fetch bank transactions that might be unmatched payments

@@ -101,7 +101,7 @@ export default function CustomerPortalPage() {
     
     setLoading(true)
     try {
-      const response = await fetch(`/api/customers?companyId=${activeCompany.id}`)
+      const response = await fetch(`/api/customers?companyId=${activeCompany.id}&limit=5000`)
       if (response.ok) {
         const data = await response.json()
         const customers = Array.isArray(data) ? data : (data.customers || [])

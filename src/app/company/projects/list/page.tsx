@@ -122,7 +122,7 @@ export default function ProjectsListPage() {
   const fetchCustomers = useCallback(async () => {
     if (!activeCompany) return
     try {
-      const response = await fetch(`/api/customers?companyId=${activeCompany.id}`)
+      const response = await fetch(`/api/customers?companyId=${activeCompany.id}&limit=5000`)
       if (response.ok) {
         const data = await response.json()
         setCustomers(data.customers || [])

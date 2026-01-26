@@ -71,7 +71,7 @@ export default function MetricsPage() {
       const statsData = await statsResponse.json();
       
       // Fetch invoices for revenue metrics
-      const invoicesResponse = await fetch(`/api/invoices?companyId=${activeCompany.id}`);
+      const invoicesResponse = await fetch(`/api/invoices?companyId=${activeCompany.id}&limit=5000`);
       const invoicesData = await invoicesResponse.json();
       
       // Fetch expenses for expense metrics  

@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const customerId = searchParams.get('customerId')
+    const companyIdParam = searchParams.get('companyId')
     
     // Validate pagination
     const { page, limit, error: paginationError } = validatePagination(request)
@@ -27,10 +28,34 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit
 
+    // Obtener companyId del usuario si no se proporciona
+    let companyId = companyIdParam
+    if (!companyId) {
+      const userCompany = await prisma.companyUser.findFirst({
+        where: { userId: session.user.id },
+        select: { companyId: true }
+      })
+      companyId = userCompany?.companyId || null
+    }
+
+    // Verificar que el usuario tenga acceso a esta empresa
+    if (companyId) {
+      const hasAccess = await prisma.companyUser.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: companyId
+        }
+      })
+      
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+      }
+    }
+
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
         where: {
-          userId: session.user.id,
+          ...(companyId ? { companyId } : { userId: session.user.id }),
           ...(status && { status: status as any }),
           ...(customerId && { customerId }),
         },
@@ -63,7 +88,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.invoice.count({
         where: {
-          userId: session.user.id,
+          ...(companyId ? { companyId } : { userId: session.user.id }),
           ...(status && { status: status as any }),
           ...(customerId && { customerId }),
         },

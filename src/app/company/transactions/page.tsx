@@ -62,7 +62,7 @@ export default function TransactionsPage() {
     
     setLoading(true)
     try {
-      const res = await fetch(`/api/transactions?companyId=${activeCompany.id}`)
+      const res = await fetch(`/api/transactions?companyId=${activeCompany.id}&limit=5000`)
       if (res.ok) {
         const data = await res.json()
         setTransactions(data.transactions || [])

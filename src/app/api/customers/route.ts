@@ -26,6 +26,20 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit
 
+    // Verificar que el usuario tenga acceso a esta empresa
+    if (companyId !== 'default-company-001') {
+      const hasAccess = await prisma.companyUser.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: companyId
+        }
+      })
+      
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+      }
+    }
+
     const [customers, total] = await Promise.all([
       prisma.customer.findMany({
         where: {

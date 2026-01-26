@@ -85,7 +85,7 @@ export default function PaymentLinksPage() {
     if (!activeCompany?.id) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/invoices?companyId=${activeCompany.id}&hasPaymentLink=true`)
+      const res = await fetch(`/api/invoices?companyId=${activeCompany.id}&hasPaymentLink=true&limit=5000`)
       if (res.ok) {
         const data = await res.json()
         const links = (data.invoices || []).filter((inv: any) => inv.paymentLinkId).map((inv: any) => ({
@@ -108,7 +108,7 @@ export default function PaymentLinksPage() {
       }
       
       // Also load invoices without payment links for the generator
-      const invRes = await fetch(`/api/invoices?companyId=${activeCompany.id}`)
+      const invRes = await fetch(`/api/invoices?companyId=${activeCompany.id}&limit=5000`)
       if (invRes.ok) {
         const invData = await invRes.json()
         const pendingInvoices = (invData.invoices || []).filter((inv: any) => 

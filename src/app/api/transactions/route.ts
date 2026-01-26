@@ -62,9 +62,22 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') // 'INCOME' | 'EXPENSE' | 'TRANSFER'
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const limit = parseInt(searchParams.get('limit') || '5000', 10)
 
     if (!companyId) {
       return NextResponse.json({ error: 'companyId requerido' }, { status: 400 })
+    }
+
+    // Verificar que el usuario tenga acceso a esta empresa
+    const hasAccess = await prisma.companyUser.findFirst({
+      where: {
+        userId: session.user.id,
+        companyId: companyId
+      }
+    })
+    
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
     }
 
     const where: any = { companyId }
@@ -79,13 +92,15 @@ export async function GET(request: NextRequest) {
       if (endDate) where.date.lte = new Date(endDate)
     }
 
+    console.log('🔍 Transactions API - whereClause:', JSON.stringify(where), 'limit:', limit)
+
     const transactions = await prisma.transaction.findMany({
       where,
       orderBy: [
         { date: 'desc' },
         { id: 'desc' }
       ],
-      take: 1000
+      take: limit
     })
 
     console.log(`[Transactions API] Fetched ${transactions.length} transactions for companyId: ${companyId}`)

@@ -109,9 +109,9 @@ export default function ExpensesListPage() {
     
     setLoading(true)
     try {
-      // Load expenses - usar limit=2000 para cargar todos los gastos
+      // Load expenses - usar limit=5000 para cargar todos los gastos
       // CRÍTICO: pasar companyId para evitar cruce de datos entre empresas
-      const expensesRes = await fetch(`/api/expenses?limit=2000&companyId=${activeCompany.id}`)
+      const expensesRes = await fetch(`/api/expenses?limit=5000&companyId=${activeCompany.id}`)
       if (expensesRes.ok) {
         const expensesData = await expensesRes.json()
         // La API puede devolver { data: [...] } o un array directo
