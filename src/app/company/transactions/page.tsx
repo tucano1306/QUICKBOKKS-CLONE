@@ -215,11 +215,13 @@ export default function TransactionsPage() {
 
   // Eliminar individual
   const deleteTransaction = async (id: string) => {
+    if (!activeCompany?.id) return
+    
     const confirmDelete = globalThis.confirm('¿Eliminar esta transacción?')
     if (!confirmDelete) return
     
     try {
-      const res = await fetch(`/api/transactions?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/transactions/${id}?companyId=${activeCompany.id}`, { method: 'DELETE' })
       if (res.ok) {
         loadTransactions()
       }

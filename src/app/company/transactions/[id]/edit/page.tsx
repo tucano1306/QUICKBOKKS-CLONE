@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,6 +39,7 @@ export default function EditTransactionPage() {
   const router = useRouter()
   const params = useParams()
   const { status } = useSession()
+  const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -89,16 +91,18 @@ export default function EditTransactionPage() {
   }, [status, router])
 
   useEffect(() => {
-    if (status === 'authenticated' && transactionId) {
+    if (status === 'authenticated' && transactionId && activeCompany?.id) {
       loadTransaction()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, transactionId])
+  }, [status, transactionId, activeCompany?.id])
 
   const loadTransaction = async () => {
+    if (!activeCompany?.id) return
+    
     try {
       setLoading(true)
-      const response = await fetch(`/api/transactions/${transactionId}`)
+      const response = await fetch(`/api/transactions/${transactionId}?companyId=${activeCompany.id}`)
       
       if (response.ok) {
         const data: Transaction = await response.json()
@@ -163,13 +167,20 @@ export default function EditTransactionPage() {
       return
     }
 
+    if (!activeCompany?.id) {
+      setMessage({ type: 'error', text: 'No hay empresa activa' })
+      setSaving(false)
+      return
+    }
+
     try {
       const response = await fetch(`/api/transactions/${transactionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          amount: Number.parseFloat(formData.amount)
+          amount: Number.parseFloat(formData.amount),
+          companyId: activeCompany.id
         })
       })
 
@@ -190,7 +201,7 @@ export default function EditTransactionPage() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading' || loading || !activeCompany) {
     return (
       <CompanyTabsLayout>
         <div className="flex items-center justify-center min-h-[400px]">

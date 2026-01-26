@@ -163,9 +163,11 @@ export default function TransactionDetailPage() {
   }
 
   const loadTransaction = async () => {
+    if (!activeCompany?.id) return
+    
     try {
       setLoading(true)
-      const response = await fetch(`/api/transactions/${transactionId}`)
+      const response = await fetch(`/api/transactions/${transactionId}?companyId=${activeCompany.id}`)
       
       if (response.ok) {
         const data = await response.json()
@@ -188,9 +190,14 @@ export default function TransactionDetailPage() {
       return
     }
 
+    if (!activeCompany?.id) {
+      setError('No hay empresa activa')
+      return
+    }
+
     try {
       setDeleting(true)
-      const response = await fetch(`/api/transactions/${transactionId}`, {
+      const response = await fetch(`/api/transactions/${transactionId}?companyId=${activeCompany.id}`, {
         method: 'DELETE'
       })
 

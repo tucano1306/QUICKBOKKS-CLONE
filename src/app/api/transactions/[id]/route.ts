@@ -62,20 +62,45 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    // Buscar la compañía del usuario
-    const userCompany = await prisma.companyUser.findFirst({
-      where: { userId: session.user.id },
-      select: { companyId: true }
-    })
+    // Obtener companyId de los query params (enviado desde el frontend)
+    const { searchParams } = new URL(request.url)
+    const requestedCompanyId = searchParams.get('companyId')
 
-    if (!userCompany) {
-      return NextResponse.json({ error: 'No tienes una empresa asociada' }, { status: 403 })
+    // Determinar qué empresa usar
+    let companyId: string
+
+    if (requestedCompanyId) {
+      // Verificar que el usuario tenga acceso a esta empresa
+      const hasAccess = await prisma.companyUser.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: requestedCompanyId
+        }
+      })
+
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+      }
+
+      companyId = requestedCompanyId
+    } else {
+      // Fallback: Buscar la primera compañía del usuario (compatibilidad con código antiguo)
+      const userCompany = await prisma.companyUser.findFirst({
+        where: { userId: session.user.id },
+        select: { companyId: true }
+      })
+
+      if (!userCompany) {
+        return NextResponse.json({ error: 'No tienes una empresa asociada' }, { status: 403 })
+      }
+
+      companyId = userCompany.companyId
     }
 
     const transaction = await prisma.transaction.findFirst({
       where: {
         id: id,
-        companyId: userCompany.companyId
+        companyId: companyId
       }
     })
 
@@ -103,21 +128,46 @@ export async function PUT(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    // Buscar la compañía del usuario
-    const userCompany = await prisma.companyUser.findFirst({
-      where: { userId: session.user.id },
-      select: { companyId: true }
-    })
+    // Obtener el body primero para acceder a companyId si está presente
+    const body = await request.json()
+    const requestedCompanyId = body.companyId
 
-    if (!userCompany) {
-      return NextResponse.json({ error: 'No tienes una empresa asociada' }, { status: 403 })
+    // Determinar qué empresa usar
+    let companyId: string
+
+    if (requestedCompanyId) {
+      // Verificar que el usuario tenga acceso a esta empresa
+      const hasAccess = await prisma.companyUser.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: requestedCompanyId
+        }
+      })
+
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+      }
+
+      companyId = requestedCompanyId
+    } else {
+      // Fallback: Buscar la primera compañía del usuario
+      const userCompany = await prisma.companyUser.findFirst({
+        where: { userId: session.user.id },
+        select: { companyId: true }
+      })
+
+      if (!userCompany) {
+        return NextResponse.json({ error: 'No tienes una empresa asociada' }, { status: 403 })
+      }
+
+      companyId = userCompany.companyId
     }
 
     // Verificar que la transacción existe y pertenece a la empresa
     const existingTransaction = await prisma.transaction.findFirst({
       where: {
         id: transactionId,
-        companyId: userCompany.companyId
+        companyId: companyId
       }
     })
 
@@ -125,7 +175,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Transacción no encontrada' }, { status: 404 })
     }
 
-    const body = await request.json()
     const {
       type,
       category,
@@ -188,21 +237,46 @@ export async function DELETE(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    // Buscar la compañía del usuario
-    const userCompany = await prisma.companyUser.findFirst({
-      where: { userId: session.user.id },
-      select: { companyId: true }
-    })
+    // Obtener companyId de los query params
+    const { searchParams } = new URL(request.url)
+    const requestedCompanyId = searchParams.get('companyId')
 
-    if (!userCompany) {
-      return NextResponse.json({ error: 'No tienes una empresa asociada' }, { status: 403 })
+    // Determinar qué empresa usar
+    let companyId: string
+
+    if (requestedCompanyId) {
+      // Verificar que el usuario tenga acceso a esta empresa
+      const hasAccess = await prisma.companyUser.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: requestedCompanyId
+        }
+      })
+
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+      }
+
+      companyId = requestedCompanyId
+    } else {
+      // Fallback: Buscar la primera compañía del usuario
+      const userCompany = await prisma.companyUser.findFirst({
+        where: { userId: session.user.id },
+        select: { companyId: true }
+      })
+
+      if (!userCompany) {
+        return NextResponse.json({ error: 'No tienes una empresa asociada' }, { status: 403 })
+      }
+
+      companyId = userCompany.companyId
     }
 
     // Verificar que la transacción existe y pertenece a la empresa
     const existingTransaction = await prisma.transaction.findFirst({
       where: {
         id: transactionId,
-        companyId: userCompany.companyId
+        companyId: companyId
       }
     })
 
