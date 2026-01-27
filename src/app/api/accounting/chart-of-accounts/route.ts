@@ -8,15 +8,29 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const isActive = searchParams.get('isActive');
+    const companyId = searchParams.get('companyId');
 
-    const where: any = {};
+    // Requerir companyId para aislamiento de datos
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere companyId' }, { status: 400 });
+    }
+
+    // Verificar acceso a la empresa
+    const hasAccess = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id, companyId }
+    });
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 });
+    }
+
+    const where: any = { companyId };
     if (type) where.type = type;
     if (isActive) where.isActive = isActive === 'true';
 
@@ -45,16 +59,29 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { code, name, type, category, parentId, description } = body;
+    const { code, name, type, category, parentId, description, companyId } = body;
 
-    // Verificar si el código ya existe
-    const existing = await prisma.chartOfAccounts.findUnique({
-      where: { code },
+    // Requerir companyId para aislamiento de datos
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere companyId' }, { status: 400 });
+    }
+
+    // Verificar acceso a la empresa
+    const hasAccess = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id, companyId }
+    });
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 });
+    }
+
+    // Verificar si el código ya existe para esta empresa
+    const existing = await prisma.chartOfAccounts.findFirst({
+      where: { code, companyId },
     });
 
     if (existing) {
@@ -81,6 +108,7 @@ export async function POST(request: NextRequest) {
         parentId,
         description,
         level,
+        companyId,
       },
       include: {
         parent: true,

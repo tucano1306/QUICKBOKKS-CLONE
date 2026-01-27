@@ -14,10 +14,24 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
+    const companyId = searchParams.get('companyId');
+
+    // Requerir companyId para aislamiento de datos
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere companyId' }, { status: 400 });
+    }
+
+    // Verificar acceso a la empresa
+    const hasAccess = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id, companyId }
+    });
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 });
+    }
 
     const employees = await prisma.employee.findMany({
       where: {
-        userId: session.user.id,
+        companyId,
         ...(status ? { status: status as any } : {}),
       },
       include: {

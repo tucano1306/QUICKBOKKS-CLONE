@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// GET all employees
+// GET all employees - filtrados por companyId
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -16,10 +16,28 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
+    const companyId = searchParams.get('companyId')
+
+    // Si no hay companyId, requerir uno para asegurar aislamiento
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere companyId para listar empleados' }, { status: 400 })
+    }
+
+    // Verificar acceso a la empresa
+    const hasAccess = await prisma.companyUser.findFirst({
+      where: {
+        userId: session.user.id,
+        companyId: companyId
+      }
+    })
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+    }
 
     const employees = await prisma.employee.findMany({
       where: {
-        userId: session.user.id,
+        companyId,
         ...(status && { status: status as any }),
       },
       include: {
@@ -68,6 +86,7 @@ export async function POST(request: Request) {
       taxId,
       bankAccount,
       address,
+      companyId,
     } = body
 
     if (!employeeNumber || !firstName || !lastName || !email || !position || !salary) {
@@ -77,9 +96,29 @@ export async function POST(request: Request) {
       )
     }
 
+    if (!companyId) {
+      return NextResponse.json(
+        { error: 'Se requiere companyId para crear empleados' },
+        { status: 400 }
+      )
+    }
+
+    // Verificar acceso a la empresa
+    const hasAccess = await prisma.companyUser.findFirst({
+      where: {
+        userId: session.user.id,
+        companyId: companyId
+      }
+    })
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+    }
+
     const employee = await prisma.employee.create({
       data: {
         userId: session.user.id,
+        companyId,
         employeeNumber,
         firstName,
         lastName,

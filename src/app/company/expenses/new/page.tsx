@@ -113,24 +113,25 @@ export default function NewExpensePage() {
 
   // Load categories and employees
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && activeCompany?.id) {
       loadData()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status])
+  }, [status, activeCompany?.id])
 
   const loadData = async () => {
+    if (!activeCompany?.id) return
     setLoadingData(true)
     try {
-      // Load categories
-      const categoriesRes = await fetch('/api/expenses/categories')
+      // Load categories - filtrar por empresa activa
+      const categoriesRes = await fetch(`/api/expenses/categories?companyId=${activeCompany.id}`)
       if (categoriesRes.ok) {
         const data = await categoriesRes.json()
         setCategories(Array.isArray(data) ? data : [])
       }
 
-      // Load employees
-      const employeesRes = await fetch('/api/employees')
+      // Load employees - filtrar por empresa activa
+      const employeesRes = await fetch(`/api/employees?companyId=${activeCompany.id}`)
       if (employeesRes.ok) {
         const data = await employeesRes.json()
         const employeesArray = Array.isArray(data) ? data : data.employees || []

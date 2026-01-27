@@ -62,11 +62,14 @@ export default function ChartOfAccountsPage() {
 
   // Fetch accounts from API
   const fetchAccounts = useCallback(async () => {
+    if (!activeCompany?.id) return
+    
     try {
       setLoading(true)
       setError(null)
       
       const params = new URLSearchParams()
+      params.append('companyId', activeCompany.id)
       if (filterType !== 'all') params.append('type', filterType)
       params.append('isActive', 'true')
 
@@ -122,13 +125,18 @@ export default function ChartOfAccountsPage() {
   }, [status, router])
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && activeCompany?.id) {
       fetchAccounts()
     }
-  }, [status, fetchAccounts])
+  }, [status, activeCompany?.id, fetchAccounts])
 
   // Crear nueva cuenta
   const handleCreateAccount = async () => {
+    if (!activeCompany?.id) {
+      setError('Debes seleccionar una empresa')
+      return
+    }
+    
     try {
       setSaving(true)
       setError(null)
@@ -138,7 +146,8 @@ export default function ChartOfAccountsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newAccount,
-          parentId: newAccount.parentId || null
+          parentId: newAccount.parentId || null,
+          companyId: activeCompany.id
         })
       })
 

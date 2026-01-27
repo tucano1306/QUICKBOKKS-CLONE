@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -16,8 +16,22 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const companyId = searchParams.get('companyId');
 
-    const where: any = {};
+    // Requerir companyId para aislamiento de datos
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere companyId' }, { status: 400 });
+    }
+
+    // Verificar acceso a la empresa
+    const hasAccess = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id, companyId }
+    });
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 });
+    }
+
+    const where: any = { companyId };
     if (status) where.status = status;
     if (startDate && endDate) {
       where.date = {

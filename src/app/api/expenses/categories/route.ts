@@ -6,8 +6,8 @@ import { prisma } from '@/lib/prisma'
 // Revalidar cada 2 minutos - las categorías cambian poco frecuentemente
 export const revalidate = 120
 
-// GET expense categories
-export async function GET() {
+// GET expense categories - filtradas por companyId
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -15,7 +15,12 @@ export async function GET() {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+
+    // Filtrar categorías por companyId si se proporciona
     const categories = await prisma.expenseCategory.findMany({
+      where: companyId ? { companyId } : undefined,
       include: {
         children: true,
         _count: {
@@ -49,11 +54,18 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, description, type, taxRate, parentId } = body
+    const { name, description, type, taxRate, parentId, companyId } = body
 
     if (!name || !type) {
       return NextResponse.json(
         { error: 'Nombre y tipo son requeridos' },
+        { status: 400 }
+      )
+    }
+
+    if (!companyId) {
+      return NextResponse.json(
+        { error: 'Se requiere seleccionar una empresa' },
         { status: 400 }
       )
     }
@@ -65,6 +77,7 @@ export async function POST(request: Request) {
         type,
         taxRate: taxRate || 16,
         parentId,
+        companyId,
       },
     })
 

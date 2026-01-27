@@ -125,7 +125,7 @@ export default function PayrollCalculatePage() {
     setPaymentDate(lastDay.toISOString().split('T')[0])
     
     try {
-      const response = await fetch('/api/employees?status=ACTIVE')
+      const response = await fetch(`/api/employees?status=ACTIVE&companyId=${activeCompany?.id}`)
       if (response.ok) {
         const data = await response.json()
         const empList = data.employees || data || []

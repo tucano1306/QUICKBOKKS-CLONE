@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,7 @@ interface Category {
 export default function CategoriesPage() {
   const router = useRouter()
   const { status } = useSession()
+  const { activeCompany } = useCompany()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -55,15 +57,16 @@ export default function CategoriesPage() {
   }, [status, router])
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && activeCompany?.id) {
       loadCategories()
     }
-  }, [status])
+  }, [status, activeCompany?.id])
 
   const loadCategories = async () => {
+    if (!activeCompany?.id) return
     setLoading(true)
     try {
-      const response = await fetch('/api/expenses/categories')
+      const response = await fetch(`/api/expenses/categories?companyId=${activeCompany.id}`)
       if (response.ok) {
         const data = await response.json()
         setCategories(Array.isArray(data) ? data : [])
@@ -81,6 +84,11 @@ export default function CategoriesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!activeCompany?.id) {
+      setMessage({ type: 'error', text: 'Debes seleccionar una empresa primero' })
+      return
+    }
+
     try {
       const url = editingCategory
         ? `/api/expenses/categories?id=${editingCategory.id}`
@@ -89,7 +97,7 @@ export default function CategoriesPage() {
       const response = await fetch(url, {
         method: editingCategory ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, companyId: activeCompany.id })
       })
 
       if (response.ok) {

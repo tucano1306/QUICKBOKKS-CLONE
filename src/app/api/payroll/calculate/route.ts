@@ -14,12 +14,25 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json()
-    const { periodStart, periodEnd, payDate, periodType, employeeIds, includeOvertime } = data
+    const { periodStart, periodEnd, payDate, periodType, employeeIds, includeOvertime, companyId } = data
 
-    // Obtener empleados activos
+    // Requerir companyId para aislamiento de datos
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere companyId' }, { status: 400 })
+    }
+
+    // Verificar acceso a la empresa
+    const hasAccess = await prisma.companyUser.findFirst({
+      where: { userId: session.user.id, companyId }
+    })
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+    }
+
+    // Obtener empleados activos de la empresa
     const employees = await (prisma as any).employee.findMany({
       where: {
-        userId: session.user.id,
+        companyId,
         status: 'ACTIVE',
         ...(employeeIds?.length > 0 ? { id: { in: employeeIds } } : {})
       },

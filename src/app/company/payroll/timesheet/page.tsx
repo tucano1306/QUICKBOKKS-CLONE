@@ -110,7 +110,7 @@ export default function TimesheetPage() {
     setShowRegisterModal(true)
     setProcessing(true)
     try {
-      const response = await fetch('/api/employees?status=ACTIVE')
+      const response = await fetch(`/api/employees?status=ACTIVE&companyId=${activeCompany?.id}`)
       if (response.ok) {
         const data = await response.json()
         setEmployees(data.employees || data || [])

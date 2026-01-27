@@ -40,8 +40,9 @@ export default function AdvancedReportsPage() {
 
   // Cargar cuentas al montar el componente
   const loadAccounts = async () => {
+    if (!activeCompany?.id) return
     try {
-      const response = await fetch('/api/accounting/chart-of-accounts');
+      const response = await fetch(`/api/accounting/chart-of-accounts?companyId=${activeCompany.id}`);
       if (response.ok) {
         const data = await response.json();
         setAccounts(data);

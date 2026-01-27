@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -67,6 +68,7 @@ export default function EditExpensePage() {
   const router = useRouter()
   const params = useParams()
   const { status } = useSession()
+  const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -188,10 +190,18 @@ export default function EditExpensePage() {
     try {
       setLoading(true)
       
+      const categoriesUrl = activeCompany?.id 
+        ? `/api/expenses/categories?companyId=${activeCompany.id}`
+        : '/api/expenses/categories'
+      
+      const employeesUrl = activeCompany?.id
+        ? `/api/employees?companyId=${activeCompany.id}`
+        : '/api/employees'
+      
       const [expenseRes, categoriesRes, employeesRes] = await Promise.all([
         fetch(`/api/expenses/${expenseId}`),
-        fetch('/api/expenses/categories'),
-        fetch('/api/employees')
+        fetch(categoriesUrl),
+        fetch(employeesUrl)
       ])
 
       if (expenseRes.ok) {

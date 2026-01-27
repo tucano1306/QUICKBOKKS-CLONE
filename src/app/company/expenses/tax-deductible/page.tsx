@@ -85,8 +85,8 @@ export default function TaxDeductibleExpensesPage() {
         setFilteredExpenses([])
       }
 
-      // Load categories
-      const categoriesRes = await fetch('/api/expenses/categories')
+      // Load categories - filtrar por empresa activa
+      const categoriesRes = await fetch(`/api/expenses/categories?companyId=${activeCompany.id}`)
       if (categoriesRes.ok) {
         const categoriesData = await categoriesRes.json()
         setCategories(Array.isArray(categoriesData) ? categoriesData : [])
