@@ -115,19 +115,23 @@ export default function TransactionsPage() {
       // Filtro por monto máximo
       if (maxAmount && t.amount > Number.parseFloat(maxAmount)) return false
 
-      // Filtro por mes y año específico
+      // Filtro por mes y año específico (usar UTC para evitar problemas de timezone)
       if (filterMonth || filterYear) {
         const transDate = new Date(t.date)
+        // Usar métodos UTC para evitar conversión a zona horaria local
+        const transMonth = transDate.getUTCMonth() + 1
+        const transYear = transDate.getUTCFullYear()
+        
         if (filterMonth && filterYear) {
           const month = parseInt(filterMonth)
           const year = parseInt(filterYear)
-          if (transDate.getMonth() + 1 !== month || transDate.getFullYear() !== year) return false
+          if (transMonth !== month || transYear !== year) return false
         } else if (filterMonth) {
           const month = parseInt(filterMonth)
-          if (transDate.getMonth() + 1 !== month) return false
+          if (transMonth !== month) return false
         } else if (filterYear) {
           const year = parseInt(filterYear)
-          if (transDate.getFullYear() !== year) return false
+          if (transYear !== year) return false
         }
       }
       
