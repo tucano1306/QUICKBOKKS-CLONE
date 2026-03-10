@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { 
   Upload, 
@@ -25,7 +25,8 @@ import {
   Calendar,
   Building2,
   Tag,
-  ArrowRight
+  ArrowRight,
+  Camera
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -591,6 +592,39 @@ export default function DocumentAIProcessor() {
                   </p>
                 </>
               )}
+            </div>
+
+            {/* Camera Capture Button - Especialmente útil en móviles */}
+            <div className="flex justify-center">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                id="camera-capture"
+                className="hidden"
+                onChange={(e) => {
+                  const files = e.target.files
+                  if (files && files.length > 0) {
+                    onDrop(Array.from(files))
+                  }
+                  e.target.value = '' // Reset para permitir capturar la misma imagen
+                }}
+                disabled={isUploading}
+              />
+              <label htmlFor="camera-capture">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  disabled={isUploading}
+                  asChild
+                >
+                  <span>
+                    <Camera className="h-5 w-5" />
+                    Tomar Foto con Cámara
+                  </span>
+                </Button>
+              </label>
             </div>
 
             {/* Upload Progress */}
