@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { companyId, type, category, description, amount, date, notes } = body
+    const { companyId, type, category, description, amount, date, notes, reference } = body
 
     if (!companyId || !type || !amount) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
@@ -162,7 +162,8 @@ export async function POST(request: NextRequest) {
           amount: txAmount,
           date: txDate,
           status: 'COMPLETED',
-          notes
+          notes,
+          reference: reference || null
         }
       })
 

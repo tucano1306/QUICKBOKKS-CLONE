@@ -60,11 +60,14 @@ export default function TransactionsPage() {
   const loadTransactions = useCallback(async () => {
     if (!activeCompany?.id) return
     
+    // Limpiar transacciones anteriores al cambiar de empresa
+    setTransactions([])
     setLoading(true)
     try {
       const res = await fetch(`/api/transactions?companyId=${activeCompany.id}&limit=5000`)
       if (res.ok) {
         const data = await res.json()
+        console.log(`[Transactions] Cargadas ${data.transactions?.length || 0} transacciones para empresa: ${activeCompany.name} (${activeCompany.id})`)
         setTransactions(data.transactions || [])
       }
     } catch (e) {
@@ -72,9 +75,12 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false)
     }
-  }, [activeCompany?.id])
+  }, [activeCompany?.id, activeCompany?.name])
 
+  // Limpiar transacciones cuando cambia de empresa
   useEffect(() => {
+    setTransactions([])
+    setSelectedIds(new Set())
     loadTransactions()
   }, [loadTransactions])
 
@@ -419,7 +425,12 @@ export default function TransactionsPage() {
         <div className="flex flex-col sm:flex-row sm:flex-wrap justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-[#0D2942]">💰 Transacciones</h1>
-            <p className="text-xs sm:text-sm text-gray-500">Gestiona todos los movimientos financieros</p>
+            <p className="text-xs sm:text-sm text-gray-500">
+              Gestiona todos los movimientos financieros
+              {activeCompany && (
+                <span className="ml-2 text-[#0077C5] font-medium">• {activeCompany.name}</span>
+              )}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Button 

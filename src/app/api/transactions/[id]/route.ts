@@ -182,7 +182,8 @@ export async function PUT(
       amount,
       date,
       status,
-      notes
+      notes,
+      reference
     } = body
 
     // Validaciones básicas
@@ -210,7 +211,8 @@ export async function PUT(
         amount: newAmount,
         date: parsedDate,
         status: status || existingTransaction.status,
-        notes: notes || null
+        notes: notes || null,
+        reference: reference || null
       }
     })
 
