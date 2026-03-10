@@ -64,6 +64,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
+import { useCompany } from '@/contexts/CompanyContext'
 
 // Tipos
 interface DocumentAnalysis {
@@ -230,6 +231,7 @@ function formatValue(value: unknown, key: string): string {
 }
 
 export default function DocumentAIProcessor() {
+  const { activeCompany } = useCompany()
   const [documents, setDocuments] = useState<UploadedDocument[]>([])
   const [selectedDocument, setSelectedDocument] = useState<UploadedDocument | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -334,6 +336,11 @@ export default function DocumentAIProcessor() {
 
   // Document actions
   const handleApprove = async (doc: UploadedDocument, accountId?: string) => {
+    if (!activeCompany?.id) {
+      alert('No hay empresa activa seleccionada')
+      return
+    }
+
     try {
       const response = await fetch('/api/documents/process-ai', {
         method: 'PUT',
@@ -341,8 +348,18 @@ export default function DocumentAIProcessor() {
         body: JSON.stringify({
           documentId: doc.id,
           action: 'approve',
+          companyId: activeCompany.id,
           accountId: accountId || doc.suggestedAccount?.id,
-          journalEntryData: doc.aiAnalysis?.journalEntry
+          journalEntryData: doc.aiAnalysis?.journalEntry,
+          createExpense: true, // Crear transacción automáticamente
+          expenseData: {
+            amount: doc.aiAnalysis?.extractedData?.amount || doc.amount,
+            date: doc.aiAnalysis?.extractedData?.date || new Date().toISOString().split('T')[0],
+            description: doc.aiAnalysis?.extractedData?.description || doc.description || doc.originalFilename,
+            category: doc.aiAnalysis?.suggestedCategory || 'Gastos Generales',
+            vendor: doc.aiAnalysis?.extractedData?.vendor,
+            reference: doc.aiAnalysis?.extractedData?.invoiceNumber
+          }
         })
       })
 
@@ -352,9 +369,15 @@ export default function DocumentAIProcessor() {
           prev.map(d => d.id === doc.id ? data.document : d)
         )
         setIsApproveDialogOpen(false)
+        
+        // Mostrar mensaje de éxito
+        if (data.transaction) {
+          alert(`✅ Documento aprobado y gasto creado por $${data.transaction.amount.toFixed(2)}`)
+        }
       }
     } catch (error) {
       console.error('Error approving document:', error)
+      alert('Error al aprobar el documento')
     }
   }
 
@@ -1130,31 +1153,60 @@ export default function DocumentAIProcessor() {
 
       {/* Approve Dialog */}
       <Dialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Approve Document</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              Aprobar Documento y Crear Gasto
+            </DialogTitle>
             <DialogDescription>
-              Confirm the account categorization and create the journal entry.
+              Se creará automáticamente un gasto en Transacciones con los datos extraídos.
             </DialogDescription>
           </DialogHeader>
           
           {selectedDocument && (
             <div className="space-y-4">
-              <div>
-                <Label>Document</Label>
-                <p className="text-sm font-medium">{selectedDocument.originalFilename}</p>
+              <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Documento:</span>
+                  <span className="text-sm font-medium truncate max-w-[200px]">{selectedDocument.originalFilename}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Monto:</span>
+                  <span className="text-lg font-bold text-green-600">{formatCurrency(selectedDocument.amount || selectedDocument.aiAnalysis?.extractedData?.amount)}</span>
+                </div>
+                {selectedDocument.aiAnalysis?.extractedData?.vendor && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Proveedor:</span>
+                    <span className="text-sm font-medium">{selectedDocument.aiAnalysis.extractedData.vendor}</span>
+                  </div>
+                )}
+                {selectedDocument.aiAnalysis?.extractedData?.date && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Fecha:</span>
+                    <span className="text-sm">{selectedDocument.aiAnalysis.extractedData.date}</span>
+                  </div>
+                )}
+                {selectedDocument.aiAnalysis?.extractedData?.invoiceNumber && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Referencia:</span>
+                    <span className="text-sm">{selectedDocument.aiAnalysis.extractedData.invoiceNumber}</span>
+                  </div>
+                )}
               </div>
               
               <div>
-                <Label>Amount</Label>
-                <p className="text-lg font-bold">{formatCurrency(selectedDocument.amount)}</p>
+                <Label>Categoría sugerida</Label>
+                <p className="text-sm font-medium text-blue-600">
+                  {selectedDocument.aiAnalysis?.suggestedCategory || 'Gastos Generales'}
+                </p>
               </div>
-              
+
               <div>
-                <Label>Account</Label>
+                <Label>Cuenta contable</Label>
                 <Select value={selectedAccount} onValueChange={setSelectedAccount}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select account" />
+                    <SelectValue placeholder="Seleccionar cuenta" />
                   </SelectTrigger>
                   <SelectContent>
                     {accounts.map(account => (
@@ -1166,20 +1218,29 @@ export default function DocumentAIProcessor() {
                 </Select>
                 {selectedDocument.suggestedAccount && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    AI suggested: {selectedDocument.suggestedAccount.code} - {selectedDocument.suggestedAccount.name}
+                    IA sugiere: {selectedDocument.suggestedAccount.code} - {selectedDocument.suggestedAccount.name}
                   </p>
                 )}
               </div>
+
+              {activeCompany && (
+                <div className="bg-blue-50 border border-blue-200 p-2 rounded text-xs text-blue-700">
+                  <strong>Empresa:</strong> {activeCompany.name}
+                </div>
+              )}
             </div>
           )}
           
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setIsApproveDialogOpen(false)}>
-              Cancel
+              Cancelar
             </Button>
-            <Button onClick={() => selectedDocument && handleApprove(selectedDocument, selectedAccount)}>
+            <Button 
+              onClick={() => selectedDocument && handleApprove(selectedDocument, selectedAccount)}
+              className="bg-green-600 hover:bg-green-700"
+            >
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              Approve & Create Entry
+              Aprobar y Crear Gasto
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -576,7 +576,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { documentId, action } = body
+    const { documentId, action, companyId, createExpense, expenseData } = body
 
     if (!documentId || !action) {
       return NextResponse.json({ error: 'Missing documentId or action' }, { status: 400 })
@@ -587,9 +587,45 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
+    let createdTransaction = null
+
     switch (action) {
       case 'approve':
         doc.status = 'APPROVED'
+        
+        // Si se solicita crear gasto automáticamente
+        if (createExpense && companyId && expenseData?.amount) {
+          try {
+            // Parsear fecha
+            let txDate: Date
+            if (expenseData.date) {
+              const [year, month, day] = expenseData.date.split('-').map(Number)
+              txDate = new Date(year, month - 1, day, 12, 0, 0)
+            } else {
+              txDate = new Date()
+            }
+
+            // Crear la transacción de gasto
+            createdTransaction = await prisma.transaction.create({
+              data: {
+                companyId,
+                type: 'EXPENSE',
+                category: expenseData.category || 'Gastos Generales',
+                description: expenseData.description || `Factura escaneada: ${doc.filename}`,
+                amount: Number(expenseData.amount),
+                date: txDate,
+                status: 'COMPLETED',
+                reference: expenseData.reference || null,
+                notes: `Creado automáticamente desde documento: ${doc.filename}${expenseData.vendor ? ` | Proveedor: ${expenseData.vendor}` : ''}`
+              }
+            })
+
+            console.log(`[Document AI] Gasto creado automáticamente: ID=${createdTransaction.id}, Monto=$${expenseData.amount}, Empresa=${companyId}`)
+          } catch (txError) {
+            console.error('Error creating transaction from document:', txError)
+            // No fallar la aprobación si la transacción falla
+          }
+        }
         break
       case 'reject':
         doc.status = 'REJECTED'
@@ -616,7 +652,13 @@ export async function PUT(request: NextRequest) {
         extractedData: doc.analysis?.extractedData || null,
         aiAnalysis: doc.analysis || null,
         createdAt: doc.createdAt.toISOString()
-      }
+      },
+      transaction: createdTransaction ? {
+        id: createdTransaction.id,
+        amount: createdTransaction.amount,
+        category: createdTransaction.category,
+        description: createdTransaction.description
+      } : null
     })
 
   } catch (error) {
