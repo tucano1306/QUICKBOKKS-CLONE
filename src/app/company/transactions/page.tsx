@@ -94,19 +94,26 @@ export default function TransactionsPage() {
         if (!matchText) return false
       }
       
-      // Filtro por fecha desde
+      // Filtro por fecha desde (comparar solo fecha, ignorando hora)
       if (dateFrom) {
         const transDate = new Date(t.date)
-        const fromDate = new Date(dateFrom)
-        if (transDate < fromDate) return false
+        // Parsear dateFrom como fecha local (no UTC) para evitar desfase de timezone
+        const [yearFrom, monthFrom, dayFrom] = dateFrom.split('-').map(Number)
+        const fromDate = new Date(yearFrom, monthFrom - 1, dayFrom, 0, 0, 0)
+        // Comparar usando fechas locales normalizadas al inicio del día
+        const transDateLocal = new Date(transDate.getFullYear(), transDate.getMonth(), transDate.getDate(), 0, 0, 0)
+        if (transDateLocal < fromDate) return false
       }
       
-      // Filtro por fecha hasta
+      // Filtro por fecha hasta (comparar solo fecha, ignorando hora)
       if (dateTo) {
         const transDate = new Date(t.date)
-        const toDate = new Date(dateTo)
-        toDate.setHours(23, 59, 59)
-        if (transDate > toDate) return false
+        // Parsear dateTo como fecha local (no UTC) para evitar desfase de timezone
+        const [yearTo, monthTo, dayTo] = dateTo.split('-').map(Number)
+        const toDate = new Date(yearTo, monthTo - 1, dayTo, 23, 59, 59)
+        // Comparar usando fechas locales normalizadas al final del día
+        const transDateLocal = new Date(transDate.getFullYear(), transDate.getMonth(), transDate.getDate(), 23, 59, 59)
+        if (transDateLocal > toDate) return false
       }
       
       // Filtro por monto mínimo
