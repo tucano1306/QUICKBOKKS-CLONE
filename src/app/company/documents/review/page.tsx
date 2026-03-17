@@ -380,15 +380,17 @@ export default function DocumentReviewPage() {
     approved: documents.filter(d => d.status === 'approved').length,
     reclassified: documents.filter(d => d.status === 'reclassified').length,
     rejected: documents.filter(d => d.status === 'rejected').length,
-    totalAmount: documents.reduce((sum, d) => sum + d.amount, 0),
-    avgConfidence: documents.length > 0 ? Math.round(documents.reduce((sum, d) => sum + d.aiConfidence, 0) / documents.length) : 0
+    totalAmount: documents.reduce((sum, d) => sum + (d.amount || 0), 0),
+    avgConfidence: documents.length > 0 ? Math.round(documents.reduce((sum, d) => sum + (d.aiConfidence || 0), 0) / documents.length) : 0
   }
 
-  const filteredDocs = documents.filter(doc => 
-    doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.description.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredDocs = documents.filter(doc => {
+    const search = searchTerm.toLowerCase()
+    const filename = doc.filename?.toLowerCase() || ''
+    const vendor = doc.vendor?.toLowerCase() || ''
+    const description = doc.description?.toLowerCase() || ''
+    return filename.includes(search) || vendor.includes(search) || description.includes(search)
+  })
 
   if (loading) {
     return (
