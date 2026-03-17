@@ -460,8 +460,11 @@ export async function POST(request: NextRequest) {
     const doc = {
       id: docId,
       filename: file.name,
+      mimeType: file.type,
+      fileSize: file.size,
       status: autoProcess ? 'ANALYZED' : 'PENDING',
       analysis,
+      approvedAmount: null as number | null,
       createdAt: new Date()
     }
     processedDocuments.set(docId, doc)
@@ -544,12 +547,12 @@ export async function GET(request: NextRequest) {
     const documents = Array.from(processedDocuments.values()).map(doc => ({
       id: doc.id,
       originalFilename: doc.filename,
-      mimeType: 'application/octet-stream',
-      fileSize: 0,
+      mimeType: (doc as any).mimeType || null,
+      fileSize: (doc as any).fileSize || null,
       status: doc.status,
       documentType: doc.analysis?.documentType || null,
       aiConfidence: doc.analysis?.confidence || null,
-      amount: doc.analysis?.extractedData.amount || null,
+      amount: (doc as any).approvedAmount ?? doc.analysis?.extractedData?.amount ?? null,
       suggestedCategory: doc.analysis?.suggestedCategory || null,
       suggestedAccount: doc.analysis?.suggestedAccount || null,
       createdAt: doc.createdAt.toISOString(),
@@ -591,6 +594,10 @@ export async function PUT(request: NextRequest) {
     switch (action) {
       case 'approve':
         doc.status = 'APPROVED'
+        // Guardar el monto que el usuario ingresó manualmente
+        if (expenseData?.amount) {
+          doc.approvedAmount = Number(expenseData.amount)
+        }
         
         // Si se solicita crear gasto automáticamente
         if (createExpense && companyId && expenseData?.amount) {
@@ -642,14 +649,17 @@ export async function PUT(request: NextRequest) {
       document: {
         id: doc.id,
         originalFilename: doc.filename,
+        mimeType: (doc as any).mimeType || 'application/octet-stream',
+        fileSize: (doc as any).fileSize || 0,
         status: doc.status,
         documentType: doc.analysis?.documentType || null,
         aiConfidence: doc.analysis?.confidence || null,
-        amount: doc.analysis?.extractedData.amount || null,
+        amount: (doc as any).approvedAmount ?? doc.analysis?.extractedData?.amount ?? null,
         suggestedCategory: doc.analysis?.suggestedCategory || null,
         suggestedAccount: doc.analysis?.suggestedAccount || null,
         extractedData: doc.analysis?.extractedData || null,
         aiAnalysis: doc.analysis || null,
+        vendor: expenseData?.vendor ? { id: null, name: expenseData.vendor } : null,
         createdAt: doc.createdAt.toISOString()
       },
       transaction: createdTransaction ? {
