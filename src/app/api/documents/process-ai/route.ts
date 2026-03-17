@@ -425,8 +425,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No company found for user' }, { status: 400 })
     }
 
-    // Analyze document if autoProcess is enabled
-    let analysis: DocumentAnalysis | null = null
     // Análisis local basado en nombre de archivo y patrones de texto
     const analysis: DocumentAnalysis | null = autoProcess ? analyzeDocument(file.name) : null
 
