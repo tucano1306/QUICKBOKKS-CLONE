@@ -74,7 +74,8 @@ export interface CategorizationResult {
  * Verificar si Groq está configurado
  */
 export function isGroqConfigured(): boolean {
-  return !!process.env.GROQ_API_KEY
+  const key = process.env.GROQ_API_KEY || ''
+  return key.length > 10 && key !== 'tu-api-key-de-groq' && key.startsWith('gsk_')
 }
 
 /**

@@ -490,16 +490,16 @@ export async function POST(request: NextRequest) {
         filename: file.name,
         originalName: file.name,
         mimeType: file.type || 'application/octet-stream',
-        fileSize: file.size,
+        fileSize: Math.round(file.size),
         status: docStatus as any,
         documentType: (analysis?.documentType ?? 'OTHER') as any,
         uploadedById: session.user.id,
         companyId,
-        aiAnalysis: analysis ? (analysis as any) : undefined,
-        extractedData: analysis ? (analysis.extractedData as any) : undefined,
+        aiAnalysis: analysis ? (analysis as any) : null,
+        extractedData: analysis ? (analysis.extractedData as any) : null,
         suggestedCategory: analysis?.suggestedCategory ?? null,
         aiConfidence: analysis?.confidence ?? null,
-        processingTime: analysis?.processingTime ?? null,
+        processingTime: analysis?.processingTime ? Math.round(analysis.processingTime) : null,
         amount: analysis?.extractedData?.amount ?? null,
         invoiceNumber: analysis?.extractedData?.invoiceNumber ?? null,
         description: analysis?.extractedData?.description ?? null,
@@ -536,9 +536,12 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Document processing error:', error)
+    const msg = error instanceof Error ? error.message : 'Unknown error'
+    const code = (error as any)?.code ?? ''
+    const meta = (error as any)?.meta ?? {}
+    console.error('Document processing error:', msg, code, meta)
     return NextResponse.json(
-      { error: 'Failed to process document', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: `Failed to process document: ${msg}`, code, meta },
       { status: 500 }
     )
   }

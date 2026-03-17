@@ -337,6 +337,7 @@ export default function DocumentAIProcessor() {
           const msg = data?.error || `Error subiendo ${file.name}`
           console.error('[Upload]', msg, data)
           setUploadError(msg)
+          continue
         } else if (data.document) {
           setUploadError(null)
           setDocuments(prev => [data.document, ...prev])
