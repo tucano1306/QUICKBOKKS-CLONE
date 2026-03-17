@@ -401,8 +401,8 @@ export default function BankReconciliationPage() {
 
   const filteredItems = reconciliationItems.filter(item => {
     if (filterStatus !== 'all' && item.status !== filterStatus) return false
-    if (searchTerm && !item.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !item.transactionId.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(item.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(item.transactionId?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

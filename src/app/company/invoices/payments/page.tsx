@@ -96,9 +96,9 @@ export default function PaymentsPage() {
 
   const filterPayments = () => {
     let filtered = payments.filter(payment =>
-      payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.reference.toLowerCase().includes(searchTerm.toLowerCase())
+      (payment.invoiceNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (payment.customerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (payment.reference?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     )
 
     if (methodFilter !== 'ALL') {

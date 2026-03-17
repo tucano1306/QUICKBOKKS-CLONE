@@ -135,8 +135,8 @@ export default function PayrollChecksPage() {
 
   const filteredChecks = checks.filter(check => {
     const matchesSearch = 
-      check.checkNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      check.employeeName.toLowerCase().includes(searchTerm.toLowerCase())
+      (check.checkNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (check.employeeName?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     const matchesStatus = filterStatus === 'all' || check.status === filterStatus
     return matchesSearch && matchesStatus
   })

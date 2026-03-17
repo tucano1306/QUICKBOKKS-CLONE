@@ -254,7 +254,7 @@ export default function ReconciliationPage() {
 
   const filteredItems = reconciliationItems.filter(item => {
     if (showOnlyUnmatched && item.status === 'matched') return false
-    if (searchTerm && !item.description.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(item.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

@@ -134,9 +134,9 @@ export default function CustomerTransactionsPage() {
     if (filterCustomer !== 'all' && trx.customerId !== filterCustomer) return false
     if (filterType !== 'all' && trx.type !== filterType) return false
     if (filterStatus !== 'all' && trx.status !== filterStatus) return false
-    if (searchTerm && !trx.documentNumber.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !trx.customerName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !trx.description.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(trx.documentNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(trx.customerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(trx.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     
     if (dateRange !== 'all') {
       const trxDate = new Date(trx.date)

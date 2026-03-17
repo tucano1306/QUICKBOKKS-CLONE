@@ -166,8 +166,8 @@ export default function PayrollTaxesPage() {
 
   const filteredTaxes = taxRecords.filter(tax => {
     if (filterStatus !== 'all' && tax.status !== filterStatus) return false
-    if (searchTerm && !tax.employee.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !tax.employeeId.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(tax.employee?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(tax.employeeId?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

@@ -207,13 +207,13 @@ export default function ReconcilePage() {
   }
 
   const filteredInvoices = unpaidInvoices.filter(inv =>
-    inv.invoiceNumber.toLowerCase().includes(searchInvoices.toLowerCase()) ||
-    inv.customerName.toLowerCase().includes(searchInvoices.toLowerCase())
+    (inv.invoiceNumber?.toLowerCase() || '').includes(searchInvoices.toLowerCase()) ||
+    (inv.customerName?.toLowerCase() || '').includes(searchInvoices.toLowerCase())
   )
 
   const filteredPayments = unmatchedPayments.filter(pay =>
-    pay.reference.toLowerCase().includes(searchPayments.toLowerCase()) ||
-    (pay.notes?.toLowerCase().includes(searchPayments.toLowerCase()) || false)
+    (pay.reference?.toLowerCase() || '').includes(searchPayments.toLowerCase()) ||
+    (pay.notes?.toLowerCase() || '').includes(searchPayments.toLowerCase())
   )
 
   if (status === 'loading' || isLoading) {

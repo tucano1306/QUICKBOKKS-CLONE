@@ -460,8 +460,8 @@ export default function BankingManagementPage() {
 
   // Filtered data
   const filteredTransactions = transactions.filter(t => {
-    if (searchTerm && !t.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !t.description?.toLowerCase().includes(searchTerm.toLowerCase())) {
+    if (searchTerm && !(t.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(t.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())) {
       return false
     }
     if (filterType === 'income' && t.amount <= 0) return false

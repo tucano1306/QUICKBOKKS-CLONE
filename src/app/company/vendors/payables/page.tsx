@@ -231,9 +231,9 @@ export default function VendorPayablesPage() {
       if (!isInDateRange(payable.dueDate, dateRange)) return false
       if (!term) return true
       return (
-        payable.billNumber.toLowerCase().includes(term) ||
-        payable.description?.toLowerCase().includes(term) ||
-        payable.vendor?.name.toLowerCase().includes(term)
+        (payable.billNumber?.toLowerCase() || '').includes(term) ||
+        (payable.description?.toLowerCase() || '').includes(term) ||
+        (payable.vendor?.name?.toLowerCase() || '').includes(term)
       )
     })
   }, [payables, searchTerm, filterStatus, filterVendor, dateRange, isInDateRange])

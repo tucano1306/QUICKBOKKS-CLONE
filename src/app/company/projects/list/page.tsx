@@ -333,8 +333,8 @@ export default function ProjectsListPage() {
 
   const filteredProjects = projects.filter(project => {
     if (filterPriority !== 'all' && project.priority?.toUpperCase() !== filterPriority.toUpperCase()) return false
-    if (searchTerm && !project.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !(project.code || '').toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(project.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(project.code?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

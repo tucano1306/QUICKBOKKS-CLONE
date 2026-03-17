@@ -230,14 +230,14 @@ export default function CustomerNotesPage() {
   }
 
   const filteredNotes = notes.filter(note =>
-    note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    (note.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (note.content?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (note.tags || []).some(tag => tag?.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   const filteredTasks = tasks.filter(task =>
-    task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    task.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (task.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (task.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   )
 
   if (status === 'loading' || isLoading) {

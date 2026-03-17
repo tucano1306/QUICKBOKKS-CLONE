@@ -241,9 +241,9 @@ export default function BankAccountsPage() {
     const accStatus = acc.status.toLowerCase()
     if (filterType !== 'all' && accType !== filterType) return false
     if (filterStatus !== 'all' && accStatus !== filterStatus) return false
-    if (searchTerm && !acc.accountName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !acc.bank.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !acc.accountNumber.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(acc.accountName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(acc.bank?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(acc.accountNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

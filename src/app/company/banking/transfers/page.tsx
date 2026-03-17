@@ -345,10 +345,10 @@ const getTypeBadge = (type: string) => {
   const filteredTransfers = transfers.filter(trf => {
     if (filterType !== 'all' && trf.type !== filterType) return false
     if (filterStatus !== 'all' && trf.status !== filterStatus) return false
-    if (searchTerm && !trf.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !trf.transferId.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !trf.fromAccount.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !trf.toAccount.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(trf.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(trf.transferId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(trf.fromAccount?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(trf.toAccount?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

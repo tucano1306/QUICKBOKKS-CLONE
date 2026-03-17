@@ -75,9 +75,9 @@ export default function InvoicesPage() {
     if (searchTerm) {
       filtered = filtered.filter(
         (invoice) =>
-          invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          invoice.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          invoice.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+          (invoice.invoiceNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (invoice.customer?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (invoice.customer?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       )
     }
 

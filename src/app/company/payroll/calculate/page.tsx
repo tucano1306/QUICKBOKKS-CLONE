@@ -311,8 +311,8 @@ export default function PayrollCalculatePage() {
   const filteredPayroll = payrollCalculations.filter(pay => {
     if (filterStatus !== 'all' && pay.status !== filterStatus) return false
     if (filterDepartment !== 'all' && pay.department !== filterDepartment) return false
-    if (searchTerm && !pay.employee.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !pay.employeeId.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(pay.employee?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(pay.employeeId?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

@@ -112,9 +112,9 @@ export default function PipelinePage() {
   }
 
   const filteredLeads = leads.filter(lead =>
-    lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (lead.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (lead.company?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (lead.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   )
 
   const getLeadsByStage = (stageKey: string) => {

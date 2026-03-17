@@ -60,9 +60,9 @@ export default function CustomersListPage() {
   useEffect(() => {
     const filtered = customers.filter(
       (customer) =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.company?.toLowerCase().includes(searchTerm.toLowerCase())
+        (customer.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (customer.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (customer.company?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     )
     setFilteredCustomers(filtered)
     setCurrentPage(1) // Reset página cuando cambia el filtro

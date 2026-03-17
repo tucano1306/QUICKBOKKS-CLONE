@@ -263,8 +263,8 @@ export default function CustomerPortalPage() {
     if (searchTerm) {
       const search = searchTerm.toLowerCase()
       return (
-        portal.customerName.toLowerCase().includes(search) ||
-        portal.email.toLowerCase().includes(search)
+        (portal.customerName?.toLowerCase() || '').includes(search) ||
+        (portal.email?.toLowerCase() || '').includes(search)
       )
     }
     return true

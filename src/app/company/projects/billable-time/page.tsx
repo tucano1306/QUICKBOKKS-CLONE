@@ -262,9 +262,9 @@ export default function BillableTimePage() {
     if (filterBillable === 'non-billable' && entry.isBillable) return false
     if (filterProject !== 'all' && entry.projectId !== filterProject) return false
     if (searchTerm && 
-        !entry.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !entry.projectName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !entry.description.toLowerCase().includes(searchTerm.toLowerCase())) return false
+        !(entry.employeeName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(entry.projectName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(entry.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

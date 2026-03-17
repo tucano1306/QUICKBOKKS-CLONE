@@ -220,8 +220,8 @@ export default function TimesheetPage() {
   const filteredTimesheets = timesheets.filter(ts => {
     if (filterStatus !== 'all' && ts.status !== filterStatus) return false
     if (filterDepartment !== 'all' && ts.department !== filterDepartment) return false
-    if (searchTerm && !ts.employee.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !ts.employeeId.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(ts.employee?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(ts.employeeId?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

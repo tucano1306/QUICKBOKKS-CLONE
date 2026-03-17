@@ -225,9 +225,9 @@ export default function AICategorizationPage() {
   const filteredTransactions = transactions.filter(t => {
     if (searchTerm) {
       const search = searchTerm.toLowerCase()
-      return t.description.toLowerCase().includes(search) ||
-             t.aiCategory?.toLowerCase().includes(search) ||
-             t.aiAccount?.toLowerCase().includes(search)
+      return (t.description?.toLowerCase() || '').includes(search) ||
+             (t.aiCategory?.toLowerCase() || '').includes(search) ||
+             (t.aiAccount?.toLowerCase() || '').includes(search)
     }
     return true
   })

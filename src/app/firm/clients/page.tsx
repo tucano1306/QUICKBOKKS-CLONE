@@ -66,8 +66,8 @@ export default function FirmClientsPage() {
   const filteredClients = clients
     .filter(client => {
       const matchesSearch = 
-        client.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.clientCode.toLowerCase().includes(searchTerm.toLowerCase());
+        (client.companyName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (client.clientCode?.toLowerCase() || '').includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
       return matchesSearch && matchesStatus;
     })

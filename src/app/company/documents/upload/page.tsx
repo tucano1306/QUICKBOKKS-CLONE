@@ -101,9 +101,9 @@ export default function DocumentUploadPage() {
   
   const filteredDocs = allDocuments.filter(doc => {
     const matchesSearch = 
-      doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.aiCategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.vendor?.toLowerCase().includes(searchTerm.toLowerCase())
+      (doc.filename?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (doc.aiCategory?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (doc.vendor?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     const matchesCategory = filterCategory === 'all' || doc.category === filterCategory
     const matchesStatus = filterStatus === 'all' || doc.status === filterStatus
     return matchesSearch && matchesCategory && matchesStatus

@@ -192,9 +192,9 @@ export default function UsersSettingsPage() {
   const filteredUsers = users
     .filter(user => selectedRole === 'All' || user.role === selectedRole)
     .filter(user => 
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.department.toLowerCase().includes(searchQuery.toLowerCase())
+      (user.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (user.department?.toLowerCase() || '').includes(searchQuery.toLowerCase())
     )
 
   const stats = {
@@ -484,13 +484,13 @@ export default function UsersSettingsPage() {
                       <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-white font-bold text-sm sm:text-lg">
-                            {user.name.split(' ').map(n => n[0]).join('')}
+                            {(user.name || '?').split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
                         
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
-                            <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">{user.name}</h3>
+                            <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">{user.name || 'Unknown'}</h3>
                             {getStatusBadge(user.status)}
                             <Badge variant="outline" className="text-xs">{user.role}</Badge>
                           </div>
@@ -498,7 +498,7 @@ export default function UsersSettingsPage() {
                           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-3 text-xs sm:text-sm text-gray-600">
                             <div className="flex items-center gap-1 truncate">
                               <Mail className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                              <span className="truncate">{user.email}</span>
+                              <span className="truncate">{user.email || 'No email'}</span>
                             </div>
                             {user.title && (
                               <div className="flex items-center gap-1 truncate hidden sm:flex">
@@ -540,8 +540,8 @@ export default function UsersSettingsPage() {
                         <span className="text-xs font-semibold text-gray-700">PERMISSIONS</span>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {user.permissions.length > 0 ? (
-                          user.permissions.map((perm, idx) => (
+                        {(user.permissions?.length || 0) > 0 ? (
+                          (user.permissions || []).map((perm, idx) => (
                             <Badge key={idx} variant="outline" className="text-xs">
                               {perm}
                             </Badge>

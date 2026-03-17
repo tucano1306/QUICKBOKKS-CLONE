@@ -147,9 +147,9 @@ export default function CustomerNotesPage() {
     if (filterCategory !== 'all' && note.category !== filterCategory) return false
     if (filterPriority !== 'all' && note.priority !== filterPriority) return false
     if (showPinnedOnly && !note.isPinned) return false
-    if (searchTerm && !note.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !note.content.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !note.customerName.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(note.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(note.content?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(note.customerName?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

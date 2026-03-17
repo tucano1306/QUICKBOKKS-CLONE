@@ -128,9 +128,9 @@ export default function PaymentLinksPage() {
 
   const filteredLinks = paymentLinks.filter(link => {
     const matchesSearch = 
-      link.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      link.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      link.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
+      (link.invoiceNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (link.customerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (link.customerEmail?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     const matchesStatus = filterStatus === 'all' || link.status === filterStatus
     return matchesSearch && matchesStatus
   })

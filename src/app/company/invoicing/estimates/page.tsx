@@ -129,8 +129,8 @@ export default function EstimatesPage() {
 
   const filteredEstimates = estimates.filter(est => {
     if (filterStatus !== 'all' && est.status !== filterStatus) return false
-    if (searchTerm && !est.estimateNumber.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !est.customer.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(est.estimateNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(est.customer?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

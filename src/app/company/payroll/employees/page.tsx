@@ -70,9 +70,9 @@ export default function EmployeesPage() {
   useEffect(() => {
     const filtered = employees.filter(
       (employee) =>
-        `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        employee.department.toLowerCase().includes(searchTerm.toLowerCase())
+        `${employee.firstName || ''} ${employee.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (employee.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (employee.department?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     )
     setFilteredEmployees(filtered)
   }, [searchTerm, employees])

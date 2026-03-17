@@ -131,9 +131,9 @@ export default function PaymentsPage() {
   const filteredPayments = payments.filter(pay => {
     if (filterStatus !== 'all' && pay.status !== filterStatus) return false
     if (filterMethod !== 'all' && pay.method !== filterMethod) return false
-    if (searchTerm && !pay.paymentNumber.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !pay.invoice.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !pay.customer.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(pay.paymentNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(pay.invoice?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(pay.customer?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

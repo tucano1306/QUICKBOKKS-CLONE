@@ -291,9 +291,9 @@ export default function BankTransactionsPage() {
     if (filterType !== 'all' && trxType !== filterType) return false
     if (filterAccount !== 'all' && trx.accountId !== filterAccount) return false
     if (filterStatus !== 'all' && trxStatus !== filterStatus) return false
-    if (searchTerm && !trx.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !trx.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !trx.counterparty?.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(trx.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(trx.transactionId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(trx.counterparty?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     
     return true
   })

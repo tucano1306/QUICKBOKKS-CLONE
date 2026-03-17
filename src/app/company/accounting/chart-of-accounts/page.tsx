@@ -371,8 +371,8 @@ export default function ChartOfAccountsPage() {
     if (!searchTerm) return accs
     
     return accs.filter(acc => {
-      const matchesSelf = acc.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          acc.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesSelf = (acc.code?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                          (acc.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       const matchesChildren = acc.children && filterAccounts(acc.children).length > 0
       return matchesSelf || matchesChildren
     }).map(acc => ({

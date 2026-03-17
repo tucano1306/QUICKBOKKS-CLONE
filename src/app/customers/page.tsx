@@ -116,9 +116,9 @@ export default function CustomersPage() {
   useEffect(() => {
     let filtered = customers.filter(
       (customer) =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.company?.toLowerCase().includes(searchTerm.toLowerCase())
+        (customer.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (customer.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (customer.company?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     )
 
     if (statusFilter !== 'ALL') {

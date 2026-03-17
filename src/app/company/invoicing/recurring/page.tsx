@@ -131,8 +131,8 @@ export default function RecurringInvoicesPage() {
 
   const filteredInvoices = recurringInvoices.filter(inv => {
     if (filterStatus !== 'all' && inv.status !== filterStatus) return false
-    if (searchTerm && !inv.templateName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !inv.customer.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(inv.templateName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(inv.customer?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 

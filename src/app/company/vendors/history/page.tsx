@@ -136,9 +136,9 @@ export default function VendorHistoryPage() {
   const filteredTransactions = transactions.filter(trx => {
     if (filterVendor !== 'all' && trx.vendorId !== filterVendor) return false
     if (filterType !== 'all' && trx.type !== filterType) return false
-    if (searchTerm && !trx.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !trx.vendor.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !trx.description.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(trx.transactionId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(trx.vendor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(trx.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     
     if (dateRange !== 'all') {
       const trxDate = new Date(trx.date)

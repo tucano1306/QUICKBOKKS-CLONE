@@ -197,9 +197,9 @@ export default function ProjectCostingPage() {
 
   const filteredProjects = projectCosts.filter(project => {
     if (filterStatus !== 'all' && project.status !== filterStatus) return false
-    if (searchTerm && !project.projectName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !project.client.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !project.projectCode.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    if (searchTerm && !(project.projectName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(project.client?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
+        !(project.projectCode?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
     return true
   })
 
