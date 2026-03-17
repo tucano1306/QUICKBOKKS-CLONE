@@ -65,6 +65,9 @@ const processedDocuments = new Map<string, {
   status: string
   analysis: DocumentAnalysis | null
   createdAt: Date
+  mimeType?: string
+  fileSize?: number
+  approvedAmount?: number | null
 }>()
 
 // ============================================
@@ -547,12 +550,12 @@ export async function GET(request: NextRequest) {
     const documents = Array.from(processedDocuments.values()).map(doc => ({
       id: doc.id,
       originalFilename: doc.filename,
-      mimeType: (doc as any).mimeType || null,
-      fileSize: (doc as any).fileSize || null,
+      mimeType: doc.mimeType || null,
+      fileSize: doc.fileSize || null,
       status: doc.status,
       documentType: doc.analysis?.documentType || null,
       aiConfidence: doc.analysis?.confidence || null,
-      amount: (doc as any).approvedAmount ?? doc.analysis?.extractedData?.amount ?? null,
+      amount: doc.approvedAmount ?? doc.analysis?.extractedData?.amount ?? null,
       suggestedCategory: doc.analysis?.suggestedCategory || null,
       suggestedAccount: doc.analysis?.suggestedAccount || null,
       createdAt: doc.createdAt.toISOString(),
@@ -649,12 +652,12 @@ export async function PUT(request: NextRequest) {
       document: {
         id: doc.id,
         originalFilename: doc.filename,
-        mimeType: (doc as any).mimeType || 'application/octet-stream',
-        fileSize: (doc as any).fileSize || 0,
+        mimeType: doc.mimeType || 'application/octet-stream',
+        fileSize: doc.fileSize || 0,
         status: doc.status,
         documentType: doc.analysis?.documentType || null,
         aiConfidence: doc.analysis?.confidence || null,
-        amount: (doc as any).approvedAmount ?? doc.analysis?.extractedData?.amount ?? null,
+        amount: doc.approvedAmount ?? doc.analysis?.extractedData?.amount ?? null,
         suggestedCategory: doc.analysis?.suggestedCategory || null,
         suggestedAccount: doc.analysis?.suggestedAccount || null,
         extractedData: doc.analysis?.extractedData || null,
