@@ -608,6 +608,18 @@ export async function PUT(request: NextRequest) {
         if (expenseData?.amount) {
           updateData.amount = Number(expenseData.amount)
         }
+        if (expenseData?.date) {
+          const [yr, mo, dy] = expenseData.date.split('-').map(Number)
+          updateData.documentDate = new Date(yr, mo - 1, dy, 12, 0, 0)
+        }
+        if (expenseData?.description) {
+          updateData.description = expenseData.description
+        }
+        if (expenseData?.vendor) {
+          // Merge vendor into extractedData so review page shows it
+          const existingExtracted = (doc.extractedData as Record<string, unknown>) ?? {}
+          updateData.extractedData = { ...existingExtracted, vendor: expenseData.vendor }
+        }
         updateData.approvedById = session.user.id
         updateData.approvedAt = new Date()
 
