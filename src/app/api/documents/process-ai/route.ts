@@ -547,6 +547,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const documentId = searchParams.get('id')
     const companyIdFilter = searchParams.get('companyId')
+    const statusFilter = searchParams.get('status')
 
     if (documentId) {
       const doc = await prisma.uploadedDocument.findFirst({
@@ -582,7 +583,8 @@ export async function GET(request: NextRequest) {
     const docs = await prisma.uploadedDocument.findMany({
       where: {
         uploadedById: session.user.id,
-        ...(companyIdFilter ? { companyId: companyIdFilter } : {})
+        ...(companyIdFilter ? { companyId: companyIdFilter } : {}),
+        ...(statusFilter ? { status: statusFilter as any } : {})
       },
       orderBy: { createdAt: 'desc' },
       take: 50

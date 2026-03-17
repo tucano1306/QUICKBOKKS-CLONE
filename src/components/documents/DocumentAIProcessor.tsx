@@ -260,14 +260,17 @@ export default function DocumentAIProcessor() {
     loadDocuments()
     loadAccounts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter])
+  }, [filter, activeCompany?.id])
 
   const loadDocuments = async () => {
     try {
       setIsLoading(true)
-      const url = filter === 'all' 
-        ? '/api/documents/process-ai'
-        : `/api/documents/process-ai?status=${filter}`
+      let url = '/api/documents/process-ai'
+      const params = new URLSearchParams()
+      if (filter !== 'all') params.set('status', filter)
+      if (activeCompany?.id) params.set('companyId', activeCompany.id)
+      const qs = params.toString()
+      if (qs) url += '?' + qs
       
       const response = await fetch(url)
       const data = await response.json()
@@ -336,7 +339,7 @@ export default function DocumentAIProcessor() {
 
     setIsUploading(false)
     setUploadProgress(0)
-  }, [autoProcess, autoCreateJournalEntry])
+  }, [autoProcess, autoCreateJournalEntry, activeCompany])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (files) => { onDrop(files) },
