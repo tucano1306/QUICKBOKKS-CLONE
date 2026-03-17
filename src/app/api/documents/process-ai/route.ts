@@ -150,7 +150,6 @@ Ending Balance:                $59,253.90
 DOCUMENT
 Date: ${date}
 Reference: DOC-${Date.now().toString().slice(-6)}
-Amount: $500.00
 Category: General Expense
   `
 }

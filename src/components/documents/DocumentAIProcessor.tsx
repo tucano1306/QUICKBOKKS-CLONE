@@ -757,7 +757,11 @@ export default function DocumentAIProcessor() {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
-                        {formatCurrency(doc.amount)}
+                        {doc.status === 'ANALYZED' ? (
+                          <span className="text-orange-500 text-xs italic">Pendiente verificar</span>
+                        ) : doc.amount ? (
+                          formatCurrency(doc.amount)
+                        ) : '-'}
                       </TableCell>
                       <TableCell>
                         {doc.vendor?.name || 
