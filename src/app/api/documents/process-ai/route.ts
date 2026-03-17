@@ -11,11 +11,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { 
-  extractDocumentData, 
-  isGroqConfigured,
-  suggestJournalEntry 
-} from '@/lib/groq-ai-service'
 
 // Tipos
 interface ExtractedData {
@@ -432,70 +427,11 @@ export async function POST(request: NextRequest) {
 
     // Analyze document if autoProcess is enabled
     let analysis: DocumentAnalysis | null = null
-    let usingGroq = false
-    
-    if (autoProcess) {
-      // Intentar usar Groq AI primero (GRATIS)
-      if (isGroqConfigured()) {
-        try {
-          const ocrText = generateSimulatedOCRText(file.name)
-          const groqResult = await extractDocumentData(ocrText, file.name, file.type)
-          
-          if (groqResult.success) {
-            usingGroq = true
-            const journalSuggestion = await suggestJournalEntry(groqResult.data, groqResult.documentType)
-            analysis = {
-              documentType: groqResult.documentType as DocumentAnalysis['documentType'],
-              confidence: groqResult.confidence,
-              extractedData: {
-                amount: groqResult.data.total,
-                date: groqResult.data.date,
-                dueDate: groqResult.data.dueDate,
-                vendor: groqResult.data.vendor,
-                invoiceNumber: groqResult.data.invoiceNumber,
-                description: groqResult.data.description,
-                taxAmount: groqResult.data.taxAmount,
-                subtotal: groqResult.data.subtotal,
-                lineItems: groqResult.data.lineItems,
-                taxId: groqResult.data.taxId,
-                paymentMethod: groqResult.data.paymentMethod
-              },
-              suggestedAccount: {
-                code: groqResult.suggestedAccountCode,
-                name: groqResult.suggestedCategory
-              },
-              suggestedCategory: groqResult.suggestedCategory,
-              journalEntry: journalSuggestion.entries.length > 0 ? {
-                description: journalSuggestion.description,
-                lines: journalSuggestion.entries
-              } : null,
-              processingTime: groqResult.processingTimeMs
-            }
-          }
-        } catch (groqError) {
-          console.error('Groq processing failed, falling back to local:', groqError)
-        }
-      }
-      
-      if (!analysis) {
-        analysis = analyzeDocument(file.name)
-      }
-    }
+    // Análisis local basado en nombre de archivo y patrones de texto
+    const analysis: DocumentAnalysis | null = autoProcess ? analyzeDocument(file.name) : null
 
     const docStatus = autoProcess ? 'ANALYZED' : 'PENDING'
-
-    // Map any AI-returned documentType to valid DB enum values
-    const VALID_DOC_TYPES = ['INVOICE', 'RECEIPT', 'BANK_STATEMENT', 'TAX_DOCUMENT', 'CONTRACT', 'EXPENSE_REPORT', 'PAYROLL', 'OTHER'] as const
-    const docTypeMap: Record<string, string> = {
-      EXPENSE: 'OTHER',
-      BILL: 'INVOICE',
-      PURCHASE_ORDER: 'INVOICE',
-      STATEMENT: 'BANK_STATEMENT',
-    }
-    const rawDocType = analysis?.documentType ?? 'OTHER'
-    const safeDocType = VALID_DOC_TYPES.includes(rawDocType as any)
-      ? rawDocType
-      : (docTypeMap[rawDocType] ?? 'OTHER')
+    const safeDocType = analysis?.documentType ?? 'OTHER'
 
     // Persist to database
     const doc = await prisma.uploadedDocument.create({
@@ -537,15 +473,15 @@ export async function POST(request: NextRequest) {
         processingTime: analysis?.processingTime || null,
         createdAt: doc.createdAt.toISOString(),
         uploadedBy: { name: session.user.name, email: session.user.email },
-        aiProvider: usingGroq ? 'Groq (Llama 3 70B)' : 'Local Analysis',
+        aiProvider: 'Local Analysis',
         processingLogs: autoProcess ? [
-          { id: '1', stage: 'OCR', status: 'SUCCESS', message: 'Text extracted', duration: 50, createdAt: new Date().toISOString() },
-          { id: '2', stage: 'AI_ANALYSIS', status: 'SUCCESS', message: `${usingGroq ? '🤖 Groq AI' : '📊 Local'}: ${analysis?.documentType}`, duration: 30, createdAt: new Date().toISOString() },
-          { id: '3', stage: 'COMPLETE', status: 'SUCCESS', message: `Processing complete (${usingGroq ? 'Groq' : 'Local'})`, duration: analysis?.processingTime || 0, createdAt: new Date().toISOString() }
+          { id: '1', stage: 'OCR', status: 'SUCCESS', message: 'Text extracted from filename', duration: 10, createdAt: new Date().toISOString() },
+          { id: '2', stage: 'ANALYSIS', status: 'SUCCESS', message: `📊 Local: ${analysis?.documentType}`, duration: analysis?.processingTime || 0, createdAt: new Date().toISOString() },
+          { id: '3', stage: 'COMPLETE', status: 'SUCCESS', message: 'Processing complete', duration: 0, createdAt: new Date().toISOString() }
         ] : []
       },
       analysis,
-      aiProvider: usingGroq ? 'groq' : 'local'
+      aiProvider: 'local'
     })
 
   } catch (error) {
