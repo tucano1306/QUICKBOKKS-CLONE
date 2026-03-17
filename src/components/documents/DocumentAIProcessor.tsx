@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { 
   Table,
   TableBody,
@@ -245,6 +246,13 @@ export default function DocumentAIProcessor() {
   const [selectedAccount, setSelectedAccount] = useState<string>('')
   const [filter, setFilter] = useState<string>('all')
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Estados editables para el diálogo de aprobación
+  const [editAmount, setEditAmount] = useState<string>('')
+  const [editVendor, setEditVendor] = useState<string>('')
+  const [editDate, setEditDate] = useState<string>('')
+  const [editReference, setEditReference] = useState<string>('')
+  const [editDescription, setEditDescription] = useState<string>('')
 
   // Cargar documentos
   useEffect(() => {
@@ -335,10 +343,32 @@ export default function DocumentAIProcessor() {
     maxSize: 10 * 1024 * 1024 // 10MB
   })
 
+  // Inicializar valores editables cuando se selecciona un documento
+  const initEditableValues = (doc: UploadedDocument) => {
+    const amount = doc.aiAnalysis?.extractedData?.amount || doc.amount || 0
+    const vendor = doc.aiAnalysis?.extractedData?.vendor || ''
+    const date = doc.aiAnalysis?.extractedData?.date || new Date().toISOString().split('T')[0]
+    const reference = doc.aiAnalysis?.extractedData?.invoiceNumber || ''
+    const description = doc.aiAnalysis?.extractedData?.description || doc.description || doc.originalFilename || ''
+    
+    setEditAmount(amount.toString())
+    setEditVendor(vendor)
+    setEditDate(date)
+    setEditReference(reference)
+    setEditDescription(description)
+  }
+
   // Document actions
   const handleApprove = async (doc: UploadedDocument, accountId?: string) => {
     if (!activeCompany?.id) {
       alert('No hay empresa activa seleccionada')
+      return
+    }
+
+    // Validar monto
+    const parsedAmount = parseFloat(editAmount.replace(/,/g, ''))
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      alert('Por favor ingresa un monto válido mayor a 0')
       return
     }
 
@@ -354,12 +384,12 @@ export default function DocumentAIProcessor() {
           journalEntryData: doc.aiAnalysis?.journalEntry,
           createExpense: true, // Crear transacción automáticamente
           expenseData: {
-            amount: doc.aiAnalysis?.extractedData?.amount || doc.amount,
-            date: doc.aiAnalysis?.extractedData?.date || new Date().toISOString().split('T')[0],
-            description: doc.aiAnalysis?.extractedData?.description || doc.description || doc.originalFilename,
+            amount: parsedAmount, // Usar el valor editado
+            date: editDate || new Date().toISOString().split('T')[0],
+            description: editDescription || doc.originalFilename,
             category: doc.aiAnalysis?.suggestedCategory || 'Gastos Generales',
-            vendor: doc.aiAnalysis?.extractedData?.vendor,
-            reference: doc.aiAnalysis?.extractedData?.invoiceNumber
+            vendor: editVendor || undefined,
+            reference: editReference || undefined
           }
         })
       })
@@ -770,6 +800,7 @@ export default function DocumentAIProcessor() {
                                 onClick={() => {
                                   setSelectedDocument(doc)
                                   setSelectedAccount(doc.suggestedAccount?.id || '')
+                                  initEditableValues(doc)
                                   setIsApproveDialogOpen(true)
                                 }}
                               >
@@ -1172,6 +1203,7 @@ export default function DocumentAIProcessor() {
                 <Button 
                   onClick={() => {
                     setSelectedAccount(selectedDocument.suggestedAccount?.id || '')
+                    initEditableValues(selectedDocument)
                     setIsApproveDialogOpen(true)
                     setIsDetailOpen(false)
                   }}
@@ -1194,52 +1226,95 @@ export default function DocumentAIProcessor() {
               Aprobar Documento y Crear Gasto
             </DialogTitle>
             <DialogDescription>
-              Se creará automáticamente un gasto en Transacciones con los datos extraídos.
+              Verifica y corrige los datos antes de crear el gasto.
             </DialogDescription>
           </DialogHeader>
           
           {selectedDocument && (
             <div className="space-y-4">
-              <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Documento:</span>
-                  <span className="text-sm font-medium truncate max-w-[200px]">{selectedDocument.originalFilename}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Monto:</span>
-                  <span className="text-lg font-bold text-green-600">{formatCurrency(selectedDocument.amount || selectedDocument.aiAnalysis?.extractedData?.amount)}</span>
-                </div>
-                {selectedDocument.aiAnalysis?.extractedData?.vendor && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Proveedor:</span>
-                    <span className="text-sm font-medium">{selectedDocument.aiAnalysis.extractedData.vendor}</span>
-                  </div>
-                )}
-                {selectedDocument.aiAnalysis?.extractedData?.date && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Fecha:</span>
-                    <span className="text-sm">{selectedDocument.aiAnalysis.extractedData.date}</span>
-                  </div>
-                )}
-                {selectedDocument.aiAnalysis?.extractedData?.invoiceNumber && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Referencia:</span>
-                    <span className="text-sm">{selectedDocument.aiAnalysis.extractedData.invoiceNumber}</span>
-                  </div>
-                )}
+              {/* Archivo */}
+              <div className="bg-gray-50 p-2 rounded text-sm">
+                <span className="text-gray-500">Archivo:</span>{' '}
+                <span className="font-medium truncate">{selectedDocument.originalFilename}</span>
               </div>
-              
+
+              {/* Monto - EDITABLE */}
               <div>
-                <Label>Categoría sugerida</Label>
-                <p className="text-sm font-medium text-blue-600">
-                  {selectedDocument.aiAnalysis?.suggestedCategory || 'Gastos Generales'}
+                <Label htmlFor="edit-amount" className="text-sm font-medium">
+                  Monto <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <Input
+                    id="edit-amount"
+                    type="text"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    className="pl-7 text-lg font-bold"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  IA detectó: {formatCurrency(selectedDocument.amount || selectedDocument.aiAnalysis?.extractedData?.amount)}
                 </p>
               </div>
 
+              {/* Proveedor - EDITABLE */}
+              <div>
+                <Label htmlFor="edit-vendor" className="text-sm font-medium">Proveedor</Label>
+                <Input
+                  id="edit-vendor"
+                  type="text"
+                  value={editVendor}
+                  onChange={(e) => setEditVendor(e.target.value)}
+                  className="mt-1"
+                  placeholder="Nombre del proveedor"
+                />
+              </div>
+
+              {/* Fecha - EDITABLE */}
+              <div>
+                <Label htmlFor="edit-date" className="text-sm font-medium">Fecha</Label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Referencia - EDITABLE */}
+              <div>
+                <Label htmlFor="edit-reference" className="text-sm font-medium">Referencia / Nº Factura</Label>
+                <Input
+                  id="edit-reference"
+                  type="text"
+                  value={editReference}
+                  onChange={(e) => setEditReference(e.target.value)}
+                  className="mt-1"
+                  placeholder="INV-001"
+                />
+              </div>
+
+              {/* Descripción - EDITABLE */}
+              <div>
+                <Label htmlFor="edit-description" className="text-sm font-medium">Descripción</Label>
+                <Input
+                  id="edit-description"
+                  type="text"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="mt-1"
+                  placeholder="Descripción del gasto"
+                />
+              </div>
+
+              {/* Cuenta contable */}
               <div>
                 <Label>Cuenta contable</Label>
                 <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-                  <SelectTrigger>
+                  <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Seleccionar cuenta" />
                   </SelectTrigger>
                   <SelectContent>

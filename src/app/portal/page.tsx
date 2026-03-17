@@ -11,7 +11,8 @@ function getInvoiceStatusColor(status: string): string {
   return 'bg-orange-500'
 }
 
-function getDocumentIcon(type: string): string {
+function getDocumentIcon(type: string | undefined | null): string {
+  if (!type) return '📎'
   if (type.includes('pdf')) return '📄'
   if (type.includes('image')) return '🖼️'
   if (type.includes('word')) return '📝'
@@ -353,11 +354,11 @@ export default function ClientPortalPage() {
                         {new Date(doc.uploadedAt).toLocaleDateString()}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {(doc.size / 1024).toFixed(1)} KB
+                        {((doc.size || 0) / 1024).toFixed(1)} KB
                       </p>
                       {doc.category && (
                         <Badge className="mt-2 text-xs">
-                          {doc.category} ({(doc.autoCategorizationConfidence * 100).toFixed(0)}%)
+                          {doc.category} {doc.autoCategorizationConfidence != null && `(${(doc.autoCategorizationConfidence * 100).toFixed(0)}%)`}
                         </Badge>
                       )}
                     </div>
