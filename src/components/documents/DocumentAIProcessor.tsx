@@ -247,6 +247,7 @@ export default function DocumentAIProcessor() {
   const [selectedAccount, setSelectedAccount] = useState<string>('')
   const [filter, setFilter] = useState<string>('all')
   const [isLoading, setIsLoading] = useState(true)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   
   // Estados editables para el diálogo de aprobación
   const [editAmount, setEditAmount] = useState<string>('')
@@ -275,6 +276,11 @@ export default function DocumentAIProcessor() {
       const response = await fetch(url)
       const data = await response.json()
       
+      if (!response.ok) {
+        console.error('[loadDocuments] Error:', data?.error)
+        setUploadError(data?.error || 'Error cargando documentos')
+        return
+      }
       if (data.documents) {
         setDocuments(data.documents)
       }
@@ -327,18 +333,27 @@ export default function DocumentAIProcessor() {
 
         const data = await response.json()
 
-        if (data.success && data.document) {
+        if (!response.ok || !data.success) {
+          const msg = data?.error || `Error subiendo ${file.name}`
+          console.error('[Upload]', msg, data)
+          setUploadError(msg)
+        } else if (data.document) {
+          setUploadError(null)
           setDocuments(prev => [data.document, ...prev])
         }
 
         setUploadProgress(((i + 1) / acceptedFiles.length) * 100)
       } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Error desconocido'
         console.error('Error uploading file:', error)
+        setUploadError(msg)
       }
     }
 
     setIsUploading(false)
     setUploadProgress(0)
+    // Refresh list from DB to ensure consistency
+    loadDocuments()
   }, [autoProcess, autoCreateJournalEntry, activeCompany])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -522,6 +537,14 @@ export default function DocumentAIProcessor() {
           Refresh
         </Button>
       </div>
+
+      {/* Error banner */}
+      {uploadError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 flex items-center justify-between text-sm">
+          <span>⚠️ {uploadError}</span>
+          <button onClick={() => setUploadError(null)} className="ml-4 font-bold text-red-600 hover:text-red-800">✕</button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

@@ -61,11 +61,18 @@ interface DocumentAnalysis {
 // Helper: get companyId for user (fallback to first membership)
 async function getCompanyId(userId: string, requestedCompanyId?: string | null): Promise<string | null> {
   if (requestedCompanyId) return requestedCompanyId
+  // Try CompanyUser membership
   const membership = await prisma.companyUser.findFirst({
     where: { userId },
     select: { companyId: true }
   })
-  return membership?.companyId ?? null
+  if (membership?.companyId) return membership.companyId
+  // Try any company directly linked to user via uploadedDocuments or invoices as last resort
+  const anyCompany = await prisma.company.findFirst({
+    where: { isActive: true },
+    select: { id: true }
+  })
+  return anyCompany?.id ?? null
 }
 
 // Helper: reconstruct analysis object from DB record
