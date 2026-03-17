@@ -134,6 +134,9 @@ export async function POST(request: NextRequest) {
       notes,
       terms,
       discount,
+      companyId: bodyCompanyId,
+      status: bodyStatus,
+      invoiceNumber: bodyInvoiceNumber,
     } = body
 
     // Additional validation for invoice data
@@ -166,15 +169,21 @@ export async function POST(request: NextRequest) {
     const discountAmount = discount || 0
     const total = subtotal + taxAmount - discountAmount
 
-    // Generate invoice number
+    // Generate invoice number (scoped to company if available)
     const lastInvoice = await prisma.invoice.findFirst({
-      where: { userId: session.user.id },
+      where: bodyCompanyId ? { companyId: bodyCompanyId } : { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
     })
 
-    const invoiceNumber = lastInvoice
-      ? `INV-${parseInt(lastInvoice.invoiceNumber.split('-')[1]) + 1}`
-      : 'INV-1'
+    const invoiceNumber = bodyInvoiceNumber || (lastInvoice
+      ? `INV-${parseInt(lastInvoice.invoiceNumber.replace(/\D/g, '') || '0') + 1}`
+      : 'INV-1')
+
+    // Resolve companyId
+    const finalCompanyId = bodyCompanyId || (await prisma.companyUser.findFirst({
+      where: { userId: session.user.id },
+      select: { companyId: true }
+    }))?.companyId || null
 
     // Create invoice with items
     const invoice = await prisma.invoice.create({
@@ -182,13 +191,14 @@ export async function POST(request: NextRequest) {
         invoiceNumber,
         customerId,
         userId: session.user.id,
+        ...(finalCompanyId ? { companyId: finalCompanyId } : {}),
         issueDate: new Date(issueDate),
         dueDate: new Date(dueDate),
         subtotal,
         taxAmount,
         discount: discountAmount,
         total,
-        status: 'DRAFT',
+        status: (bodyStatus as any) || 'DRAFT',
         notes,
         terms,
         items: {
@@ -214,18 +224,10 @@ export async function POST(request: NextRequest) {
     })
 
     // IMPORTANTE: Solo crear asiento contable si la factura NO es DRAFT
-    // Las facturas DRAFT no deben reconocer ingresos (GAAP)
-    // El asiento se crea cuando la factura se ENVÍA o cuando el status es diferente de DRAFT
-    const userCompany = await prisma.companyUser.findFirst({
-      where: { userId: session.user.id },
-      select: { companyId: true }
-    });
-    
-    // Solo crear asiento si status != DRAFT (por defecto es DRAFT, así que normalmente no se crea aquí)
-    if (userCompany?.companyId && invoice.status !== 'DRAFT') {
+    if (finalCompanyId && invoice.status !== 'DRAFT') {
       const customerName = invoice.customer?.name || 'Cliente';
       await createInvoiceJournalEntry(
-        userCompany.companyId,
+        finalCompanyId,
         total,
         invoiceNumber,
         customerName,

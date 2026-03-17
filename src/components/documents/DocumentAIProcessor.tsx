@@ -190,7 +190,8 @@ const documentTypeConfig: Record<string, { label: string; color: string }> = {
   OTHER: { label: 'Other', color: 'bg-gray-400' },
 }
 
-function getFileIcon(mimeType: string) {
+function getFileIcon(mimeType: string | null | undefined) {
+  if (!mimeType) return File
   if (mimeType.includes('pdf')) return FileText
   if (mimeType.includes('image')) return ImageIcon
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType.includes('csv')) return FileSpreadsheet
@@ -285,7 +286,10 @@ export default function DocumentAIProcessor() {
     try {
       const response = await fetch('/api/accounts')
       const data = await response.json()
-      if (data.accounts) {
+      // API retorna array directamente o {accounts: [...]}
+      if (Array.isArray(data)) {
+        setAccounts(data)
+      } else if (data.accounts) {
         setAccounts(data.accounts)
       }
     } catch (error) {
@@ -345,17 +349,12 @@ export default function DocumentAIProcessor() {
 
   // Inicializar valores editables cuando se selecciona un documento
   const initEditableValues = (doc: UploadedDocument) => {
-    const amount = doc.aiAnalysis?.extractedData?.amount || doc.amount || 0
-    const vendor = doc.aiAnalysis?.extractedData?.vendor || ''
-    const date = doc.aiAnalysis?.extractedData?.date || new Date().toISOString().split('T')[0]
-    const reference = doc.aiAnalysis?.extractedData?.invoiceNumber || ''
-    const description = doc.aiAnalysis?.extractedData?.description || doc.description || doc.originalFilename || ''
-    
-    setEditAmount(amount.toString())
-    setEditVendor(vendor)
-    setEditDate(date)
-    setEditReference(reference)
-    setEditDescription(description)
+    // Dejar monto vacío para que el usuario ingrese el real
+    setEditAmount('')
+    setEditVendor(doc.aiAnalysis?.extractedData?.vendor || '')
+    setEditDate(doc.aiAnalysis?.extractedData?.date || new Date().toISOString().split('T')[0])
+    setEditReference(doc.aiAnalysis?.extractedData?.invoiceNumber || '')
+    setEditDescription(doc.aiAnalysis?.extractedData?.description || doc.description || doc.originalFilename || '')
   }
 
   // Document actions
@@ -1241,7 +1240,7 @@ export default function DocumentAIProcessor() {
               {/* Monto - EDITABLE */}
               <div>
                 <Label htmlFor="edit-amount" className="text-sm font-medium">
-                  Monto <span className="text-red-500">*</span>
+                  Monto Real <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative mt-1">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
@@ -1250,12 +1249,13 @@ export default function DocumentAIProcessor() {
                     type="text"
                     value={editAmount}
                     onChange={(e) => setEditAmount(e.target.value)}
-                    className="pl-7 text-lg font-bold"
-                    placeholder="0.00"
+                    className="pl-7 text-lg font-bold border-2 border-blue-400 focus:border-blue-600"
+                    placeholder="Ingresa el monto real (ej: 29.13)"
+                    autoFocus
                   />
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  IA detectó: {formatCurrency(selectedDocument.amount || selectedDocument.aiAnalysis?.extractedData?.amount)}
+                <p className="text-xs text-orange-600 mt-1 font-medium">
+                  ⚠️ La IA no puede leer el monto real. Ingresa el monto correcto del documento.
                 </p>
               </div>
 
