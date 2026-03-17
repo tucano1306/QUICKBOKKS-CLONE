@@ -484,6 +484,19 @@ export async function POST(request: NextRequest) {
 
     const docStatus = autoProcess ? 'ANALYZED' : 'PENDING'
 
+    // Map any AI-returned documentType to valid DB enum values
+    const VALID_DOC_TYPES = ['INVOICE', 'RECEIPT', 'BANK_STATEMENT', 'TAX_DOCUMENT', 'CONTRACT', 'EXPENSE_REPORT', 'PAYROLL', 'OTHER'] as const
+    const docTypeMap: Record<string, string> = {
+      EXPENSE: 'OTHER',
+      BILL: 'INVOICE',
+      PURCHASE_ORDER: 'INVOICE',
+      STATEMENT: 'BANK_STATEMENT',
+    }
+    const rawDocType = analysis?.documentType ?? 'OTHER'
+    const safeDocType = VALID_DOC_TYPES.includes(rawDocType as any)
+      ? rawDocType
+      : (docTypeMap[rawDocType] ?? 'OTHER')
+
     // Persist to database
     const doc = await prisma.uploadedDocument.create({
       data: {
@@ -492,7 +505,7 @@ export async function POST(request: NextRequest) {
         mimeType: file.type || 'application/octet-stream',
         fileSize: Math.round(file.size),
         status: docStatus as any,
-        documentType: (analysis?.documentType ?? 'OTHER') as any,
+        documentType: safeDocType as any,
         uploadedById: session.user.id,
         companyId,
         aiAnalysis: analysis ? (analysis as any) : null,
