@@ -58,17 +58,37 @@ interface DocumentAnalysis {
   processingTime: number
 }
 
-// Almacenamiento en memoria temporal para documentos procesados
-const processedDocuments = new Map<string, {
-  id: string
-  filename: string
-  status: string
-  analysis: DocumentAnalysis | null
-  createdAt: Date
-  mimeType?: string
-  fileSize?: number
-  approvedAmount?: number | null
-}>()
+// Helper: get companyId for user (fallback to first membership)
+async function getCompanyId(userId: string, requestedCompanyId?: string | null): Promise<string | null> {
+  if (requestedCompanyId) return requestedCompanyId
+  const membership = await prisma.companyUser.findFirst({
+    where: { userId },
+    select: { companyId: true }
+  })
+  return membership?.companyId ?? null
+}
+
+// Helper: reconstruct analysis object from DB record
+function buildAnalysis(doc: {
+  documentType: string
+  aiConfidence: number | null
+  extractedData: unknown
+  aiAnalysis: unknown
+  suggestedCategory: string | null
+  processingTime: number | null
+}): DocumentAnalysis | null {
+  if (!doc.aiAnalysis) return null
+  const ai = doc.aiAnalysis as DocumentAnalysis
+  return {
+    documentType: doc.documentType as DocumentAnalysis['documentType'],
+    confidence: doc.aiConfidence ?? ai.confidence ?? 0,
+    extractedData: (doc.extractedData as ExtractedData) ?? ai.extractedData,
+    suggestedAccount: ai.suggestedAccount ?? null,
+    suggestedCategory: doc.suggestedCategory ?? ai.suggestedCategory ?? '',
+    journalEntry: ai.journalEntry ?? null,
+    processingTime: doc.processingTime ?? ai.processingTime ?? 0
+  }
+}
 
 // ============================================
 // OCR SIMULATION
@@ -392,14 +412,17 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     const autoProcess = formData.get('autoProcess') === 'true'
+    const requestedCompanyId = formData.get('companyId') as string | null
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Generate unique ID
-    const docId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
+    const companyId = await getCompanyId(session.user.id, requestedCompanyId)
+    if (!companyId) {
+      return NextResponse.json({ error: 'No company found for user' }, { status: 400 })
+    }
+
     // Analyze document if autoProcess is enabled
     let analysis: DocumentAnalysis | null = null
     let usingGroq = false
@@ -408,18 +431,12 @@ export async function POST(request: NextRequest) {
       // Intentar usar Groq AI primero (GRATIS)
       if (isGroqConfigured()) {
         try {
-          // Simular OCR text (en producción usar Tesseract.js o similar)
           const ocrText = generateSimulatedOCRText(file.name)
-          
-          // Procesar con Groq AI
           const groqResult = await extractDocumentData(ocrText, file.name, file.type)
           
           if (groqResult.success) {
             usingGroq = true
-            
-            // Generar asiento contable sugerido
             const journalSuggestion = await suggestJournalEntry(groqResult.data, groqResult.documentType)
-            
             analysis = {
               documentType: groqResult.documentType as DocumentAnalysis['documentType'],
               confidence: groqResult.confidence,
@@ -453,36 +470,46 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      // Fallback a análisis local si Groq no está disponible o falló
       if (!analysis) {
         analysis = analyzeDocument(file.name)
       }
     }
 
-    // Store in memory (in production, use database)
-    const doc = {
-      id: docId,
-      filename: file.name,
-      mimeType: file.type,
-      fileSize: file.size,
-      status: autoProcess ? 'ANALYZED' : 'PENDING',
-      analysis,
-      approvedAmount: null as number | null,
-      createdAt: new Date()
-    }
-    processedDocuments.set(docId, doc)
+    const docStatus = autoProcess ? 'ANALYZED' : 'PENDING'
+
+    // Persist to database
+    const doc = await prisma.uploadedDocument.create({
+      data: {
+        filename: file.name,
+        originalName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        fileSize: file.size,
+        status: docStatus as any,
+        documentType: (analysis?.documentType ?? 'OTHER') as any,
+        uploadedById: session.user.id,
+        companyId,
+        aiAnalysis: analysis ? (analysis as any) : undefined,
+        extractedData: analysis ? (analysis.extractedData as any) : undefined,
+        suggestedCategory: analysis?.suggestedCategory ?? null,
+        aiConfidence: analysis?.confidence ?? null,
+        processingTime: analysis?.processingTime ?? null,
+        amount: analysis?.extractedData?.amount ?? null,
+        invoiceNumber: analysis?.extractedData?.invoiceNumber ?? null,
+        description: analysis?.extractedData?.description ?? null,
+      }
+    })
 
     return NextResponse.json({
       success: true,
       document: {
         id: doc.id,
-        originalFilename: doc.filename,
-        mimeType: file.type,
-        fileSize: file.size,
+        originalFilename: doc.originalName,
+        mimeType: doc.mimeType,
+        fileSize: doc.fileSize,
         status: doc.status,
         documentType: analysis?.documentType || null,
         aiConfidence: analysis?.confidence || null,
-        amount: analysis?.extractedData.amount || null,
+        amount: analysis?.extractedData?.amount || null,
         suggestedCategory: analysis?.suggestedCategory || null,
         suggestedAccount: analysis?.suggestedAccount || null,
         extractedData: analysis?.extractedData || null,
@@ -519,26 +546,31 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const documentId = searchParams.get('id')
+    const companyIdFilter = searchParams.get('companyId')
 
     if (documentId) {
-      const doc = processedDocuments.get(documentId)
+      const doc = await prisma.uploadedDocument.findFirst({
+        where: { id: documentId, uploadedById: session.user.id }
+      })
       if (!doc) {
         return NextResponse.json({ error: 'Document not found' }, { status: 404 })
       }
-      
+      const analysis = buildAnalysis(doc)
       return NextResponse.json({
         document: {
           id: doc.id,
-          originalFilename: doc.filename,
+          originalFilename: doc.originalName,
+          mimeType: doc.mimeType,
+          fileSize: doc.fileSize,
           status: doc.status,
-          documentType: doc.analysis?.documentType || null,
-          aiConfidence: doc.analysis?.confidence || null,
-          amount: doc.analysis?.extractedData.amount || null,
-          suggestedCategory: doc.analysis?.suggestedCategory || null,
-          suggestedAccount: doc.analysis?.suggestedAccount || null,
-          extractedData: doc.analysis?.extractedData || null,
-          aiAnalysis: doc.analysis || null,
-          processingTime: doc.analysis?.processingTime || null,
+          documentType: doc.documentType || null,
+          aiConfidence: doc.aiConfidence || null,
+          amount: doc.amount || null,
+          suggestedCategory: doc.suggestedCategory || null,
+          suggestedAccount: analysis?.suggestedAccount || null,
+          extractedData: doc.extractedData || null,
+          aiAnalysis: analysis || null,
+          processingTime: doc.processingTime || null,
           createdAt: doc.createdAt.toISOString(),
           uploadedBy: { name: session.user.name, email: session.user.email },
           processingLogs: []
@@ -546,21 +578,35 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Return all documents
-    const documents = Array.from(processedDocuments.values()).map(doc => ({
-      id: doc.id,
-      originalFilename: doc.filename,
-      mimeType: doc.mimeType || null,
-      fileSize: doc.fileSize || null,
-      status: doc.status,
-      documentType: doc.analysis?.documentType || null,
-      aiConfidence: doc.analysis?.confidence || null,
-      amount: doc.approvedAmount ?? doc.analysis?.extractedData?.amount ?? null,
-      suggestedCategory: doc.analysis?.suggestedCategory || null,
-      suggestedAccount: doc.analysis?.suggestedAccount || null,
-      createdAt: doc.createdAt.toISOString(),
-      uploadedBy: { name: session.user.name, email: session.user.email }
-    }))
+    // Return all documents for this user
+    const docs = await prisma.uploadedDocument.findMany({
+      where: {
+        uploadedById: session.user.id,
+        ...(companyIdFilter ? { companyId: companyIdFilter } : {})
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    })
+
+    const documents = docs.map(doc => {
+      const analysis = buildAnalysis(doc)
+      return {
+        id: doc.id,
+        originalFilename: doc.originalName,
+        mimeType: doc.mimeType,
+        fileSize: doc.fileSize,
+        status: doc.status,
+        documentType: doc.documentType || null,
+        aiConfidence: doc.aiConfidence || null,
+        amount: doc.amount || null,
+        suggestedCategory: doc.suggestedCategory || null,
+        suggestedAccount: analysis?.suggestedAccount || null,
+        extractedData: doc.extractedData || null,
+        aiAnalysis: analysis || null,
+        createdAt: doc.createdAt.toISOString(),
+        uploadedBy: { name: session.user.name, email: session.user.email }
+      }
+    })
 
     return NextResponse.json({
       documents,
@@ -587,25 +633,27 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing documentId or action' }, { status: 400 })
     }
 
-    const doc = processedDocuments.get(documentId)
+    const doc = await prisma.uploadedDocument.findFirst({
+      where: { id: documentId, uploadedById: session.user.id }
+    })
     if (!doc) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
     let createdTransaction = null
+    let updateData: Record<string, unknown> = {}
 
     switch (action) {
       case 'approve':
-        doc.status = 'APPROVED'
-        // Guardar el monto que el usuario ingresó manualmente
+        updateData.status = 'APPROVED'
         if (expenseData?.amount) {
-          doc.approvedAmount = Number(expenseData.amount)
+          updateData.amount = Number(expenseData.amount)
         }
-        
-        // Si se solicita crear gasto automáticamente
+        updateData.approvedById = session.user.id
+        updateData.approvedAt = new Date()
+
         if (createExpense && companyId && expenseData?.amount) {
           try {
-            // Parsear fecha
             let txDate: Date
             if (expenseData.date) {
               const [year, month, day] = expenseData.date.split('-').map(Number)
@@ -613,57 +661,64 @@ export async function PUT(request: NextRequest) {
             } else {
               txDate = new Date()
             }
-
-            // Crear la transacción de gasto
             createdTransaction = await prisma.transaction.create({
               data: {
                 companyId,
                 type: 'EXPENSE',
                 category: expenseData.category || 'Gastos Generales',
-                description: expenseData.description || `Factura escaneada: ${doc.filename}`,
+                description: expenseData.description || `Factura escaneada: ${doc.originalName}`,
                 amount: Number(expenseData.amount),
                 date: txDate,
                 status: 'COMPLETED',
                 reference: expenseData.reference || null,
-                notes: `Creado automáticamente desde documento: ${doc.filename}${expenseData.vendor ? ` | Proveedor: ${expenseData.vendor}` : ''}`
+                notes: `Creado automáticamente desde documento: ${doc.originalName}${expenseData.vendor ? ` | Proveedor: ${expenseData.vendor}` : ''}`
               }
             })
-
-            console.log(`[Document AI] Gasto creado automáticamente: ID=${createdTransaction.id}, Monto=$${expenseData.amount}, Empresa=${companyId}`)
           } catch (txError) {
             console.error('Error creating transaction from document:', txError)
-            // No fallar la aprobación si la transacción falla
           }
         }
         break
       case 'reject':
-        doc.status = 'REJECTED'
+        updateData.status = 'REJECTED'
         break
-      case 'reprocess':
-        doc.analysis = analyzeDocument(doc.filename)
-        doc.status = 'ANALYZED'
+      case 'reprocess': {
+        const newAnalysis = analyzeDocument(doc.originalName)
+        updateData.status = 'ANALYZED'
+        updateData.aiAnalysis = newAnalysis as any
+        updateData.extractedData = newAnalysis.extractedData as any
+        updateData.aiConfidence = newAnalysis.confidence
+        updateData.suggestedCategory = newAnalysis.suggestedCategory
+        updateData.processingTime = newAnalysis.processingTime
+        updateData.amount = newAnalysis.extractedData.amount
         break
+      }
     }
 
-    processedDocuments.set(documentId, doc)
+    const updated = await prisma.uploadedDocument.update({
+      where: { id: documentId },
+      data: updateData
+    })
+
+    const analysis = buildAnalysis(updated)
 
     return NextResponse.json({
       success: true,
       document: {
-        id: doc.id,
-        originalFilename: doc.filename,
-        mimeType: doc.mimeType || 'application/octet-stream',
-        fileSize: doc.fileSize || 0,
-        status: doc.status,
-        documentType: doc.analysis?.documentType || null,
-        aiConfidence: doc.analysis?.confidence || null,
-        amount: doc.approvedAmount ?? doc.analysis?.extractedData?.amount ?? null,
-        suggestedCategory: doc.analysis?.suggestedCategory || null,
-        suggestedAccount: doc.analysis?.suggestedAccount || null,
-        extractedData: doc.analysis?.extractedData || null,
-        aiAnalysis: doc.analysis || null,
+        id: updated.id,
+        originalFilename: updated.originalName,
+        mimeType: updated.mimeType,
+        fileSize: updated.fileSize,
+        status: updated.status,
+        documentType: updated.documentType || null,
+        aiConfidence: updated.aiConfidence || null,
+        amount: updated.amount || null,
+        suggestedCategory: updated.suggestedCategory || null,
+        suggestedAccount: analysis?.suggestedAccount || null,
+        extractedData: updated.extractedData || null,
+        aiAnalysis: analysis || null,
         vendor: expenseData?.vendor ? { id: null, name: expenseData.vendor } : null,
-        createdAt: doc.createdAt.toISOString()
+        createdAt: updated.createdAt.toISOString()
       },
       transaction: createdTransaction ? {
         id: createdTransaction.id,
@@ -693,11 +748,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing document ID' }, { status: 400 })
     }
 
-    if (!processedDocuments.has(documentId)) {
+    const doc = await prisma.uploadedDocument.findFirst({
+      where: { id: documentId, uploadedById: session.user.id }
+    })
+    if (!doc) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    processedDocuments.delete(documentId)
+    await prisma.uploadedDocument.delete({ where: { id: documentId } })
 
     return NextResponse.json({ success: true, message: 'Document deleted successfully' })
 

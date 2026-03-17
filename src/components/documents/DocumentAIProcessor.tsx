@@ -310,6 +310,9 @@ export default function DocumentAIProcessor() {
       formData.append('file', file)
       formData.append('autoProcess', String(autoProcess))
       formData.append('autoCreateJournalEntry', String(autoCreateJournalEntry))
+      if (activeCompany?.id) {
+        formData.append('companyId', activeCompany.id)
+      }
 
       try {
         setUploadProgress(((i + 0.5) / acceptedFiles.length) * 100)
