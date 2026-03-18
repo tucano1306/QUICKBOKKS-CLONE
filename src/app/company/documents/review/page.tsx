@@ -83,7 +83,6 @@ export default function DocumentReviewPage() {
   const [editingDoc, setEditingDoc] = useState<string | null>(null)
   const [showReclassifyModal, setShowReclassifyModal] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<AccountSuggestion[]>([])
-  const [autoRefresh, setAutoRefresh] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null)
 
@@ -111,16 +110,6 @@ export default function DocumentReviewPage() {
   useEffect(() => {
     loadProcessedDocuments()
   }, [loadProcessedDocuments])
-
-  // Auto-refresh cada 5 segundos para nuevos documentos
-  useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(() => {
-        loadProcessedDocuments()
-      }, 5000)
-      return () => clearInterval(interval)
-    }
-  }, [autoRefresh, loadProcessedDocuments])
 
   const handleReclassify = async (doc: ProcessedDocument) => {
     setSelectedDoc(doc)
@@ -432,14 +421,6 @@ export default function DocumentReviewPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant={autoRefresh ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-            >
-              <RefreshCw className={`w-4 h-4 sm:mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Auto-refresh {autoRefresh ? 'ON' : 'OFF'}</span>
-            </Button>
             <Button variant="outline" size="sm" onClick={loadProcessedDocuments}>
               <Zap className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Actualizar</span>
