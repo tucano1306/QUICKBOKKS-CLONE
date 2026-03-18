@@ -1,0 +1,11 @@
+import { PrismaClient } from '@prisma/client'
+const p = new PrismaClient()
+const companies = await p.company.findMany({ select: { id: true, name: true } })
+console.log('Companies:', JSON.stringify(companies, null, 2))
+const employees = await p.employee.findMany({ select: { id: true, firstName: true, lastName: true, companyId: true } })
+console.log('Employees:', JSON.stringify(employees, null, 2))
+const txSample = await p.transaction.findFirst({ select: { id: true, companyId: true, amount: true, description: true } })
+console.log('TX sample:', JSON.stringify(txSample, null, 2))
+const txByCompany = await p.transaction.groupBy({ by: ['companyId'], _count: true })
+console.log('TX by company:', JSON.stringify(txByCompany, null, 2))
+await p.$disconnect()
