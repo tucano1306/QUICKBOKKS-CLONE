@@ -83,6 +83,7 @@ export default function DocumentReviewPage() {
   const [editingDoc, setEditingDoc] = useState<string | null>(null)
   const [showReclassifyModal, setShowReclassifyModal] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<AccountSuggestion[]>([])
+  const [autoRefresh, setAutoRefresh] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null)
 
@@ -110,6 +111,16 @@ export default function DocumentReviewPage() {
   useEffect(() => {
     loadProcessedDocuments()
   }, [loadProcessedDocuments])
+
+  // Auto-refresh cada 5 segundos para nuevos documentos
+  useEffect(() => {
+    if (autoRefresh) {
+      const interval = setInterval(() => {
+        loadProcessedDocuments()
+      }, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [autoRefresh, loadProcessedDocuments])
 
   const handleReclassify = async (doc: ProcessedDocument) => {
     setSelectedDoc(doc)
@@ -369,17 +380,15 @@ export default function DocumentReviewPage() {
     approved: documents.filter(d => d.status === 'approved').length,
     reclassified: documents.filter(d => d.status === 'reclassified').length,
     rejected: documents.filter(d => d.status === 'rejected').length,
-    totalAmount: documents.reduce((sum, d) => sum + (d.amount || 0), 0),
-    avgConfidence: documents.length > 0 ? Math.round(documents.reduce((sum, d) => sum + (d.aiConfidence || 0), 0) / documents.length) : 0
+    totalAmount: documents.reduce((sum, d) => sum + d.amount, 0),
+    avgConfidence: documents.length > 0 ? Math.round(documents.reduce((sum, d) => sum + d.aiConfidence, 0) / documents.length) : 0
   }
 
-  const filteredDocs = documents.filter(doc => {
-    const search = searchTerm.toLowerCase()
-    const filename = doc.filename?.toLowerCase() || ''
-    const vendor = doc.vendor?.toLowerCase() || ''
-    const description = doc.description?.toLowerCase() || ''
-    return filename.includes(search) || vendor.includes(search) || description.includes(search)
-  })
+  const filteredDocs = documents.filter(doc => 
+    doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.description.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   if (loading) {
     return (
@@ -421,6 +430,14 @@ export default function DocumentReviewPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant={autoRefresh ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAutoRefresh(!autoRefresh)}
+            >
+              <RefreshCw className={`w-4 h-4 sm:mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Auto-refresh {autoRefresh ? 'ON' : 'OFF'}</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={loadProcessedDocuments}>
               <Zap className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Actualizar</span>

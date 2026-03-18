@@ -3,8 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// Revalidar cada 60 segundos - permite caché del lado del servidor
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,113 +45,43 @@ export async function GET(request: NextRequest) {
       ? { companyId }
       : { userId: session.user.id }
 
-    // Total revenue this month (facturas pagadas)
-    const revenueThisMonth = await prisma.invoice.aggregate({
-      where: {
-        ...baseInvoiceFilter,
-        status: 'PAID',
-        paidDate: {
-          gte: firstDayOfMonth,
-          lte: lastDayOfMonth,
-        },
-      },
-      _sum: {
-        total: true,
-      },
-    })
-
-    // También incluir facturas emitidas este mes (no solo pagadas) para mostrar ingresos
-    const invoicesThisMonth = await prisma.invoice.aggregate({
-      where: {
-        ...baseInvoiceFilter,
-        issueDate: {
-          gte: firstDayOfMonth,
-          lte: lastDayOfMonth,
-        },
-      },
-      _sum: {
-        total: true,
-      },
-    })
-
-    // Total revenue last month
-    const revenueLastMonth = await prisma.invoice.aggregate({
-      where: {
-        ...baseInvoiceFilter,
-        issueDate: {
-          gte: firstDayOfLastMonth,
-          lte: lastDayOfLastMonth,
-        },
-      },
-      _sum: {
-        total: true,
-      },
-    })
-
-    // Total expenses this month
-    const expensesThisMonth = await prisma.expense.aggregate({
-      where: {
-        ...baseExpenseFilter,
-        date: {
-          gte: firstDayOfMonth,
-          lte: lastDayOfMonth,
-        },
-      },
-      _sum: {
-        amount: true,
-      },
-    })
-
-    // Total expenses last month
-    const expensesLastMonth = await prisma.expense.aggregate({
-      where: {
-        ...baseExpenseFilter,
-        date: {
-          gte: firstDayOfLastMonth,
-          lte: lastDayOfLastMonth,
-        },
-      },
-      _sum: {
-        amount: true,
-      },
-    })
-
-    // Total customers
-    const totalCustomers = await prisma.customer.count({
-      where: {
-        companyId: companyId || undefined,
-        status: 'ACTIVE',
-      },
-    })
-
-    // Total invoices this month
-    const totalInvoices = await prisma.invoice.count({
-      where: {
-        ...baseInvoiceFilter,
-        createdAt: {
-          gte: firstDayOfMonth,
-          lte: lastDayOfMonth,
-        },
-      },
-    })
-
-    // Pending invoices
-    const pendingInvoices = await prisma.invoice.count({
-      where: {
-        ...baseInvoiceFilter,
-        status: {
-          in: ['DRAFT', 'SENT', 'VIEWED', 'PARTIAL'],
-        },
-      },
-    })
-
-    // Overdue invoices
-    const overdueInvoices = await prisma.invoice.count({
-      where: {
-        ...baseInvoiceFilter,
-        status: 'OVERDUE',
-      },
-    })
+    // Run all aggregations in parallel
+    const [
+      revenueThisMonth,
+      invoicesThisMonth,
+      revenueLastMonth,
+      expensesThisMonth,
+      expensesLastMonth,
+      totalCustomers,
+      totalInvoices,
+      pendingInvoices,
+      overdueInvoices
+    ] = await Promise.all([
+      prisma.invoice.aggregate({
+        where: { ...baseInvoiceFilter, status: 'PAID', paidDate: { gte: firstDayOfMonth, lte: lastDayOfMonth } },
+        _sum: { total: true }
+      }),
+      prisma.invoice.aggregate({
+        where: { ...baseInvoiceFilter, issueDate: { gte: firstDayOfMonth, lte: lastDayOfMonth } },
+        _sum: { total: true }
+      }),
+      prisma.invoice.aggregate({
+        where: { ...baseInvoiceFilter, issueDate: { gte: firstDayOfLastMonth, lte: lastDayOfLastMonth } },
+        _sum: { total: true }
+      }),
+      prisma.expense.aggregate({
+        where: { ...baseExpenseFilter, date: { gte: firstDayOfMonth, lte: lastDayOfMonth } },
+        _sum: { amount: true }
+      }),
+      prisma.expense.aggregate({
+        where: { ...baseExpenseFilter, date: { gte: firstDayOfLastMonth, lte: lastDayOfLastMonth } },
+        _sum: { amount: true }
+      }),
+      prisma.customer.count({ where: { companyId: companyId || undefined, status: 'ACTIVE' } }),
+      prisma.invoice.count({ where: { ...baseInvoiceFilter, createdAt: { gte: firstDayOfMonth, lte: lastDayOfMonth } } }),
+      prisma.invoice.count({ where: { ...baseInvoiceFilter, status: { in: ['DRAFT', 'SENT', 'VIEWED', 'PARTIAL'] } } }),
+      prisma.invoice.count({ where: { ...baseInvoiceFilter, status: 'OVERDUE' } })
+    ])
 
     // Calculate totals - usar ingresos de facturas emitidas (no solo pagadas)
     const totalRevenue = Number(invoicesThisMonth._sum.total || 0)

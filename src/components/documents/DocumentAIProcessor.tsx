@@ -256,14 +256,7 @@ export default function DocumentAIProcessor() {
   const [editReference, setEditReference] = useState<string>('')
   const [editDescription, setEditDescription] = useState<string>('')
 
-  // Cargar documentos
-  useEffect(() => {
-    loadDocuments()
-    loadAccounts()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, activeCompany?.id])
-
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     try {
       setIsLoading(true)
       let url = '/api/documents/process-ai'
@@ -289,13 +282,12 @@ export default function DocumentAIProcessor() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [filter, activeCompany?.id])
 
-  const loadAccounts = async () => {
+  const loadAccounts = useCallback(async () => {
     try {
-      const response = await fetch('/api/accounts')
+      const response = await fetch(`/api/accounts${activeCompany?.id ? `?companyId=${activeCompany.id}` : ''}`)
       const data = await response.json()
-      // API retorna array directamente o {accounts: [...]}
       if (Array.isArray(data)) {
         setAccounts(data)
       } else if (data.accounts) {
@@ -304,7 +296,12 @@ export default function DocumentAIProcessor() {
     } catch (error) {
       console.error('Error loading accounts:', error)
     }
-  }
+  }, [activeCompany?.id])
+
+  // Cargar documentos y cuentas en paralelo
+  useEffect(() => {
+    void Promise.all([loadDocuments(), loadAccounts()])
+  }, [loadDocuments, loadAccounts])
 
   // Upload handler
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -355,7 +352,7 @@ export default function DocumentAIProcessor() {
     setUploadProgress(0)
     // Refresh list from DB to ensure consistency
     loadDocuments()
-  }, [autoProcess, autoCreateJournalEntry, activeCompany])
+  }, [autoProcess, autoCreateJournalEntry, activeCompany, loadDocuments])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (files) => { onDrop(files) },

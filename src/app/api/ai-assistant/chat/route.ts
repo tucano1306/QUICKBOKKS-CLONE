@@ -112,7 +112,8 @@ async function getBalanceResponse(companyId: string) {
   try {
     // Get account balances from database
     const accounts = await prisma.chartOfAccounts.findMany({
-      where: { companyId }
+      where: { companyId },
+      select: { balance: true, type: true, name: true }
     })
 
     let assets = 0
@@ -177,38 +178,46 @@ async function getBalanceResponse(companyId: string) {
 async function getInvoicesResponse(companyId: string) {
   try {
     const now = new Date()
-    
-    const invoices = await prisma.invoice.findMany({
-      where: { companyId }
-    })
-
-    const pending = invoices.filter(i => i.status === 'DRAFT' || i.status === 'SENT' || i.status === 'OVERDUE')
-    const overdue = invoices.filter(i => i.status === 'OVERDUE')
-    const paid = invoices.filter(i => i.status === 'PAID' || i.status === 'PARTIAL')
-    
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const paidThisMonth = paid.filter(i => i.paidDate && new Date(i.paidDate) >= thisMonth)
 
-    const pendingTotal = pending.reduce((sum, i) => sum + i.total, 0)
-    const overdueTotal = overdue.reduce((sum, i) => sum + i.total, 0)
-    const paidThisMonthTotal = paidThisMonth.reduce((sum, i) => sum + i.total, 0)
+    const [pending, overdue, paidThisMonth] = await Promise.all([
+      prisma.invoice.aggregate({
+        where: { companyId, status: { in: ['DRAFT', 'SENT', 'OVERDUE'] } },
+        _sum: { total: true },
+        _count: true
+      }),
+      prisma.invoice.aggregate({
+        where: { companyId, status: 'OVERDUE' },
+        _sum: { total: true },
+        _count: true
+      }),
+      prisma.invoice.aggregate({
+        where: { companyId, status: { in: ['PAID', 'PARTIAL'] }, paidDate: { gte: thisMonth } },
+        _sum: { total: true },
+        _count: true
+      })
+    ])
+
+    const pendingTotal = Number(pending._sum.total || 0)
+    const overdueTotal = Number(overdue._sum.total || 0)
+    const paidThisMonthTotal = Number(paidThisMonth._sum.total || 0)
 
     return {
       content: `📄 **Resumen de Facturas:**
 
-**Facturas Pendientes:** ${pending.length} facturas por ${formatCurrency(pendingTotal)}
-- Vencidas: ${overdue.length} facturas (${formatCurrency(overdueTotal)})
-- Por cobrar: ${pending.length - overdue.length} facturas
+**Facturas Pendientes:** ${pending._count} facturas por ${formatCurrency(pendingTotal)}
+- Vencidas: ${overdue._count} facturas (${formatCurrency(overdueTotal)})
+- Por cobrar: ${pending._count - overdue._count} facturas
 
-**Facturas Pagadas Este Mes:** ${paidThisMonth.length} facturas por ${formatCurrency(paidThisMonthTotal)}
+**Facturas Pagadas Este Mes:** ${paidThisMonth._count} facturas por ${formatCurrency(paidThisMonthTotal)}
 
-${overdue.length > 0 
-  ? `⚠️ **Alerta:** Tienes ${overdue.length} facturas vencidas. Te recomiendo enviar recordatorios de pago.`
+${overdue._count > 0 
+  ? `⚠️ **Alerta:** Tienes ${overdue._count} facturas vencidas. Te recomiendo enviar recordatorios de pago.`
   : '✅ **Excelente:** No tienes facturas vencidas.'
 }
 
 🎯 **Acción Recomendada:** 
-${overdue.length > 0 
+${overdue._count > 0 
   ? '- Contactar clientes con facturas vencidas\n- Activar recordatorios automáticos'
   : '- Continúa con tu estrategia actual de facturación'
 }`,
@@ -234,25 +243,22 @@ async function getExpensesResponse(companyId: string) {
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
 
-    const expenses = await prisma.expense.findMany({
-      where: { 
-        companyId,
-        date: { gte: thisMonth }
-      },
-      include: { category: true }
-    })
-
-    const lastMonthExpenses = await prisma.expense.findMany({
-      where: {
-        companyId,
-        date: { gte: lastMonth, lte: endLastMonth }
-      }
-    })
+    // Run both fetches in parallel; only pull needed fields
+    const [expenses, lastMonthTotal] = await Promise.all([
+      prisma.expense.findMany({
+        where: { companyId, date: { gte: thisMonth } },
+        select: { amount: true, category: { select: { name: true } } }
+      }),
+      prisma.expense.aggregate({
+        where: { companyId, date: { gte: lastMonth, lte: endLastMonth } },
+        _sum: { amount: true }
+      })
+    ])
 
     const total = expenses.reduce((sum, e) => sum + e.amount, 0)
-    const lastMonthTotal = lastMonthExpenses.reduce((sum, e) => sum + e.amount, 0)
-    const changePercent = lastMonthTotal > 0 
-      ? (((total - lastMonthTotal) / lastMonthTotal) * 100).toFixed(1)
+    const lastMonthTotalValue = Number(lastMonthTotal._sum.amount || 0)
+    const changePercent = lastMonthTotalValue > 0
+      ? (((total - lastMonthTotalValue) / lastMonthTotalValue) * 100).toFixed(1)
       : 'N/A'
 
     // Group by category
