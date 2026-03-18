@@ -528,6 +528,7 @@ export async function GET(request: NextRequest) {
           suggestedAccount: analysis?.suggestedAccount || null,
           extractedData: doc.extractedData || null,
           aiAnalysis: analysis || null,
+          documentDate: doc.documentDate ? doc.documentDate.toISOString() : null,
           processingTime: doc.processingTime || null,
           createdAt: doc.createdAt.toISOString(),
           uploadedBy: { name: session.user.name, email: session.user.email },
@@ -562,6 +563,7 @@ export async function GET(request: NextRequest) {
         suggestedAccount: analysis?.suggestedAccount || null,
         extractedData: doc.extractedData || null,
         aiAnalysis: analysis || null,
+        documentDate: doc.documentDate ? doc.documentDate.toISOString() : null,
         createdAt: doc.createdAt.toISOString(),
         uploadedBy: { name: session.user.name, email: session.user.email }
       }
@@ -615,10 +617,14 @@ export async function PUT(request: NextRequest) {
         if (expenseData?.description) {
           updateData.description = expenseData.description
         }
-        if (expenseData?.vendor) {
-          // Merge vendor into extractedData so review page shows it
+        if (expenseData?.vendor || expenseData?.date) {
+          // Merge vendor and date into extractedData so modal pre-fills on next open
           const existingExtracted = (doc.extractedData as Record<string, unknown>) ?? {}
-          updateData.extractedData = { ...existingExtracted, vendor: expenseData.vendor }
+          updateData.extractedData = {
+            ...existingExtracted,
+            ...(expenseData.vendor ? { vendor: expenseData.vendor } : {}),
+            ...(expenseData.date ? { date: expenseData.date } : {})
+          }
         }
         updateData.approvedById = session.user.id
         updateData.approvedAt = new Date()
@@ -688,6 +694,7 @@ export async function PUT(request: NextRequest) {
         suggestedAccount: analysis?.suggestedAccount || null,
         extractedData: updated.extractedData || null,
         aiAnalysis: analysis || null,
+        documentDate: updated.documentDate ? updated.documentDate.toISOString() : null,
         vendor: expenseData?.vendor ? { id: null, name: expenseData.vendor } : null,
         createdAt: updated.createdAt.toISOString()
       },
