@@ -1,34 +1,34 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { 
-  Globe,
-  Plus,
-  Search,
-  Eye,
-  Link as LinkIcon,
-  Copy,
-  Mail,
-  Settings,
+import { useCompany } from '@/contexts/CompanyContext'
+import {
   CheckCircle2,
-  XCircle,
   Clock,
-  Shield,
-  FileText,
+  Copy,
   CreditCard,
   Download,
+  Eye,
+  FileText,
+  Globe,
   Key,
+  Link as LinkIcon,
+  Loader2,
+  Mail,
+  Plus,
+  Search,
+  Settings,
+  Shield,
   UserCheck,
   X,
-  Loader2
+  XCircle
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 interface CustomerPortal {
   id: string
@@ -70,7 +70,7 @@ export default function CustomerPortalPage() {
   const router = useRouter()
   const sessionHook = useSession()
   const companyHook = useCompany()
-  
+
   const authStatus = sessionHook?.status || 'loading'
   const activeCompany = companyHook?.activeCompany
 
@@ -98,14 +98,14 @@ export default function CustomerPortalPage() {
   // Load customer portals from API
   const loadCustomerPortals = useCallback(async () => {
     if (!activeCompany?.id) return
-    
+
     setLoading(true)
     try {
       const response = await fetch(`/api/customers?companyId=${activeCompany.id}&limit=5000`)
       if (response.ok) {
         const data = await response.json()
         const customers = Array.isArray(data) ? data : (data.customers || [])
-        
+
         const portals: CustomerPortal[] = customers.map((customer: any) => ({
           id: `CP-${(customer.id || '').slice(-6)}`,
           customerId: customer.id,
@@ -124,7 +124,7 @@ export default function CustomerPortalPage() {
           createdDate: customer.createdAt || new Date().toISOString(),
           invitationSent: customer.portalInvitedAt || undefined
         }))
-        
+
         setCustomerPortals(portals)
       }
     } catch (error) {
@@ -176,7 +176,7 @@ export default function CustomerPortalPage() {
 
       if (response.ok) {
         const newCustomer = await response.json()
-        
+
         const slug = slugify(inviteForm.customerName || inviteForm.email)
         const newPortal: CustomerPortal = {
           id: `CP-${(newCustomer.id || Date.now().toString()).slice(-6)}`,
@@ -291,7 +291,7 @@ export default function CustomerPortalPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Globe className="w-6 h-6 sm:w-8 sm:w-8 text-blue-600" />
+              <Globe className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               Portal del Cliente
             </h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">

@@ -1,52 +1,49 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select'
-import { 
-  Users,
-  UserPlus,
-  Shield,
-  Mail,
-  Calendar,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Edit,
-  Trash2,
-  Key,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  Info,
-  Search,
-  Filter,
-  RefreshCw,
-  Loader2,
-  Send
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    AlertCircle,
+    CheckCircle,
+    Clock,
+    Edit,
+    Eye,
+    Filter,
+    Info,
+    Key,
+    Loader2,
+    Mail,
+    Search,
+    Send,
+    Shield,
+    Trash2,
+    UserPlus,
+    Users,
+    XCircle
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface User {
@@ -84,7 +81,7 @@ export default function UsersSettingsPage() {
   const [selectedRole, setSelectedRole] = useState<string>('All')
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>([])
-  
+
   // Modal state
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviting, setInviting] = useState(false)
@@ -104,7 +101,7 @@ export default function UsersSettingsPage() {
 
   const loadData = useCallback(async () => {
     if (!activeCompany) return
-    
+
     setLoading(true)
     try {
       const [usersRes, rolesRes] = await Promise.all([
@@ -122,7 +119,7 @@ export default function UsersSettingsPage() {
         // Format roles to match expected structure
         const formattedRoles = rolesData.map((role: Record<string, unknown>) => ({
           ...role,
-          permissions: Array.isArray(role.permissions) 
+          permissions: Array.isArray(role.permissions)
             ? role.permissions.map((p: string) => ({
                 category: p,
                 actions: ['View', 'Create', 'Edit', 'Delete']
@@ -191,7 +188,7 @@ export default function UsersSettingsPage() {
 
   const filteredUsers = users
     .filter(user => selectedRole === 'All' || user.role === selectedRole)
-    .filter(user => 
+    .filter(user =>
       (user.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       (user.department?.toLowerCase() || '').includes(searchQuery.toLowerCase())
@@ -272,7 +269,7 @@ export default function UsersSettingsPage() {
                 Send an invitation email to add a new user to {activeCompany?.name}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address *</Label>
@@ -451,7 +448,7 @@ export default function UsersSettingsPage() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 overflow-x-auto">
                     <Filter className="w-4 h-4 text-gray-600 flex-shrink-0" />
                     <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">Role:</span>
@@ -487,27 +484,27 @@ export default function UsersSettingsPage() {
                             {(user.name || '?').split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
-                        
+
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
                             <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">{user.name || 'Unknown'}</h3>
                             {getStatusBadge(user.status)}
                             <Badge variant="outline" className="text-xs">{user.role}</Badge>
                           </div>
-                          
+
                           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-3 text-xs sm:text-sm text-gray-600">
                             <div className="flex items-center gap-1 truncate">
                               <Mail className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                               <span className="truncate">{user.email || 'No email'}</span>
                             </div>
                             {user.title && (
-                              <div className="flex items-center gap-1 truncate hidden sm:flex">
+                              <div className="hidden sm:flex items-center gap-1 truncate">
                                 <Shield className="w-4 h-4 flex-shrink-0" />
                                 {user.title} • {user.department}
                               </div>
                             )}
                             {user.status === 'Active' && (
-                              <div className="flex items-center gap-1 hidden sm:flex">
+                              <div className="hidden sm:flex items-center gap-1">
                                 <Clock className="w-4 h-4 flex-shrink-0" />
                                 Last login: {user.lastLogin}
                               </div>

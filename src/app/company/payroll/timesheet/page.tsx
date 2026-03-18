@@ -1,36 +1,32 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Coffee,
+  Download,
+  Edit,
+  Eye,
+  Loader2,
+  Plus,
+  Save,
+  Search,
+  TrendingUp,
+  Users,
+  X,
+  XCircle
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Clock,
-  Plus,
-  Search,
-  Filter,
-  Download,
-  Eye,
-  Edit,
-  CheckCircle2,
-  XCircle,
-  Calendar,
-  Users,
-  AlertCircle,
-  TrendingUp,
-  Coffee,
-  PlayCircle,
-  StopCircle,
-  X,
-  Loader2,
-  Save,
-  RefreshCw
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface TimesheetEntry {
   id: string
@@ -61,10 +57,10 @@ export default function TimesheetPage() {
   const [filterDepartment, setFilterDepartment] = useState<string>('all')
   const [timesheets, setTimesheets] = useState<TimesheetEntry[]>([])
   const [weekFilter, setWeekFilter] = useState<string>('current')
-  
+
   // Message state
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  
+
   // Modal states
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [employees, setEmployees] = useState<any[]>([])
@@ -85,7 +81,7 @@ export default function TimesheetPage() {
 
   const loadTimesheets = useCallback(async () => {
     if (!activeCompany) return
-    
+
     setLoading(true)
     try {
       const response = await fetch(`/api/payroll/timesheets?companyId=${activeCompany.id}`)
@@ -181,12 +177,12 @@ export default function TimesheetPage() {
       t.totalHours,
       t.status
     ])
-    
+
     const csvContent = [
       headers.join(','),
       ...rows.map(row => row.join(','))
     ].join('\n')
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
@@ -324,7 +320,7 @@ export default function TimesheetPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 sm:gap-4">
                 <Calendar className="w-5 h-5 text-gray-400 hidden sm:block" />
-                <select 
+                <select
                   className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg font-semibold text-sm"
                   value={weekFilter}
                   onChange={(e) => setWeekFilter(e.target.value)}
@@ -356,7 +352,7 @@ export default function TimesheetPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <select 
+                <select
                   className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg text-sm"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
@@ -367,7 +363,7 @@ export default function TimesheetPage() {
                   <option value="approved">Aprobadas</option>
                   <option value="rejected">Rechazadas</option>
                 </select>
-                <select 
+                <select
                   className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg text-sm"
                   value={filterDepartment}
                   onChange={(e) => setFilterDepartment(e.target.value)}
@@ -427,7 +423,7 @@ export default function TimesheetPage() {
                     <div>
                       <span className="text-sm text-gray-500">Total:</span>
                       <span className="ml-2 text-lg font-bold text-blue-600">{ts.totalHours}h</span>
-                      <span className="ml-2 text-xs text-gray-500 flex items-center gap-1 inline-flex">
+                      <span className="ml-2 text-xs text-gray-500 inline-flex items-center gap-1">
                         <Coffee className="w-3 h-3" /> {ts.breakHours}h
                       </span>
                     </div>
