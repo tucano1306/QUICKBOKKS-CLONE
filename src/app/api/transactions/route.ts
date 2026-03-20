@@ -93,3 +93,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
+
+// DELETE /api/transactions  (bulk delete)
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { ids } = body as { ids: string[] }
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: 'Se requiere un array de IDs' }, { status: 400 })
+    }
+
+    // Verify all transactions belong to a company the user has access to
+    const transactions = await prisma.transaction.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, companyId: true },
+    })
+
+    if (transactions.length === 0) {
+      return NextResponse.json({ error: 'Transacciones no encontradas' }, { status: 404 })
+    }
+
+    const companyIds = [...new Set(transactions.map(t => t.companyId))]
+    for (const companyId of companyIds) {
+      const hasAccess = await prisma.companyUser.findFirst({
+        where: { userId: session.user.id, companyId },
+      })
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
+      }
+    }
+
+    const validIds = transactions.map(t => t.id)
+    await prisma.transaction.deleteMany({ where: { id: { in: validIds } } })
+
+    return NextResponse.json({ success: true, deleted: validIds.length })
+  } catch (error) {
+    console.error('Error bulk deleting transactions:', error)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+  }
+}
