@@ -41,7 +41,7 @@ async function exportCompanyData(companyId: string) {
     prisma.transaction.findMany({ where: { companyId } }),
     prisma.invoice.findMany({ where: { companyId } }),
     prisma.expense.findMany({ where: { companyId } }),
-    prisma.chartOfAccount.findMany({ where: { companyId } }),
+    prisma.chartOfAccounts.findMany({ where: { companyId } }),
     prisma.journalEntry.findMany({
       where: { companyId },
       include: { lines: true },
