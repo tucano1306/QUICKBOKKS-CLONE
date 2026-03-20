@@ -1,36 +1,32 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    AlertCircle,
+    ArrowRightLeft,
+    BarChart3,
+    Bot,
+    Building,
+    Calendar,
+    CheckCircle,
+    Clock,
+    DollarSign,
+    FileCheck,
+    FileText,
+    RefreshCw,
+    Search,
+    Sparkles,
+    XCircle,
+    Zap
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Bot,
-  FileCheck,
-  ArrowRightLeft,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  TrendingUp,
-  RefreshCw,
-  Eye,
-  Edit,
-  Save,
-  Sparkles,
-  DollarSign,
-  Calendar,
-  Building,
-  FileText,
-  Clock,
-  Zap,
-  BarChart3,
-  Search
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface ProcessedDocument {
   id: string
@@ -38,7 +34,7 @@ interface ProcessedDocument {
   uploadDate: string
   aiCategory: string
   aiConfidence: number
-  
+
   // Datos extraídos
   amount: number
   vendor: string
@@ -46,22 +42,22 @@ interface ProcessedDocument {
   invoiceNumber?: string
   taxId?: string
   description: string
-  
+
   // Cuenta asignada automáticamente
   suggestedAccount: string
   suggestedAccountCode: string
-  
+
   // Reclasificación
   reclassified: boolean
   finalAccount?: string
   finalAccountCode?: string
-  
+
   // Asiento contable
   journalEntry: {
     debit: { account: string; amount: number }
     credit: { account: string; amount: number }
   }
-  
+
   status: 'pending_review' | 'approved' | 'reclassified' | 'rejected'
   confidence: 'high' | 'medium' | 'low'
 }
@@ -115,7 +111,7 @@ export default function DocumentReviewPage() {
 
   const handleReclassify = async (doc: ProcessedDocument) => {
     setSelectedDoc(doc)
-    
+
     // Cargar sugerencias de cuenta desde API
     if (activeCompany?.id) {
       try {
@@ -168,7 +164,7 @@ export default function DocumentReviewPage() {
     // Validar que el asiento esté balanceado después de reclasificar
     const newDebitAmount = doc.amount
     const creditAmount = doc.journalEntry.credit.amount
-    
+
     if (Math.abs(newDebitAmount - creditAmount) > 0.01) {
       setMessage({ type: 'error', text: `Error: El asiento no balancearía (Debe: $${newDebitAmount.toFixed(2)}, Haber: $${creditAmount.toFixed(2)})` })
       setTimeout(() => setMessage(null), 3000)
@@ -224,7 +220,7 @@ export default function DocumentReviewPage() {
     }
 
     const doc = documents.find(d => d.id === docId)
-    
+
     if (!doc) {
       setMessage({ type: 'error', text: 'Error: Documento no encontrado' })
       setTimeout(() => setMessage(null), 3000)
@@ -255,7 +251,7 @@ export default function DocumentReviewPage() {
     // Validar que el asiento esté balanceado
     const debitAmount = doc.journalEntry.debit.amount
     const creditAmount = doc.journalEntry.credit.amount
-    
+
     if (Math.abs(debitAmount - creditAmount) > 0.01) {
       setMessage({ type: 'error', text: `Asiento no balanceado (Debe: $${debitAmount.toFixed(2)}, Haber: $${creditAmount.toFixed(2)})` })
       setTimeout(() => setMessage(null), 3000)
@@ -278,8 +274,8 @@ export default function DocumentReviewPage() {
     }
 
     // Confirmar aprobación
-    const accountToUse = doc.reclassified 
-      ? `${doc.finalAccountCode} - ${doc.finalAccount}` 
+    const accountToUse = doc.reclassified
+      ? `${doc.finalAccountCode} - ${doc.finalAccount}`
       : `${doc.suggestedAccountCode} - ${doc.suggestedAccount}`
 
     const confirmed = confirm(
@@ -298,10 +294,10 @@ export default function DocumentReviewPage() {
     }
 
     // Aprobar documento
-    setDocuments(prev => prev.map(d => 
+    setDocuments(prev => prev.map(d =>
       d.id === docId ? { ...d, status: 'approved' as const } : d
     ))
-    
+
     setMessage({ type: 'success', text: 'Documento aprobado exitosamente' })
     setTimeout(() => setMessage(null), 3000)
   }
@@ -315,7 +311,7 @@ export default function DocumentReviewPage() {
     }
 
     const doc = documents.find(d => d.id === docId)
-    
+
     if (!doc) {
       setMessage({ type: 'error', text: 'Error: Documento no encontrado' })
       setTimeout(() => setMessage(null), 3000)
@@ -357,7 +353,7 @@ export default function DocumentReviewPage() {
     }
 
     // Rechazar documento
-    setDocuments(prev => prev.map(d => 
+    setDocuments(prev => prev.map(d =>
       d.id === docId ? { ...d, status: 'rejected' as const, notes: `Rechazado: ${reason}` } : d
     ))
 
@@ -375,7 +371,7 @@ export default function DocumentReviewPage() {
     avgConfidence: documents.length > 0 ? Math.round(documents.reduce((sum, d) => sum + d.aiConfidence, 0) / documents.length) : 0
   }
 
-  const filteredDocs = documents.filter(doc => 
+  const filteredDocs = documents.filter(doc =>
     doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -512,7 +508,7 @@ export default function DocumentReviewPage() {
         <div className="space-y-4">
           {filteredDocs.map(doc => (
             <Card key={doc.id} className="border-l-4" style={{
-              borderLeftColor: 
+              borderLeftColor:
                 doc.status === 'approved' ? '#10b981' :
                 doc.status === 'reclassified' ? '#8b5cf6' :
                 doc.status === 'rejected' ? '#ef4444' :
@@ -584,7 +580,7 @@ export default function DocumentReviewPage() {
                           {doc.reclassified ? 'Reclasificado' : 'Sugerido por IA'}
                         </h4>
                       </div>
-                      
+
                       {doc.reclassified ? (
                         <div className="space-y-2">
                           <div className="text-sm">
@@ -613,11 +609,11 @@ export default function DocumentReviewPage() {
                           </div>
                         </div>
                       )}
-                      
+
                       {!doc.reclassified && doc.status === 'pending_review' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="w-full mt-3"
                           onClick={() => handleReclassify(doc)}
                         >
@@ -640,7 +636,7 @@ export default function DocumentReviewPage() {
                         <BarChart3 className="w-5 h-5 text-emerald-600" />
                         <h4 className="font-semibold text-gray-900">Asiento Contable</h4>
                       </div>
-                      
+
                       <div className="space-y-2 text-sm">
                         <div>
                           <span className="text-gray-600">DEBE:</span>
@@ -670,14 +666,14 @@ export default function DocumentReviewPage() {
                     <div className="flex flex-col sm:flex-row gap-2">
                       {doc.status === 'pending_review' && (
                         <>
-                          <Button 
+                          <Button
                             className="flex-1 bg-green-600 hover:bg-green-700"
                             onClick={() => approveDocument(doc.id)}
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Aprobar
                           </Button>
-                          <Button 
+                          <Button
                             variant="outline"
                             className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
                             onClick={() => rejectDocument(doc.id)}
@@ -694,7 +690,7 @@ export default function DocumentReviewPage() {
                         </Badge>
                       )}
                       {doc.status === 'reclassified' && (
-                        <Button 
+                        <Button
                           className="flex-1 bg-purple-600 hover:bg-purple-700"
                           onClick={() => approveDocument(doc.id)}
                         >

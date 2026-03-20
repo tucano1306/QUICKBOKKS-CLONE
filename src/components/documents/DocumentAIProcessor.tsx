@@ -1,72 +1,72 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useRef } from 'react'
-import { useDropzone } from 'react-dropzone'
-import { 
-  Upload, 
-  FileText, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  Loader2,
-  Eye,
-  Trash2,
-  RefreshCw,
-  ThumbsUp,
-  ThumbsDown,
-  FileSpreadsheet,
-  Image as ImageIcon,
-  File,
-  AlertCircle,
-  ChevronDown,
-  Brain,
-  Sparkles,
-  DollarSign,
-  Calendar,
-  Building2,
-  Tag,
-  ArrowRight,
-  Camera
-} from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow 
-} from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import { cn } from '@/lib/utils'
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@/components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCompany } from '@/contexts/CompanyContext'
+import { cn } from '@/lib/utils'
+import {
+    AlertCircle,
+    ArrowRight,
+    Brain,
+    Building2,
+    Calendar,
+    Camera,
+    CheckCircle2,
+    ChevronDown,
+    Clock,
+    DollarSign,
+    Eye,
+    File,
+    FileSpreadsheet,
+    FileText,
+    Image as ImageIcon,
+    Loader2,
+    RefreshCw,
+    Sparkles,
+    Tag,
+    ThumbsDown,
+    ThumbsUp,
+    Trash2,
+    Upload,
+    XCircle
+} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
 
 // Tipos
 interface DocumentAnalysis {
@@ -248,7 +248,7 @@ export default function DocumentAIProcessor() {
   const [filter, setFilter] = useState<string>('all')
   const [isLoading, setIsLoading] = useState(true)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  
+
   // Estados editables para el diálogo de aprobación
   const [editAmount, setEditAmount] = useState<string>('')
   const [editVendor, setEditVendor] = useState<string>('')
@@ -265,10 +265,10 @@ export default function DocumentAIProcessor() {
       if (activeCompany?.id) params.set('companyId', activeCompany.id)
       const qs = params.toString()
       if (qs) url += '?' + qs
-      
+
       const response = await fetch(url)
       const data = await response.json()
-      
+
       if (!response.ok) {
         console.error('[loadDocuments] Error:', data?.error)
         setUploadError(data?.error || 'Error cargando documentos')
@@ -322,7 +322,7 @@ export default function DocumentAIProcessor() {
 
       try {
         setUploadProgress(((i + 0.5) / acceptedFiles.length) * 100)
-        
+
         const response = await fetch('/api/documents/process-ai', {
           method: 'POST',
           body: formData
@@ -414,11 +414,11 @@ export default function DocumentAIProcessor() {
 
       const data = await response.json()
       if (data.success) {
-        setDocuments(prev => 
+        setDocuments(prev =>
           prev.map(d => d.id === doc.id ? data.document : d)
         )
         setIsApproveDialogOpen(false)
-        
+
         // Mostrar mensaje de éxito
         if (data.transaction) {
           alert(`✅ Documento aprobado y gasto creado por $${data.transaction.amount.toFixed(2)}`)
@@ -443,7 +443,7 @@ export default function DocumentAIProcessor() {
 
       const data = await response.json()
       if (data.success) {
-        setDocuments(prev => 
+        setDocuments(prev =>
           prev.map(d => d.id === doc.id ? data.document : d)
         )
       }
@@ -465,7 +465,7 @@ export default function DocumentAIProcessor() {
 
       const data = await response.json()
       if (data.success) {
-        setDocuments(prev => 
+        setDocuments(prev =>
           prev.map(d => d.id === doc.id ? data.document : d)
         )
       }
@@ -604,16 +604,16 @@ export default function DocumentAIProcessor() {
             {/* Settings */}
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               <div className="flex items-center space-x-2">
-                <Switch 
-                  id="auto-process" 
+                <Switch
+                  id="auto-process"
                   checked={autoProcess}
                   onCheckedChange={setAutoProcess}
                 />
                 <Label htmlFor="auto-process">Auto-process with AI</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <Switch 
-                  id="auto-journal" 
+                <Switch
+                  id="auto-journal"
                   checked={autoCreateJournalEntry}
                   onCheckedChange={setAutoCreateJournalEntry}
                   disabled={!autoProcess}
@@ -629,8 +629,8 @@ export default function DocumentAIProcessor() {
               {...getRootProps()}
               className={cn(
                 'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all',
-                isDragActive 
-                  ? 'border-primary bg-primary/5' 
+                isDragActive
+                  ? 'border-primary bg-primary/5'
                   : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50',
                 isUploading && 'pointer-events-none opacity-50'
               )}
@@ -752,7 +752,7 @@ export default function DocumentAIProcessor() {
                   const FileIcon = getFileIcon(doc.mimeType)
                   const StatusIcon = statusConfig[doc.status]?.icon || Clock
                   const docType = documentTypeConfig[doc.documentType || 'OTHER'] || documentTypeConfig.OTHER
-                  
+
                   return (
                     <TableRow key={doc.id}>
                       <TableCell>
@@ -792,8 +792,8 @@ export default function DocumentAIProcessor() {
                         ) : '-'}
                       </TableCell>
                       <TableCell>
-                        {doc.vendor?.name || 
-                         doc.extractedData?.vendor || 
+                        {doc.vendor?.name ||
+                         doc.extractedData?.vendor ||
                          '-'}
                       </TableCell>
                       <TableCell>
@@ -815,8 +815,8 @@ export default function DocumentAIProcessor() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             onClick={() => viewDocumentDetail(doc)}
                           >
@@ -824,8 +824,8 @@ export default function DocumentAIProcessor() {
                           </Button>
                           {doc.status === 'ANALYZED' && (
                             <>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="icon"
                                 className="text-green-600"
                                 onClick={() => {
@@ -837,8 +837,8 @@ export default function DocumentAIProcessor() {
                               >
                                 <ThumbsUp className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="icon"
                                 className="text-red-600"
                                 onClick={() => handleReject(doc)}
@@ -848,16 +848,16 @@ export default function DocumentAIProcessor() {
                             </>
                           )}
                           {(doc.status === 'ERROR' || doc.status === 'REJECTED') && (
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               onClick={() => handleReprocess(doc)}
                             >
                               <RefreshCw className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             className="text-red-600"
                             onClick={() => handleDelete(doc)}
@@ -888,7 +888,7 @@ export default function DocumentAIProcessor() {
               Document details and AI analysis results
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedDocument && (
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
@@ -897,7 +897,7 @@ export default function DocumentAIProcessor() {
                 <TabsTrigger value="journal">Journal Entry</TabsTrigger>
                 <TabsTrigger value="logs">Processing Logs</TabsTrigger>
               </TabsList>
-              
+
               <ScrollArea className="h-[500px] mt-4">
                 <TabsContent value="overview" className="space-y-4">
                   {/* Status & Info */}
@@ -939,8 +939,8 @@ export default function DocumentAIProcessor() {
                       </CardHeader>
                       <CardContent>
                         <span className="font-medium">
-                          {selectedDocument.processingTime 
-                            ? `${selectedDocument.processingTime}ms` 
+                          {selectedDocument.processingTime
+                            ? `${selectedDocument.processingTime}ms`
                             : '-'}
                         </span>
                       </CardContent>
@@ -962,8 +962,8 @@ export default function DocumentAIProcessor() {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Date:</span>
                         <span className="font-medium">
-                          {selectedDocument.documentDate 
-                            ? new Date(selectedDocument.documentDate).toLocaleDateString() 
+                          {selectedDocument.documentDate
+                            ? new Date(selectedDocument.documentDate).toLocaleDateString()
                             : '-'}
                         </span>
                       </div>
@@ -971,8 +971,8 @@ export default function DocumentAIProcessor() {
                         <Building2 className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Vendor:</span>
                         <span className="font-medium">
-                          {selectedDocument.vendor?.name || 
-                           selectedDocument.extractedData?.vendor || 
+                          {selectedDocument.vendor?.name ||
+                           selectedDocument.extractedData?.vendor ||
                            '-'}
                         </span>
                       </div>
@@ -1019,7 +1019,7 @@ export default function DocumentAIProcessor() {
                     </Card>
                   )}
                 </TabsContent>
-                
+
                 <TabsContent value="extracted" className="space-y-4">
                   {selectedDocument.extractedData ? (
                     <>
@@ -1107,7 +1107,7 @@ export default function DocumentAIProcessor() {
                     </div>
                   )}
                 </TabsContent>
-                
+
                 <TabsContent value="journal" className="space-y-4">
                   {selectedDocument.aiAnalysis?.journalEntry && (
                     <Card>
@@ -1187,7 +1187,7 @@ export default function DocumentAIProcessor() {
                     </div>
                   )}
                 </TabsContent>
-                
+
                 <TabsContent value="logs" className="space-y-4">
                   {selectedDocument.processingLogs?.length > 0 ? (
                     <div className="space-y-2">
@@ -1221,18 +1221,18 @@ export default function DocumentAIProcessor() {
               </ScrollArea>
             </Tabs>
           )}
-          
+
           <DialogFooter>
             {selectedDocument?.status === 'ANALYZED' && (
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => handleReject(selectedDocument)}
                 >
                   <ThumbsDown className="h-4 w-4 mr-2" />
                   Reject
                 </Button>
-                <Button 
+                <Button
                   onClick={() => {
                     setSelectedAccount(selectedDocument.suggestedAccount?.id || '')
                     initEditableValues(selectedDocument)
@@ -1261,7 +1261,7 @@ export default function DocumentAIProcessor() {
               Verifica y corrige los datos antes de crear el gasto.
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedDocument && (
             <div className="space-y-4">
               {/* Archivo */}
@@ -1372,12 +1372,12 @@ export default function DocumentAIProcessor() {
               )}
             </div>
           )}
-          
+
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsApproveDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={() => selectedDocument && handleApprove(selectedDocument, selectedAccount)}
               className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
             >
