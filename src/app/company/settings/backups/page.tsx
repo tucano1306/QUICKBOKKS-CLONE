@@ -549,9 +549,20 @@ export default function BackupsPage() {
                           <div className="flex justify-end gap-2">
                             {backup.status === 'COMPLETED' && (
                               <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  title="Descargar backup"
+                                  asChild
+                                >
+                                  <a href={`/api/backups?id=${backup.id}&download=true`} download>
+                                    <Download className="w-3 h-3" />
+                                  </a>
+                                </Button>
                                 <Button 
                                   variant="outline" 
                                   size="sm"
+                                  title="Verificar backup"
                                   onClick={() => verifyBackup(backup.id)}
                                   disabled={actionLoading === `verify-${backup.id}`}
                                 >
@@ -560,6 +571,7 @@ export default function BackupsPage() {
                                 <Button 
                                   variant="outline" 
                                   size="sm"
+                                  title="Restaurar backup"
                                   onClick={() => restoreBackup(backup.id)}
                                   disabled={actionLoading === backup.id}
                                 >
