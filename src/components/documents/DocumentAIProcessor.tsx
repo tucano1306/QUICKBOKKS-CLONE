@@ -878,11 +878,11 @@ export default function DocumentAIProcessor() {
 
       {/* Document Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-4xl w-[95vw] sm:w-auto max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {selectedDocument?.originalFilename}
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-full max-h-[90dvh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2 min-w-0">
+              <FileText className="h-5 w-5 flex-shrink-0" />
+              <span className="truncate text-sm sm:text-base">{selectedDocument?.originalFilename}</span>
             </DialogTitle>
             <DialogDescription>
               Document details and AI analysis results
@@ -890,15 +890,15 @@ export default function DocumentAIProcessor() {
           </DialogHeader>
 
           {selectedDocument && (
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
-                <TabsTrigger value="journal">Journal Entry</TabsTrigger>
-                <TabsTrigger value="logs">Processing Logs</TabsTrigger>
+            <Tabs defaultValue="overview" className="w-full flex flex-col flex-1 min-h-0">
+              <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
+                <TabsTrigger value="overview" className="text-xs sm:text-sm px-1 sm:px-3">Overview</TabsTrigger>
+                <TabsTrigger value="extracted" className="text-xs sm:text-sm px-1 sm:px-3">Datos</TabsTrigger>
+                <TabsTrigger value="journal" className="text-xs sm:text-sm px-1 sm:px-3">Asiento</TabsTrigger>
+                <TabsTrigger value="logs" className="text-xs sm:text-sm px-1 sm:px-3">Logs</TabsTrigger>
               </TabsList>
 
-              <ScrollArea className="h-[500px] mt-4">
+              <ScrollArea className="h-[55dvh] sm:h-[500px] mt-4">
                 <TabsContent value="overview" className="space-y-4">
                   {/* Status & Info */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1029,15 +1029,15 @@ export default function DocumentAIProcessor() {
                           <CardTitle className="text-sm">Extracted Fields</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {Object.entries(selectedDocument.extractedData as Record<string, unknown>)
                               .filter(([key, value]) => value !== null && key !== 'lineItems')
                               .map(([key, value]) => (
-                                <div key={key} className="flex justify-between">
-                                  <span className="text-muted-foreground capitalize">
-                                    {key.replaceAll(/([A-Z])/g, ' $1').trim()}:
+                                <div key={key} className="flex flex-col gap-0.5 py-2 border-b last:border-0">
+                                  <span className="text-xs text-muted-foreground capitalize">
+                                    {key.replaceAll(/([A-Z])/g, ' $1').trim()}
                                   </span>
-                                  <span className="font-medium">
+                                  <span className="font-medium text-sm break-words">
                                     {formatValue(value, key)}
                                   </span>
                                 </div>
@@ -1052,7 +1052,8 @@ export default function DocumentAIProcessor() {
                           <CardHeader>
                             <CardTitle className="text-sm">Line Items</CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="px-2 sm:px-6">
+                            <div className="overflow-x-auto">
                             <Table>
                               <TableHeader>
                                 <TableRow>
@@ -1065,14 +1066,15 @@ export default function DocumentAIProcessor() {
                               <TableBody>
                                 {selectedDocument.extractedData.lineItems.map((item, i) => (
                                   <TableRow key={`${item.description}-${i}`}>
-                                    <TableCell>{item.description}</TableCell>
-                                    <TableCell className="text-right">{item.quantity}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
+                                    <TableCell className="text-xs sm:text-sm">{item.description}</TableCell>
+                                    <TableCell className="text-right text-xs sm:text-sm">{item.quantity}</TableCell>
+                                    <TableCell className="text-right text-xs sm:text-sm">{formatCurrency(item.unitPrice)}</TableCell>
+                                    <TableCell className="text-right text-xs sm:text-sm">{formatCurrency(item.amount)}</TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
                             </Table>
+                            </div>
                           </CardContent>
                         </Card>
                       )}
@@ -1222,17 +1224,19 @@ export default function DocumentAIProcessor() {
             </Tabs>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             {selectedDocument?.status === 'ANALYZED' && (
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
+                  className="w-full sm:w-auto"
                   onClick={() => handleReject(selectedDocument)}
                 >
                   <ThumbsDown className="h-4 w-4 mr-2" />
                   Reject
                 </Button>
                 <Button
+                  className="w-full sm:w-auto"
                   onClick={() => {
                     setSelectedAccount(selectedDocument.suggestedAccount?.id || '')
                     initEditableValues(selectedDocument)
