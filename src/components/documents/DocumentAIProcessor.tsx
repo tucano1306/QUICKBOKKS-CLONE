@@ -759,8 +759,10 @@ export default function DocumentAIProcessor() {
                         <div className="flex items-center gap-2">
                           <FileIcon className="h-5 w-5 text-muted-foreground" />
                           <div>
-                            <p className="font-medium truncate max-w-[200px]">
-                              {doc.originalFilename}
+                            <p className="font-medium truncate max-w-[200px]" title={doc.originalFilename}>
+                              {doc.originalFilename.length > 22
+                                ? `${doc.originalFilename.slice(0, 10)}…${doc.originalFilename.slice(-8)}`
+                                : doc.originalFilename}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatFileSize(doc.fileSize)}
