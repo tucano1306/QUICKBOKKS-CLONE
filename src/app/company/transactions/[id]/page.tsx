@@ -1,33 +1,33 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useCompany } from '@/contexts/CompanyContext'
 import {
-  ArrowLeft,
-  Edit,
-  Trash2,
-  DollarSign,
-  Calendar,
-  Tag,
-  FileText,
-  TrendingUp,
-  TrendingDown,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Paperclip,
-  Upload,
-  Download,
-  X,
-  Image as ImageIcon,
-  File
+    AlertCircle,
+    ArrowLeft,
+    Calendar,
+    CheckCircle,
+    Clock,
+    DollarSign,
+    Download,
+    Edit,
+    File,
+    FileText,
+    Image as ImageIcon,
+    Paperclip,
+    Tag,
+    Trash2,
+    TrendingDown,
+    TrendingUp,
+    Upload,
+    X
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useParams, useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface Attachment {
@@ -164,11 +164,11 @@ export default function TransactionDetailPage() {
 
   const loadTransaction = async () => {
     if (!activeCompany?.id) return
-    
+
     try {
       setLoading(true)
       const response = await fetch(`/api/transactions/${transactionId}?companyId=${activeCompany.id}`)
-      
+
       if (response.ok) {
         const data = await response.json()
         setTransaction(data)
