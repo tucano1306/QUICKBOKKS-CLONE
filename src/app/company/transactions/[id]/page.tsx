@@ -290,8 +290,8 @@ export default function TransactionDetailPage() {
               onClick={() => router.push(`/company/transactions/${transaction.id}/edit`)}
               className="flex-1 sm:flex-none"
             >
-              <Edit className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Editar</span>
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
             </Button>
             <Button
               variant="destructive"
@@ -300,8 +300,8 @@ export default function TransactionDetailPage() {
               disabled={deleting}
               className="flex-1 sm:flex-none"
             >
-              <Trash2 className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">{deleting ? 'Eliminando...' : 'Eliminar'}</span>
+              <Trash2 className="h-4 w-4 mr-2" />
+              {deleting ? 'Eliminando...' : 'Eliminar'}
             </Button>
           </div>
         </div>
@@ -420,15 +420,15 @@ export default function TransactionDetailPage() {
                     {attachments.map(att => {
                       const FileIcon = getFileIcon(att.fileType)
                       return (
-                        <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group">
-                          <div className="flex items-center gap-2">
-                            <FileIcon className="h-5 w-5 text-gray-400" />
-                            <div>
+                        <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                            <div className="min-w-0">
                               <p className="text-sm font-medium truncate max-w-[150px]">{att.fileName}</p>
                               <p className="text-xs text-gray-400">{formatFileSize(att.fileSize)}</p>
                             </div>
                           </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex gap-1 flex-shrink-0">
                             <Button variant="ghost" size="sm" asChild>
                               <a href={att.url} download={att.fileName} target="_blank" rel="noopener noreferrer">
                                 <Download className="h-4 w-4" />
@@ -448,52 +448,36 @@ export default function TransactionDetailPage() {
           </div>
 
           {/* Right Column - Status & Meta */}
-          <div className="space-y-6">
-            {/* Status Card */}
+          <div className="space-y-4">
+            {/* Compact summary card for mobile */}
             <Card>
-              <CardHeader>
-                <CardTitle>Estado</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${statusConfig.color}`}>
-                  <StatusIcon className="h-5 w-5" />
-                  <span className="font-semibold">{statusConfig.label}</span>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-500">Estado</span>
+                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm ${statusConfig.color}`}>
+                    <StatusIcon className="h-4 w-4" />
+                    <span className="font-semibold">{statusConfig.label}</span>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Type Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Tipo de Transacción</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
-                  isIncome ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {isIncome ? (
-                    <TrendingUp className="h-5 w-5" />
-                  ) : (
-                    <TrendingDown className="h-5 w-5" />
-                  )}
-                  <span className="font-semibold">{isIncome ? 'Ingreso' : 'Gasto'}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-500">Tipo</span>
+                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm ${
+                    isIncome ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {isIncome ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                    <span className="font-semibold">{isIncome ? 'Ingreso' : 'Gasto'}</span>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Meta Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Información del Registro</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Creado</span>
-                  <span>{new Date(transaction.createdAt).toLocaleDateString('es-MX')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Actualizado</span>
-                  <span>{new Date(transaction.updatedAt).toLocaleDateString('es-MX')}</span>
+                <div className="border-t pt-3 space-y-1.5 text-sm">
+                  <p className="font-medium text-gray-700">Información del Registro</p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Creado</span>
+                    <span>{new Date(transaction.createdAt).toLocaleDateString('es-MX')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Actualizado</span>
+                    <span>{new Date(transaction.updatedAt).toLocaleDateString('es-MX')}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
