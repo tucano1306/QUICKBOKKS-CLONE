@@ -520,17 +520,17 @@ export default function DocumentAIProcessor() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Brain className="h-8 w-8 text-purple-500" />
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
             AI Document Processor
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm sm:text-base">
             Upload documents for automatic OCR analysis and accounting categorization
           </p>
         </div>
-        <Button onClick={loadDocuments} variant="outline">
+        <Button onClick={loadDocuments} variant="outline" className="self-start sm:self-auto">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
@@ -602,7 +602,7 @@ export default function DocumentAIProcessor() {
         <CardContent>
           <div className="space-y-4">
             {/* Settings */}
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               <div className="flex items-center space-x-2">
                 <Switch 
                   id="auto-process" 
@@ -732,6 +732,7 @@ export default function DocumentAIProcessor() {
             </div>
           )}
           {!isLoading && documents.length > 0 && (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -870,13 +871,14 @@ export default function DocumentAIProcessor() {
                 })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Document Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-auto max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -889,7 +891,7 @@ export default function DocumentAIProcessor() {
           
           {selectedDocument && (
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
                 <TabsTrigger value="journal">Journal Entry</TabsTrigger>
@@ -899,7 +901,7 @@ export default function DocumentAIProcessor() {
               <ScrollArea className="h-[500px] mt-4">
                 <TabsContent value="overview" className="space-y-4">
                   {/* Status & Info */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm">Status</CardTitle>
@@ -950,7 +952,7 @@ export default function DocumentAIProcessor() {
                     <CardHeader>
                       <CardTitle className="text-sm">Key Information</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4">
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Amount:</span>
@@ -1027,7 +1029,7 @@ export default function DocumentAIProcessor() {
                           <CardTitle className="text-sm">Extracted Fields</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {Object.entries(selectedDocument.extractedData as Record<string, unknown>)
                               .filter(([key, value]) => value !== null && key !== 'lineItems')
                               .map(([key, value]) => (
@@ -1249,7 +1251,7 @@ export default function DocumentAIProcessor() {
 
       {/* Approve Dialog */}
       <Dialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -1371,13 +1373,13 @@ export default function DocumentAIProcessor() {
             </div>
           )}
           
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsApproveDialogOpen(false)}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsApproveDialogOpen(false)}>
               Cancelar
             </Button>
             <Button 
               onClick={() => selectedDocument && handleApprove(selectedDocument, selectedAccount)}
-              className="bg-green-600 hover:bg-green-700"
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
               Aprobar y Crear Gasto

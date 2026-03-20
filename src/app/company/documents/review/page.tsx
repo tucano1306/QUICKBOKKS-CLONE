@@ -518,10 +518,10 @@ export default function DocumentReviewPage() {
                 doc.status === 'rejected' ? '#ef4444' :
                 '#f59e0b'
             }}>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-12 gap-6">
+              <CardContent className="pt-4 sm:pt-6">
+                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6">
                   {/* Left: Document Info */}
-                  <div className="col-span-4 space-y-3">
+                  <div className="lg:col-span-4 space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
@@ -576,7 +576,7 @@ export default function DocumentReviewPage() {
                   </div>
 
                   {/* Middle: Account Classification */}
-                  <div className="col-span-4 space-y-3">
+                  <div className="lg:col-span-4 space-y-3">
                     <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
                       <div className="flex items-center gap-2 mb-3">
                         <Bot className="w-5 h-5 text-purple-600" />
@@ -634,7 +634,7 @@ export default function DocumentReviewPage() {
                   </div>
 
                   {/* Right: Journal Entry */}
-                  <div className="col-span-4 space-y-3">
+                  <div className="lg:col-span-4 space-y-3">
                     <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-lg">
                       <div className="flex items-center gap-2 mb-3">
                         <BarChart3 className="w-5 h-5 text-emerald-600" />
@@ -667,7 +667,7 @@ export default function DocumentReviewPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       {doc.status === 'pending_review' && (
                         <>
                           <Button 
@@ -734,7 +734,7 @@ export default function DocumentReviewPage() {
 
         {/* Reclassify Modal */}
         {showReclassifyModal && selectedDoc && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <CardHeader className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
                 <CardTitle className="flex items-center gap-2">
@@ -795,7 +795,7 @@ export default function DocumentReviewPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
                   <Button
                     variant="outline"
                     className="flex-1"
