@@ -5,12 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
@@ -32,7 +30,7 @@ export default function LoginPage() {
         toast.error(result.error)
       } else {
         toast.success('¡Bienvenido!')
-        window.location.href = '/dashboard'
+        globalThis.location.href = '/dashboard'
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Ocurrió un error al iniciar sesión'

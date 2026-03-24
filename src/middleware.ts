@@ -55,7 +55,7 @@ export default async function middleware(request: NextRequest) {
   // Verificar permisos específicos de ruta
   for (const [route, allowedRoles] of Object.entries(protectedRoutes)) {
     if (path.startsWith(route)) {
-      const userRole = token.role as string
+      const userRole = String(token.role)
       if (!allowedRoles.includes(userRole)) {
         return NextResponse.json(
           { error: 'No tienes permisos para acceder a este recurso' },
@@ -137,6 +137,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|public).*)',
+    String.raw`/((?!_next/static|_next/image|favicon.ico|.*\..*|public).*)`,
   ],
 }
