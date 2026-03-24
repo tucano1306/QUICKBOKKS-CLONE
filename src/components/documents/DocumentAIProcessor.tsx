@@ -662,10 +662,11 @@ export default function DocumentAIProcessor() {
                 onChange={(e) => {
                   const files = e.target.files
                   if (files && files.length > 0) {
+                    type DOMFileConstructor = new (parts: BlobPart[], filename: string, options?: FilePropertyBag) => File
                     const renamedFiles = Array.from(files).map((file) => {
                       const serial = String(Math.floor(10000 + Math.random() * 90000))
                       const ext = file.name.split('.').pop() || 'jpg'
-                      return new File([file], `${serial}.${ext}`, { type: file.type })
+                      return new (File as unknown as DOMFileConstructor)([file], `${serial}.${ext}`, { type: file.type })
                     })
                     onDrop(renamedFiles)
                   }
