@@ -322,7 +322,7 @@ export default function DocumentAIProcessor() {
       const accountsQuery = activeCompany?.id ? `?companyId=${activeCompany.id}` : ''
       const response = await fetch(`/api/accounts${accountsQuery}`)
       const data = await response.json()
-      const list: unknown[] = Array.isArray(data) ? data : (data.accounts ?? [])
+      const list: ChartOfAccount[] = Array.isArray(data) ? data as ChartOfAccount[] : (data.accounts ?? []) as ChartOfAccount[]
       setAccounts(list)
     } catch (error) {
       console.error('Error loading accounts:', error)
