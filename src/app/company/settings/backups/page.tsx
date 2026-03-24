@@ -1,30 +1,27 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    AlertTriangle,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Cloud,
+    Database,
+    Download,
+    HardDrive,
+    RefreshCw,
+    Shield,
+    Trash2,
+    Upload,
+    XCircle
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Database, 
-  Download, 
-  Upload, 
-  Calendar, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle,
-  RefreshCw,
-  Trash2,
-  Shield,
-  HardDrive,
-  Cloud,
-  Settings,
-  Play,
-  Pause
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface Backup {
   id: string
@@ -77,7 +74,7 @@ interface BackupConfig {
 export default function BackupsPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
-  
+
   const [loading, setLoading] = useState(true)
   const [backups, setBackups] = useState<Backup[]>([])
   const [stats, setStats] = useState<BackupStats | null>(null)
@@ -89,7 +86,7 @@ export default function BackupsPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      
+
       const [backupsRes, statsRes, healthRes, configRes] = await Promise.all([
         fetch('/api/backups?action=list'),
         fetch('/api/backups?action=stats'),
@@ -143,7 +140,7 @@ export default function BackupsPage() {
       })
 
       const data = await response.json()
-      
+
       if (response.ok) {
         setMessage({ type: 'success', text: '✅ Backup creado exitosamente' })
         fetchData()
@@ -171,7 +168,7 @@ export default function BackupsPage() {
       })
 
       const data = await response.json()
-      
+
       if (response.ok) {
         setMessage({ type: 'success', text: '✅ Backup restaurado exitosamente' })
       } else {
@@ -194,11 +191,11 @@ export default function BackupsPage() {
       })
 
       const data = await response.json()
-      
+
       if (response.ok) {
-        setMessage({ 
-          type: data.valid ? 'success' : 'error', 
-          text: data.valid ? '✅ Backup verificado correctamente' : '❌ El backup está corrupto' 
+        setMessage({
+          type: data.valid ? 'success' : 'error',
+          text: data.valid ? '✅ Backup verificado correctamente' : '❌ El backup está corrupto'
         })
       } else {
         setMessage({ type: 'error', text: data.error || 'Error al verificar backup' })
@@ -222,7 +219,7 @@ export default function BackupsPage() {
       })
 
       const data = await response.json()
-      
+
       if (response.ok) {
         setMessage({ type: 'success', text: '✅ Backup eliminado' })
         fetchData()
@@ -246,7 +243,7 @@ export default function BackupsPage() {
       })
 
       const data = await response.json()
-      
+
       if (response.ok) {
         setMessage({ type: 'success', text: `✅ ${data.deletedCount} backups antiguos eliminados` })
         fetchData()
@@ -559,8 +556,8 @@ export default function BackupsPage() {
                                     <Download className="w-3 h-3" />
                                   </a>
                                 </Button>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   title="Verificar backup"
                                   onClick={() => verifyBackup(backup.id)}
@@ -568,8 +565,8 @@ export default function BackupsPage() {
                                 >
                                   <Shield className="w-3 h-3" />
                                 </Button>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   title="Restaurar backup"
                                   onClick={() => restoreBackup(backup.id)}
@@ -579,8 +576,8 @@ export default function BackupsPage() {
                                 </Button>
                               </>
                             )}
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => deleteBackup(backup.id)}
                               disabled={actionLoading === `delete-${backup.id}`}

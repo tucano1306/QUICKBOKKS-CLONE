@@ -19,3 +19,10 @@ build/
 
 .vercel
 .env*.local
+
+# Generated files
+tsconfig.tsbuildinfo
+lint-output.json
+lint-plain.txt
+lint-verbose.txt
+tsc-errors.txt
