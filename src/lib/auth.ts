@@ -3,9 +3,6 @@ import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from './prisma'
 
-const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith('https://')
-const cookiePrefix = useSecureCookies ? '__Secure-' : ''
-
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -53,19 +50,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 días
-  },
-  cookies: {
-    sessionToken: {
-      name: `${cookiePrefix}next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax' as const,
-        path: '/',
-        secure: useSecureCookies ?? false,
-        maxAge: 30 * 24 * 60 * 60, // 30 días - cookie persistente
-      },
-    },
+    maxAge: 30 * 24 * 60 * 60, // 30 días - cookie persistente
   },
   callbacks: {
     async jwt({ token, user }) {
