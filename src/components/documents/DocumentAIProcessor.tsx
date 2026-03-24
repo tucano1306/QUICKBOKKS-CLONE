@@ -286,7 +286,8 @@ export default function DocumentAIProcessor() {
 
   const loadAccounts = useCallback(async () => {
     try {
-      const response = await fetch(`/api/accounts${activeCompany?.id ? `?companyId=${activeCompany.id}` : ''}`)
+      const accountsQuery = activeCompany?.id ? `?companyId=${activeCompany.id}` : ''
+      const response = await fetch(`/api/accounts${accountsQuery}`)
       const data = await response.json()
       if (Array.isArray(data)) {
         setAccounts(data)
@@ -384,8 +385,8 @@ export default function DocumentAIProcessor() {
     }
 
     // Validar monto
-    const parsedAmount = parseFloat(editAmount.replace(/,/g, ''))
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    const parsedAmount = Number.parseFloat(editAmount.replaceAll(',', ''))
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
       alert('Por favor ingresa un monto válido mayor a 0')
       return
     }
@@ -661,7 +662,12 @@ export default function DocumentAIProcessor() {
                 onChange={(e) => {
                   const files = e.target.files
                   if (files && files.length > 0) {
-                    onDrop(Array.from(files))
+                    const renamedFiles = Array.from(files).map((file) => {
+                      const serial = String(Math.floor(10000 + Math.random() * 90000))
+                      const ext = file.name.split('.').pop() || 'jpg'
+                      return new File([file], `${serial}.${ext}`, { type: file.type })
+                    })
+                    onDrop(renamedFiles)
                   }
                   e.target.value = '' // Reset para permitir capturar la misma imagen
                 }}
@@ -752,6 +758,12 @@ export default function DocumentAIProcessor() {
                   const FileIcon = getFileIcon(doc.mimeType)
                   const StatusIcon = statusConfig[doc.status]?.icon || Clock
                   const docType = documentTypeConfig[doc.documentType || 'OTHER'] || documentTypeConfig.OTHER
+                  let amountDisplay: React.ReactNode
+                  if (doc.status === 'ANALYZED') {
+                    amountDisplay = <span className="text-orange-500 text-xs italic">Pendiente verificar</span>
+                  } else {
+                    amountDisplay = doc.amount ? formatCurrency(doc.amount) : '-'
+                  }
 
                   return (
                     <TableRow key={doc.id}>
@@ -787,11 +799,7 @@ export default function DocumentAIProcessor() {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
-                        {doc.status === 'ANALYZED' ? (
-                          <span className="text-orange-500 text-xs italic">Pendiente verificar</span>
-                        ) : doc.amount ? (
-                          formatCurrency(doc.amount)
-                        ) : '-'}
+                        {amountDisplay}
                       </TableCell>
                       <TableCell>
                         {doc.vendor?.name ||

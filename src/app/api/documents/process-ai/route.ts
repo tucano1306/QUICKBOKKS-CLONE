@@ -227,55 +227,55 @@ function extractDataFromText(text: string): ExtractedData {
   }
   
   // Extract amount
-  const amountMatch = text.match(/total[:\s]*\$?([\d,]+\.?\d*)/i)
+  const amountMatch = /total[:\s]*\$?([\d,]+\.?\d*)/i.exec(text)
   if (amountMatch) {
-    data.amount = parseFloat(amountMatch[1].replace(/,/g, ''))
+    data.amount = Number.parseFloat(amountMatch[1].replaceAll(',', ''))
   }
   
   // Extract subtotal
-  const subtotalMatch = text.match(/subtotal[:\s]*\$?([\d,]+\.?\d*)/i)
+  const subtotalMatch = /subtotal[:\s]*\$?([\d,]+\.?\d*)/i.exec(text)
   if (subtotalMatch) {
-    data.subtotal = parseFloat(subtotalMatch[1].replace(/,/g, ''))
+    data.subtotal = Number.parseFloat(subtotalMatch[1].replaceAll(',', ''))
   }
   
   // Extract tax
-  const taxMatch = text.match(/(?:sales )?tax[:\s]*\(?\d*%?\)?[:\s]*\$?([\d,]+\.?\d*)/i)
+  const taxMatch = /(?:sales )?tax[:\s]*\(?\d*%?\)?[:\s]*\$?([\d,]+\.?\d*)/i.exec(text)
   if (taxMatch) {
-    data.taxAmount = parseFloat(taxMatch[1].replace(/,/g, ''))
+    data.taxAmount = Number.parseFloat(taxMatch[1].replaceAll(',', ''))
   }
   
   // Extract date
-  const dateMatch = text.match(/date[:\s]*(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/i)
+  const dateMatch = /date[:\s]*(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/i.exec(text)
   if (dateMatch) {
     data.date = dateMatch[1]
   }
   
   // Extract due date
-  const dueDateMatch = text.match(/due date[:\s]*(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/i)
+  const dueDateMatch = /due date[:\s]*(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/i.exec(text)
   if (dueDateMatch) {
     data.dueDate = dueDateMatch[1]
   }
   
   // Extract invoice number
-  const invoiceMatch = text.match(/invoice\s*(?:number|no|#)?[:\s]*([A-Z0-9-]+)/i)
+  const invoiceMatch = /invoice\s*(?:number|no|#)?[:\s]*([A-Z0-9-]+)/i.exec(text)
   if (invoiceMatch) {
     data.invoiceNumber = invoiceMatch[1]
   }
   
   // Extract vendor
-  const vendorMatch = text.match(/from[:\s]*([^\n]+)/i)
+  const vendorMatch = /from[:\s]*([^\n]+)/i.exec(text)
   if (vendorMatch) {
     data.vendor = vendorMatch[1].trim()
   }
   
   // Extract Tax ID
-  const taxIdMatch = text.match(/tax id[:\s]*(\d{2}-\d{7})/i)
+  const taxIdMatch = /tax id[:\s]*(\d{2}-\d{7})/i.exec(text)
   if (taxIdMatch) {
     data.taxId = taxIdMatch[1]
   }
   
   // Extract payment method
-  const paymentMatch = text.match(/payment[:\s]*(visa|mastercard|check|cash)/i)
+  const paymentMatch = /payment[:\s]*(visa|mastercard|check|cash)/i.exec(text)
   if (paymentMatch) {
     data.paymentMethod = paymentMatch[1].toUpperCase()
   }
@@ -288,9 +288,9 @@ function extractDataFromText(text: string): ExtractedData {
     if (!desc.toLowerCase().includes('description') && !desc.toLowerCase().includes('qty')) {
       data.lineItems.push({
         description: desc,
-        quantity: parseInt(match[2]),
-        unitPrice: parseFloat(match[3]),
-        amount: parseFloat(match[4])
+        quantity: Number.parseInt(match[2]),
+        unitPrice: Number.parseFloat(match[3]),
+        amount: Number.parseFloat(match[4])
       })
     }
   }
@@ -484,8 +484,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error'
-    const code = (error as any)?.code ?? ''
-    const meta = (error as any)?.meta ?? {}
+    const code = String(error?.code ?? '')
+    const meta = error?.meta ?? {}
     console.error('Document processing error:', msg, code, meta)
     return NextResponse.json(
       { error: `Failed to process document: ${msg}`, code, meta },
@@ -580,6 +580,79 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// ============================================
+// APPROVE ACTION HELPERS
+// ============================================
+
+async function createTransactionFromDoc(
+  doc: { originalName: string },
+  expenseData: Record<string, string | number | null | undefined>,
+  companyId: string
+): Promise<unknown> {
+  let txDate: Date
+  if (expenseData.date) {
+    const [year, month, day] = String(expenseData.date).split('-').map(Number)
+    txDate = new Date(year, month - 1, day, 12, 0, 0)
+  } else {
+    txDate = new Date()
+  }
+  const vendorSuffix = expenseData.vendor ? ` | Proveedor: ${String(expenseData.vendor)}` : ''
+  try {
+    return await prisma.transaction.create({
+      data: {
+        companyId,
+        type: 'EXPENSE',
+        category: String(expenseData.category || 'Gastos Generales'),
+        description: String(expenseData.description || `Factura escaneada: ${doc.originalName}`),
+        amount: Number(expenseData.amount),
+        date: txDate,
+        status: 'COMPLETED',
+        reference: expenseData.reference ? String(expenseData.reference) : null,
+        notes: `Creado automáticamente desde documento: ${doc.originalName}${vendorSuffix}`
+      }
+    })
+  } catch (txError) {
+    console.error('Error creating transaction from document:', txError)
+    return null
+  }
+}
+
+async function handleApproveAction(
+  doc: { id: string; originalName: string; extractedData: unknown },
+  userId: string,
+  expenseData: Record<string, string | number | null | undefined> | undefined,
+  companyId: string | undefined,
+  createExpense: boolean
+): Promise<{ updateData: Record<string, unknown>; createdTransaction: unknown }> {
+  const updateData: Record<string, unknown> = {
+    status: 'APPROVED',
+    approvedById: userId,
+    approvedAt: new Date()
+  }
+
+  if (expenseData?.amount) updateData.amount = Number(expenseData.amount)
+  if (expenseData?.date) {
+    const [yr, mo, dy] = String(expenseData.date).split('-').map(Number)
+    updateData.documentDate = new Date(yr, mo - 1, dy, 12, 0, 0)
+  }
+  if (expenseData?.description) updateData.description = expenseData.description
+  if (expenseData?.vendor || expenseData?.date) {
+    const existing = (doc.extractedData as Record<string, unknown>) ?? {}
+    updateData.extractedData = {
+      ...existing,
+      ...(expenseData.vendor ? { vendor: expenseData.vendor } : {}),
+      ...(expenseData.date ? { date: expenseData.date } : {})
+    }
+  }
+
+  let createdTransaction = null
+  if (createExpense && companyId && expenseData?.amount) {
+    createdTransaction = await createTransactionFromDoc(doc, expenseData, companyId)
+  }
+
+  return { updateData, createdTransaction }
+}
+
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -605,57 +678,12 @@ export async function PUT(request: NextRequest) {
     let updateData: Record<string, unknown> = {}
 
     switch (action) {
-      case 'approve':
-        updateData.status = 'APPROVED'
-        if (expenseData?.amount) {
-          updateData.amount = Number(expenseData.amount)
-        }
-        if (expenseData?.date) {
-          const [yr, mo, dy] = expenseData.date.split('-').map(Number)
-          updateData.documentDate = new Date(yr, mo - 1, dy, 12, 0, 0)
-        }
-        if (expenseData?.description) {
-          updateData.description = expenseData.description
-        }
-        if (expenseData?.vendor || expenseData?.date) {
-          // Merge vendor and date into extractedData so modal pre-fills on next open
-          const existingExtracted = (doc.extractedData as Record<string, unknown>) ?? {}
-          updateData.extractedData = {
-            ...existingExtracted,
-            ...(expenseData.vendor ? { vendor: expenseData.vendor } : {}),
-            ...(expenseData.date ? { date: expenseData.date } : {})
-          }
-        }
-        updateData.approvedById = session.user.id
-        updateData.approvedAt = new Date()
-
-        if (createExpense && companyId && expenseData?.amount) {
-          try {
-            let txDate: Date
-            if (expenseData.date) {
-              const [year, month, day] = expenseData.date.split('-').map(Number)
-              txDate = new Date(year, month - 1, day, 12, 0, 0)
-            } else {
-              txDate = new Date()
-            }
-            createdTransaction = await prisma.transaction.create({
-              data: {
-                companyId,
-                type: 'EXPENSE',
-                category: expenseData.category || 'Gastos Generales',
-                description: expenseData.description || `Factura escaneada: ${doc.originalName}`,
-                amount: Number(expenseData.amount),
-                date: txDate,
-                status: 'COMPLETED',
-                reference: expenseData.reference || null,
-                notes: `Creado automáticamente desde documento: ${doc.originalName}${expenseData.vendor ? ` | Proveedor: ${expenseData.vendor}` : ''}`
-              }
-            })
-          } catch (txError) {
-            console.error('Error creating transaction from document:', txError)
-          }
-        }
+      case 'approve': {
+        const result = await handleApproveAction(doc, session.user.id, expenseData, companyId, createExpense)
+        updateData = result.updateData
+        createdTransaction = result.createdTransaction
         break
+      }
       case 'reject':
         updateData.status = 'REJECTED'
         break

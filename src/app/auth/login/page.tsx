@@ -36,7 +36,8 @@ export default function LoginPage() {
         router.refresh()
       }
     } catch (error) {
-      toast.error('Ocurrió un error al iniciar sesión')
+      const msg = error instanceof Error ? error.message : 'Ocurrió un error al iniciar sesión'
+      toast.error(msg)
     } finally {
       setIsLoading(false)
     }
@@ -108,8 +109,8 @@ export default function LoginPage() {
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <span className="qb-spinner"></span>
-                  Signing in...
+                  <span className="qb-spinner" />
+                  {'Signing in...'}
                 </span>
               ) : (
                 'Sign In'
