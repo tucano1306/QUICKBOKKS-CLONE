@@ -240,30 +240,32 @@ function blobToFile(blob: Blob | null, fallback: File, outputName: string): File
   return new (File as unknown as DOMFileConstructor)([blob], outputName, { type: 'image/jpeg' })
 }
 
-function compressImage(file: File): Promise<File> {
-  return new Promise((resolve) => {
-    const MAX_PX = 1600
-    const QUALITY = 0.8
-    const serial = String(Math.floor(10000 + Math.random() * 90000))
-    const outputName = `${serial}.jpg`
+async function compressImage(file: File): Promise<File> {
+  const MAX_PX = 1200
+  const QUALITY = 0.75
+  const serial = String(Math.floor(10000 + Math.random() * 90000))
+  const outputName = `${serial}.jpg`
 
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const { width, height } = img
-      const scale = Math.min(1, MAX_PX / Math.max(width, height))
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(width * scale)
-      canvas.height = Math.round(height * scale)
-      const ctx = canvas.getContext('2d')
-      if (!ctx) { resolve(file); return }
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  try {
+    // createImageBitmap resizes during decode — never loads full image in JS heap
+    const bitmap = await createImageBitmap(file, {
+      resizeWidth: MAX_PX,
+      resizeHeight: MAX_PX,
+      resizeQuality: 'medium',
+    })
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) { bitmap.close(); return file }
+    ctx.drawImage(bitmap, 0, 0)
+    bitmap.close()
+    return await new Promise<File>((resolve) => {
       canvas.toBlob((blob) => resolve(blobToFile(blob, file, outputName)), 'image/jpeg', QUALITY)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
-    img.src = url
-  })
+    })
+  } catch {
+    return file
+  }
 }
 
 export default function DocumentAIProcessor() {
