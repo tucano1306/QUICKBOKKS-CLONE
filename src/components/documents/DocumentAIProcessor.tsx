@@ -233,6 +233,39 @@ function formatValue(value: unknown, key: string): string {
   return String(value as string | number | boolean)
 }
 
+type DOMFileConstructor = new (parts: BlobPart[], filename: string, options?: FilePropertyBag) => File
+
+function blobToFile(blob: Blob | null, fallback: File, outputName: string): File {
+  if (!blob) return fallback
+  return new (File as unknown as DOMFileConstructor)([blob], outputName, { type: 'image/jpeg' })
+}
+
+function compressImage(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    const MAX_PX = 1600
+    const QUALITY = 0.8
+    const serial = String(Math.floor(10000 + Math.random() * 90000))
+    const outputName = `${serial}.jpg`
+
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const { width, height } = img
+      const scale = Math.min(1, MAX_PX / Math.max(width, height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(width * scale)
+      canvas.height = Math.round(height * scale)
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { resolve(file); return }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob((blob) => resolve(blobToFile(blob, file, outputName)), 'image/jpeg', QUALITY)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
+  })
+}
+
 export default function DocumentAIProcessor() {
   const { activeCompany } = useCompany()
   const [documents, setDocuments] = useState<UploadedDocument[]>([])
@@ -289,11 +322,8 @@ export default function DocumentAIProcessor() {
       const accountsQuery = activeCompany?.id ? `?companyId=${activeCompany.id}` : ''
       const response = await fetch(`/api/accounts${accountsQuery}`)
       const data = await response.json()
-      if (Array.isArray(data)) {
-        setAccounts(data)
-      } else if (data.accounts) {
-        setAccounts(data.accounts)
-      }
+      const list: unknown[] = Array.isArray(data) ? data : (data.accounts ?? [])
+      setAccounts(list)
     } catch (error) {
       console.error('Error loading accounts:', error)
     }
@@ -662,13 +692,7 @@ export default function DocumentAIProcessor() {
                 onChange={(e) => {
                   const files = e.target.files
                   if (files && files.length > 0) {
-                    type DOMFileConstructor = new (parts: BlobPart[], filename: string, options?: FilePropertyBag) => File
-                    const renamedFiles = Array.from(files).map((file) => {
-                      const serial = String(Math.floor(10000 + Math.random() * 90000))
-                      const ext = file.name.split('.').pop() || 'jpg'
-                      return new (File as unknown as DOMFileConstructor)([file], `${serial}.${ext}`, { type: file.type })
-                    })
-                    onDrop(renamedFiles)
+                    void Promise.all(Array.from(files).map(compressImage)).then(onDrop)
                   }
                   e.target.value = '' // Reset para permitir capturar la misma imagen
                 }}
