@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { signIn } from 'next-auth/react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -32,8 +32,7 @@ export default function LoginPage() {
         toast.error(result.error)
       } else {
         toast.success('¡Bienvenido!')
-        router.push('/dashboard')
-        router.refresh()
+        window.location.href = '/dashboard'
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Ocurrió un error al iniciar sesión'
@@ -50,7 +49,7 @@ export default function LoginPage() {
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#2CA01C]/20 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#0077C5]/20 rounded-full blur-3xl"></div>
       </div>
-      
+
       <Card className="w-full max-w-md relative z-10 shadow-2xl border-0 qb-animate-scale-in">
         <CardHeader className="space-y-1 text-center pb-8">
           <div className="mb-4">
