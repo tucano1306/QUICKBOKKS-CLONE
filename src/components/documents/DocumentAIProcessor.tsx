@@ -65,7 +65,6 @@ import {
   Upload,
   XCircle
 } from 'lucide-react'
-import { useSession } from 'next-auth/react'
 import { useCallback, useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 
@@ -278,7 +277,6 @@ async function compressImage(file: File): Promise<File> {
 
 export default function DocumentAIProcessor() {
   const { activeCompany } = useCompany()
-  const { update: refreshSession } = useSession()
   const [documents, setDocuments] = useState<UploadedDocument[]>([])
   const [selectedDocument, setSelectedDocument] = useState<UploadedDocument | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -349,9 +347,6 @@ export default function DocumentAIProcessor() {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
 
-    // Refrescar sesión antes de subir (resuelve falsos 401 en Android tras cámara)
-    await refreshSession()
-
     setIsUploading(true)
     setUploadProgress(0)
 
@@ -374,20 +369,9 @@ export default function DocumentAIProcessor() {
         })
 
         if (response.status === 401) {
-          // Sesión expirada — intentar refetch y reintentar una vez
-          await refreshSession()
-          const retry = await fetch('/api/documents/process-ai', { method: 'POST', body: formData })
-          if (!retry.ok) {
-            setUploadError('Sesión expirada. Por favor recarga la página e intenta de nuevo.')
-            setIsUploading(false)
-            return
-          }
-          const retryData = await retry.json()
-          if (retryData.document) {
-            setUploadError(null)
-            setDocuments(prev => [retryData.document, ...prev])
-          }
-          continue
+          setUploadError('Sesión expirada. Recarga la página e intenta de nuevo.')
+          setIsUploading(false)
+          return
         }
 
         const data = await response.json()
@@ -721,11 +705,19 @@ export default function DocumentAIProcessor() {
                 id="camera-capture"
                 className="hidden"
                 onChange={(e) => {
-                  const files = e.target.files
-                  if (files && files.length > 0) {
-                    void Promise.all(Array.from(files).map(compressImage)).then(onDrop)
-                  }
-                  e.target.value = '' // Reset para permitir capturar la misma imagen
+                  const rawFiles = Array.from(e.target.files ?? [])
+                  e.target.value = '' // Reset ANTES de async para liberar el input
+                  if (rawFiles.length === 0) return
+                  // Mostrar feedback inmediato
+                  setIsUploading(true)
+                  setUploadProgress(5)
+                  void Promise.all(rawFiles.map(compressImage))
+                    .then(compressed => onDrop(compressed))
+                    .catch((err: unknown) => {
+                      console.error('Error procesando foto:', err)
+                      setUploadError('Error procesando la foto. Intenta de nuevo.')
+                      setIsUploading(false)
+                    })
                 }}
                 disabled={isUploading}
               />
