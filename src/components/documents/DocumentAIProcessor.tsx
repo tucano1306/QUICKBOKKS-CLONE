@@ -348,9 +348,8 @@ export default function DocumentAIProcessor() {
   const uploadFile = useCallback(async (file: File, index: number, total: number): Promise<boolean> => {
     const ext = file.name.includes('.') ? file.name.split('.').pop() : 'jpg'
     const shortName = `${String(Math.floor(100000 + Math.random() * 900000))}.${ext}`
-    const renamedFile = new File([file], shortName, { type: file.type })
     const formData = new FormData()
-    formData.append('file', renamedFile)
+    formData.append('file', file, shortName)
     formData.append('autoProcess', String(autoProcess))
     formData.append('autoCreateJournalEntry', String(autoCreateJournalEntry))
     if (activeCompany?.id) formData.append('companyId', activeCompany.id)
