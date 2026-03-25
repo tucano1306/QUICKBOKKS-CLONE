@@ -1,17 +1,17 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import DocumentAIProcessor from '@/components/documents/DocumentAIProcessor'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { useSession } from 'next-auth/react'
 
 export default function DocumentsAIPage() {
   const { status } = useSession()
-  // El middleware ya protege esta ruta — no redirigir aquí para evitar
-  // falsos positivos cuando iOS restaura la página tras abrir la cámara
 
-  if (status === 'loading' || status === 'unauthenticated') {
-    // 'unauthenticated' puede ser un flash transitorio en iOS tras usar la cámara
-    // El middleware ya protege esta ruta para usuarios realmente no autenticados
+  // Solo spinner en la carga inicial — el middleware protege la ruta server-side.
+  // NO interrumpir en 'unauthenticated': después de la cámara en Android/iOS,
+  // useSession puede marcar la sesión como inválida (falso positivo). Si
+  // renderizamos null/spinner, el <input capture> se desmonta y se pierde la foto.
+  if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
