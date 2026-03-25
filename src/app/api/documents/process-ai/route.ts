@@ -1,16 +1,16 @@
 /**
  * Document AI Processing API
- * 
+ *
  * Usa Groq AI (GRATIS) para procesar documentos
  * Fallback a análisis local si no está configurado
  */
 
 export const dynamic = 'force-dynamic'
 
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { NextRequest, NextResponse } from 'next/server'
 
 // Tipos
 interface ExtractedData {
@@ -99,7 +99,7 @@ function buildAnalysis(doc: {
 function generateSimulatedOCRText(filename: string): string {
   const lower = filename.toLowerCase()
   const date = new Date().toISOString().split('T')[0]
-  
+
   if (lower.includes('invoice') || lower.includes('factura')) {
     return `
 INVOICE / FACTURA
@@ -126,7 +126,7 @@ Software License               1     $199.00        $199.00
 Payment Terms: Net 30
     `
   }
-  
+
   if (lower.includes('receipt') || lower.includes('recibo')) {
     return `
 RECEIPT
@@ -147,7 +147,7 @@ TOTAL:                         $186.14
 Payment: VISA ****4532
     `
   }
-  
+
   if (lower.includes('statement') || lower.includes('estado')) {
     return `
 BANK STATEMENT
@@ -170,7 +170,7 @@ Total Withdrawals:              $3,925.00
 Ending Balance:                $59,253.90
     `
   }
-  
+
   return `
 DOCUMENT
 Date: ${date}
@@ -185,7 +185,7 @@ Category: General Expense
 
 function classifyDocument(text: string, filename: string): DocumentAnalysis['documentType'] {
   const lower = (text + ' ' + filename).toLowerCase()
-  
+
   const patterns: Record<DocumentAnalysis['documentType'], string[]> = {
     INVOICE: ['invoice', 'factura', 'bill to', 'due date', 'payment terms', 'inv-'],
     RECEIPT: ['receipt', 'recibo', 'thank you', 'change due', 'cashier', 'store #'],
@@ -196,10 +196,10 @@ function classifyDocument(text: string, filename: string): DocumentAnalysis['doc
     PAYROLL: ['payroll', 'paycheck', 'wages', 'salary', 'net pay'],
     OTHER: []
   }
-  
+
   let bestMatch: DocumentAnalysis['documentType'] = 'OTHER'
   let maxScore = 0
-  
+
   for (const [type, keywords] of Object.entries(patterns)) {
     const score = keywords.filter(kw => lower.includes(kw)).length
     if (score > maxScore) {
@@ -207,7 +207,7 @@ function classifyDocument(text: string, filename: string): DocumentAnalysis['doc
       bestMatch = type as DocumentAnalysis['documentType']
     }
   }
-  
+
   return bestMatch
 }
 
@@ -225,61 +225,61 @@ function extractDataFromText(text: string): ExtractedData {
     taxId: null,
     paymentMethod: null
   }
-  
+
   // Extract amount
   const amountMatch = /total[:\s]*\$?([\d,]+\.?\d*)/i.exec(text)
   if (amountMatch) {
     data.amount = Number.parseFloat(amountMatch[1].replaceAll(',', ''))
   }
-  
+
   // Extract subtotal
   const subtotalMatch = /subtotal[:\s]*\$?([\d,]+\.?\d*)/i.exec(text)
   if (subtotalMatch) {
     data.subtotal = Number.parseFloat(subtotalMatch[1].replaceAll(',', ''))
   }
-  
+
   // Extract tax
   const taxMatch = /(?:sales )?tax[:\s]*\(?\d*%?\)?[:\s]*\$?([\d,]+\.?\d*)/i.exec(text)
   if (taxMatch) {
     data.taxAmount = Number.parseFloat(taxMatch[1].replaceAll(',', ''))
   }
-  
+
   // Extract date
   const dateMatch = /date[:\s]*(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/i.exec(text)
   if (dateMatch) {
     data.date = dateMatch[1]
   }
-  
+
   // Extract due date
   const dueDateMatch = /due date[:\s]*(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/i.exec(text)
   if (dueDateMatch) {
     data.dueDate = dueDateMatch[1]
   }
-  
+
   // Extract invoice number
   const invoiceMatch = /invoice\s*(?:number|no|#)?[:\s]*([A-Z0-9-]+)/i.exec(text)
   if (invoiceMatch) {
     data.invoiceNumber = invoiceMatch[1]
   }
-  
+
   // Extract vendor
   const vendorMatch = /from[:\s]*([^\n]+)/i.exec(text)
   if (vendorMatch) {
     data.vendor = vendorMatch[1].trim()
   }
-  
+
   // Extract Tax ID
   const taxIdMatch = /tax id[:\s]*(\d{2}-\d{7})/i.exec(text)
   if (taxIdMatch) {
     data.taxId = taxIdMatch[1]
   }
-  
+
   // Extract payment method
   const paymentMatch = /payment[:\s]*(visa|mastercard|check|cash)/i.exec(text)
   if (paymentMatch) {
     data.paymentMethod = paymentMatch[1].toUpperCase()
   }
-  
+
   // Extract line items
   const linePattern = /([A-Za-z][\w\s]+?)\s+(\d+)\s+\$?([\d.]+)\s+\$?([\d.]+)/g
   let match
@@ -294,10 +294,10 @@ function extractDataFromText(text: string): ExtractedData {
       })
     }
   }
-  
+
   // Generate description
   data.description = data.vendor ? `Document from ${data.vendor}` : 'Uploaded document'
-  
+
   return data
 }
 
@@ -306,11 +306,11 @@ function generateJournalEntrySuggestion(
   data: ExtractedData
 ): DocumentAnalysis['journalEntry'] {
   if (!data.amount) return null
-  
+
   const amount = data.amount
   const taxAmount = data.taxAmount || 0
   const netAmount = amount - taxAmount
-  
+
   if (documentType === 'INVOICE') {
     return {
       description: `${data.vendor || 'Vendor'} - Invoice ${data.invoiceNumber || ''}`.trim(),
@@ -321,7 +321,7 @@ function generateJournalEntrySuggestion(
       ]
     }
   }
-  
+
   if (documentType === 'RECEIPT') {
     return {
       description: `Purchase at ${data.vendor || 'Store'}`,
@@ -332,7 +332,7 @@ function generateJournalEntrySuggestion(
       ]
     }
   }
-  
+
   return {
     description: data.description || 'Document',
     lines: [
@@ -344,19 +344,19 @@ function generateJournalEntrySuggestion(
 
 function analyzeDocument(filename: string): DocumentAnalysis {
   const startTime = Date.now()
-  
+
   // Generate simulated OCR text
   const ocrText = generateSimulatedOCRText(filename)
-  
+
   // Classify document
   const documentType = classifyDocument(ocrText, filename)
-  
+
   // Extract data
   const extractedData = extractDataFromText(ocrText)
-  
+
   // Generate journal entry suggestion
   const journalEntry = generateJournalEntrySuggestion(documentType, extractedData)
-  
+
   // Determine suggested account
   const accountMappings: Record<DocumentAnalysis['documentType'], { code: string; name: string }> = {
     'INVOICE': { code: '2000', name: 'Accounts Payable' },
@@ -368,7 +368,7 @@ function analyzeDocument(filename: string): DocumentAnalysis {
     'PAYROLL': { code: '6000', name: 'Salaries and Wages' },
     'OTHER': { code: '6900', name: 'Other Expenses' }
   }
-  
+
   // Category mapping for Florida
   const categoryMappings: Record<DocumentAnalysis['documentType'], string> = {
     'INVOICE': 'Accounts Payable',
@@ -380,7 +380,7 @@ function analyzeDocument(filename: string): DocumentAnalysis {
     'PAYROLL': 'Payroll Expenses',
     'OTHER': 'General Expenses'
   }
-  
+
   // Calculate confidence
   let confidence = 50
   if (extractedData.amount) confidence += 15
@@ -388,7 +388,7 @@ function analyzeDocument(filename: string): DocumentAnalysis {
   if (extractedData.vendor) confidence += 10
   if (extractedData.invoiceNumber) confidence += 5
   if (extractedData.lineItems.length > 0) confidence += 10
-  
+
   return {
     documentType,
     confidence: Math.min(confidence, 99),

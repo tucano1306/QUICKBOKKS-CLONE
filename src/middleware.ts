@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 
 // Rutas que no requieren autenticación
 const publicRoutes = ['/auth/login', '/auth/register', '/api/auth']
@@ -28,30 +28,30 @@ const protectedRoutes: { [key: string]: string[] } = {
 }
 
 export default async function middleware(request: NextRequest) {
-  const token = await getToken({ 
+  const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET 
+    secret: process.env.NEXTAUTH_SECRET
   })
-  
+
   const path = request.nextUrl.pathname
-  
+
   // Verificar si es una ruta pública
   const isPublicRoute = publicRoutes.some(route => path.startsWith(route))
-  
+
   // Verificar si es una ruta API con autenticación interna
   const isApiWithInternalAuth = apiRoutesWithInternalAuth.some(route => path.startsWith(route))
-  
+
   if (isPublicRoute || isApiWithInternalAuth) {
     return NextResponse.next()
   }
-  
+
   // Si no hay token y no es ruta pública, redirigir a login
   if (!token) {
     const loginUrl = new URL('/auth/login', request.url)
     loginUrl.searchParams.set('callbackUrl', path)
     return NextResponse.redirect(loginUrl)
   }
-  
+
   // Verificar permisos específicos de ruta
   for (const [route, allowedRoles] of Object.entries(protectedRoutes)) {
     if (path.startsWith(route)) {
@@ -64,10 +64,10 @@ export default async function middleware(request: NextRequest) {
       }
     }
   }
-  
+
   // Agregar headers de seguridad
   const response = NextResponse.next()
-  
+
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-XSS-Protection', '1; mode=block')
@@ -76,18 +76,18 @@ export default async function middleware(request: NextRequest) {
     'Strict-Transport-Security',
     'max-age=31536000; includeSubDomains'
   )
-  
+
   // Rate limiting simple (en producción usar Redis)
   const ip = request.ip || 'unknown'
   const rateLimit = await checkRateLimit(ip, path)
-  
+
   if (!rateLimit.allowed) {
     return NextResponse.json(
       { error: 'Demasiadas solicitudes. Por favor intenta más tarde.' },
       { status: 429 }
     )
   }
-  
+
   return response
 }
 
@@ -99,9 +99,9 @@ async function checkRateLimit(ip: string, path: string): Promise<{ allowed: bool
   const now = Date.now()
   const windowMs = 60 * 1000 // 1 minuto
   const maxRequests = 100 // 100 requests por minuto
-  
+
   const record = rateLimitStore.get(key)
-  
+
   if (!record || now > record.resetTime) {
     rateLimitStore.set(key, {
       count: 1,
@@ -109,11 +109,11 @@ async function checkRateLimit(ip: string, path: string): Promise<{ allowed: bool
     })
     return { allowed: true }
   }
-  
+
   if (record.count >= maxRequests) {
     return { allowed: false }
   }
-  
+
   record.count++
   return { allowed: true }
 }

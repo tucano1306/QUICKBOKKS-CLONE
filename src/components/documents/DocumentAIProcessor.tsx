@@ -242,28 +242,35 @@ function blobToFile(blob: Blob | null, fallback: File, outputName: string): File
 
 async function compressImage(file: File): Promise<File> {
   const MAX_PX = 1200
-  const QUALITY = 0.75
+  const QUALITY = 0.78
   const serial = String(Math.floor(10000 + Math.random() * 90000))
   const outputName = `${serial}.jpg`
 
   try {
-    // createImageBitmap resizes during decode — never loads full image in JS heap
-    const bitmap = await createImageBitmap(file, {
-      resizeWidth: MAX_PX,
-      resizeHeight: MAX_PX,
-      resizeQuality: 'medium',
-    })
+    // createImageBitmap sin opciones de resize — compatible con todos los browsers
+    // (las opciones de resize no están soportadas en iOS < 15.4)
+    const bitmap = await createImageBitmap(file)
+    const { width, height } = bitmap
+
+    // Escalar manualmente al tamaño objetivo
+    const scale = Math.min(1, MAX_PX / Math.max(width, height))
+    const targetW = Math.round(width * scale)
+    const targetH = Math.round(height * scale)
+
+    // El canvas es pequeño (~5MB RAM) aunque el bitmap sea grande
     const canvas = document.createElement('canvas')
-    canvas.width = bitmap.width
-    canvas.height = bitmap.height
+    canvas.width = targetW
+    canvas.height = targetH
     const ctx = canvas.getContext('2d')
     if (!ctx) { bitmap.close(); return file }
-    ctx.drawImage(bitmap, 0, 0)
-    bitmap.close()
+    ctx.drawImage(bitmap, 0, 0, targetW, targetH)
+    bitmap.close() // liberar GPU memory
+
     return await new Promise<File>((resolve) => {
       canvas.toBlob((blob) => resolve(blobToFile(blob, file, outputName)), 'image/jpeg', QUALITY)
     })
-  } catch {
+  } catch (err) {
+    console.error('Error al comprimir imagen, se usará el archivo original:', err)
     return file
   }
 }
