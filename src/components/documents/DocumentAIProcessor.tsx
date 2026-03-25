@@ -343,68 +343,58 @@ export default function DocumentAIProcessor() {
     void Promise.all([loadDocuments(), loadAccounts()])
   }, [loadDocuments, loadAccounts])
 
+  // Helper: sube un archivo al servidor y retorna false si debe abortar
+  const uploadFile = useCallback(async (file: File, index: number, total: number): Promise<boolean> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('autoProcess', String(autoProcess))
+    formData.append('autoCreateJournalEntry', String(autoCreateJournalEntry))
+    if (activeCompany?.id) formData.append('companyId', activeCompany.id)
+
+    setUploadProgress(((index + 0.5) / total) * 100)
+    const response = await fetch('/api/documents/process-ai', { method: 'POST', body: formData })
+
+    if (response.status === 401) {
+      alert('Sesión expirada. Recarga la página e intenta de nuevo.')
+      return false
+    }
+    if (response.status === 413) {
+      alert('Foto demasiado grande. Intenta con resolución más baja en la cámara.')
+      return false
+    }
+
+    const data = await response.json()
+    if (!response.ok || !data.success) {
+      const msg = data?.error || `Error subiendo ${file.name} (HTTP ${response.status})`
+      alert(`Error: ${msg}`)
+      setUploadError(msg)
+    } else if (data.document) {
+      setUploadError(null)
+      setDocuments(prev => [data.document, ...prev])
+    }
+    setUploadProgress(((index + 1) / total) * 100)
+    return true
+  }, [autoProcess, autoCreateJournalEntry, activeCompany])
+
   // Upload handler
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
-
     setIsUploading(true)
     setUploadProgress(0)
-
-    for (let i = 0; i < acceptedFiles.length; i++) {
-      const file = acceptedFiles[i]
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('autoProcess', String(autoProcess))
-      formData.append('autoCreateJournalEntry', String(autoCreateJournalEntry))
-      if (activeCompany?.id) {
-        formData.append('companyId', activeCompany.id)
+    try {
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const ok = await uploadFile(acceptedFiles[i], i, acceptedFiles.length)
+        if (!ok) break
       }
-
-      try {
-        setUploadProgress(((i + 0.5) / acceptedFiles.length) * 100)
-
-        const response = await fetch('/api/documents/process-ai', {
-          method: 'POST',
-          body: formData
-        })
-
-        if (response.status === 401) {
-          alert('Sesión expirada. Recarga la página e intenta de nuevo.')
-          setIsUploading(false)
-          return
-        }
-
-        if (response.status === 413) {
-          alert(`Foto demasiado grande para el servidor. Intenta con resolución más baja en la cámara.`)
-          setIsUploading(false)
-          return
-        }
-
-        const data = await response.json()
-
-        if (!response.ok || !data.success) {
-          const msg = data?.error || `Error subiendo ${file.name} (HTTP ${response.status})`
-          alert(`Error: ${msg}`)
-          setUploadError(msg)
-          continue
-        } else if (data.document) {
-          setUploadError(null)
-          setDocuments(prev => [data.document, ...prev])
-        }
-
-        setUploadProgress(((i + 1) / acceptedFiles.length) * 100)
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Error desconocido'
-        console.error('Error uploading file:', error)
-        setUploadError(msg)
-      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error desconocido'
+      console.error('Error uploading file:', error)
+      setUploadError(msg)
     }
-
     setIsUploading(false)
     setUploadProgress(0)
-    // Refresh list from DB to ensure consistency
     loadDocuments()
-  }, [autoProcess, autoCreateJournalEntry, activeCompany, loadDocuments])
+  }, [uploadFile, loadDocuments])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (files) => { onDrop(files) },
@@ -730,13 +720,15 @@ export default function DocumentAIProcessor() {
                         return
                       }
                       void onDrop([compressed])
-                        .catch((err: unknown) => {
-                          alert(`Error subiendo foto (${compMB}MB): ${err instanceof Error ? err.message : String(err)}`)
+                        .catch((uploadErr: unknown) => {
+                          const msg = uploadErr instanceof Error ? uploadErr.message : 'Error desconocido'
+                          alert(`Error subiendo foto (${compMB}MB): ${msg}`)
                           setIsUploading(false)
                         })
                     })
-                    .catch((err: unknown) => {
-                      alert(`Error procesando foto (${sizeMB}MB): ${err instanceof Error ? err.message : String(err)}`)
+                    .catch((compErr: unknown) => {
+                      const msg = compErr instanceof Error ? compErr.message : 'Error desconocido'
+                      alert(`Error procesando foto (${sizeMB}MB): ${msg}`)
                       setIsUploading(false)
                     })
                 }}
