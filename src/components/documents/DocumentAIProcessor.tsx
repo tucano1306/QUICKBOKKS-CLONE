@@ -369,7 +369,13 @@ export default function DocumentAIProcessor() {
         })
 
         if (response.status === 401) {
-          setUploadError('Sesión expirada. Recarga la página e intenta de nuevo.')
+          alert('Sesión expirada. Recarga la página e intenta de nuevo.')
+          setIsUploading(false)
+          return
+        }
+
+        if (response.status === 413) {
+          alert(`Foto demasiado grande para el servidor. Intenta con resolución más baja en la cámara.`)
           setIsUploading(false)
           return
         }
@@ -377,8 +383,8 @@ export default function DocumentAIProcessor() {
         const data = await response.json()
 
         if (!response.ok || !data.success) {
-          const msg = data?.error || `Error subiendo ${file.name}`
-          console.error('[Upload]', msg, data)
+          const msg = data?.error || `Error subiendo ${file.name} (HTTP ${response.status})`
+          alert(`Error: ${msg}`)
           setUploadError(msg)
           continue
         } else if (data.document) {
@@ -706,16 +712,31 @@ export default function DocumentAIProcessor() {
                 className="hidden"
                 onChange={(e) => {
                   const rawFiles = Array.from(e.target.files ?? [])
-                  e.target.value = '' // Reset ANTES de async para liberar el input
-                  if (rawFiles.length === 0) return
-                  // Mostrar feedback inmediato
+                  e.target.value = ''
+                  if (rawFiles.length === 0) {
+                    alert('No se recibió ningún archivo de la cámara. Intenta de nuevo.')
+                    return
+                  }
+                  const sizeMB = (rawFiles[0].size / 1024 / 1024).toFixed(1)
                   setIsUploading(true)
                   setUploadProgress(5)
-                  void Promise.all(rawFiles.map(compressImage))
-                    .then(compressed => onDrop(compressed))
+                  // Comprimir primero, si falla usar original
+                  void compressImage(rawFiles[0])
+                    .then(compressed => {
+                      const compMB = (compressed.size / 1024 / 1024).toFixed(1)
+                      if (compressed.size > 19 * 1024 * 1024) {
+                        alert(`La foto es demasiado grande (${sizeMB}MB). Intenta con una foto más pequeña.`)
+                        setIsUploading(false)
+                        return
+                      }
+                      void onDrop([compressed])
+                        .catch((err: unknown) => {
+                          alert(`Error subiendo foto (${compMB}MB): ${err instanceof Error ? err.message : String(err)}`)
+                          setIsUploading(false)
+                        })
+                    })
                     .catch((err: unknown) => {
-                      console.error('Error procesando foto:', err)
-                      setUploadError('Error procesando la foto. Intenta de nuevo.')
+                      alert(`Error procesando foto (${sizeMB}MB): ${err instanceof Error ? err.message : String(err)}`)
                       setIsUploading(false)
                     })
                 }}

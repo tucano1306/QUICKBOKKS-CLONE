@@ -6,6 +6,16 @@
  */
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
+
+// Aumentar límite de body a 20MB para fotos de cámara (default Vercel: 4.5MB)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
+}
 
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
