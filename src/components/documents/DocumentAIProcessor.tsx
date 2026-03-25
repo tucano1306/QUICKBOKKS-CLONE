@@ -4,67 +4,68 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
 import {
-    AlertCircle,
-    ArrowRight,
-    Brain,
-    Building2,
-    Calendar,
-    Camera,
-    CheckCircle2,
-    ChevronDown,
-    Clock,
-    DollarSign,
-    Eye,
-    File,
-    FileSpreadsheet,
-    FileText,
-    Image as ImageIcon,
-    Loader2,
-    RefreshCw,
-    Sparkles,
-    Tag,
-    ThumbsDown,
-    ThumbsUp,
-    Trash2,
-    Upload,
-    XCircle
+  AlertCircle,
+  ArrowRight,
+  Brain,
+  Building2,
+  Calendar,
+  Camera,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  DollarSign,
+  Eye,
+  File,
+  FileSpreadsheet,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Tag,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  Upload,
+  XCircle
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 import { useCallback, useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 
@@ -277,6 +278,7 @@ async function compressImage(file: File): Promise<File> {
 
 export default function DocumentAIProcessor() {
   const { activeCompany } = useCompany()
+  const { update: refreshSession } = useSession()
   const [documents, setDocuments] = useState<UploadedDocument[]>([])
   const [selectedDocument, setSelectedDocument] = useState<UploadedDocument | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -347,6 +349,9 @@ export default function DocumentAIProcessor() {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
 
+    // Refrescar sesión antes de subir (resuelve falsos 401 en Android tras cámara)
+    await refreshSession()
+
     setIsUploading(true)
     setUploadProgress(0)
 
@@ -367,6 +372,23 @@ export default function DocumentAIProcessor() {
           method: 'POST',
           body: formData
         })
+
+        if (response.status === 401) {
+          // Sesión expirada — intentar refetch y reintentar una vez
+          await refreshSession()
+          const retry = await fetch('/api/documents/process-ai', { method: 'POST', body: formData })
+          if (!retry.ok) {
+            setUploadError('Sesión expirada. Por favor recarga la página e intenta de nuevo.')
+            setIsUploading(false)
+            return
+          }
+          const retryData = await retry.json()
+          if (retryData.document) {
+            setUploadError(null)
+            setDocuments(prev => [retryData.document, ...prev])
+          }
+          continue
+        }
 
         const data = await response.json()
 
