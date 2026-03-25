@@ -715,36 +715,15 @@ export default function DocumentAIProcessor() {
                 id="camera-capture"
                 className="hidden"
                 onChange={(e) => {
-                  const rawFiles = Array.from(e.target.files ?? [])
+                  const file = e.target.files?.[0]
                   e.target.value = ''
-                  if (rawFiles.length === 0) {
-                    alert('No se recibió ningún archivo de la cámara. Intenta de nuevo.')
+                  if (!file) return
+                  const sizeMB = file.size / 1024 / 1024
+                  if (sizeMB > 4) {
+                    alert(`La foto pesa ${sizeMB.toFixed(1)}MB. El límite es 4MB.\n\nEn tu cámara, baja la resolución a "Media" o "Baja" y vuelve a intentarlo.`)
                     return
                   }
-                  const sizeMB = (rawFiles[0].size / 1024 / 1024).toFixed(1)
-                  setIsUploading(true)
-                  setUploadProgress(5)
-                  // Comprimir primero, si falla usar original
-                  void compressImage(rawFiles[0])
-                    .then(compressed => {
-                      const compMB = (compressed.size / 1024 / 1024).toFixed(1)
-                      if (compressed.size > 19 * 1024 * 1024) {
-                        alert(`La foto es demasiado grande (${sizeMB}MB). Intenta con una foto más pequeña.`)
-                        setIsUploading(false)
-                        return
-                      }
-                      void onDrop([compressed])
-                        .catch((uploadErr: unknown) => {
-                          const msg = uploadErr instanceof Error ? uploadErr.message : 'Error desconocido'
-                          alert(`Error subiendo foto (${compMB}MB): ${msg}`)
-                          setIsUploading(false)
-                        })
-                    })
-                    .catch((compErr: unknown) => {
-                      const msg = compErr instanceof Error ? compErr.message : 'Error desconocido'
-                      alert(`Error procesando foto (${sizeMB}MB): ${msg}`)
-                      setIsUploading(false)
-                    })
+                  void onDrop([file])
                 }}
                 disabled={isUploading}
               />
