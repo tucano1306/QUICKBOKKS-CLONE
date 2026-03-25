@@ -241,38 +241,39 @@ function blobToFile(blob: Blob | null, fallback: File, outputName: string): File
 }
 
 async function compressImage(file: File): Promise<File> {
+  // Si es menos de 1.5MB, no comprimir
+  if (file.size < 1.5 * 1024 * 1024) return file
+
   const MAX_PX = 1200
   const QUALITY = 0.78
   const serial = String(Math.floor(10000 + Math.random() * 90000))
   const outputName = `${serial}.jpg`
 
-  try {
-    // createImageBitmap sin opciones de resize — compatible con todos los browsers
-    // (las opciones de resize no están soportadas en iOS < 15.4)
-    const bitmap = await createImageBitmap(file)
-    const { width, height } = bitmap
+  return new Promise<File>((resolve) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
 
-    // Escalar manualmente al tamaño objetivo
-    const scale = Math.min(1, MAX_PX / Math.max(width, height))
-    const targetW = Math.round(width * scale)
-    const targetH = Math.round(height * scale)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, MAX_PX / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { resolve(file); return }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob((blob) => {
+        resolve(blobToFile(blob, file, outputName))
+      }, 'image/jpeg', QUALITY)
+    }
 
-    // El canvas es pequeño (~5MB RAM) aunque el bitmap sea grande
-    const canvas = document.createElement('canvas')
-    canvas.width = targetW
-    canvas.height = targetH
-    const ctx = canvas.getContext('2d')
-    if (!ctx) { bitmap.close(); return file }
-    ctx.drawImage(bitmap, 0, 0, targetW, targetH)
-    bitmap.close() // liberar GPU memory
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(file) // fallback al original
+    }
 
-    return await new Promise<File>((resolve) => {
-      canvas.toBlob((blob) => resolve(blobToFile(blob, file, outputName)), 'image/jpeg', QUALITY)
-    })
-  } catch (err) {
-    console.error('Error al comprimir imagen, se usará el archivo original:', err)
-    return file
-  }
+    img.src = url
+  })
 }
 
 export default function DocumentAIProcessor() {
@@ -352,7 +353,19 @@ export default function DocumentAIProcessor() {
     if (activeCompany?.id) formData.append('companyId', activeCompany.id)
 
     setUploadProgress(((index + 0.5) / total) * 100)
-    const response = await fetch('/api/documents/process-ai', { method: 'POST', body: formData })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000)
+    let response: Response
+    try {
+      response = await fetch('/api/documents/process-ai', { method: 'POST', body: formData, signal: controller.signal })
+    } catch (fetchErr) {
+      clearTimeout(timeout)
+      const msg = fetchErr instanceof Error ? fetchErr.message : 'Error de red'
+      alert(`Error de conexión: ${msg}. Verifica tu internet e intenta de nuevo.`)
+      setUploadError(msg)
+      return false
+    }
+    clearTimeout(timeout)
 
     if (response.status === 401) {
       alert('Sesión expirada. Recarga la página e intenta de nuevo.')
@@ -389,6 +402,7 @@ export default function DocumentAIProcessor() {
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error desconocido'
       console.error('Error uploading file:', error)
+      alert(`Error al subir: ${msg}`)
       setUploadError(msg)
     }
     setIsUploading(false)
