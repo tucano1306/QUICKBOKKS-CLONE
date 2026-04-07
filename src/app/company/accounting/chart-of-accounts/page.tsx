@@ -790,8 +790,8 @@ export default function ChartOfAccountsPage() {
 
         {/* Modal Nueva Cuenta */}
         {showNewAccountModal && (
-          <div role="presentation" className="qb-modal-overlay" onClick={() => setShowNewAccountModal(false)} onKeyDown={(e) => e.key === 'Escape' && setShowNewAccountModal(false)}>
-            <div role="dialog" aria-modal="true" aria-label="Nueva Cuenta Contable" className="qb-modal max-w-[95vw] sm:max-w-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="qb-modal-overlay" onClick={() => setShowNewAccountModal(false)}>
+            <dialog open aria-label="Nueva Cuenta Contable" className="qb-modal max-w-[95vw] sm:max-w-2xl" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && setShowNewAccountModal(false)}>
               <div className="qb-modal-header">
                 <h2 className="qb-modal-title text-base sm:text-lg">Nueva Cuenta Contable</h2>
                 <button className="qb-modal-close" onClick={() => setShowNewAccountModal(false)}>
@@ -861,14 +861,14 @@ export default function ChartOfAccountsPage() {
                   {saving ? 'Guardando...' : 'Crear Cuenta'}
                 </Button>
               </div>
-            </div>
+            </dialog>
           </div>
         )}
 
         {/* Modal Editar Cuenta */}
         {editingAccount && (
-          <div role="presentation" className="qb-modal-overlay" onClick={() => setEditingAccount(null)} onKeyDown={(e) => e.key === 'Escape' && setEditingAccount(null)}>
-            <div role="dialog" aria-modal="true" aria-label="Editar Cuenta" className="qb-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="qb-modal-overlay" onClick={() => setEditingAccount(null)}>
+            <dialog open aria-label="Editar Cuenta" className="qb-modal" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && setEditingAccount(null)}>
               <div className="qb-modal-header">
                 <h2 className="qb-modal-title">Editar Cuenta: {editingAccount.code}</h2>
                 <button className="qb-modal-close" onClick={() => setEditingAccount(null)}>
@@ -941,7 +941,7 @@ export default function ChartOfAccountsPage() {
                   {saving ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
               </div>
-            </div>
+            </dialog>
           </div>
         )}
       </div>
