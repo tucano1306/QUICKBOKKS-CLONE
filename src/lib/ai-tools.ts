@@ -1131,17 +1131,17 @@ async function ejecutarConsultarCuentasBancarias(
   const cuentas = await prisma.bankAccount.findMany({
     where: { companyId },
     include: args.incluir_transacciones ? {
-      transactions: { orderBy: { date: 'desc' }, take: 5 }
+      bankTransactions: { orderBy: { date: 'desc' }, take: 5 }
     } : undefined,
-    orderBy: { name: 'asc' }
+    orderBy: { accountName: 'asc' }
   });
 
   const saldoTotal = cuentas.reduce((s, c) => s + c.balance, 0);
 
   const lista = cuentas.map(c => {
-    let texto = `• ${c.name} (${c.accountType}) — Saldo: $${c.balance.toLocaleString()} — ${c.currency || 'USD'}`;
-    if (args.incluir_transacciones && (c as any).transactions?.length) {
-      const txs = (c as any).transactions.slice(0, 3).map((t: any) =>
+    let texto = `• ${c.accountName} (${c.accountType}) — Saldo: $${c.balance.toLocaleString()} — ${c.currency || 'USD'}`;
+    if (args.incluir_transacciones && (c as any).bankTransactions?.length) {
+      const txs = (c as any).bankTransactions.slice(0, 3).map((t: any) =>
         `    → ${t.description}: $${t.amount.toLocaleString()} (${new Date(t.date).toLocaleDateString('es')})`
       ).join('\n');
       texto += `\n${txs}`;

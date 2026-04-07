@@ -60,6 +60,7 @@ export default function CategoriesPage() {
     if (status === 'authenticated' && activeCompany?.id) {
       loadCategories()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, activeCompany?.id])
 
   const loadCategories = async () => {

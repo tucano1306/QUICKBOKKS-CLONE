@@ -116,7 +116,7 @@ export default function ChartOfAccountsPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterType])
+  }, [filterType, activeCompany?.id])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
