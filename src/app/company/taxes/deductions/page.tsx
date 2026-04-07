@@ -1,37 +1,37 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { useCompany } from '@/contexts/CompanyContext'
 import {
+  AlertCircle,
+  Briefcase,
+  Car,
+  CheckCircle,
+  DollarSign,
   Download,
   FileText,
-  DollarSign,
-  TrendingUp,
-  Receipt,
-  Car,
-  Home,
-  Users,
-  Briefcase,
-  Heart,
   GraduationCap,
+  Heart,
+  Home,
+  Info,
   PiggyBank,
   Plus,
-  Upload,
-  CheckCircle,
-  AlertCircle,
-  Info,
-  TrendingDown,
+  Receipt,
   RefreshCw,
-  X,
-  Save
+  Save,
+  TrendingDown,
+  TrendingUp,
+  Upload,
+  Users,
+  X
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 interface TaxDeduction {
   id: string
@@ -429,9 +429,9 @@ export default function TaxDeductionsPage() {
       </div>
 
       {showAddModal && (
-        <div className="qb-modal-overlay" onClick={() => setShowAddModal(false)} onKeyDown={(e) => e.key === 'Escape' && setShowAddModal(false)} aria-hidden="true">
+        <div className="qb-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false) }} onKeyDown={(e) => e.key === 'Escape' && setShowAddModal(false)} aria-hidden="true">
           <dialog open aria-modal="true" aria-label="Nueva Deducción" className="qb-modal max-w-md">
-            <form method="dialog" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && setShowAddModal(false)}>
+            <form method="dialog">
             <div className="qb-modal-header">
               <h2 className="qb-modal-title">Nueva Deducción</h2>
               <button className="qb-modal-close" onClick={() => setShowAddModal(false)}>

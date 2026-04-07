@@ -288,7 +288,12 @@
     "Impuesto",
     "Reembolso",
     "Cantidad",
-    "Adeudada"
+    "Adeudada",
+    "Nueva",
+    "Deducción", "deducción",
+    "Subir",
+    "Categoría", "categoría",
+    "Subcategoría"
   ],
   "ignorePaths": [
     "node_modules/**",
