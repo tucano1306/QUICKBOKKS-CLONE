@@ -664,7 +664,7 @@ export default function AIAgentPage() {
                       <Input 
                         type="text" 
                         value={agentConfig.autoCategorizeThreshold}
-                        onChange={(e) => setAgentConfig({...agentConfig, autoCategorizeThreshold: parseInt(e.target.value.replace(/,/g, ''))})}
+                        onChange={(e) => setAgentConfig({...agentConfig, autoCategorizeThreshold: Number.parseInt(e.target.value.replace(/,/g, ''))})}
                         className="amount-input w-24 mt-1"
                       />
                     </div>
@@ -730,7 +730,7 @@ export default function AIAgentPage() {
                       <Input 
                         type="text" 
                         value={agentConfig.expenseApprovalLimit}
-                        onChange={(e) => setAgentConfig({...agentConfig, expenseApprovalLimit: parseInt(e.target.value.replace(/,/g, ''))})}
+                        onChange={(e) => setAgentConfig({...agentConfig, expenseApprovalLimit: Number.parseInt(e.target.value.replace(/,/g, ''))})}
                         className="amount-input w-32 mt-1"
                       />
                     </div>

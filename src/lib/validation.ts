@@ -84,7 +84,7 @@ export function isZipCode(zip: string, country: string = 'US'): boolean {
 }
 
 export function isCurrency(amount: string | number): boolean {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
   return !isNaN(num) && num >= 0 && num < 1e15;
 }
 
@@ -225,8 +225,8 @@ export function validateInvoice(data: any): ValidationResult {
 
   // Amount validation
   if (data.subtotal !== undefined && data.taxAmount !== undefined && data.total !== undefined) {
-    const calculatedTotal = parseFloat(data.subtotal) + parseFloat(data.taxAmount) - (parseFloat(data.discount) || 0);
-    if (Math.abs(calculatedTotal - parseFloat(data.total)) > 0.01) {
+    const calculatedTotal = Number.parseFloat(data.subtotal) + Number.parseFloat(data.taxAmount) - (Number.parseFloat(data.discount) || 0);
+    if (Math.abs(calculatedTotal - Number.parseFloat(data.total)) > 0.01) {
       errors.push('El total no coincide con subtotal + impuestos - descuento');
     }
   }
@@ -380,15 +380,15 @@ export function validateVendorPayable(data: any): ValidationResult {
   }
 
   if (data.total !== undefined && data.paidAmount !== undefined) {
-    if (parseFloat(data.paidAmount) > parseFloat(data.total)) {
+    if (Number.parseFloat(data.paidAmount) > Number.parseFloat(data.total)) {
       errors.push('El monto pagado no puede exceder el total');
     }
   }
 
   if (data.subtotal !== undefined && data.taxAmount !== undefined && data.total !== undefined) {
-    const subtotal = parseFloat(data.subtotal);
-    const taxAmount = parseFloat(data.taxAmount);
-    const total = parseFloat(data.total);
+    const subtotal = Number.parseFloat(data.subtotal);
+    const taxAmount = Number.parseFloat(data.taxAmount);
+    const total = Number.parseFloat(data.total);
     if (subtotal + taxAmount - total > 0.01) {
       errors.push('El total debe coincidir con subtotal + impuestos');
     }

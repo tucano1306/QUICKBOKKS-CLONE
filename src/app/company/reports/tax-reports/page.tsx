@@ -160,7 +160,7 @@ export default function TaxReportsPage() {
         id: `tax-${Date.now()}`,
         type: newDeclaration.type,
         period: newDeclaration.period,
-        fiscalYear: parseInt(newDeclaration.fiscalYear),
+        fiscalYear: Number.parseInt(newDeclaration.fiscalYear),
         dueDate: newDeclaration.dueDate,
         status: 'pending',
         amount: taxAmount,
@@ -468,7 +468,7 @@ export default function TaxReportsPage() {
                     className="amount-input"
                     placeholder="0.00"
                     value={newDeclaration.taxBase || ''}
-                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxBase: parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxBase: Number.parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -478,7 +478,7 @@ export default function TaxReportsPage() {
                     type="text"
                     className="amount-input"
                     value={newDeclaration.taxRate || ''}
-                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxRate: parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, taxRate: Number.parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -489,7 +489,7 @@ export default function TaxReportsPage() {
                     className="amount-input"
                     placeholder="0.00"
                     value={newDeclaration.withheld || ''}
-                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, withheld: parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
+                    onChange={(e) => setNewDeclaration(prev => ({ ...prev, withheld: Number.parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
                   />
                 </div>
               </div>

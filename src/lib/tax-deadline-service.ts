@@ -1,6 +1,6 @@
 /**
  * FASE 7: Tax Deadline Service
- * 
+ *
  * Manages tax deadlines and compliance calendar
  * Automatic reminders and notifications
  * Penalty calculations
@@ -310,7 +310,7 @@ export async function addSalesTaxDeadlines(
     // 12 deadlines
     for (let month = 1; month <= 12; month++) {
       const dueDate = new Date(year, month, 20); // 20th of following month
-      
+
       const deadline = await (prisma as any).taxDeadline.create({
         data: {
           userId,
@@ -323,7 +323,7 @@ export async function addSalesTaxDeadlines(
           frequency: 'MONTHLY',
           isRecurring: true,
           status: 'UPCOMING',
-          penaltyRate: 0.10, // 10% penalty típico
+          penaltyRate: 0.1, // 10% penalty típico
           reminderDays: [15, 7, 3, 1],
         },
       });
@@ -355,7 +355,7 @@ export async function addSalesTaxDeadlines(
           frequency: 'QUARTERLY',
           isRecurring: true,
           status: 'UPCOMING',
-          penaltyRate: 0.10,
+          penaltyRate: 0.1,
           reminderDays: [30, 15, 7, 3],
         },
       });
@@ -378,7 +378,7 @@ export async function addSalesTaxDeadlines(
         frequency: 'ANNUALLY',
         isRecurring: true,
         status: 'UPCOMING',
-        penaltyRate: 0.10,
+        penaltyRate: 0.1,
         reminderDays: [60, 30, 15, 7, 3],
       },
     });
@@ -532,7 +532,7 @@ export async function getComplianceCalendar(
 
   // Agrupar por fecha
   const deadlinesByDate: { [key: string]: any[] } = {};
-  
+
   deadlines.forEach((deadline: any) => {
     const dateKey = deadline.dueDate.toISOString().split('T')[0];
     if (!deadlinesByDate[dateKey]) {

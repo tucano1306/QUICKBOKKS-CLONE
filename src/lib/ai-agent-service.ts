@@ -1,13 +1,13 @@
 /**
  * AI AGENT SERVICE - Agente IA Autónomo
- * 
+ *
  * Agente inteligente que puede:
  * - Ejecutar acciones en la aplicación (crear facturas, gastos, clientes)
  * - Consultar datos en tiempo real
  * - Generar reportes y análisis
  * - Tomar decisiones autónomas
  * - Aprender de interacciones
- * 
+ *
  * Soporta:
  * - Groq (GRATIS - Llama 3.3 70B)
  * - OpenAI GPT-4 (cloud)
@@ -15,10 +15,10 @@
  * - Mixtral (local)
  */
 
-import { prisma } from './prisma';
-import OpenAI from 'openai';
 import Groq from 'groq-sdk';
+import OpenAI from 'openai';
 import { createExpenseWithJE } from './accounting-service';
+import { prisma } from './prisma';
 
 // ============== TIPOS ==============
 
@@ -96,7 +96,7 @@ Tu nombre es "FinanceBot" y tienes las siguientes capacidades:
 5. **Análisis financiero**: Detectar anomalías, identificar oportunidades de ahorro, forecasting.
 6. **Búsqueda inteligente**: Buscar transacciones, facturas, gastos por múltiples criterios.
 7. **Automatizaciones**: Configurar reglas automáticas, recordatorios, alertas.
-8. **LLENAR FORM 1040 (IMPUESTOS)**: Puedes llenar el formulario IRS Form 1040 con datos que el usuario te proporcione. 
+8. **LLENAR FORM 1040 (IMPUESTOS)**: Puedes llenar el formulario IRS Form 1040 con datos que el usuario te proporcione.
    - SABES EXACTAMENTE dónde va cada tipo de ingreso y gasto en el formulario
    - Conoces todas las líneas del Form 1040 y Schedule C
    - Puedes explicar dónde poner cada tipo de gasto (seguros, salarios, licencias, vehículo, etc.)
@@ -531,8 +531,8 @@ async function createInvoice(params: any, userId: string): Promise<any> {
 
   // Fecha de vencimiento (30 días por defecto)
   const issueDate = new Date();
-  const dueDate = params.dueDate 
-    ? new Date(params.dueDate) 
+  const dueDate = params.dueDate
+    ? new Date(params.dueDate)
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   // Crear factura
@@ -610,13 +610,13 @@ async function createExpense(params: any, userId: string): Promise<any> {
   // Categorizar automáticamente si no se proporciona categoría
   let categoryId = params.categoryId;
   let categoryName = params.category;
-  
+
   if (!categoryId && params.category) {
     // Buscar o crear categoría
     const category = await prisma.expenseCategory.findFirst({
       where: { name: params.category },
     });
-    
+
     if (category) {
       categoryId = category.id;
       categoryName = category.name;
@@ -908,7 +908,7 @@ async function searchTransactions(params: any, userId: string): Promise<any> {
     const where: any = { userId };
     const amountFilter = buildAmountFilter(params.minAmount, params.maxAmount);
     const dateFilter = buildDateFilter(params.startDate, params.endDate);
-    
+
     if (amountFilter) where.total = amountFilter;
     if (dateFilter) where.issueDate = dateFilter;
 
@@ -923,7 +923,7 @@ async function searchTransactions(params: any, userId: string): Promise<any> {
     const where: any = { userId };
     const amountFilter = buildAmountFilter(params.minAmount, params.maxAmount);
     const dateFilter = buildDateFilter(params.startDate, params.endDate);
-    
+
     if (amountFilter) where.amount = amountFilter;
     if (dateFilter) where.date = dateFilter;
 
@@ -1056,7 +1056,7 @@ async function analyzeExpenses(params: any, userId: string): Promise<any> {
 async function categorizeExpense(params: any): Promise<any> {
   // Usar el servicio ML existente
   const { predictExpenseCategory } = await import('./ml-categorization-service');
-  
+
   const prediction = await predictExpenseCategory(
     params.companyId || '',
     {
@@ -1082,9 +1082,9 @@ async function categorizeExpense(params: any): Promise<any> {
  */
 async function fillForm1040(params: any, userId: string): Promise<any> {
   const { saveForm1040 } = await import('./form-1040-service');
-  
+
   const taxYear = params.taxYear || new Date().getFullYear() - 1;
-  
+
   // Construir datos de income
   const income = params.income || {};
   const calculatedIncome = {
@@ -1100,32 +1100,32 @@ async function fillForm1040(params: any, userId: string): Promise<any> {
     taxableSocialSecurity: income.taxableSocialSecurity || 0,
     capitalGainLoss: income.capitalGainLoss || 0,
     otherIncome: income.otherIncome || 0,
-    totalIncome: (income.wages || 0) + (income.taxableInterest || 0) + 
-                 (income.ordinaryDividends || 0) + (income.taxableIRA || 0) + 
-                 (income.taxablePensions || 0) + (income.taxableSocialSecurity || 0) + 
+    totalIncome: (income.wages || 0) + (income.taxableInterest || 0) +
+                 (income.ordinaryDividends || 0) + (income.taxableIRA || 0) +
+                 (income.taxablePensions || 0) + (income.taxableSocialSecurity || 0) +
                  (income.capitalGainLoss || 0) + (income.otherIncome || 0),
   };
 
   // Construir Schedule C (negocio)
   const scheduleC = params.scheduleC || {};
   let totalScheduleCExpenses = scheduleC.expenses || 0;
-  
+
   // Si hay gastos detallados, sumarlos
   if (!totalScheduleCExpenses && scheduleC) {
-    totalScheduleCExpenses = (scheduleC.advertising || 0) + 
-      (scheduleC.carAndTruck || 0) + 
-      (scheduleC.commissions || 0) + 
-      (scheduleC.insurance || 0) + 
-      (scheduleC.legalAndProfessional || 0) + 
-      (scheduleC.officeExpense || 0) + 
-      (scheduleC.rentOrLease || 0) + 
-      (scheduleC.repairs || 0) + 
-      (scheduleC.supplies || 0) + 
-      (scheduleC.taxes || 0) + 
-      (scheduleC.travel || 0) + 
+    totalScheduleCExpenses = (scheduleC.advertising || 0) +
+      (scheduleC.carAndTruck || 0) +
+      (scheduleC.commissions || 0) +
+      (scheduleC.insurance || 0) +
+      (scheduleC.legalAndProfessional || 0) +
+      (scheduleC.officeExpense || 0) +
+      (scheduleC.rentOrLease || 0) +
+      (scheduleC.repairs || 0) +
+      (scheduleC.supplies || 0) +
+      (scheduleC.taxes || 0) +
+      (scheduleC.travel || 0) +
       (Math.round((scheduleC.meals || 0) * 0.5)) + // 50% deducible
-      (scheduleC.utilities || 0) + 
-      (scheduleC.wages || 0) + 
+      (scheduleC.utilities || 0) +
+      (scheduleC.wages || 0) +
       (scheduleC.otherExpenses || 0);
   }
 
@@ -1159,8 +1159,8 @@ async function fillForm1040(params: any, userId: string): Promise<any> {
     earnedIncomeCredit: payments.earnedIncomeCredit || 0,
     additionalChildCredit: payments.additionalChildCredit || 0,
     otherPayments: payments.otherPayments || 0,
-    totalPayments: (payments.withholding || 0) + (payments.estimatedPayments || 0) + 
-                   (payments.earnedIncomeCredit || 0) + (payments.additionalChildCredit || 0) + 
+    totalPayments: (payments.withholding || 0) + (payments.estimatedPayments || 0) +
+                   (payments.earnedIncomeCredit || 0) + (payments.additionalChildCredit || 0) +
                    (payments.otherPayments || 0),
   };
 
@@ -1194,9 +1194,11 @@ async function fillForm1040(params: any, userId: string): Promise<any> {
       summary.push(`📊 Ingresos Totales: $${calculatedIncome.totalIncome.toLocaleString()}`);
     }
     if (calculatedScheduleC.grossReceipts > 0) {
-      summary.push(`💼 Schedule C - Ingresos del Negocio: $${calculatedScheduleC.grossReceipts.toLocaleString()}`);
-      summary.push(`📝 Schedule C - Gastos del Negocio: $${calculatedScheduleC.expenses.toLocaleString()}`);
-      summary.push(`✅ Schedule C - Ganancia Neta: $${calculatedScheduleC.netProfit.toLocaleString()}`);
+      summary.push(
+        `💼 Schedule C - Ingresos del Negocio: $${calculatedScheduleC.grossReceipts.toLocaleString()}`,
+        `📝 Schedule C - Gastos del Negocio: $${calculatedScheduleC.expenses.toLocaleString()}`,
+        `✅ Schedule C - Ganancia Neta: $${calculatedScheduleC.netProfit.toLocaleString()}`
+      );
     }
     if (calculatedPayments.totalPayments > 0) {
       summary.push(`💰 Pagos/Retenciones: $${calculatedPayments.totalPayments.toLocaleString()}`);
@@ -1235,7 +1237,7 @@ async function fillForm1040(params: any, userId: string): Promise<any> {
 async function getForm1040Help(params: any): Promise<any> {
   const question = params.question?.toLowerCase() || '';
   const expenseType = params.expenseType?.toLowerCase() || '';
-  
+
   // Base de conocimiento sobre Form 1040
   const form1040Knowledge: Record<string, any> = {
     // Seguros
@@ -1431,16 +1433,16 @@ async function getForm1040Help(params: any): Promise<any> {
  */
 async function calculateTaxDeductions(params: any): Promise<any> {
   const { calculateStandardDeduction } = await import('./form-1040-service');
-  
+
   const filingStatus = params.filingStatus || 'SINGLE';
   const totalIncome = params.totalIncome || 0;
   const businessExpenses = params.businessExpenses || 0;
   const vehicleExpenses = params.vehicleExpenses || 0;
   const healthInsurance = params.healthInsurance || 0;
-  
+
   // Calcular deducción estándar
   const standardDeduction = calculateStandardDeduction(filingStatus);
-  
+
   // Calcular deducciones itemizadas potenciales
   const itemizedDeductions = {
     stateAndLocalTaxes: Math.min(10000, totalIncome * 0.05), // SALT cap $10,000
@@ -1448,29 +1450,29 @@ async function calculateTaxDeductions(params: any): Promise<any> {
     charitableContributions: 0, // Usuario debe proporcionar
     medicalExpenses: 0, // Solo si excede 7.5% del AGI
   };
-  
+
   const totalItemized = Object.values(itemizedDeductions).reduce((a, b) => a + b, 0);
-  
+
   // Deducciones del negocio (Schedule C)
   const businessDeductions = {
     totalExpenses: businessExpenses,
     vehicleExpenses: vehicleExpenses,
     healthInsurance: healthInsurance, // Deducción above-the-line
     selfEmploymentTax: (totalIncome - businessExpenses) * 0.0765, // 7.65% deducción SE tax
-    qbiDeduction: Math.min((totalIncome - businessExpenses) * 0.20, 0), // 20% QBI si califica
+    qbiDeduction: Math.min((totalIncome - businessExpenses) * 0.2, 0), // 20% QBI si califica
   };
-  
+
   // Recomendación
   const recommendItemized = totalItemized > standardDeduction;
-  
+
   return {
     success: true,
     analysis: {
       standardDeduction,
       itemizedDeductions: totalItemized,
       recommendation: recommendItemized ? 'ITEMIZAR' : 'DEDUCCIÓN ESTÁNDAR',
-      savings: recommendItemized 
-        ? totalItemized - standardDeduction 
+      savings: recommendItemized
+        ? totalItemized - standardDeduction
         : standardDeduction - totalItemized,
     },
     businessDeductions,
@@ -1492,11 +1494,11 @@ async function calculateTaxDeductions(params: any): Promise<any> {
 // Helper para calcular impuesto estimado
 function calculateEstimatedTax(taxableIncome: number, filingStatus: string): number {
   if (taxableIncome <= 0) return 0;
-  
+
   // Tax brackets 2024 simplificados
-  const brackets = filingStatus === 'MARRIED_FILING_JOINTLY' 
+  const brackets = filingStatus === 'MARRIED_FILING_JOINTLY'
     ? [
-        { limit: 23200, rate: 0.10 },
+        { limit: 23200, rate: 0.1 },
         { limit: 94300, rate: 0.12 },
         { limit: 201050, rate: 0.22 },
         { limit: 383900, rate: 0.24 },
@@ -1505,7 +1507,7 @@ function calculateEstimatedTax(taxableIncome: number, filingStatus: string): num
         { limit: Infinity, rate: 0.37 },
       ]
     : [
-        { limit: 11600, rate: 0.10 },
+        { limit: 11600, rate: 0.1 },
         { limit: 47150, rate: 0.12 },
         { limit: 100525, rate: 0.22 },
         { limit: 191950, rate: 0.24 },
@@ -1721,14 +1723,14 @@ async function getCompanyData(companyId: string): Promise<string> {
     const company = await prisma.company.findFirst({
       where: { id: companyId }
     });
-    
+
     if (company) {
       const [customerCount, invoiceCount, expenseCount] = await Promise.all([
         prisma.customer.count({ where: { companyId } }),
         prisma.invoice.count({ where: { companyId } }),
         prisma.expense.count({ where: { companyId } })
       ]);
-      
+
       return `
 Datos de la empresa actual:
 - Nombre: ${company.name}
@@ -1748,8 +1750,8 @@ function wantsToCreateChartOfAccounts(message: string): boolean {
   const createKeywords = ['crear', 'generar', 'crea', 'créa'];
   const chartKeywords = ['catálogo', 'catalogo', 'cuentas', 'plan de cuentas'];
   const msgLower = message.toLowerCase();
-  
-  return createKeywords.some(k => msgLower.includes(k)) && 
+
+  return createKeywords.some(k => msgLower.includes(k)) &&
          chartKeywords.some(k => msgLower.includes(k));
 }
 
@@ -1828,7 +1830,7 @@ function createChartOfAccountsResponse(catalogResult: any): AgentResponse {
 async function executeToolCalls(toolCalls: any[], userId: string): Promise<{actions: any[], toolResults: any[]}> {
   const actions: any[] = [];
   const toolResults: any[] = [];
-  
+
   for (const toolCall of toolCalls) {
     const functionName = toolCall.function.name;
     const functionArgs = toolCall.function.arguments;
@@ -1851,7 +1853,7 @@ async function executeToolCalls(toolCalls: any[], userId: string): Promise<{acti
       content: JSON.stringify(functionResult),
     });
   }
-  
+
   return { actions, toolResults };
 }
 
@@ -1865,7 +1867,7 @@ async function chatWithGroq(context: AgentContext): Promise<AgentResponse> {
 
   // Detectar si el usuario quiere crear un catálogo de cuentas
   const userMessage = context.history.at(-1)?.content || '';
-  
+
   if (wantsToCreateChartOfAccounts(userMessage)) {
     const catalogResult = await generateChartOfAccounts(context, userMessage);
     return createChartOfAccountsResponse(catalogResult);
@@ -2040,7 +2042,7 @@ Responde SOLO con un JSON válido con esta estructura exacta (sin markdown ni co
     });
 
     const content = response.choices[0]?.message?.content || '{}';
-    
+
     // Limpiar el contenido de posible markdown
     let cleanContent = content;
     if (content.includes('```json')) {
@@ -2048,14 +2050,14 @@ Responde SOLO con un JSON válido con esta estructura exacta (sin markdown ni co
     } else if (content.includes('```')) {
       cleanContent = content.replaceAll('```\n', '').replaceAll('```', '');
     }
-    
+
     const parsed = JSON.parse(cleanContent.trim());
-    
+
     // Crear las cuentas en ChartOfAccounts
     if (parsed.accounts && Array.isArray(parsed.accounts)) {
       let created = 0;
       const createdAccounts: any[] = [];
-      
+
       for (const account of parsed.accounts) {
         try {
           // Mapear category string a enum válido
@@ -2094,14 +2096,14 @@ Responde SOLO con un JSON válido con esta estructura exacta (sin markdown ni co
           console.log(`Cuenta ${account.code} ya existe o error:`, e.message);
         }
       }
-      return { 
-        created, 
-        total: parsed.accounts.length, 
+      return {
+        created,
+        total: parsed.accounts.length,
         accounts: createdAccounts,
         message: `Se crearon ${created} cuentas de ${parsed.accounts.length} en el catálogo.`
       };
     }
-    
+
     return parsed;
   } catch (e: any) {
     console.error('Error generando catálogo:', e);
@@ -2181,7 +2183,7 @@ async function chatWithLlama(context: AgentContext): Promise<AgentResponse> {
 
   // Parsear si el modelo intenta llamar funciones
   // (Llama 3 puede ser entrenado para esto, pero requiere prompting especial)
-  
+
   return {
     success: true,
     message: assistantMessage,

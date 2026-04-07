@@ -438,8 +438,8 @@ export default function CorporateCardsPage() {
                 employeeId: null,
                 bankName: formData.get('bankName') as string,
                 cardType: formData.get('cardType') as 'CREDIT' | 'DEBIT',
-                limit: parseFloat(formData.get('limit') as string),
-                balance: parseFloat(formData.get('limit') as string), // Initial balance = limit
+                limit: Number.parseFloat(formData.get('limit') as string),
+                balance: Number.parseFloat(formData.get('limit') as string), // Initial balance = limit
                 status: 'ACTIVE',
                 lastSync: null
               }

@@ -793,7 +793,7 @@ export default function BankTransactionsPage() {
                           placeholder="0.00"
                           className="amount-input pl-8"
                           value={newTransaction.amount || ''}
-                          onChange={(e) => setNewTransaction({ ...newTransaction, amount: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                          onChange={(e) => setNewTransaction({ ...newTransaction, amount: Number.parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
                           required
                         />
                       </div>

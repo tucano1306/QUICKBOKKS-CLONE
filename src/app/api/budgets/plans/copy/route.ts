@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Verificar que no existe un presupuesto para ese año
     const existingBudget = await prisma.budgetPlan.findFirst({
       where: {
-        fiscalYear: parseInt(targetYear),
+        fiscalYear: Number.parseInt(targetYear),
         companyId: companyId || sourceBudget.companyId
       }
     })
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: name || `Presupuesto Anual ${targetYear}`,
         description: `Copiado de ${sourceBudget.name} con ajuste de ${adjustmentPercent}%`,
-        fiscalYear: parseInt(targetYear),
+        fiscalYear: Number.parseInt(targetYear),
         startDate: new Date(`${targetYear}-01-01`),
         endDate: new Date(`${targetYear}-12-31`),
         status: 'DRAFT',

@@ -214,7 +214,7 @@ export default function ProjectsListPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          budget: parseFloat(formData.budget) || 0,
+          budget: Number.parseFloat(formData.budget) || 0,
           companyId: activeCompany.id,
           costCenterId: formData.costCenterId || null,
           customerId: formData.customerId || null

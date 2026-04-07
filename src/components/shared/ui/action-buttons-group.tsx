@@ -1,8 +1,7 @@
 'use client'
 
-import { LucideIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { LucideIcon } from 'lucide-react'
 
 interface ActionButton {
   label: string
@@ -33,14 +32,14 @@ const getVariantClasses = (variant: ActionButton['variant']) => {
   }
 }
 
-export default function ActionButtonsGroup({ buttons, className }: ActionButtonsGroupProps) {
+export default function ActionButtonsGroup({ buttons, className }: Readonly<ActionButtonsGroupProps>) {
   return (
     <div className={cn('flex flex-wrap gap-2', className)}>
-      {buttons.map((button, index) => {
+      {buttons.map((button) => {
         const Icon = button.icon
         return (
           <button
-            key={index}
+            key={button.label}
             onClick={button.onClick}
             disabled={button.disabled || button.loading}
             className={cn(

@@ -27,7 +27,7 @@ export async function generateTaxSavingRecommendations(companyId: string) {
   });
   
   if (uncategorized.length > 0) {
-    const totalAmount = uncategorized.reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+    const totalAmount = uncategorized.reduce((sum, e) => sum + Number.parseFloat(e.amount.toString()), 0);
     
     await (prisma as any).recommendation.create({
       data: {
@@ -68,7 +68,7 @@ export async function generateTaxSavingRecommendations(companyId: string) {
   });
   
   if (officeExpenses.length > 0) {
-    const totalOffice = officeExpenses.reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+    const totalOffice = officeExpenses.reduce((sum, e) => sum + Number.parseFloat(e.amount.toString()), 0);
     const homeOfficeDeduction = totalOffice * 0.2; // Typical 20% business use
     
     recommendations.push({
@@ -108,7 +108,7 @@ export async function generateCostReductionRecommendations(companyId: string) {
   for (const [vendor, count] of recurringVendors) {
     if (count >= 3) {
       const vendorExpenses = subscriptions.filter(s => s.vendor === vendor);
-      const avgCost = vendorExpenses.reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0) / vendorExpenses.length;
+      const avgCost = vendorExpenses.reduce((sum, e) => sum + Number.parseFloat(e.amount.toString()), 0) / vendorExpenses.length;
       const potentialSaving = avgCost * 12 * 0.15; // Assume 15% savings with annual plan
       
       await (prisma as any).recommendation.create({
@@ -167,7 +167,7 @@ export async function generatePaymentTermsRecommendations(companyId: string) {
     const daysEarly = Math.floor((invoice.dueDate.getTime() - paymentDate.getTime()) / (1000 * 60 * 60 * 24));
     
     if (daysEarly > 10) {
-      totalEarly += parseFloat(invoice.total.toString());
+      totalEarly += Number.parseFloat(invoice.total.toString());
       earlyCount++;
     }
   }
@@ -333,12 +333,12 @@ export async function getRecommendationStats(companyId: string) {
   
   const totalPotentialSaving = all
     .filter((r: any) => r.potentialSaving)
-    .reduce((sum: number, r: any) => sum + parseFloat(r.potentialSaving.toString()), 0);
+    .reduce((sum: number, r: any) => sum + Number.parseFloat(r.potentialSaving.toString()), 0);
   
   const implemented = all.filter((r: any) => r.status === 'IMPLEMENTED');
   const actualSaving = implemented
     .filter((r: any) => r.actualSaving)
-    .reduce((sum: number, r: any) => sum + parseFloat(r.actualSaving.toString()), 0);
+    .reduce((sum: number, r: any) => sum + Number.parseFloat(r.actualSaving.toString()), 0);
   
   return {
     total: all.length,

@@ -460,7 +460,7 @@ export async function reconcileCreditAccount(
   let bookBalance = 0;
 
   transactions.forEach(tx => {
-    const amount = parseFloat(tx.amount.toString());
+    const amount = Number.parseFloat(tx.amount.toString());
 
     if (amount < 0) {
       // Cargo (negativo)
@@ -543,7 +543,7 @@ export async function autoMatchCreditTransactions(
       const totalCredit = entry.lines.reduce((sum, line) => sum + line.credit, 0);
       const entryAmount = totalDebit - totalCredit;
 
-      if (Math.abs(entryAmount - parseFloat(tx.amount.toString())) < tolerance) {
+      if (Math.abs(entryAmount - Number.parseFloat(tx.amount.toString())) < tolerance) {
         // Match encontrado
         await prisma.bankTransaction.update({
           where: { id: tx.id },
@@ -707,7 +707,7 @@ export async function searchByCheckNumber(
       date: je.date,
       description: je.description,
       reference: je.reference,
-      amount: je.lines.reduce((sum: number, line: any) => sum + parseFloat(line.debit.toString()), 0),
+      amount: je.lines.reduce((sum: number, line: any) => sum + Number.parseFloat(line.debit.toString()), 0),
     })),
   ];
 }

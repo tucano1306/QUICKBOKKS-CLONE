@@ -75,7 +75,7 @@ async function handleRequest(
     }
 
     case 'deadlines': {
-      const days = parseInt(searchParams.get('days') || '30');
+      const days = Number.parseInt(searchParams.get('days') || '30');
       const deadlines = await getUpcomingDeadlines(firmId, days);
       return NextResponse.json({ deadlines });
     }
@@ -105,8 +105,8 @@ async function handleRequest(
     }
 
     case 'monthly-deadlines': {
-      const month = parseInt(searchParams.get('month') || String(new Date().getMonth()));
-      const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
+      const month = Number.parseInt(searchParams.get('month') || String(new Date().getMonth()));
+      const year = Number.parseInt(searchParams.get('year') || String(new Date().getFullYear()));
       
       const summary = await getMonthlyDeadlinesSummary(firmId, month, year);
       return NextResponse.json({ summary });

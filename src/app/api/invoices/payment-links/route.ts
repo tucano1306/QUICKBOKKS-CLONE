@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       // Parse payment link metadata from notes
       const notesParts = inv.notes?.split('|') || []
       const gateway = notesParts[1] || 'stripe'
-      const clicks = parseInt(notesParts[2] || '0')
+      const clicks = Number.parseInt(notesParts[2] || '0')
       
       const isExpired = new Date(inv.dueDate) < new Date()
       const isPaid = inv.status === 'PAID'

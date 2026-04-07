@@ -1,31 +1,30 @@
 'use client'
 
-import { useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DatePicker } from '@/components/ui/date-picker'
+import { useCompany } from '@/contexts/CompanyContext'
 import {
-  Download,
-  FileSpreadsheet,
-  Users,
-  Package,
-  Receipt,
-  Truck,
-  FileText,
-  RefreshCw,
-  CheckCircle,
-  Calendar,
-  Filter,
-  Database,
-  BarChart3,
-  DollarSign,
-  TrendingUp
+    BarChart3,
+    Calendar,
+    CheckCircle,
+    Database,
+    DollarSign,
+    Download,
+    FileSpreadsheet,
+    FileText,
+    Filter,
+    Package,
+    Receipt,
+    RefreshCw,
+    TrendingUp,
+    Truck,
+    Users
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useState } from 'react'
 import toast from 'react-hot-toast'
 
 // Tipos de exportación disponibles
@@ -86,10 +85,30 @@ const exportTypes = [
   },
 ]
 
+async function fetchDataFromEndpoint(endpoint: string, companyId: string, dateFrom: string, dateTo: string): Promise<any[]> {
+  const params = new URLSearchParams()
+  params.append('companyId', companyId)
+  if (dateFrom) params.append('from', dateFrom)
+  if (dateTo) params.append('to', dateTo)
+  const response = await fetch(`${endpoint}?${params}`)
+  if (!response.ok) return []
+  const result = await response.json()
+  return Array.isArray(result) ? result : (result.data ?? result.items ?? [])
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function ExportDataPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
-  
+
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [isExporting, setIsExporting] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
@@ -99,8 +118,8 @@ export default function ExportDataPage() {
 
   // Toggle selección
   const toggleType = (typeId: string) => {
-    setSelectedTypes(prev => 
-      prev.includes(typeId) 
+    setSelectedTypes(prev =>
+      prev.includes(typeId)
         ? prev.filter(t => t !== typeId)
         : [...prev, typeId]
     )
@@ -130,61 +149,28 @@ export default function ExportDataPage() {
     setIsExporting(true)
 
     try {
-      // Para cada tipo seleccionado, obtener los datos y exportar
       for (const typeId of selectedTypes) {
         const exportType = exportTypes.find(t => t.id === typeId)
         if (!exportType) continue
 
-        // Construir query params
-        const params = new URLSearchParams()
-        params.append('companyId', activeCompany.id)
-        if (dateFrom) params.append('from', dateFrom)
-        if (dateTo) params.append('to', dateTo)
-
-        // Obtener datos de la API
-        const response = await fetch(`${exportType.endpoint}?${params}`)
-        
-        if (!response.ok) {
-          console.warn(`No se pudieron obtener datos de ${exportType.name}`)
-          continue
-        }
-
-        const result = await response.json()
-        const data = Array.isArray(result) ? result : (result.data || result.items || [])
-
+        const data = await fetchDataFromEndpoint(exportType.endpoint, activeCompany.id, dateFrom, dateTo)
         if (data.length === 0) {
           toast.error(`No hay datos de ${exportType.name} para exportar`)
           continue
         }
 
-        // Exportar a Excel
         const exportResponse = await fetch('/api/tools/excel/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            data: data,
-            fileName: `${typeId}_export`,
-            sheetName: exportType.name
-          })
+          body: JSON.stringify({ data, fileName: `${typeId}_export`, sheetName: exportType.name })
         })
+        if (!exportResponse.ok) throw new Error(`Error al exportar ${exportType.name}`)
 
-        if (!exportResponse.ok) {
-          throw new Error(`Error al exportar ${exportType.name}`)
-        }
-
-        const blob = await exportResponse.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${exportType.name}_${new Date().toISOString().split('T')[0]}.xlsx`
-        a.click()
-        URL.revokeObjectURL(url)
-
+        triggerDownload(await exportResponse.blob(), `${exportType.name}_${new Date().toISOString().split('T')[0]}.xlsx`)
         setExportedFiles(prev => [...prev, { name: exportType.name, date: new Date() }])
       }
 
       toast.success(`¡${selectedTypes.length} archivo(s) exportado(s)!`)
-
     } catch (error) {
       console.error('Export error:', error)
       toast.error(error instanceof Error ? error.message : 'Error al exportar')
@@ -207,26 +193,10 @@ export default function ExportDataPage() {
 
       for (const exportType of exportTypes) {
         try {
-          const params = new URLSearchParams()
-          params.append('companyId', activeCompany.id)
-          if (dateFrom) params.append('from', dateFrom)
-          if (dateTo) params.append('to', dateTo)
-
-          const response = await fetch(`${exportType.endpoint}?${params}`)
-          
-          if (response.ok) {
-            const result = await response.json()
-            const data = Array.isArray(result) ? result : (result.data || result.items || [])
-            
-            if (data.length > 0) {
-              allData.push({
-                sheetName: exportType.name,
-                data: data
-              })
-            }
-          }
+          const data = await fetchDataFromEndpoint(exportType.endpoint, activeCompany.id, dateFrom, dateTo)
+          if (data.length > 0) allData.push({ sheetName: exportType.name, data })
         } catch (e) {
-          console.warn(`No se pudo obtener ${exportType.name}`)
+          console.warn(`No se pudo obtener ${exportType.name}:`, e)
         }
       }
 
@@ -235,31 +205,16 @@ export default function ExportDataPage() {
         return
       }
 
-      // Exportar todo en un archivo con múltiples hojas
       const exportResponse = await fetch('/api/tools/excel/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sheets: allData,
-          fileName: `reporte_completo_${activeCompany.name}`
-        })
+        body: JSON.stringify({ sheets: allData, fileName: `reporte_completo_${activeCompany.name}` })
       })
+      if (!exportResponse.ok) throw new Error('Error al generar reporte')
 
-      if (!exportResponse.ok) {
-        throw new Error('Error al generar reporte')
-      }
-
-      const blob = await exportResponse.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `Reporte_Completo_${new Date().toISOString().split('T')[0]}.xlsx`
-      a.click()
-      URL.revokeObjectURL(url)
-
+      triggerDownload(await exportResponse.blob(), `Reporte_Completo_${new Date().toISOString().split('T')[0]}.xlsx`)
       toast.success('¡Reporte completo exportado!')
       setExportedFiles(prev => [...prev, { name: 'Reporte Completo', date: new Date() }])
-
     } catch (error) {
       console.error('Export error:', error)
       toast.error(error instanceof Error ? error.message : 'Error al exportar')
@@ -292,8 +247,8 @@ export default function ExportDataPage() {
               Descarga tus datos en formato Excel
             </p>
           </div>
-          
-          <Button 
+
+          <Button
             onClick={handleExportFullReport}
             disabled={isExporting}
             size="sm"
@@ -388,7 +343,7 @@ export default function ExportDataPage() {
               {exportTypes.map(type => {
                 const Icon = type.icon
                 const isSelected = selectedTypes.includes(type.id)
-                
+
                 return (
                   <button
                     key={type.id}
@@ -438,7 +393,7 @@ export default function ExportDataPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-gray-900">
-                  {selectedTypes.length === 0 
+                  {selectedTypes.length === 0
                     ? 'Selecciona los datos que deseas exportar'
                     : `${selectedTypes.length} tipo(s) de datos seleccionado(s)`
                   }
@@ -470,7 +425,7 @@ export default function ExportDataPage() {
                 )}
               </Button>
             </div>
-            
+
             {!activeCompany?.id && (
               <p className="text-sm text-red-600 mt-3">
                 ⚠️ Debes tener una empresa activa para exportar datos
@@ -490,9 +445,9 @@ export default function ExportDataPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {exportedFiles.map((file, index) => (
-                  <div 
-                    key={index}
+                {exportedFiles.map((file) => (
+                  <div
+                    key={file.name}
                     className="flex items-center justify-between p-3 bg-green-50 rounded-lg"
                   >
                     <div className="flex items-center gap-3">
@@ -520,7 +475,7 @@ export default function ExportDataPage() {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-purple-50 border-purple-200">
             <CardContent className="p-4 text-center">
               <BarChart3 className="w-8 h-8 text-purple-600 mx-auto mb-2" />
@@ -530,7 +485,7 @@ export default function ExportDataPage() {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-green-50 border-green-200">
             <CardContent className="p-4 text-center">
               <FileSpreadsheet className="w-8 h-8 text-green-600 mx-auto mb-2" />

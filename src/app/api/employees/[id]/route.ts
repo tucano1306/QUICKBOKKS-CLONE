@@ -107,7 +107,7 @@ export async function PUT(
         ...(terminationDate !== undefined && {
           terminationDate: terminationDate ? new Date(terminationDate) : null,
         }),
-        ...(salary !== undefined && { salary: parseFloat(salary) }),
+        ...(salary !== undefined && { salary: Number.parseFloat(salary) }),
         ...(salaryType && { salaryType }),
         ...(taxId !== undefined && { taxId }),
         ...(bankAccount !== undefined && { bankAccount }),

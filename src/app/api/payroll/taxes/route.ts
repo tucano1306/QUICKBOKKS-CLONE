@@ -1,10 +1,10 @@
 
 export const dynamic = 'force-dynamic'
 
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { NextRequest, NextResponse } from 'next/server'
 
 // US Tax Rates for 2024-2026 (Florida)
 const TAX_RATES = {
@@ -15,15 +15,15 @@ const TAX_RATES = {
   MEDICARE_EMPLOYEE: 0.0145,        // 1.45% employee
   MEDICARE_EMPLOYER: 0.0145,        // 1.45% employer
   MEDICARE_ADDITIONAL: 0.009,       // Additional 0.9% for wages over $200k
-  
+
   // Federal Unemployment (FUTA)
   FUTA_RATE: 0.006,                 // 0.6% after state credit
   FUTA_WAGE_BASE: 7000,             // First $7,000 per employee
-  
+
   // Florida State Unemployment (SUTA)
   FLORIDA_SUTA_NEW_EMPLOYER: 0.027, // 2.7% for new employers
   FLORIDA_SUTA_WAGE_BASE: 7000,     // First $7,000 per employee
-  
+
   // Workers' Compensation (varies by industry)
   WORKERS_COMP_RATE: 0.01,          // ~1% average for office work
 }
@@ -49,19 +49,17 @@ export async function GET(request: NextRequest) {
     let endDate: Date
 
     switch (period) {
-      case 'current':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        break
-      case 'quarter':
+      case 'quarter': {
         const currentQuarter = Math.floor(now.getMonth() / 3)
         startDate = new Date(now.getFullYear(), currentQuarter * 3, 1)
         endDate = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0)
         break
+      }
       case 'year':
         startDate = new Date(now.getFullYear(), 0, 1)
         endDate = new Date(now.getFullYear(), 11, 31)
         break
+      case 'current':
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), 1)
         endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
@@ -92,26 +90,26 @@ export async function GET(request: NextRequest) {
     const totalNetPay = payrolls.reduce((s, p) => s + (p.netSalary || 0), 0)
 
     // US Tax Calculations
-    
+
     // FICA - Social Security (6.2% employee + 6.2% employer)
     const socialSecurityEmployee = Math.min(totalGrossPay, TAX_RATES.SOCIAL_SECURITY_WAGE_BASE) * TAX_RATES.SOCIAL_SECURITY_EMPLOYEE
     const socialSecurityEmployer = Math.min(totalGrossPay, TAX_RATES.SOCIAL_SECURITY_WAGE_BASE) * TAX_RATES.SOCIAL_SECURITY_EMPLOYER
-    
+
     // FICA - Medicare (1.45% employee + 1.45% employer)
     const medicareEmployee = totalGrossPay * TAX_RATES.MEDICARE_EMPLOYEE
     const medicareEmployer = totalGrossPay * TAX_RATES.MEDICARE_EMPLOYER
-    
+
     // Federal Income Tax Withholding (estimated at ~15% average)
     const federalWithholding = totalGrossPay * 0.15
-    
+
     // FUTA - Federal Unemployment (employer only)
     const futaTaxableWages = Math.min(employees.length * TAX_RATES.FUTA_WAGE_BASE, totalGrossPay)
     const futaTax = futaTaxableWages * TAX_RATES.FUTA_RATE
-    
+
     // Florida SUTA - State Unemployment (employer only)
     const sutaTaxableWages = Math.min(employees.length * TAX_RATES.FLORIDA_SUTA_WAGE_BASE, totalGrossPay)
     const sutaTax = sutaTaxableWages * TAX_RATES.FLORIDA_SUTA_NEW_EMPLOYER
-    
+
     // Workers' Compensation (employer only)
     const workersComp = totalGrossPay * TAX_RATES.WORKERS_COMP_RATE
 
@@ -210,7 +208,7 @@ export async function GET(request: NextRequest) {
     const totalEmployeeTaxes = socialSecurityEmployee + medicareEmployee + federalWithholding
     const totalEmployerTaxes = socialSecurityEmployer + medicareEmployer + futaTax + sutaTax + workersComp
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       summary: {
         period,
         startDate: startDate.toISOString(),

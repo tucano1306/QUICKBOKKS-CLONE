@@ -1,34 +1,29 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import DashboardLayout from '@/components/layout/dashboard-layout'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { format } from 'date-fns'
+import {
+    ArrowLeft,
+    Award,
+    BarChart3,
+    CheckCircle,
+    Clock,
+    DollarSign,
+    FileSpreadsheet,
+    Mail,
+    MessageSquare,
+    PhoneCall,
+    Target,
+    TrendingDown,
+    TrendingUp,
+    Users,
+    Video
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { redirect, useRouter } from 'next/navigation'
-import DashboardLayout from '@/components/layout/dashboard-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  BarChart3,
-  ArrowLeft,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Users,
-  PhoneCall,
-  Video,
-  Mail,
-  MessageSquare,
-  Calendar,
-  Download,
-  FileSpreadsheet,
-  Target,
-  Award,
-  Clock,
-  CheckCircle
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface CRMMetrics {
@@ -65,7 +60,7 @@ interface CRMMetrics {
 }
 
 export default function CRMReportPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
 
   const [metrics, setMetrics] = useState<CRMMetrics | null>(null)
@@ -302,8 +297,8 @@ export default function CRMReportPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {metrics.pipelineByStage.map((stage, index) => (
-                  <div key={index}>
+                {metrics.pipelineByStage.map((stage) => (
+                  <div key={stage.stage}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">{stage.stage}</span>
                       <span className="text-sm text-gray-600">
@@ -336,7 +331,7 @@ export default function CRMReportPage() {
               <div className="space-y-3">
                 {metrics.topPerformers.map((performer, index) => (
                   <div
-                    key={index}
+                    key={performer.name}
                     className="p-3 bg-gray-50 rounded-lg flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3">
@@ -373,8 +368,8 @@ export default function CRMReportPage() {
           <CardContent>
             <div className="space-y-4">
               <div className="grid grid-cols-6 gap-4">
-                {metrics.monthlyTrend.map((month, index) => (
-                  <div key={index} className="text-center">
+                {metrics.monthlyTrend.map((month) => (
+                  <div key={month.month} className="text-center">
                     <div className="bg-blue-50 rounded-lg p-4 mb-2">
                       <div
                         className="bg-blue-600 rounded-t"

@@ -147,7 +147,7 @@ export default function InvoicingSettingsPage() {
 
   const generateInvoicePreview = () => {
     const prefix = invoiceSettings.invoicePrefix
-    const number = invoiceSettings.startingNumber.padStart(parseInt(invoiceSettings.numberPadding), '0')
+    const number = invoiceSettings.startingNumber.padStart(Number.parseInt(invoiceSettings.numberPadding), '0')
     return `${prefix}-${number}`
   }
 

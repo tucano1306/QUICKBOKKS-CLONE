@@ -90,14 +90,14 @@ export default function InvoicesPage() {
       filtered = filtered.filter((invoice) => {
         const invoiceDate = new Date(invoice.issueDate)
         if (filterMonth && filterYear) {
-          const month = parseInt(filterMonth)
-          const year = parseInt(filterYear)
+          const month = Number.parseInt(filterMonth)
+          const year = Number.parseInt(filterYear)
           return invoiceDate.getMonth() + 1 === month && invoiceDate.getFullYear() === year
         } else if (filterMonth) {
-          const month = parseInt(filterMonth)
+          const month = Number.parseInt(filterMonth)
           return invoiceDate.getMonth() + 1 === month
         } else if (filterYear) {
-          const year = parseInt(filterYear)
+          const year = Number.parseInt(filterYear)
           return invoiceDate.getFullYear() === year
         }
         return true
@@ -106,13 +106,13 @@ export default function InvoicesPage() {
 
     // Filtro por monto mínimo
     if (minAmount) {
-      const min = parseFloat(minAmount)
+      const min = Number.parseFloat(minAmount)
       filtered = filtered.filter((invoice) => invoice.total >= min)
     }
 
     // Filtro por monto máximo
     if (maxAmount) {
-      const max = parseFloat(maxAmount)
+      const max = Number.parseFloat(maxAmount)
       filtered = filtered.filter((invoice) => invoice.total <= max)
     }
 
@@ -440,7 +440,7 @@ export default function InvoicesPage() {
                 <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   {(filterMonth || filterYear) && (
                     <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg text-sm text-green-700">
-                      <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
+                      <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][Number.parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
                     </div>
                   )}
                   {hasActiveFilters && (

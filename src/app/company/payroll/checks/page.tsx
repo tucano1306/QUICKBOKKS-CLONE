@@ -116,7 +116,7 @@ export default function PayrollChecksPage() {
         
         // Set next check number
         if (checksList.length > 0) {
-          const maxNum = Math.max(...checksList.map((c: PayrollCheck) => parseInt(c.checkNumber) || 0))
+          const maxNum = Math.max(...checksList.map((c: PayrollCheck) => Number.parseInt(c.checkNumber) || 0))
           setNextCheckNumber(String(maxNum + 1))
         }
       }
@@ -166,7 +166,7 @@ export default function PayrollChecksPage() {
   }
 
   const openNewCheckModal = () => {
-    const maxCheckNum = Math.max(...checks.map(c => parseInt(c.checkNumber)))
+    const maxCheckNum = Math.max(...checks.map(c => Number.parseInt(c.checkNumber)))
     setNextCheckNumber(String(maxCheckNum + 1))
     setSelectedEmployee('')
     setCheckAmount('')
@@ -199,7 +199,7 @@ export default function PayrollChecksPage() {
           companyId: activeCompany?.id,
           employeeId: selectedEmployee,
           checkNumber: nextCheckNumber,
-          amount: parseFloat(checkAmount),
+          amount: Number.parseFloat(checkAmount),
           memo: checkMemo
         })
       })

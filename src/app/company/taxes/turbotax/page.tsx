@@ -1,29 +1,28 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    AlertCircle,
+    AlertTriangle,
+    Check,
+    CheckCircle,
+    Clock,
+    Database,
+    FileText,
+    Info,
+    Link as LinkIcon,
+    RefreshCw,
+    Shield,
+    X,
+    Zap
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Download,
-  CheckCircle,
-  AlertCircle,
-  Info,
-  Clock,
-  Link as LinkIcon,
-  RefreshCw,
-  Shield,
-  FileText,
-  Database,
-  AlertTriangle,
-  Check,
-  X,
-  Zap
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface ImportStep {
   id: string
@@ -54,13 +53,13 @@ interface ImportHistory {
 
 export default function TurboTaxPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected'>('connected')
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [connectionStatus] = useState<'connected' | 'disconnected'>('connected')
+  const [selectedYear] = useState(new Date().getFullYear().toString())
   const [dataMappings, setDataMappings] = useState<DataMapping[]>([])
   const [importHistory, setImportHistory] = useState<ImportHistory[]>([])
   const [currentStep, setCurrentStep] = useState(0)
@@ -73,12 +72,12 @@ export default function TurboTaxPage() {
 
   const fetchTurboTaxData = useCallback(async () => {
     if (!activeCompany?.id) return
-    
+
     setLoading(true)
     try {
       const response = await fetch(`/api/taxes?companyId=${activeCompany.id}&year=${selectedYear}`)
       const data = await response.json()
-      
+
       if (data.success) {
         setDataMappings(data.turboTaxMapping || [])
       }
@@ -95,16 +94,16 @@ export default function TurboTaxPage() {
 
   const handleSync = async () => {
     if (!activeCompany?.id) return
-    
+
     setSyncing(true)
     setCurrentStep(0)
-    
+
     // Simulate step-by-step progress
     for (let i = 1; i <= 8; i++) {
       setCurrentStep(i)
       await new Promise(resolve => setTimeout(resolve, 500))
     }
-    
+
     try {
       const response = await fetch('/api/taxes', {
         method: 'POST',
@@ -115,7 +114,7 @@ export default function TurboTaxPage() {
           year: selectedYear
         })
       })
-      
+
       const data = await response.json()
       if (data.success) {
         // Add to history
@@ -129,7 +128,7 @@ export default function TurboTaxPage() {
           errors: 0
         }
         setImportHistory(prev => [newImport, ...prev])
-        
+
         setMessage({ type: 'success', text: `Sincronización completada: ${data.sync.recordsSynced} registros sincronizados` }); setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
@@ -139,15 +138,21 @@ export default function TurboTaxPage() {
     }
   }
 
+  const stepStatus = (n: number): ImportStep['status'] => {
+    if (currentStep >= n) return 'completed'
+    if (currentStep === n - 1) return 'current'
+    return 'pending'
+  }
+
   const importSteps: ImportStep[] = [
-    { id: '1', title: 'Connect to TurboTax', description: 'Establish secure connection', status: currentStep >= 1 ? 'completed' : currentStep === 0 ? 'pending' : 'pending', details: 'TurboTax Business ' + selectedYear },
-    { id: '2', title: 'Verify Company Information', description: 'Confirm EIN and business details', status: currentStep >= 2 ? 'completed' : currentStep === 1 ? 'current' : 'pending', details: activeCompany?.name },
-    { id: '3', title: 'Map Chart of Accounts', description: 'Automatically map accounts to tax forms', status: currentStep >= 3 ? 'completed' : currentStep === 2 ? 'current' : 'pending', details: `${dataMappings.length} accounts mapped` },
-    { id: '4', title: 'Import Financial Data', description: 'Transfer income statement and balance sheet', status: currentStep >= 4 ? 'completed' : currentStep === 3 ? 'current' : 'pending' },
-    { id: '5', title: 'Import Tax Deductions', description: 'Transfer business deductions and credits', status: currentStep >= 5 ? 'completed' : currentStep === 4 ? 'current' : 'pending' },
-    { id: '6', title: 'Import Asset Depreciation', description: 'Transfer depreciation schedules (Form 4562)', status: currentStep >= 6 ? 'completed' : currentStep === 5 ? 'current' : 'pending' },
-    { id: '7', title: 'Reconcile Balances', description: 'Verify all amounts match between systems', status: currentStep >= 7 ? 'completed' : currentStep === 6 ? 'current' : 'pending' },
-    { id: '8', title: 'Review & Finalize', description: 'Final review before filing', status: currentStep >= 8 ? 'completed' : currentStep === 7 ? 'current' : 'pending' }
+    { id: '1', title: 'Connect to TurboTax', description: 'Establish secure connection', status: currentStep >= 1 ? 'completed' : 'pending', details: 'TurboTax Business ' + selectedYear },
+    { id: '2', title: 'Verify Company Information', description: 'Confirm EIN and business details', status: stepStatus(2), details: activeCompany?.name },
+    { id: '3', title: 'Map Chart of Accounts', description: 'Automatically map accounts to tax forms', status: stepStatus(3), details: `${dataMappings.length} accounts mapped` },
+    { id: '4', title: 'Import Financial Data', description: 'Transfer income statement and balance sheet', status: stepStatus(4) },
+    { id: '5', title: 'Import Tax Deductions', description: 'Transfer business deductions and credits', status: stepStatus(5) },
+    { id: '6', title: 'Import Asset Depreciation', description: 'Transfer depreciation schedules (Form 4562)', status: stepStatus(6) },
+    { id: '7', title: 'Reconcile Balances', description: 'Verify all amounts match between systems', status: stepStatus(7) },
+    { id: '8', title: 'Review & Finalize', description: 'Final review before filing', status: stepStatus(8) }
   ]
 
   const stats = {
@@ -321,8 +326,8 @@ export default function TurboTaxPage() {
                   {dataMappings.length === 0 ? (
                     <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No mappings found. Click "Start Import" to begin.</td></tr>
                   ) : (
-                    dataMappings.map((mapping, index) => (
-                      <tr key={index} className={`hover:bg-gray-50 ${mapping.status === 'review' ? 'bg-yellow-50' : ''}`}>
+                    dataMappings.map((mapping) => (
+                      <tr key={mapping.category} className={`hover:bg-gray-50 ${mapping.status === 'review' ? 'bg-yellow-50' : ''}`}>
                         <td className="px-4 py-3"><div className="text-sm font-semibold text-gray-900">{mapping.category}</div></td>
                         <td className="px-4 py-3"><div className="text-sm text-gray-900">{mapping.quickbooksAccount}</div></td>
                         <td className="px-4 py-3"><div className="text-sm font-semibold text-blue-600">{mapping.turboTaxForm}</div></td>

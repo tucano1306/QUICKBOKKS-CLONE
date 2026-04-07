@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const taxYear = parseInt(searchParams.get('taxYear') || new Date().getFullYear().toString());
+    const taxYear = Number.parseInt(searchParams.get('taxYear') || new Date().getFullYear().toString());
 
     const report = await generateComplianceReport(session.user.id, taxYear);
     return NextResponse.json({ report });

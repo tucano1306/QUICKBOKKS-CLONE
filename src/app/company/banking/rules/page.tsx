@@ -620,7 +620,7 @@ export default function BankRulesPage() {
                     <Input
                       type="number"
                       value={formData.priority}
-                      onChange={(e) => setFormData({...formData, priority: parseInt(e.target.value) || 0})}
+                      onChange={(e) => setFormData({...formData, priority: Number.parseInt(e.target.value) || 0})}
                       min={0}
                       max={100}
                       className="mt-1"

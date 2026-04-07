@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
         const result = await getBankTransactions(bankAccountId, {
           startDate: startDate ? new Date(startDate) : undefined,
           endDate: endDate ? new Date(endDate) : undefined,
-          limit: limit ? parseInt(limit) : undefined,
-          offset: offset ? parseInt(offset) : undefined,
+          limit: limit ? Number.parseInt(limit) : undefined,
+          offset: offset ? Number.parseInt(offset) : undefined,
           reconciled: reconciled === 'true' ? true : reconciled === 'false' ? false : undefined,
         })
 
@@ -86,8 +86,8 @@ export async function GET(req: NextRequest) {
         }
       },
       orderBy: { date: 'desc' },
-      take: limit ? parseInt(limit) : 100,
-      skip: offset ? parseInt(offset) : 0
+      take: limit ? Number.parseInt(limit) : 100,
+      skip: offset ? Number.parseInt(offset) : 0
     })
 
     const total = await prisma.bankTransaction.count({ where: whereClause })

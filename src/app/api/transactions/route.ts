@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const companyId = searchParams.get('companyId')
     const type = searchParams.get('type')
     const limitParam = searchParams.get('limit')
-    const limit = limitParam ? Math.min(parseInt(limitParam, 10), 5000) : 100
+    const limit = limitParam ? Math.min(Number.parseInt(limitParam, 10), 5000) : 100
 
     if (!companyId) {
       return NextResponse.json({ error: 'companyId requerido' }, { status: 400 })

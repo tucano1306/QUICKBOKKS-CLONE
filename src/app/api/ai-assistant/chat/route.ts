@@ -141,6 +141,10 @@ async function getBalanceResponse(companyId: string) {
 
     const liquidityRatio = liabilities > 0 ? (assets / liabilities).toFixed(2) : 'N/A'
 
+    let liquidityInsight = 'Considera mejorar tu liquidez.'
+    if (Number.parseFloat(liquidityRatio) > 2) liquidityInsight = 'Excelente posición financiera.'
+    else if (Number.parseFloat(liquidityRatio) > 1) liquidityInsight = 'Posición estable.'
+
     return {
       content: `📊 **Balance General Actual:**
 
@@ -153,13 +157,7 @@ async function getBalanceResponse(companyId: string) {
 
 **Capital:** ${formatCurrency(equity)}
 
-💡 Tu ratio de liquidez es ${liquidityRatio}. ${
-        parseFloat(liquidityRatio) > 2 
-          ? 'Excelente posición financiera.' 
-          : parseFloat(liquidityRatio) > 1 
-            ? 'Posición estable.' 
-            : 'Considera mejorar tu liquidez.'
-      }`,
+💡 Tu ratio de liquidez es ${liquidityRatio}. ${liquidityInsight}`,
       suggestions: [
         '¿Cómo puedo mejorar mi flujo de caja?',
         'Analiza mis cuentas por cobrar',
@@ -211,13 +209,13 @@ async function getInvoicesResponse(companyId: string) {
 
 **Facturas Pagadas Este Mes:** ${paidThisMonth._count} facturas por ${formatCurrency(paidThisMonthTotal)}
 
-${overdue._count > 0 
+${overdue._count > 0
   ? `⚠️ **Alerta:** Tienes ${overdue._count} facturas vencidas. Te recomiendo enviar recordatorios de pago.`
   : '✅ **Excelente:** No tienes facturas vencidas.'
 }
 
-🎯 **Acción Recomendada:** 
-${overdue._count > 0 
+🎯 **Acción Recomendada:**
+${overdue._count > 0
   ? '- Contactar clientes con facturas vencidas\n- Activar recordatorios automáticos'
   : '- Continúa con tu estrategia actual de facturación'
 }`,
@@ -279,7 +277,11 @@ async function getExpensesResponse(companyId: string) {
       })
       .join('\n')
 
-    const changeIcon = parseFloat(changePercent as string) > 0 ? '⬆️' : '⬇️'
+    const changeIcon = Number.parseFloat(changePercent) > 0 ? '⬆️' : '⬇️'
+
+    let expensesInsight = 'Los gastos están estables.'
+    if (Number.parseFloat(changePercent) > 10) expensesInsight = 'Los gastos aumentaron significativamente. Revisa las categorías principales.'
+    else if (Number.parseFloat(changePercent) < -10) expensesInsight = 'Excelente control de gastos este mes.'
 
     return {
       content: `💰 **Análisis de Gastos del Mes:**
@@ -291,13 +293,7 @@ ${categoriesList || 'Sin gastos registrados'}
 
 📈 **Comparación vs Mes Anterior:** ${changePercent}% ${changeIcon}
 
-💡 **Insight:** ${
-        parseFloat(changePercent as string) > 10 
-          ? 'Los gastos aumentaron significativamente. Revisa las categorías principales.'
-          : parseFloat(changePercent as string) < -10 
-            ? 'Excelente control de gastos este mes.'
-            : 'Los gastos están estables.'
-      }`,
+💡 **Insight:** ${expensesInsight}`,
       suggestions: [
         'Registra un nuevo gasto',
         'Ver gastos deducibles',
@@ -317,7 +313,7 @@ async function getCashFlowResponse(companyId: string) {
   try {
     const now = new Date()
     const next30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-    
+
     // Get pending invoices (expected income)
     const pendingInvoices = await prisma.invoice.findMany({
       where: {
@@ -340,9 +336,13 @@ async function getCashFlowResponse(companyId: string) {
     const projectedBalance = expectedIncome - expectedExpenses
 
     const overdueInvoices = pendingInvoices.filter(i => i.dueDate && new Date(i.dueDate) < now)
-    const riskPercent = pendingInvoices.length > 0 
+    const riskPercent = pendingInvoices.length > 0
       ? ((overdueInvoices.length / pendingInvoices.length) * 100).toFixed(0)
       : 0
+
+    let cashFlowRec = 'Flujo de caja saludable. Mantén tu estrategia.'
+    if (projectedBalance < 0) cashFlowRec = 'Acelera cobros o reduce gastos para evitar déficit.'
+    else if (projectedBalance < expectedExpenses * 0.3) cashFlowRec = 'Considera mantener un colchón de reserva mayor.'
 
     return {
       content: `📊 **Proyección de Flujo de Caja:**
@@ -357,13 +357,7 @@ async function getCashFlowResponse(companyId: string) {
 - Facturas vencidas (riesgo): ${overdueInvoices.length}
 - Probabilidad de déficit: ${riskPercent}%
 
-💡 **Recomendación:** ${
-        projectedBalance < 0 
-          ? 'Acelera cobros o reduce gastos para evitar déficit.'
-          : projectedBalance < expectedExpenses * 0.3
-            ? 'Considera mantener un colchón de reserva mayor.'
-            : 'Flujo de caja saludable. Mantén tu estrategia.'
-      }`,
+💡 **Recomendación:** ${cashFlowRec}`,
       suggestions: [
         '¿Cuándo recibiré mis próximos pagos?',
         'Ver tendencia histórica',
@@ -392,7 +386,7 @@ async function getTaxResponse(companyId: string) {
 
     const totalRevenue = invoices.reduce((sum, i) => sum + i.total, 0)
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
-    
+
     // Estimate deductible expenses (assume 70% are deductible)
     const deductibleExpenses = expenses
       .filter(e => e.category?.name?.toLowerCase().includes('deducible') || !e.category)
@@ -400,7 +394,7 @@ async function getTaxResponse(companyId: string) {
 
     // Estimate tax (simplified - in production use actual tax rates)
     const taxableIncome = totalRevenue - deductibleTotal
-    const estimatedISR = taxableIncome * 0.30 // Simplified 30% rate
+    const estimatedISR = taxableIncome * 0.3 // Simplified 30% rate
     const estimatedIVA = totalRevenue * 0.16 // 16% IVA
 
     return {
@@ -420,7 +414,7 @@ async function getTaxResponse(companyId: string) {
 **Gastos Documentados:** ${expenses.length}
 
 💡 **Tip:** ${
-        deductibleTotal < totalExpenses * 0.5 
+        deductibleTotal < totalExpenses * 0.5
           ? 'Podrías tener más gastos deducibles. Revisa tu documentación.'
           : 'Buen nivel de deducciones registradas.'
       }`,
@@ -454,7 +448,7 @@ async function getPayrollResponse(companyId: string) {
 
     const activeCount = employees.length
     const totalSalaries = employees.reduce((sum, e) => sum + (e.salary || 0), 0)
-    
+
     const lastRun = payrollRuns[0]
     const nextPayDate = new Date()
     nextPayDate.setDate(nextPayDate.getDate() + 15) // Approximate next pay date
@@ -475,7 +469,7 @@ async function getPayrollResponse(companyId: string) {
 ${lastRun ? '✅ Última nómina procesada' : '⏳ Nómina pendiente de procesar'}
 ${activeCount > 0 ? '✅ Empleados registrados' : '⏳ Sin empleados activos'}
 
-💡 ${activeCount === 0 
+💡 ${activeCount === 0
   ? 'No tienes empleados registrados. Agrega empleados en Nómina > Empleados.'
   : 'Revisa tu próxima nómina antes de la fecha de pago.'
 }`,
@@ -503,8 +497,6 @@ async function getCustomersResponse(companyId: string) {
       }
     })
 
-    const now = new Date()
-    
     // Calculate totals per customer
     const customerTotals = customers.map(c => {
       const paidTotal = c.invoices
@@ -516,7 +508,7 @@ async function getCustomersResponse(companyId: string) {
       const overdueTotal = c.invoices
         .filter(i => i.status === 'OVERDUE')
         .reduce((sum, i) => sum + i.total, 0)
-      
+
       return {
         name: c.name,
         paid: paidTotal,
@@ -552,7 +544,7 @@ ${pendingList || '- Ninguno con balance pendiente'}
 - Clientes con facturas vencidas: ${withOverdue.length}
 - Total por cobrar: ${formatCurrency(withPending.reduce((sum, c) => sum + c.pending, 0))}
 
-💡 ${withOverdue.length > 0 
+💡 ${withOverdue.length > 0
   ? `Tienes ${withOverdue.length} clientes con pagos vencidos. Considera enviar recordatorios.`
   : 'Excelente - todos tus clientes están al día con sus pagos.'
 }`,
@@ -584,8 +576,11 @@ async function getCategoriesResponse(companyId: string) {
     const categorizedCount = categorized.length
     const accuracy = total > 0 ? ((categorizedCount / total) * 100).toFixed(0) : 0
 
+    let categSuggestion = 'Continúa registrando transacciones para mantener tu precisión.'
+    if (uncategorized.length > 10) categSuggestion = 'Revisa las transacciones pendientes para mejorar el modelo de categorización.'
+    else if (uncategorized.length > 0) categSuggestion = 'Tienes algunas transacciones pendientes de categorizar.'
+
     return {
-      content: `🤖 **Estado de Categorización:**
 
 **Transacciones Totales:** ${total}
 - Categorizadas: ${categorizedCount} (${accuracy}%)
@@ -593,18 +588,12 @@ async function getCategoriesResponse(companyId: string) {
 
 🎯 **Precisión de Categorización:** ${accuracy}%
 
-${uncategorized.length > 0 
+${uncategorized.length > 0
   ? `⚠️ **Pendiente:** ${uncategorized.length} transacciones necesitan categorización.`
   : '✅ **Excelente:** Todas las transacciones están categorizadas.'
 }
 
-💡 **Sugerencia:** ${
-        uncategorized.length > 10 
-          ? 'Revisa las transacciones pendientes para mejorar el modelo de categorización.'
-          : uncategorized.length > 0
-            ? 'Tienes algunas transacciones pendientes de categorizar.'
-            : 'Continúa registrando transacciones para mantener tu precisión.'
-      }`,
+💡 **Sugerencia:** ${categSuggestion}`,
       suggestions: [
         'Revisar transacciones pendientes',
         'Ver reglas de categorización',
@@ -698,14 +687,27 @@ async function getBudgetResponse(companyId: string) {
     const lastRevenue = lastMonthInvoices.reduce((sum, i) => sum + i.total, 0)
     const lastExpenseTotal = lastMonthExpenses.reduce((sum, e) => sum + e.amount, 0)
 
-    const revenueChange = lastRevenue > 0 
-      ? (((currentRevenue - lastRevenue) / lastRevenue) * 100).toFixed(1) 
+    const revenueChange = lastRevenue > 0
+      ? (((currentRevenue - lastRevenue) / lastRevenue) * 100).toFixed(1)
       : 'N/A'
-    const expenseChange = lastExpenseTotal > 0 
-      ? (((currentExpenseTotal - lastExpenseTotal) / lastExpenseTotal) * 100).toFixed(1) 
+    const expenseChange = lastExpenseTotal > 0
+      ? (((currentExpenseTotal - lastExpenseTotal) / lastExpenseTotal) * 100).toFixed(1)
       : 'N/A'
 
     const marginPct = currentRevenue > 0 ? ((currentMargin / currentRevenue) * 100).toFixed(1) : 0
+
+    const revenueChangeNum = Number.parseFloat(revenueChange)
+    const revenueIcon = revenueChangeNum >= 0 ? '✅' : '⚠️'
+    let revenuePerf = '- Ingresos estables'
+    if (revenueChangeNum > 0) revenuePerf = '- Ingresos en crecimiento ✅'
+    else if (revenueChangeNum < 0) revenuePerf = '- Ingresos en descenso ⚠️'
+
+    const expenseChangeNum = Number.parseFloat(expenseChange)
+    let expensePerf = '- Gastos estables'
+    if (expenseChangeNum > 10) expensePerf = '- Gastos aumentando ⚠️'
+    else if (expenseChangeNum < 0) expensePerf = '- Gastos controlados ✅'
+
+    const marginInsight = currentMargin > 0 ? 'Mes rentable. Mantén tu estrategia.' : 'Revisa tus gastos para mejorar el margen.'
 
     return {
       content: `🎯 **Análisis de Desempeño:**
@@ -714,7 +716,7 @@ async function getBudgetResponse(companyId: string) {
 
 **Ingresos:**
 - Real: ${formatCurrency(currentRevenue)}
-- vs Mes Anterior: ${revenueChange}% ${parseFloat(revenueChange as string) >= 0 ? '✅' : '⚠️'}
+- vs Mes Anterior: ${revenueChange}% ${revenueIcon}
 
 **Gastos:**
 - Real: ${formatCurrency(currentExpenseTotal)}
@@ -724,24 +726,10 @@ async function getBudgetResponse(companyId: string) {
 - Real: ${formatCurrency(currentMargin)} (${marginPct}%)
 
 📈 **Performance:**
-${parseFloat(revenueChange as string) > 0 
-  ? '- Ingresos en crecimiento ✅' 
-  : parseFloat(revenueChange as string) < 0 
-    ? '- Ingresos en descenso ⚠️' 
-    : '- Ingresos estables'
-}
-${parseFloat(expenseChange as string) > 10 
-  ? '- Gastos aumentando ⚠️' 
-  : parseFloat(expenseChange as string) < 0 
-    ? '- Gastos controlados ✅' 
-    : '- Gastos estables'
-}
+${revenuePerf}
+${expensePerf}
 
-💡 **Insight:** ${
-        currentMargin > 0 
-          ? 'Mes rentable. Mantén tu estrategia.' 
-          : 'Revisa tus gastos para mejorar el margen.'
-      }`,
+💡 **Insight:** ${marginInsight}`,
       suggestions: [
         'Crear presupuesto anual',
         'Ver variaciones por categoría',
@@ -799,35 +787,3 @@ function formatCurrency(amount: number): string {
     currency: 'MXN'
   }).format(amount)
 }
-
-// Integración real con OpenAI (para cuando tengas API key):
-/*
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
-
-async function getAIResponse(message: string, companyId: string, history: any[], companyData: any) {
-  const systemPrompt = `Eres un asistente contable experto especializado en ayudar a pequeñas y medianas empresas.
-Tu nombre es "Asistente IA de QuickBooks".
-
-Datos actuales de la empresa:
-${JSON.stringify(companyData, null, 2)}
-
-Responde de forma clara, concisa y profesional. Usa emojis ocasionalmente.`
-
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4-turbo-preview",
-    messages: [
-      { role: "system", content: systemPrompt },
-      ...history.map(h => ({ role: h.role, content: h.content })),
-      { role: "user", content: message }
-    ],
-    max_tokens: 500,
-    temperature: 0.7
-  })
-
-  return completion.choices[0].message.content
-}
-*/

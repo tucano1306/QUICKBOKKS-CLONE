@@ -1,49 +1,47 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import Link from 'next/link'
-import Image from 'next/image'
 import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard,
-  FileText,
-  DollarSign,
-  Users,
-  TrendingUp,
-  Settings,
-  Building2,
-  Receipt,
-  ChevronDown,
-  Calculator,
-  FolderKanban,
-  ShoppingCart,
-  FileCheck,
-  Activity,
-  Target,
-  Zap,
-  Brain,
-  Home,
-  Wrench,
-  ArrowLeftRight,
-  ArrowLeft,
-  Plus,
-  Search,
-  Bell,
-  HelpCircle,
-  X,
-  Sparkles,
-  CheckCircle,
-  AlertTriangle,
-  Info,
-  ExternalLink,
-  Menu,
-  ChevronRight,
-  Server,
-  Terminal
+    Activity,
+    AlertTriangle,
+    ArrowLeftRight,
+    Bell,
+    Brain,
+    Building2,
+    Calculator,
+    CheckCircle,
+    ChevronDown,
+    ChevronRight,
+    DollarSign,
+    ExternalLink,
+    FileCheck,
+    FileText,
+    FolderKanban,
+    HelpCircle,
+    Home,
+    Info,
+    LayoutDashboard,
+    Menu,
+    Plus,
+    Receipt,
+    Search,
+    Server,
+    Settings,
+    ShoppingCart,
+    Sparkles,
+    Target,
+    TrendingUp,
+    Users,
+    Wrench,
+    X,
+    Zap
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface SubMenuItem {
   name: string
@@ -244,6 +242,7 @@ const tabSections: TabSection[] = [
     color: 'yellow',
     submenus: [
       { name: 'Form 1040 (Individual)', href: '/company/taxes/form-1040', description: 'Declaración de impuestos individual' },
+      { name: '📋 Paquete Formularios IRS', href: '/company/taxes/irs-forms', description: '8879, Sch A/C/SE, 5329, 8995, 8962, 8396, 4562' },
       { name: 'Información Fiscal', href: '/company/taxes/info', description: 'Configuración tributaria' },
       { name: 'Gastos Deducibles', href: '/company/taxes/deductions', description: 'Deducciones fiscales' },
       { name: 'Estimación de Impuestos', href: '/company/taxes/estimates', description: 'Calcular impuestos' },
@@ -323,7 +322,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
-  
+
   // Filtrar las secciones de tabs basado en el rol del usuario
   const filteredTabSections = tabSections.filter(tab => {
     // Mostrar DevOps solo si el usuario es DEVELOPER
@@ -332,19 +331,19 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
     }
     return true
   })
-  
+
   // Construir la URL completa con query params para comparar
-  const currentUrl = searchParams.toString() 
-    ? `${pathname}?${searchParams.toString()}` 
+  const currentUrl = searchParams.toString()
+    ? `${pathname}?${searchParams.toString()}`
     : pathname
-  
+
   // Mapa de rutas especiales que no coinciden con el patrón /company/{tabId}
   // pero pertenecen a un tab específico
   const specialRouteMappings: { [key: string]: string } = {
     '/company/documents': 'customers',  // Bandeja email, AI docs, etc. pertenecen a Clientes
     '/company/ai-assistant': 'dashboard' // Asistente IA pertenece a Dashboard
   }
-  
+
   // Detectar la pestaña activa según la URL (ANTES del return condicional)
   const findCurrentTab = () => {
     // Primero verificar rutas especiales
@@ -356,11 +355,11 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
     // Luego buscar por el patrón estándar /company/{tabId}
     return filteredTabSections.find(tab => pathname?.startsWith(`/company/${tab.id}`))
   }
-  
+
   const currentTab = findCurrentTab() || filteredTabSections[0]
 
   const currentTabId = currentTab?.id || 'dashboard'
-  
+
   const [activeTab, setActiveTab] = useState<string>(currentTabId)
   const [showSubmenu, setShowSubmenu] = useState<{[key: string]: boolean}>({ [currentTabId]: true })
   const [showCreateMenu, setShowCreateMenu] = useState(false)
@@ -399,7 +398,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
   // Encontrar el submenu actual para breadcrumbs
   const findCurrentSubmenu = () => {
     for (const tab of filteredTabSections) {
-      const submenu = tab.submenus.find(sub => 
+      const submenu = tab.submenus.find(sub =>
         currentUrl === sub.href || pathname === sub.href || pathname?.startsWith(sub.href.split('?')[0])
       )
       if (submenu) {
@@ -408,7 +407,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
     }
     return null
   }
-  
+
   const currentBreadcrumb = findCurrentSubmenu()
 
   // Sincronizar activeTab con la URL actual cuando cambia la ruta
@@ -429,11 +428,11 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
       setShowSubmenu(prev => ({ ...prev, [tab.id]: !prev[tab.id] }))
       return
     }
-    
+
     // Cambiar a la nueva pestaña
     setActiveTab(tab.id)
     setShowSubmenu({ [tab.id]: true })
-    
+
     // Navegar automáticamente al primer submenú de esa categoría
     if (tab.submenus.length > 0) {
       router.push(tab.submenus[0].href)
@@ -465,12 +464,12 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
       {showMobileMenu && (
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/50" 
+          <div
+            className="fixed inset-0 bg-black/50"
             onClick={() => setShowMobileMenu(false)}
             aria-hidden="true"
           />
-          
+
           {/* Sidebar */}
           <div className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-white shadow-xl flex flex-col">
             {/* Header */}
@@ -501,7 +500,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             {/* Quick Actions */}
             <div className="p-2 border-b border-gray-200 bg-gray-50 flex-shrink-0">
               <p className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">Acciones Rápidas</p>
@@ -521,22 +520,22 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 ))}
               </div>
             </div>
-            
+
             {/* Navigation - Scrollable */}
             <nav className="flex-1 overflow-y-auto p-2">
               {filteredTabSections.map((tab) => {
                 const Icon = tab.icon
                 const isExpanded = mobileExpandedTab === tab.id
                 const isActiveTab = currentTab.id === tab.id
-                
+
                 return (
                   <div key={tab.id} className="mb-1">
                     <button
                       onClick={() => setMobileExpandedTab(isExpanded ? null : tab.id)}
                       className={cn(
                         'w-full flex items-center justify-between p-3 rounded-lg transition-all',
-                        isActiveTab 
-                          ? 'bg-green-50 text-[#2CA01C]' 
+                        isActiveTab
+                          ? 'bg-green-50 text-[#2CA01C]'
                           : 'text-gray-700 hover:bg-gray-100'
                       )}
                     >
@@ -549,7 +548,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                         isExpanded && 'rotate-90'
                       )} />
                     </button>
-                    
+
                     {/* Submenus */}
                     {isExpanded && (
                       <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-gray-200 pl-4">
@@ -577,7 +576,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 )
               })}
             </nav>
-            
+
             {/* Bottom Actions - Fixed */}
             <div className="flex-shrink-0 p-2 bg-white border-t border-gray-200">
               <div className="flex gap-1.5">
@@ -620,7 +619,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 <Menu className="w-6 h-6" />
               </button>
             </div>
-            
+
             {/* Mobile Breadcrumbs - Clickeable */}
             {currentBreadcrumb && (
               <div className="flex items-center gap-1 lg:hidden min-w-0 flex-1 overflow-hidden">
@@ -636,11 +635,11 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 </button>
                 <ChevronRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
                 <span className="text-sm text-gray-700 truncate">
-                  {currentBreadcrumb.submenu.name.replace(/^[🚗📊📖⚖️📒📁📋🏷️🖥️🔍]+\s*/, '')}
+                  {currentBreadcrumb.submenu.name.replace(/^(?:\p{Extended_Pictographic}|\uFE0F|\u200D)+\s*/u, '')}
                 </span>
               </div>
             )}
-            
+
             {/* Left: Company info - Hidden on mobile when breadcrumbs shown */}
             <div className={cn(
               "flex items-center gap-2 md:gap-3 min-w-0 flex-1",
@@ -676,7 +675,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 <span className="hidden md:inline">New</span>
                 <ChevronDown className={cn('w-3 h-3 md:w-4 md:h-4 transition-transform', showCreateMenu && 'rotate-180')} />
               </button>
-              
+
               {/* Quick Create Dropdown */}
               {showCreateMenu && (
                 <>
@@ -776,8 +775,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                         </button>
                       ))}
                       <div className="border-t border-gray-100 mt-2 pt-2 px-4 pb-2">
-                        <a 
-                          href="https://quickbooks.intuit.com/learn-support/" 
+                        <a
+                          href="https://quickbooks.intuit.com/learn-support/"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 text-sm text-[#0077C5] hover:underline"
@@ -907,7 +906,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
               {filteredTabSections.map((tab) => {
                 const Icon = tab.icon
                 const isActive = currentTab.id === tab.id
-                
+
                 return (
                   <button
                     key={tab.id}
@@ -923,18 +922,18 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                     {isActive && (
                       <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-[#2CA01C] rounded-full" />
                     )}
-                    
+
                     <Icon className={cn(
                       'w-4 h-4 transition-all duration-200',
                       isActive ? 'text-[#2CA01C]' : 'text-white/70 group-hover:text-white'
                     )} />
                     <span className="hidden xl:inline">{tab.name}</span>
-                    
+
                     {/* Badge de submenús */}
                     <span className={cn(
                       'hidden xl:inline text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
-                      isActive 
-                        ? 'bg-[#2CA01C]/10 text-[#2CA01C]' 
+                      isActive
+                        ? 'bg-[#2CA01C]/10 text-[#2CA01C]'
                         : 'bg-white/10 text-white/60'
                     )}>
                       {tab.submenus.length}
@@ -970,12 +969,12 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 </div>
               </div>
             </div>
-            
+
             <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-3">
                 {activeSection.submenus.map((submenu, index) => {
                   const isCurrentPage = currentUrl === submenu.href || pathname === submenu.href
-                  
+
                   return (
                     <Link
                       key={submenu.href}
@@ -993,20 +992,20 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                           <CheckCircle className="w-4 h-4 text-[#2CA01C]" />
                         </div>
                       )}
-                      
+
                       {/* Número de orden */}
                       <span className={cn(
                         'absolute top-2 left-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-                        isCurrentPage 
+                        isCurrentPage
                           ? 'text-white bg-white/20'
                           : 'text-gray-400 bg-gray-100 group-hover:bg-[#2CA01C]/10 group-hover:text-[#2CA01C]'
                       )}>
                         {index + 1}
                       </span>
-                      
+
                       <div className={cn(
                         'text-xs lg:text-sm font-semibold mb-1 mt-3',
-                        isCurrentPage 
+                        isCurrentPage
                           ? 'text-white'
                           : 'text-gray-800 group-hover:text-[#2CA01C]'
                       )}>
@@ -1051,7 +1050,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
 
       {/* AI Assistant flotante disponible en todas las páginas de company */}
       {/* <FloatingAssistant /> */}
-      
+
       {/* Actualizaciones en tiempo real */}
       {/* Temporalmente desactivado para evitar rebuilds constantes */}
       {/* <RealTimeUpdates /> */}

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     let nextNumber = 1;
     if (lastAsset) {
-      const lastNumber = parseInt(lastAsset.assetNumber.replace('ASSET-', ''));
+      const lastNumber = Number.parseInt(lastAsset.assetNumber.replace('ASSET-', ''));
       nextNumber = lastNumber + 1;
     }
 

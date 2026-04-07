@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     let nextNumber = 1;
     if (lastEntry) {
-      const lastNumber = parseInt(lastEntry.entryNumber.replace('JE-', ''));
+      const lastNumber = Number.parseInt(lastEntry.entryNumber.replace('JE-', ''));
       nextNumber = lastNumber + 1;
     }
 

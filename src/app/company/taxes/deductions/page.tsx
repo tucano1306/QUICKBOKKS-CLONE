@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { 
+import {
   Download,
   FileText,
   DollarSign,
@@ -57,7 +57,7 @@ interface DeductionCategory {
 
 export default function TaxDeductionsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
@@ -75,12 +75,12 @@ export default function TaxDeductionsPage() {
 
   const fetchDeductions = useCallback(async () => {
     if (!activeCompany?.id) return
-    
+
     setLoading(true)
     try {
       const response = await fetch(`/api/taxes?companyId=${activeCompany.id}&year=${selectedYear}`)
       const data = await response.json()
-      
+
       if (data.success) {
         setDeductions(data.deductions || [])
         setCategories(data.expensesByCategory || [])
@@ -104,7 +104,6 @@ export default function TaxDeductionsPage() {
   const uniqueCategories = Array.from(new Set(deductions.map(d => d.category)))
 
   const totalDeductions = filteredDeductions.reduce((sum, d) => sum + d.amount, 0)
-  const documentedDeductions = filteredDeductions.filter(d => d.status === 'documented').reduce((sum, d) => sum + d.amount, 0)
   const needsDocumentation = filteredDeductions.filter(d => d.status === 'needs-documentation').length
   const totalDeductible = filteredDeductions.filter(d => d.taxDeductible).reduce((sum, d) => sum + d.deductibleAmount, 0)
 
@@ -249,8 +248,8 @@ export default function TaxDeductionsPage() {
                 {categories.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">No categories found</div>
                 ) : (
-                  categories.sort((a, b) => b.amount - a.amount).slice(0, 10).map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  categories.toSorted((a, b) => b.amount - a.amount).slice(0, 10).map((item) => (
+                    <div key={item.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-100 rounded-lg">{getCategoryIcon(item.name)}</div>
                         <div>
@@ -326,13 +325,13 @@ export default function TaxDeductionsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
-              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Category:</label>
+              <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Category:</span>
               <select className="px-4 py-2 border rounded-lg" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
                 <option value="all">All Categories</option>
                 {uniqueCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
               </select>
               <div className="flex-1"></div>
-              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Tax Year:</label>
+              <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Tax Year:</span>
               <select className="px-4 py-2 border rounded-lg" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                 <option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option>
               </select>
@@ -430,8 +429,8 @@ export default function TaxDeductionsPage() {
       </div>
 
       {showAddModal && (
-        <div className="qb-modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="qb-modal max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div role="presentation" className="qb-modal-overlay" onClick={() => setShowAddModal(false)} onKeyDown={(e) => e.key === 'Escape' && setShowAddModal(false)}>
+          <div role="dialog" aria-modal="true" className="qb-modal max-w-md" onClick={(e) => e.stopPropagation()}
             <div className="qb-modal-header">
               <h2 className="qb-modal-title">Nueva Deducción</h2>
               <button className="qb-modal-close" onClick={() => setShowAddModal(false)}>
@@ -440,7 +439,7 @@ export default function TaxDeductionsPage() {
             </div>
             <div className="qb-modal-body space-y-4">
               <div className="qb-form-group">
-                <label className="qb-label">Categoría</label>
+                <p className="qb-label">Categoría</p>
                 <select className="qb-select" value={newDeduction.category} onChange={(e) => setNewDeduction({ ...newDeduction, category: e.target.value })}>
                   <option value="">Seleccionar categoría...</option>
                   <option value="Operating Expenses">Operating Expenses</option>
@@ -451,16 +450,16 @@ export default function TaxDeductionsPage() {
                 </select>
               </div>
               <div className="qb-form-group">
-                <label className="qb-label">Subcategoría</label>
+                <p className="qb-label">Subcategoría</p>
                 <Input value={newDeduction.subcategory} onChange={(e) => setNewDeduction({ ...newDeduction, subcategory: e.target.value })} placeholder="Ej: Office Supplies" />
               </div>
               <div className="qb-form-group">
-                <label className="qb-label">Descripción</label>
+                <p className="qb-label">Descripción</p>
                 <Input value={newDeduction.description} onChange={(e) => setNewDeduction({ ...newDeduction, description: e.target.value })} placeholder="Descripción del gasto" />
               </div>
               <div className="qb-form-group">
-                <label className="qb-label">Monto</label>
-                <Input type="text" className="amount-input" value={newDeduction.amount} onChange={(e) => setNewDeduction({ ...newDeduction, amount: parseFloat(e.target.value.replace(/,/g, '')) })} />
+                <p className="qb-label">Monto</p>
+                <Input type="text" className="amount-input" value={newDeduction.amount} onChange={(e) => setNewDeduction({ ...newDeduction, amount: Number.parseFloat(e.target.value.replaceAll(',', '')) })} />
               </div>
             </div>
             <div className="qb-modal-footer">

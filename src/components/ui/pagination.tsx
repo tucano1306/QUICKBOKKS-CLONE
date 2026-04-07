@@ -7,7 +7,7 @@ import { Button } from './button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
 
 // Pagination component - receives callback functions which are valid in client components
-export function Pagination(props: {
+export function Pagination(props: Readonly<{
   currentPage: number
   totalPages: number
   totalItems: number
@@ -16,7 +16,7 @@ export function Pagination(props: {
   onPageSizeChange?: (size: number) => void
   pageSizeOptions?: number[]
   showPageSize?: boolean
-}) {
+}>) {
   const {
     currentPage,
     totalPages,
@@ -48,7 +48,7 @@ export function Pagination(props: {
       pages.push(1)
 
       if (currentPage > 3) {
-        pages.push('...')
+        pages.push('ellipsis-start')
       }
 
       // Páginas alrededor de la actual
@@ -60,7 +60,7 @@ export function Pagination(props: {
       }
 
       if (currentPage < totalPages - 2) {
-        pages.push('...')
+        pages.push('ellipsis-end')
       }
 
       // Siempre mostrar última página
@@ -86,7 +86,7 @@ export function Pagination(props: {
             <span className="text-sm text-gray-600">Por página:</span>
             <Select
               value={pageSize.toString()}
-              onValueChange={(value) => onPageSizeChange(parseInt(value))}
+              onValueChange={(value) => onPageSizeChange(Number.parseInt(value))}
             >
               <SelectTrigger className="w-[70px] h-8">
                 <SelectValue />
@@ -131,7 +131,7 @@ export function Pagination(props: {
             {getPageNumbers().map((page, index) => (
               typeof page === 'number' ? (
                 <Button
-                  key={index}
+                  key={`page-${page}`}
                   variant={page === currentPage ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => onPageChange(page)}
@@ -140,8 +140,8 @@ export function Pagination(props: {
                   {page}
                 </Button>
               ) : (
-                <span key={index} className="px-1 sm:px-2 text-gray-400 text-sm">
-                  {page}
+                <span key={page} className="px-1 sm:px-2 text-gray-400 text-sm">
+                  ...
                 </span>
               )
             ))}

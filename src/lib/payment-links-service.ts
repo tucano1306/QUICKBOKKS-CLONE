@@ -84,7 +84,7 @@ export async function generateStripePaymentLink(
     throw new Error('La factura ya está pagada');
   }
 
-  const amountToPay = parseFloat(invoice.total.toString());
+  const amountToPay = Number.parseFloat(invoice.total.toString());
 
   // Crear producto en Stripe
   const product = await stripe.products.create({
@@ -296,7 +296,7 @@ export async function processManualPayment(
     where: { invoiceId: invoice.id },
     _sum: { amount: true },
   });
-  const amountDue = parseFloat(invoice.total.toString()) - (parseFloat(existingPayments._sum.amount?.toString() || '0'));
+  const amountDue = Number.parseFloat(invoice.total.toString()) - (Number.parseFloat(existingPayments._sum.amount?.toString() || '0'));
 
   if (paymentDetails.amount > amountDue) {
     return {
@@ -322,8 +322,8 @@ export async function processManualPayment(
   });
 
   // Actualizar factura
-  const newPaidAmount = (parseFloat(existingPayments._sum.amount?.toString() || '0')) + paymentDetails.amount;
-  const newBalance = parseFloat(invoice.total.toString()) - newPaidAmount;
+  const newPaidAmount = (Number.parseFloat(existingPayments._sum.amount?.toString() || '0')) + paymentDetails.amount;
+  const newBalance = Number.parseFloat(invoice.total.toString()) - newPaidAmount;
 
   await prisma.invoice.update({
     where: { id: invoice.id },
@@ -411,8 +411,8 @@ export async function handleStripeWebhook(
         where: { invoiceId: invoice.id },
         _sum: { amount: true },
       });
-      const newPaidAmount = (parseFloat(existingPayments._sum.amount?.toString() || '0')) + amount;
-      const newBalance = parseFloat(invoice.total.toString()) - newPaidAmount;
+      const newPaidAmount = (Number.parseFloat(existingPayments._sum.amount?.toString() || '0')) + amount;
+      const newBalance = Number.parseFloat(invoice.total.toString()) - newPaidAmount;
 
       await prisma.invoice.update({
         where: { id: invoice.id },

@@ -28,9 +28,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
-    const daysAhead = searchParams.get('daysAhead') ? parseInt(searchParams.get('daysAhead')!) : 90;
-    const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : undefined;
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+    const daysAhead = searchParams.get('daysAhead') ? Number.parseInt(searchParams.get('daysAhead')!) : 90;
+    const month = searchParams.get('month') ? Number.parseInt(searchParams.get('month')!) : undefined;
+    const year = Number.parseInt(searchParams.get('year') || new Date().getFullYear().toString());
 
     // Update statuses first
     await updateDeadlineStatuses(session.user.id);

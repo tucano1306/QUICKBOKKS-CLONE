@@ -131,7 +131,7 @@ export default function BankSyncPage() {
           accountNumber: formData.accountNumber,
           accountType: formData.accountType,
           currency: formData.currency,
-          balance: parseFloat(formData.initialBalance) || 0,
+          balance: Number.parseFloat(formData.initialBalance) || 0,
           isPrimary: formData.isPrimary,
           notes: formData.notes,
           companyId: activeCompany.id,

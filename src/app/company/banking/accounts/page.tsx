@@ -776,7 +776,7 @@ export default function BankAccountsPage() {
                         placeholder="0.00"
                         className="amount-input pl-8"
                         value={newAccount.currentBalance || ''}
-                        onChange={(e) => setNewAccount({ ...newAccount, currentBalance: parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
+                        onChange={(e) => setNewAccount({ ...newAccount, currentBalance: Number.parseFloat(e.target.value.replace(/,/g, '')) || 0 })}
                       />
                     </div>
                     <p className="text-xs text-gray-500">

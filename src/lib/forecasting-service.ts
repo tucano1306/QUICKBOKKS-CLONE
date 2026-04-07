@@ -68,14 +68,14 @@ async function getHistoricalCashFlow(
   for (const inv of invoices) {
     const dateKey = inv.issueDate.toISOString().split('T')[0];
     const flow = dailyFlow.get(dateKey) || { inflow: 0, outflow: 0 };
-    flow.inflow += parseFloat(inv.total.toString());
+    flow.inflow += Number.parseFloat(inv.total.toString());
     dailyFlow.set(dateKey, flow);
   }
   
   for (const exp of expenses) {
     const dateKey = exp.date.toISOString().split('T')[0];
     const flow = dailyFlow.get(dateKey) || { inflow: 0, outflow: 0 };
-    flow.outflow += parseFloat(exp.amount.toString());
+    flow.outflow += Number.parseFloat(exp.amount.toString());
     dailyFlow.set(dateKey, flow);
   }
   

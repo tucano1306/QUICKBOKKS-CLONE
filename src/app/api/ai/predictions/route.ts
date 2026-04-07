@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,18 +12,16 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(req.url)
     const companyId = searchParams.get('companyId')
-    const timeframe = searchParams.get('timeframe') || '6months'
 
     // Obtener datos históricos de la empresa
     const now = new Date()
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1)
     const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1)
 
     // Obtener facturas para análisis de ingresos
@@ -74,10 +72,10 @@ export async function GET(req: NextRequest) {
 
     // Calcular métricas mensuales
     const monthlyData = calculateMonthlyMetrics(invoices, expenses)
-    
+
     // Generar predicciones
     const predictions = generatePredictions(monthlyData, bankAccounts)
-    
+
     // Generar pronóstico de flujo de caja
     const cashFlowForecast = generateCashFlowForecast(monthlyData, invoices, expenses)
 
@@ -109,7 +107,7 @@ export async function GET(req: NextRequest) {
 
 function calculateMonthlyMetrics(invoices: any[], expenses: any[]) {
   const monthlyData: Record<string, { revenue: number; expenses: number; profit: number }> = {}
-  
+
   // Agrupar ingresos por mes
   invoices.forEach(inv => {
     const monthKey = new Date(inv.createdAt).toISOString().slice(0, 7)
@@ -138,33 +136,41 @@ function calculateMonthlyMetrics(invoices: any[], expenses: any[]) {
   return monthlyData
 }
 
-function generatePredictions(monthlyData: Record<string, any>, bankAccounts: any[]) {
-  const months = Object.keys(monthlyData).sort()
-  const recentMonths = months.slice(-6)
-  
-  // Calcular promedios y tendencias
+function calcAverages(monthlyData: Record<string, any>, recentMonths: string[]) {
   let avgRevenue = 0
   let avgExpenses = 0
   let revenueGrowth = 0
-  
-  if (recentMonths.length > 0) {
-    recentMonths.forEach(m => {
-      avgRevenue += monthlyData[m].revenue
-      avgExpenses += monthlyData[m].expenses
-    })
-    avgRevenue /= recentMonths.length
-    avgExpenses /= recentMonths.length
-
-    if (recentMonths.length >= 2) {
-      const firstRevenue = monthlyData[recentMonths[0]].revenue
-      const lastRevenue = monthlyData[recentMonths[recentMonths.length - 1]].revenue
-      revenueGrowth = firstRevenue > 0 ? ((lastRevenue - firstRevenue) / firstRevenue) * 100 : 0
-    }
+  if (recentMonths.length === 0) return { avgRevenue, avgExpenses, revenueGrowth }
+  recentMonths.forEach(m => {
+    avgRevenue += monthlyData[m].revenue
+    avgExpenses += monthlyData[m].expenses
+  })
+  avgRevenue /= recentMonths.length
+  avgExpenses /= recentMonths.length
+  if (recentMonths.length >= 2) {
+    const firstRevenue = monthlyData[recentMonths[0]].revenue
+    const lastKey = recentMonths.at(-1)
+    const lastRevenue = lastKey ? monthlyData[lastKey].revenue : 0
+    revenueGrowth = firstRevenue > 0 ? ((lastRevenue - firstRevenue) / firstRevenue) * 100 : 0
   }
+  return { avgRevenue, avgExpenses, revenueGrowth }
+}
+
+function generatePredictions(monthlyData: Record<string, any>, bankAccounts: any[]) {
+  const months = Object.keys(monthlyData).sort((a, b) => a.localeCompare(b))
+  const recentMonths = months.slice(-6)
+
+  const { avgRevenue, avgExpenses, revenueGrowth } = calcAverages(monthlyData, recentMonths)
 
   const currentBalance = bankAccounts.reduce((sum, acc) => sum + acc.balance, 0)
-  
-  // Generar predicciones
+
+  let confidence = 60
+  if (recentMonths.length >= 6) confidence = 92
+  else if (recentMonths.length >= 3) confidence = 78
+  let revenueTrend: 'up' | 'down' | 'stable' = 'stable'
+  if (revenueGrowth > 0) revenueTrend = 'up'
+  else if (revenueGrowth < 0) revenueTrend = 'down'
+
   const nextMonth = new Date()
   nextMonth.setMonth(nextMonth.getMonth() + 1)
   const nextMonthName = nextMonth.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
@@ -176,10 +182,10 @@ function generatePredictions(monthlyData: Record<string, any>, bankAccounts: any
       title: `Ingresos ${nextMonthName}`,
       timeframe: 'Próximo Mes',
       prediction: Math.round(avgRevenue * (1 + (revenueGrowth > 0 ? 0.05 : -0.02))),
-      confidence: recentMonths.length >= 6 ? 92 : recentMonths.length >= 3 ? 78 : 60,
-      trend: revenueGrowth > 0 ? 'up' : revenueGrowth < 0 ? 'down' : 'stable',
+      confidence,
+      trend: revenueTrend,
       insights: [
-        revenueGrowth > 0 
+        revenueGrowth > 0
           ? `Tendencia positiva de +${revenueGrowth.toFixed(1)}% en últimos 6 meses`
           : `Tendencia estable en últimos meses`,
         `Promedio mensual: $${avgRevenue.toLocaleString('es-MX', { minimumFractionDigits: 0 })}`,
@@ -198,7 +204,7 @@ function generatePredictions(monthlyData: Record<string, any>, bankAccounts: any
       insights: [
         `Saldo actual: $${currentBalance.toLocaleString('es-MX')}`,
         `Flujo mensual promedio: $${(avgRevenue - avgExpenses).toLocaleString('es-MX')}`,
-        avgRevenue > avgExpenses 
+        avgRevenue > avgExpenses
           ? 'Proyección positiva basada en tendencias actuales'
           : 'Se recomienda revisar estructura de costos',
         'Mantener reserva de 3 meses de operación'
@@ -240,9 +246,9 @@ function generatePredictions(monthlyData: Record<string, any>, bankAccounts: any
 }
 
 function generateCashFlowForecast(monthlyData: Record<string, any>, invoices: any[], expenses: any[]) {
-  const months = Object.keys(monthlyData).sort()
+  const months = Object.keys(monthlyData).sort((a, b) => a.localeCompare(b))
   const forecast: any[] = []
-  
+
   // Datos históricos
   months.slice(-6).forEach(month => {
     const data = monthlyData[month]
@@ -256,16 +262,16 @@ function generateCashFlowForecast(monthlyData: Record<string, any>, invoices: an
   })
 
   // Proyecciones futuras (3 meses)
-  const avgFlow = months.slice(-6).reduce((sum, m) => 
+  const avgFlow = months.slice(-6).reduce((sum, m) =>
     sum + (monthlyData[m].revenue - monthlyData[m].expenses), 0) / Math.min(months.length, 6)
 
   for (let i = 1; i <= 3; i++) {
     const futureDate = new Date()
     futureDate.setMonth(futureDate.getMonth() + i)
-    
+
     // Aplicar estacionalidad básica
     const seasonalFactor = getSeasonalFactor(futureDate.getMonth())
-    
+
     forecast.push({
       month: futureDate.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' }),
       actual: null,
@@ -283,29 +289,29 @@ function getSeasonalFactor(month: number): number {
   // Factores estacionales típicos para negocios
   const factors: Record<number, number> = {
     0: 0.85,  // Enero
-    1: 0.90,  // Febrero
-    2: 1.00,  // Marzo
-    3: 1.00,  // Abril
-    4: 1.05,  // Mayo
-    5: 1.00,  // Junio
-    6: 0.95,  // Julio
-    7: 0.95,  // Agosto
-    8: 1.00,  // Septiembre
-    9: 1.05,  // Octubre
-    10: 1.10, // Noviembre
-    11: 1.20  // Diciembre
+    1: 0.9,  // Febrero
+    2: 1,   // Marzo
+    3: 1,   // Abril
+    4: 1.05, // Mayo
+    5: 1,   // Junio
+    6: 0.95, // Julio
+    7: 0.95, // Agosto
+    8: 1,   // Septiembre
+    9: 1.05, // Octubre
+    10: 1.1, // Noviembre
+    11: 1.2  // Diciembre
   }
-  return factors[month] || 1.0
+  return factors[month] ?? 1
 }
 
 function calculateCurrentMetrics(invoices: any[], expenses: any[], bankAccounts: any[]) {
   const totalRevenue = invoices
     .filter(i => i.status === 'PAID')
     .reduce((sum, i) => sum + i.total, 0)
-  
+
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
   const totalBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0)
-  
+
   const pendingInvoices = invoices
     .filter(i => i.status === 'PENDING' || i.status === 'SENT')
     .reduce((sum, i) => sum + i.total, 0)

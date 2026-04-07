@@ -207,10 +207,10 @@ export async function getClientInvoices(
 
   return invoices.map((invoice) => {
     const paidAmount = invoice.payments.reduce(
-      (sum, payment) => sum + parseFloat(payment.amount.toString()),
+      (sum, payment) => sum + Number.parseFloat(payment.amount.toString()),
       0
     );
-    const total = parseFloat(invoice.total.toString());
+    const total = Number.parseFloat(invoice.total.toString());
     const balance = total - paidAmount;
     
     return {
@@ -225,8 +225,8 @@ export async function getClientInvoices(
       items: invoice.items.map((item) => ({
         description: item.description,
         quantity: item.quantity,
-        price: parseFloat(item.unitPrice.toString()),
-        total: parseFloat(item.total.toString()),
+        price: Number.parseFloat(item.unitPrice.toString()),
+        total: Number.parseFloat(item.total.toString()),
       })),
     };
   });
@@ -277,9 +277,9 @@ export async function generateClientStatement(
 
   const openingBalance = priorInvoices.reduce(
     (sum, inv) => {
-      const total = parseFloat(inv.total.toString());
+      const total = Number.parseFloat(inv.total.toString());
       const paid = inv.payments.reduce(
-        (paidSum, payment) => paidSum + parseFloat(payment.amount.toString()),
+        (paidSum, payment) => paidSum + Number.parseFloat(payment.amount.toString()),
         0
       );
       return sum + (total - paid);
@@ -293,9 +293,9 @@ export async function generateClientStatement(
   let runningBalance = openingBalance;
 
   const statementLines = invoices.map((invoice) => {
-    const amount = parseFloat(invoice.total.toString());
+    const amount = Number.parseFloat(invoice.total.toString());
     const payment = invoice.payments.reduce(
-      (sum, p) => sum + parseFloat(p.amount.toString()),
+      (sum, p) => sum + Number.parseFloat(p.amount.toString()),
       0
     );
 
@@ -387,9 +387,9 @@ export async function getClientDashboardStats(customerId: string) {
   });
 
   const currentBalance = unpaidInvoices.reduce((sum, invoice) => {
-    const total = parseFloat(invoice.total.toString());
+    const total = Number.parseFloat(invoice.total.toString());
     const paid = invoice.payments.reduce(
-      (paidSum, payment) => paidSum + parseFloat(payment.amount.toString()),
+      (paidSum, payment) => paidSum + Number.parseFloat(payment.amount.toString()),
       0
     );
     return sum + (total - paid);
@@ -400,7 +400,7 @@ export async function getClientDashboardStats(customerId: string) {
     paidInvoices,
     pendingInvoices,
     overdueInvoices,
-    totalSpent: parseFloat(totalSpent._sum.total?.toString() || '0'),
+    totalSpent: Number.parseFloat(totalSpent._sum.total?.toString() || '0'),
     currentBalance,
     documentsCount: 0, // TODO: implement with new model
   };

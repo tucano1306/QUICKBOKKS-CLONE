@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const limit = Number.parseInt(searchParams.get('limit') || '50')
 
     if (!companyId) {
       return NextResponse.json({ error: 'companyId requerido' }, { status: 400 })

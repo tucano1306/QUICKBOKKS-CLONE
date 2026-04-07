@@ -1,35 +1,35 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    AlertCircle,
+    Bell,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Edit,
+    FileText,
+    Info,
+    MessageSquare,
+    Phone,
+    Pin,
+    Plus,
+    Search,
+    StickyNote,
+    Trash2,
+    User
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { 
-  StickyNote,
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Pin,
-  Calendar,
-  User,
-  Tag,
-  AlertCircle,
-  CheckCircle2,
-  CheckCircle,
-  Clock,
-  MessageSquare,
-  Bell,
-  Phone,
-  Mail,
-  FileText,
-  Info
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+
+type NoteCategory = 'general' | 'payment' | 'support' | 'sales' | 'complaint' | 'meeting'
+type NotePriority = 'low' | 'medium' | 'high' | 'urgent'
 
 interface CustomerNote {
   id: string
@@ -37,8 +37,8 @@ interface CustomerNote {
   customerName: string
   title: string
   content: string
-  category: 'general' | 'payment' | 'support' | 'sales' | 'complaint' | 'meeting'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
+  category: NoteCategory
+  priority: NotePriority
   isPinned: boolean
   createdBy: string
   createdDate: string
@@ -49,7 +49,7 @@ interface CustomerNote {
 
 export default function CustomerNotesPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -57,11 +57,10 @@ export default function CustomerNotesPage() {
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [showPinnedOnly, setShowPinnedOnly] = useState(false)
-  const [selectedNote, setSelectedNote] = useState<CustomerNote | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
   const [notes, setNotes] = useState<CustomerNote[]>([])
-  
+
   // Modal states for creating/editing notes
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [editingNote, setEditingNote] = useState<CustomerNote | null>(null)
@@ -111,10 +110,10 @@ export default function CustomerNotesPage() {
       complaint: { color: 'red', label: 'Queja', icon: AlertCircle },
       meeting: { color: 'indigo', label: 'Reunión', icon: Calendar }
     }
-    
+
     const config = configs[category as keyof typeof configs]
     if (!config) return null
-    
+
     const Icon = config.icon
     return (
       <Badge className={`bg-${config.color}-100 text-${config.color}-700 flex items-center gap-1`}>
@@ -193,8 +192,8 @@ export default function CustomerNotesPage() {
       customerId: note.customerId,
       title: note.title,
       content: note.content,
-      category: note.category as 'general' | 'payment' | 'support' | 'sales' | 'complaint' | 'meeting',
-      priority: note.priority as 'urgent' | 'high' | 'medium' | 'low',
+      category: note.category,
+      priority: note.priority,
       isPinned: note.isPinned,
       tags: note.tags.join(', ')
     })
@@ -214,13 +213,13 @@ export default function CustomerNotesPage() {
       const noteData = {
         ...newNote,
         companyId: activeCompany?.id,
-        tags: newNote.tags.split(',').map(t => t.trim()).filter(t => t)
+        tags: newNote.tags.split(',').map(t => t.trim()).filter(Boolean)
       }
 
-      const url = editingNote 
-        ? `/api/customers/notes/${editingNote.id}` 
+      const url = editingNote
+        ? `/api/customers/notes/${editingNote.id}`
         : '/api/customers/notes'
-      
+
       const res = await fetch(url, {
         method: editingNote ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -284,7 +283,7 @@ export default function CustomerNotesPage() {
 
   // Get unique customers
   const uniqueCustomers = Array.from(new Set(notes.map(n => n.customerName)))
-    .map(name => notes.find(n => n.customerName === name)!)
+    .map(name => notes.find(n => n.customerName === name)).filter((n): n is CustomerNote => n !== undefined)
 
   const totalNotes = notes.length
   const pinnedNotes = notes.filter(n => n.isPinned).length
@@ -328,15 +327,20 @@ export default function CustomerNotesPage() {
 
         {/* Message Display */}
         {message && (
-          <div className={`p-3 rounded-lg flex items-center gap-2 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-            'bg-blue-50 text-blue-800 border border-blue-200'
-          }`}>
-            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : 
-             message.type === 'info' ? <Info className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            {message.text}
-          </div>
+          (() => {
+            let msgClass = 'bg-blue-50 text-blue-800 border border-blue-200'
+            if (message.type === 'success') msgClass = 'bg-green-50 text-green-800 border border-green-200'
+            else if (message.type === 'error') msgClass = 'bg-red-50 text-red-800 border border-red-200'
+            let msgIcon = <AlertCircle className="w-5 h-5" />
+            if (message.type === 'success') msgIcon = <CheckCircle className="w-5 h-5" />
+            else if (message.type === 'info') msgIcon = <Info className="w-5 h-5" />
+            return (
+              <div className={`p-3 rounded-lg flex items-center gap-2 ${msgClass}`}>
+                {msgIcon}
+                {message.text}
+              </div>
+            )
+          })()
         )}
 
         {/* Stats */}
@@ -424,7 +428,7 @@ export default function CustomerNotesPage() {
                   className="pl-10"
                 />
               </div>
-              <select 
+              <select
                 className="px-4 py-2 border rounded-lg"
                 value={filterCustomer}
                 onChange={(e) => setFilterCustomer(e.target.value)}
@@ -436,7 +440,7 @@ export default function CustomerNotesPage() {
                   </option>
                 ))}
               </select>
-              <select 
+              <select
                 className="px-4 py-2 border rounded-lg"
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
@@ -449,7 +453,7 @@ export default function CustomerNotesPage() {
                 <option value="complaint">Quejas</option>
                 <option value="meeting">Reuniones</option>
               </select>
-              <select 
+              <select
                 className="px-4 py-2 border rounded-lg"
                 value={filterPriority}
                 onChange={(e) => setFilterPriority(e.target.value)}
@@ -479,8 +483,8 @@ export default function CustomerNotesPage() {
         {/* Notes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredNotes.map((note) => (
-            <Card 
-              key={note.id} 
+            <Card
+              key={note.id}
               className={`hover:shadow-lg transition cursor-pointer ${
                 note.isPinned ? 'border-2 border-purple-300 bg-purple-50/30' : ''
               }`}
@@ -516,9 +520,9 @@ export default function CustomerNotesPage() {
                 {/* Tags */}
                 {note.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {note.tags.map((tag, index) => (
-                      <span 
-                        key={index}
+                    {note.tags.map((tag) => (
+                      <span
+                        key={tag}
                         className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full"
                       >
                         #{tag}
@@ -535,9 +539,9 @@ export default function CustomerNotesPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {new Date(note.createdDate).toLocaleDateString('es-MX', { 
-                      day: '2-digit', 
-                      month: 'short' 
+                    {new Date(note.createdDate).toLocaleDateString('es-MX', {
+                      day: '2-digit',
+                      month: 'short'
                     })}
                   </div>
                 </div>
@@ -554,9 +558,9 @@ export default function CustomerNotesPage() {
 
                 {/* Actions */}
                 <div className="flex gap-2 mt-3">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     className="flex-1"
                     onClick={(e) => {
                       e.stopPropagation()
@@ -566,16 +570,16 @@ export default function CustomerNotesPage() {
                     <Edit className="w-3 h-3 mr-1" />
                     Editar
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     className={note.isPinned ? 'bg-purple-100 text-purple-700' : ''}
                     onClick={(e) => handleTogglePin(note, e)}
                   >
                     <Pin className="w-3 h-3" />
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     className="text-red-600"
                     onClick={(e) => handleDeleteNote(note, e)}
@@ -644,10 +648,11 @@ export default function CustomerNotesPage() {
               <CardContent className="space-y-4">
                 {/* Customer Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="note-customer" className="block text-sm font-medium text-gray-700 mb-1">
                     Cliente *
                   </label>
                   <select
+                    id="note-customer"
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     value={newNote.customerId}
                     onChange={(e) => setNewNote({ ...newNote, customerId: e.target.value })}
@@ -663,10 +668,11 @@ export default function CustomerNotesPage() {
 
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="note-title" className="block text-sm font-medium text-gray-700 mb-1">
                     Título *
                   </label>
                   <input
+                    id="note-title"
                     type="text"
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Título de la nota..."
@@ -677,10 +683,11 @@ export default function CustomerNotesPage() {
 
                 {/* Content */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="note-content" className="block text-sm font-medium text-gray-700 mb-1">
                     Contenido *
                   </label>
                   <textarea
+                    id="note-content"
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[120px]"
                     placeholder="Escribe los detalles de la nota..."
                     value={newNote.content}
@@ -691,10 +698,11 @@ export default function CustomerNotesPage() {
                 {/* Category and Priority */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="note-category" className="block text-sm font-medium text-gray-700 mb-1">
                       Categoría
                     </label>
                     <select
+                      id="note-category"
                       className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                       value={newNote.category}
                       onChange={(e) => setNewNote({ ...newNote, category: e.target.value as typeof newNote.category })}
@@ -708,10 +716,11 @@ export default function CustomerNotesPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="note-priority" className="block text-sm font-medium text-gray-700 mb-1">
                       Prioridad
                     </label>
                     <select
+                      id="note-priority"
                       className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                       value={newNote.priority}
                       onChange={(e) => setNewNote({ ...newNote, priority: e.target.value as typeof newNote.priority })}
@@ -726,10 +735,11 @@ export default function CustomerNotesPage() {
 
                 {/* Tags */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="note-tags" className="block text-sm font-medium text-gray-700 mb-1">
                     Etiquetas (separadas por comas)
                   </label>
                   <input
+                    id="note-tags"
                     type="text"
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="seguimiento, importante, urgente..."

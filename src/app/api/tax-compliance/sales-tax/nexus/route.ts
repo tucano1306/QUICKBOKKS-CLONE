@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+    const year = Number.parseInt(searchParams.get('year') || new Date().getFullYear().toString());
 
     if (action === 'list') {
       // Get states with nexus

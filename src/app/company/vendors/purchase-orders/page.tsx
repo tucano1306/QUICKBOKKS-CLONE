@@ -1,36 +1,36 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DatePicker } from '@/components/ui/date-picker'
+import { Input } from '@/components/ui/input'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    AlertCircle,
+    CheckCircle,
+    CheckCircle2,
+    Clock,
+    DollarSign,
+    Download,
+    Edit,
+    Eye,
+    Info,
+    LucideIcon,
+    Package,
+    Plus,
+    Search,
+    Send,
+    ShoppingBag,
+    Truck,
+    Users,
+    XCircle,
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import {
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  DollarSign,
-  Download,
-  Edit,
-  Eye,
-  LucideIcon,
-  Package,
-  Plus,
-  Search,
-  Send,
-  ShoppingBag,
-  Truck,
-  Users,
-  XCircle,
-  CheckCircle,
-  Info,
-} from 'lucide-react'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { useCompany } from '@/contexts/CompanyContext'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { DatePicker } from '@/components/ui/date-picker'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 const STATUS_VALUES = ['DRAFT', 'SENT', 'CONFIRMED', 'PARTIAL', 'RECEIVED', 'CANCELLED'] as const
 
@@ -113,7 +113,7 @@ type PurchaseOrderFormState = {
   assignedTo: string
   tax: number
   shipping: number
-  items: Array<{ description: string; quantity: number; unitCost: number }>
+  items: Array<{ id: number; description: string; quantity: number; unitCost: number }>
 }
 
 const createDefaultFormState = (): PurchaseOrderFormState => {
@@ -137,7 +137,7 @@ const createDefaultFormState = (): PurchaseOrderFormState => {
     assignedTo: '',
     tax: 0,
     shipping: 0,
-    items: [{ description: '', quantity: 1, unitCost: 0 }],
+    items: [{ id: Date.now(), description: '', quantity: 1, unitCost: 0 }],
   }
 }
 
@@ -261,7 +261,7 @@ export default function PurchaseOrdersPage() {
     if (vendors.length) return vendors
     const inferred = orders
       .filter((order) => order.vendorId && order.vendorName)
-      .map((order) => ({ id: order.vendorId as string, name: order.vendorName }))
+      .map((order) => ({ id: order.vendorId, name: order.vendorName }))
     const map = new Map<string, VendorOption>()
     inferred.forEach((vendor) => map.set(vendor.id, vendor))
     return Array.from(map.values())
@@ -331,12 +331,13 @@ export default function PurchaseOrdersPage() {
       shipping: order.shipping || 0,
       items:
         order.items?.length
-          ? order.items.map((item) => ({
+          ? order.items.map((item, i) => ({
+              id: Date.now() + i,
               description: item.description,
               quantity: item.quantity,
               unitCost: item.unitCost,
             }))
-          : [{ description: '', quantity: 1, unitCost: 0 }],
+          : [{ id: Date.now(), description: '', quantity: 1, unitCost: 0 }],
     })
   }
 
@@ -356,7 +357,7 @@ export default function PurchaseOrdersPage() {
   }
 
   const addItem = () => {
-    setFormState((prev) => ({ ...prev, items: [...prev.items, { description: '', quantity: 1, unitCost: 0 }] }))
+    setFormState((prev) => ({ ...prev, items: [...prev.items, { id: Date.now(), description: '', quantity: 1, unitCost: 0 }] }))
   }
 
   const removeItem = (index: number) => {
@@ -422,7 +423,7 @@ export default function PurchaseOrdersPage() {
   }
 
   const handleDeleteOrder = async (order: PurchaseOrder) => {
-    if (!window.confirm(`¿Eliminar la orden ${order.poNumber}?`)) return
+    if (!globalThis.confirm(`¿Eliminar la orden ${order.poNumber}?`)) return
     try {
       const res = await fetch(`/api/inventory/purchase-orders/${order.id}`, {
         method: 'DELETE',
@@ -612,20 +613,22 @@ export default function PurchaseOrdersPage() {
 
         {/* Message Display */}
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' ? 'bg-green-50 border border-green-200' :
-            message.type === 'error' ? 'bg-red-50 border border-red-200' :
-            'bg-blue-50 border border-blue-200'
-          }`}>
-            {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
-            {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
-            {message.type === 'info' && <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />}
-            <span className={`${
-              message.type === 'success' ? 'text-green-800' :
-              message.type === 'error' ? 'text-red-800' :
-              'text-blue-800'
-            }`}>{message.text}</span>
-          </div>
+          (() => {
+            let msgBg = 'bg-blue-50 border border-blue-200'
+            if (message.type === 'success') msgBg = 'bg-green-50 border border-green-200'
+            else if (message.type === 'error') msgBg = 'bg-red-50 border border-red-200'
+            let msgText = 'text-blue-800'
+            if (message.type === 'success') msgText = 'text-green-800'
+            else if (message.type === 'error') msgText = 'text-red-800'
+            return (
+              <div className={`p-4 rounded-lg flex items-center gap-3 ${msgBg}`}>
+                {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
+                {message.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
+                {message.type === 'info' && <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+                <span className={msgText}>{message.text}</span>
+              </div>
+            )
+          })()
         )}
 
         <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
@@ -759,7 +762,7 @@ export default function PurchaseOrdersPage() {
               {formError && <p className="text-sm text-red-600">{formError}</p>}
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Proveedor registrado</label>
+                  <span className="text-sm font-medium text-gray-700">Proveedor registrado</span>
                   <select
                     className="mt-1 w-full rounded-md border px-3 py-2"
                     value={formState.vendorId}
@@ -785,7 +788,7 @@ export default function PurchaseOrdersPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Proveedor manual</label>
+                  <span className="text-sm font-medium text-gray-700">Proveedor manual</span>
                   <Input
                     className="mt-1"
                     value={formState.vendorName}
@@ -794,7 +797,7 @@ export default function PurchaseOrdersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Fecha de pedido</label>
+                  <span className="text-sm font-medium text-gray-700">Fecha de pedido</span>
                   <div className="mt-1">
                     <DatePicker
                       value={formState.orderDate}
@@ -804,7 +807,7 @@ export default function PurchaseOrdersPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Fecha esperada</label>
+                  <span className="text-sm font-medium text-gray-700">Fecha esperada</span>
                   <div className="mt-1">
                     <DatePicker
                       value={formState.expectedDate}
@@ -814,7 +817,7 @@ export default function PurchaseOrdersPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Solicitada por</label>
+                  <span className="text-sm font-medium text-gray-700">Solicitada por</span>
                   <Input
                     className="mt-1"
                     value={formState.requestedBy}
@@ -822,7 +825,7 @@ export default function PurchaseOrdersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Aprobada por</label>
+                  <span className="text-sm font-medium text-gray-700">Aprobada por</span>
                   <Input
                     className="mt-1"
                     value={formState.approvedBy}
@@ -830,7 +833,7 @@ export default function PurchaseOrdersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Asignada a</label>
+                  <span className="text-sm font-medium text-gray-700">Asignada a</span>
                   <Input
                     className="mt-1"
                     value={formState.assignedTo}
@@ -838,7 +841,7 @@ export default function PurchaseOrdersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Notas</label>
+                  <span className="text-sm font-medium text-gray-700">Notas</span>
                   <Input
                     className="mt-1"
                     value={formState.notes}
@@ -856,7 +859,7 @@ export default function PurchaseOrdersPage() {
                 </div>
                 <div className="space-y-3">
                   {formState.items.map((item, index) => (
-                    <div key={index} className="grid gap-3 rounded-lg border p-3 md:grid-cols-4">
+                    <div key={item.id} className="grid gap-3 rounded-lg border p-3 md:grid-cols-4">
                       <Input
                         placeholder="Descripción"
                         value={item.description}
@@ -892,25 +895,25 @@ export default function PurchaseOrdersPage() {
                 </div>
                 <div className="grid gap-3 md:grid-cols-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Impuestos</label>
+                    <span className="text-sm font-medium text-gray-700">Impuestos</span>
                     <Input
                       type="text"
                       className="mt-1 amount-input"
                       value={formState.tax}
-                      onChange={(event) => handleFormFieldChange('tax', Number(event.target.value.replace(/,/g, '')) || 0)}
+                      onChange={(event) => handleFormFieldChange('tax', Number(event.target.value.replaceAll(',', '')) || 0)}
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Envío</label>
+                    <span className="text-sm font-medium text-gray-700">Envío</span>
                     <Input
                       type="text"
                       className="mt-1 amount-input"
                       value={formState.shipping}
-                      onChange={(event) => handleFormFieldChange('shipping', Number(event.target.value.replace(/,/g, '')) || 0)}
+                      onChange={(event) => handleFormFieldChange('shipping', Number(event.target.value.replaceAll(',', '')) || 0)}
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Total estimado</label>
+                    <span className="text-sm font-medium text-gray-700">Total estimado</span>
                     <Input className="mt-1" value={formatCurrency(formTotal)} readOnly />
                   </div>
                 </div>
@@ -1152,7 +1155,7 @@ export default function PurchaseOrdersPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Solicitada por</label>
+                  <span className="text-sm font-medium text-gray-700">Solicitada por</span>
                   <Input
                     className="mt-1"
                     value={assignState.requestedBy}
@@ -1160,7 +1163,7 @@ export default function PurchaseOrdersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Aprobada por</label>
+                  <span className="text-sm font-medium text-gray-700">Aprobada por</span>
                   <Input
                     className="mt-1"
                     value={assignState.approvedBy}
@@ -1168,7 +1171,7 @@ export default function PurchaseOrdersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Responsable</label>
+                  <span className="text-sm font-medium text-gray-700">Responsable</span>
                   <Input
                     className="mt-1"
                     value={assignState.assignedTo}

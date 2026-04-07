@@ -131,8 +131,8 @@ export function validatePagination(request: NextRequest): {
   const pageStr = searchParams.get('page') || '1';
   const limitStr = searchParams.get('limit') || '10';
 
-  const page = parseInt(pageStr, 10);
-  const limit = parseInt(limitStr, 10);
+  const page = Number.parseInt(pageStr, 10);
+  const limit = Number.parseInt(limitStr, 10);
 
   const errors: string[] = [];
 

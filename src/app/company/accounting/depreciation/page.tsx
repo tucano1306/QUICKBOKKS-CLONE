@@ -1,30 +1,28 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Car,
-  Plus,
-  TrendingDown,
+  AlertCircle,
+  Calculator,
   Calendar,
+  Car,
+  CheckCircle,
+  Clock,
   DollarSign,
-  FileText,
-  Filter,
   Download,
   Edit,
-  Trash2,
   Eye,
-  Calculator,
-  Clock,
-  CheckCircle,
-  AlertCircle,
+  Filter,
   Gauge,
-  Save
+  Plus,
+  Save,
+  TrendingDown
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 interface Asset {
   id: string
@@ -106,11 +104,11 @@ export default function VehicleDepreciationPage() {
   // Memoize filtered assets to prevent unnecessary recalculations
   const filteredAssets = useMemo(() => {
     let filtered = assets.filter(a => a.category === 'VEHICLE')
-    
+
     if (statusFilter !== 'ALL') {
       filtered = filtered.filter(a => a.status === statusFilter)
     }
-    
+
     return filtered
   }, [assets, statusFilter])
 
@@ -131,7 +129,7 @@ export default function VehicleDepreciationPage() {
 
   const handleAddAsset = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
       const response = await fetch('/api/accounting/assets', {
         method: 'POST',
@@ -140,14 +138,14 @@ export default function VehicleDepreciationPage() {
           ...newAsset,
           category: 'VEHICLE',
           depreciationMethod: 'STRAIGHT_LINE',
-          purchasePrice: parseFloat(newAsset.purchasePrice),
-          salvageValue: parseFloat(newAsset.salvageValue || '0'),
-          usefulLife: parseInt(newAsset.usefulLife),
+          purchasePrice: Number.parseFloat(newAsset.purchasePrice),
+          salvageValue: Number.parseFloat(newAsset.salvageValue || '0'),
+          usefulLife: Number.parseInt(newAsset.usefulLife),
           // Campos de millas
-          currentMileage: newAsset.currentMileage ? parseInt(newAsset.currentMileage) : null,
-          purchaseMileage: newAsset.purchaseMileage ? parseInt(newAsset.purchaseMileage) : null,
-          estimatedLifetimeMiles: newAsset.estimatedLifetimeMiles ? parseInt(newAsset.estimatedLifetimeMiles) : 200000,
-          yearModel: newAsset.yearModel ? parseInt(newAsset.yearModel) : null,
+          currentMileage: newAsset.currentMileage ? Number.parseInt(newAsset.currentMileage) : null,
+          purchaseMileage: newAsset.purchaseMileage ? Number.parseInt(newAsset.purchaseMileage) : null,
+          estimatedLifetimeMiles: newAsset.estimatedLifetimeMiles ? Number.parseInt(newAsset.estimatedLifetimeMiles) : 200000,
+          yearModel: newAsset.yearModel ? Number.parseInt(newAsset.yearModel) : null,
           vin: newAsset.vin || null
         })
       })
@@ -185,7 +183,7 @@ export default function VehicleDepreciationPage() {
   const handleUpdateMileage = async (assetId: string, newMileage: number, newLifetimeMiles?: number, purchaseMileage?: number) => {
     setUpdatingMileage(true)
     try {
-      const updateData: any = { 
+      const updateData: any = {
         currentMileage: newMileage
       }
       if (newLifetimeMiles !== undefined && newLifetimeMiles > 0) {
@@ -194,9 +192,9 @@ export default function VehicleDepreciationPage() {
       if (purchaseMileage !== undefined && purchaseMileage >= 0) {
         updateData.purchaseMileage = purchaseMileage
       }
-      
+
       console.log('📤 Enviando actualización de millaje:', updateData)
-      
+
       const response = await fetch(`/api/accounting/assets/${assetId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -228,24 +226,24 @@ export default function VehicleDepreciationPage() {
 
   // Porcentajes de valor residual según tipo de activo (estándares IRS/GAAP)
   const RESIDUAL_VALUE_PERCENTAGES: Record<string, number> = {
-    VEHICLE: 0.10,        // 10% para vehículos
+    VEHICLE: 0.1,        // 10% para vehículos
     EQUIPMENT: 0.05,      // 5% para equipos
     FURNITURE: 0.05,      // 5% para muebles
-    COMPUTER: 0.00,       // 0% para computadoras (obsolescencia)
-    BUILDING: 0.20,       // 20% para edificios
-    MACHINERY: 0.10,      // 10% para maquinaria
+    COMPUTER: 0,          // 0% para computadoras (obsolescencia)
+    BUILDING: 0.2,       // 20% para edificios
+    MACHINERY: 0.1,      // 10% para maquinaria
     OTHER: 0.05           // 5% por defecto
   }
 
   // Calcular valor residual automáticamente
   const calculateSuggestedResidualValue = (purchasePrice: number, category: string = 'VEHICLE') => {
-    const percentage = RESIDUAL_VALUE_PERCENTAGES[category] || 0.10
+    const percentage = RESIDUAL_VALUE_PERCENTAGES[category] || 0.1
     return Math.round(purchasePrice * percentage * 100) / 100
   }
 
   // Cuando cambia el precio de compra, actualizar valor residual sugerido
   const handlePurchasePriceChange = (value: string) => {
-    const price = parseFloat(value) || 0
+    const price = Number.parseFloat(value) || 0
     const suggestedResidual = calculateSuggestedResidualValue(price, 'VEHICLE')
     setNewAsset({
       ...newAsset,
@@ -260,11 +258,11 @@ export default function VehicleDepreciationPage() {
   // ============================================
 
   // Tasas de depreciación MACRS para vehículos (5 años) - IRS
-  const MACRS_RATES = [0.20, 0.32, 0.192, 0.1152, 0.1152, 0.0576]
+  const MACRS_RATES = [0.2, 0.32, 0.192, 0.1152, 0.1152, 0.0576]
 
   // Verificar si el activo tiene datos de millas válidos
   const hasMileageData = (asset: Asset): boolean => {
-    return !!(asset.currentMileage && asset.currentMileage > 0 && 
+    return !!(asset.currentMileage && asset.currentMileage > 0 &&
               asset.estimatedLifetimeMiles && asset.estimatedLifetimeMiles > 0)
   }
 
@@ -298,7 +296,7 @@ export default function VehicleDepreciationPage() {
   const calculateMonthsOwned = (purchaseDate: string): number => {
     const purchase = new Date(purchaseDate)
     const now = new Date()
-    const months = (now.getFullYear() - purchase.getFullYear()) * 12 + 
+    const months = (now.getFullYear() - purchase.getFullYear()) * 12 +
                    (now.getMonth() - purchase.getMonth())
     return Math.max(0, months)
   }
@@ -354,10 +352,10 @@ export default function VehicleDepreciationPage() {
     const monthsOwned = calculateMonthsOwned(asset.purchaseDate)
     const totalMonths = asset.usefulLife * 12
     const monthsToDepreciate = Math.min(monthsOwned, totalMonths)
-    
+
     const depreciableAmount = asset.purchasePrice - asset.salvageValue
     const accumulatedDep = (depreciableAmount / totalMonths) * monthsToDepreciate
-    
+
     return Math.min(accumulatedDep, depreciableAmount) // No exceder el monto depreciable
   }
 
@@ -396,7 +394,7 @@ export default function VehicleDepreciationPage() {
   const calculateMACRSDepreciation = (asset: Asset): number => {
     const yearsOwned = calculateYearsOwned(asset.purchaseDate)
     if (yearsOwned >= MACRS_RATES.length) return asset.purchasePrice - asset.salvageValue
-    
+
     let totalDep = 0
     for (let i = 0; i <= yearsOwned && i < MACRS_RATES.length; i++) {
       totalDep += asset.purchasePrice * MACRS_RATES[i]
@@ -730,9 +728,9 @@ export default function VehicleDepreciationPage() {
                       </div>
 
                       {/* Botón Actualizar Millaje */}
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="w-full bg-gradient-to-r from-purple-600 to-violet-600 text-white hover:from-purple-700 hover:to-violet-700 shadow-md"
                         onClick={() => {
                           setSelectedAsset(asset)
@@ -744,9 +742,9 @@ export default function VehicleDepreciationPage() {
                       </Button>
 
                       <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="flex-1"
                           onClick={() => {
                             setSelectedAsset(asset)
@@ -756,9 +754,9 @@ export default function VehicleDepreciationPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="flex-1"
                           onClick={() => {
                             setSelectedAsset(asset)
@@ -790,9 +788,9 @@ export default function VehicleDepreciationPage() {
               <CardContent className="p-6">
                 <form onSubmit={handleAddAsset} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <p className="block text-sm font-medium text-gray-700 mb-1">
                       Nombre del Vehículo *
-                    </label>
+                    </p>
                     <input
                       type="text"
                       required
@@ -804,9 +802,9 @@ export default function VehicleDepreciationPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <p className="block text-sm font-medium text-gray-700 mb-1">
                       Descripción
-                    </label>
+                    </p>
                     <textarea
                       value={newAsset.description}
                       onChange={(e) => setNewAsset({ ...newAsset, description: e.target.value })}
@@ -818,9 +816,9 @@ export default function VehicleDepreciationPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Fecha de Compra *
-                      </label>
+                      </p>
                       <input
                         type="date"
                         required
@@ -831,9 +829,9 @@ export default function VehicleDepreciationPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Precio de Compra *
-                      </label>
+                      </p>
                       <input
                         type="number"
                         required
@@ -846,9 +844,9 @@ export default function VehicleDepreciationPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Valor Residual (10% automático)
-                      </label>
+                      </p>
                       <div className="relative">
                         <input
                           type="number"
@@ -860,7 +858,7 @@ export default function VehicleDepreciationPage() {
                         />
                         {newAsset.purchasePrice && (
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
-                            Sugerido: ${calculateSuggestedResidualValue(parseFloat(newAsset.purchasePrice) || 0, 'VEHICLE').toLocaleString('es-MX')}
+                            Sugerido: ${calculateSuggestedResidualValue(Number.parseFloat(newAsset.purchasePrice) || 0, 'VEHICLE').toLocaleString('es-MX')}
                           </span>
                         )}
                       </div>
@@ -870,9 +868,9 @@ export default function VehicleDepreciationPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Vida Útil (años) *
-                      </label>
+                      </p>
                       <input
                         type="number"
                         required
@@ -892,9 +890,9 @@ export default function VehicleDepreciationPage() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <p className="block text-sm font-medium text-gray-700 mb-1">
                           Millas al Comprar
-                        </label>
+                        </p>
                         <input
                           type="number"
                           value={newAsset.purchaseMileage}
@@ -904,9 +902,9 @@ export default function VehicleDepreciationPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <p className="block text-sm font-medium text-gray-700 mb-1">
                           Millas Actuales
-                        </label>
+                        </p>
                         <input
                           type="number"
                           value={newAsset.currentMileage}
@@ -918,9 +916,9 @@ export default function VehicleDepreciationPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <p className="block text-sm font-medium text-gray-700 mb-1">
                           Vida Útil (millas)
-                        </label>
+                        </p>
                         <input
                           type="number"
                           value={newAsset.estimatedLifetimeMiles}
@@ -940,9 +938,9 @@ export default function VehicleDepreciationPage() {
                   {/* VIN y Año */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Año del Modelo
-                      </label>
+                      </p>
                       <input
                         type="number"
                         value={newAsset.yearModel}
@@ -954,9 +952,9 @@ export default function VehicleDepreciationPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         VIN (Número de Serie)
-                      </label>
+                      </p>
                       <input
                         type="text"
                         value={newAsset.vin}
@@ -1010,8 +1008,8 @@ export default function VehicleDepreciationPage() {
                     <Car className="w-6 h-6 text-blue-600" />
                     {selectedAsset.name}
                   </CardTitle>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => {
                       setShowViewModal(false)
@@ -1127,7 +1125,7 @@ export default function VehicleDepreciationPage() {
                 </div>
 
                 {/* Depreciación por Millas (si aplica) */}
-                {selectedAsset.estimatedLifetimeMiles && selectedAsset.estimatedLifetimeMiles > 0 && (
+                {(selectedAsset.estimatedLifetimeMiles ?? 0) > 0 && (
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                       <Gauge className="w-5 h-5 text-purple-600" />
@@ -1234,8 +1232,8 @@ export default function VehicleDepreciationPage() {
                     <Edit className="w-6 h-6 text-amber-600" />
                     Editar Vehículo
                   </CardTitle>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => {
                       setShowEditModal(false)
@@ -1247,11 +1245,11 @@ export default function VehicleDepreciationPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <form 
+                <form
                   onSubmit={async (e) => {
                     e.preventDefault()
                     const formData = new FormData(e.currentTarget)
-                    
+
                     try {
                       const response = await fetch(`/api/accounting/assets/${selectedAsset.id}`, {
                         method: 'PUT',
@@ -1259,15 +1257,15 @@ export default function VehicleDepreciationPage() {
                         body: JSON.stringify({
                           name: formData.get('name'),
                           description: formData.get('description'),
-                          currentMileage: parseInt(formData.get('currentMileage') as string) || null,
-                          purchaseMileage: parseInt(formData.get('purchaseMileage') as string) || null,
-                          estimatedLifetimeMiles: parseInt(formData.get('estimatedLifetimeMiles') as string) || 200000,
-                          salvageValue: parseFloat(formData.get('salvageValue') as string) || 0,
+                          currentMileage: Number.parseInt(formData.get('currentMileage') as string) || null,
+                          purchaseMileage: Number.parseInt(formData.get('purchaseMileage') as string) || null,
+                          estimatedLifetimeMiles: Number.parseInt(formData.get('estimatedLifetimeMiles') as string) || 200000,
+                          salvageValue: Number.parseFloat(formData.get('salvageValue') as string) || 0,
                           status: formData.get('status'),
-                          usefulLife: parseInt(formData.get('usefulLife') as string) || 5
+                          usefulLife: Number.parseInt(formData.get('usefulLife') as string) || 5
                         })
                       })
-                      
+
                       if (response.ok) {
                         setMessage({ type: 'success', text: 'Vehículo actualizado exitosamente' })
                         loadAssets()
@@ -1278,15 +1276,16 @@ export default function VehicleDepreciationPage() {
                         setMessage({ type: 'error', text: error.error || 'Error al actualizar el vehículo' })
                       }
                     } catch (error) {
+                      console.error(error)
                       setMessage({ type: 'error', text: 'Error de conexión' })
                     }
-                  }} 
+                  }}
                   className="space-y-4"
                 >
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <p className="block text-sm font-medium text-gray-700 mb-1">
                       Nombre del Vehículo *
-                    </label>
+                    </p>
                     <input
                       type="text"
                       name="name"
@@ -1296,9 +1295,9 @@ export default function VehicleDepreciationPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <p className="block text-sm font-medium text-gray-700 mb-1">
                       Descripción
-                    </label>
+                    </p>
                     <input
                       type="text"
                       name="description"
@@ -1308,9 +1307,9 @@ export default function VehicleDepreciationPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Millaje Actual
-                      </label>
+                      </p>
                       <input
                         type="number"
                         name="currentMileage"
@@ -1323,9 +1322,9 @@ export default function VehicleDepreciationPage() {
                       <p className="text-xs text-gray-500 mt-1">Millas del odómetro actual</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Millaje de Compra
-                      </label>
+                      </p>
                       <input
                         type="number"
                         name="purchaseMileage"
@@ -1340,9 +1339,9 @@ export default function VehicleDepreciationPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Millas de Vida Útil
-                      </label>
+                      </p>
                       <input
                         type="number"
                         name="estimatedLifetimeMiles"
@@ -1355,9 +1354,9 @@ export default function VehicleDepreciationPage() {
                       <p className="text-xs text-gray-500 mt-1">Total millas esperadas del vehículo</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Valor Residual
-                      </label>
+                      </p>
                       <input
                         type="number"
                         name="salvageValue"
@@ -1370,9 +1369,9 @@ export default function VehicleDepreciationPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Vida Útil (años)
-                      </label>
+                      </p>
                       <select
                         name="usefulLife"
                         defaultValue={selectedAsset.usefulLife}
@@ -1385,9 +1384,9 @@ export default function VehicleDepreciationPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 mb-1">
                         Estado
-                      </label>
+                      </p>
                       <select
                         name="status"
                         defaultValue={selectedAsset.status}
@@ -1448,8 +1447,8 @@ export default function VehicleDepreciationPage() {
                     <Gauge className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                     Actualizar Millaje
                   </CardTitle>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => {
                       setShowMileageModal(false)
@@ -1462,22 +1461,22 @@ export default function VehicleDepreciationPage() {
                 <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">{selectedAsset.name}</p>
               </CardHeader>
               <CardContent className="p-3 sm:p-6">
-                <form 
+                <form
                   onSubmit={async (e) => {
                     e.preventDefault()
                     const formData = new FormData(e.currentTarget)
-                    const newMileage = parseInt(formData.get('currentMileage') as string) || 0
-                    const newLifetimeMiles = parseInt(formData.get('estimatedLifetimeMiles') as string) || undefined
-                    const newPurchaseMileage = parseInt(formData.get('purchaseMileage') as string) || undefined
-                    
+                    const newMileage = Number.parseInt(formData.get('currentMileage') as string) || 0
+                    const newLifetimeMiles = Number.parseInt(formData.get('estimatedLifetimeMiles') as string) || undefined
+                    const newPurchaseMileage = Number.parseInt(formData.get('purchaseMileage') as string) || undefined
+
                     console.log('Form Data:', {
                       currentMileage: newMileage,
                       estimatedLifetimeMiles: newLifetimeMiles,
                       purchaseMileage: newPurchaseMileage
                     })
-                    
+
                     await handleUpdateMileage(selectedAsset.id, newMileage, newLifetimeMiles, newPurchaseMileage)
-                  }} 
+                  }}
                   className="space-y-3 sm:space-y-4"
                 >
                   {/* Información actual - Compacta en móvil */}
@@ -1511,8 +1510,8 @@ export default function VehicleDepreciationPage() {
                     </div>
                     {selectedAsset.lastMileageUpdate && (
                       <p className="text-[10px] sm:text-xs text-gray-500 mt-2 border-t pt-2">
-                        🕐 {new Date(selectedAsset.lastMileageUpdate).toLocaleDateString('es-MX', { 
-                          month: 'short', 
+                        🕐 {new Date(selectedAsset.lastMileageUpdate).toLocaleDateString('es-MX', {
+                          month: 'short',
                           day: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit'
@@ -1529,9 +1528,9 @@ export default function VehicleDepreciationPage() {
 
                   {/* Campo principal de millaje */}
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    <p className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                       🚗 Odómetro *
-                    </label>
+                    </p>
                     <input
                       type="number"
                       name="currentMileage"
@@ -1548,9 +1547,9 @@ export default function VehicleDepreciationPage() {
                   {/* Campos secundarios */}
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <div>
-                      <label className="block text-[10px] sm:text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-[10px] sm:text-sm font-medium text-gray-700 mb-1">
                         Compra
-                      </label>
+                      </p>
                       <input
                         type="number"
                         name="purchaseMileage"
@@ -1562,9 +1561,9 @@ export default function VehicleDepreciationPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] sm:text-sm font-medium text-gray-700 mb-1">
+                      <p className="block text-[10px] sm:text-sm font-medium text-gray-700 mb-1">
                         Vida Útil
-                      </label>
+                      </p>
                       <input
                         type="number"
                         name="estimatedLifetimeMiles"
@@ -1601,8 +1600,8 @@ export default function VehicleDepreciationPage() {
                     >
                       Cancelar
                     </Button>
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="flex-1 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-semibold shadow-lg text-sm sm:text-base py-2 sm:py-3"
                       disabled={updatingMileage}
                     >

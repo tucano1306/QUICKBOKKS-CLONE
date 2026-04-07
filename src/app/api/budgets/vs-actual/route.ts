@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     const period = searchParams.get('period') || 'ytd-2025'
-    const fiscalYear = parseInt(searchParams.get('fiscalYear') || new Date().getFullYear().toString())
+    const fiscalYear = Number.parseInt(searchParams.get('fiscalYear') || new Date().getFullYear().toString())
 
     if (!companyId) {
       return NextResponse.json({ error: 'Company ID requerido' }, { status: 400 })
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     // Parse period like "november-2025", "q4-2025", "ytd-2025", "fy-2025"
     const periodLower = period.toLowerCase()
     const yearMatch = periodLower.match(/(\d{4})/)
-    const yearFromPeriod = yearMatch ? parseInt(yearMatch[1]) : fiscalYear
+    const yearFromPeriod = yearMatch ? Number.parseInt(yearMatch[1]) : fiscalYear
 
     const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 
                         'july', 'august', 'september', 'october', 'november', 'december']

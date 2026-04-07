@@ -79,7 +79,7 @@ export async function GET(
       },
       byYear: Object.entries(byYear)
         .map(([year, data]) => ({
-          year: parseInt(year),
+          year: Number.parseInt(year),
           ...data,
         }))
         .sort((a, b) => b.year - a.year),

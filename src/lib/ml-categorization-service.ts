@@ -125,7 +125,7 @@ class ExpenseCategorizer {
       const category = expense.categoryId!;
       const features = extractFeatures({
         description: expense.description,
-        amount: parseFloat(expense.amount.toString()),
+        amount: Number.parseFloat(expense.amount.toString()),
         vendor: expense.vendor || undefined,
         date: expense.date,
       });
@@ -255,7 +255,7 @@ export async function trainCategorizationModel(companyId: string) {
     for (const expense of expenses) {
       const prediction = categorizer.predict({
         description: expense.description,
-        amount: parseFloat(expense.amount.toString()),
+        amount: Number.parseFloat(expense.amount.toString()),
         vendor: expense.vendor || undefined,
         date: expense.date,
       });
@@ -496,7 +496,7 @@ export async function suggestCategoriesForUncategorized(companyId: string, limit
     try {
       const prediction = await predictExpenseCategory(companyId, {
         description: expense.description,
-        amount: parseFloat(expense.amount.toString()),
+        amount: Number.parseFloat(expense.amount.toString()),
         vendor: expense.vendor || undefined,
         date: expense.date,
       });

@@ -1,54 +1,52 @@
 /**
  * Payroll Tax Calculation Service
- * 
+ *
  * Cálculo de impuestos de nómina para Florida (USA):
  * - Federal Income Tax (impuesto sobre la renta federal)
  * - FICA: Social Security (6.2%) + Medicare (1.45%)
  * - Additional Medicare Tax (0.9% sobre $200k)
  * - State Unemployment Insurance (SUI) - Florida
- * 
+ *
  * Cumple con IRS Publication 15 (Circular E) - 2024
  */
-
-import { prisma } from './prisma'
 
 // 2024 Federal Tax Rates and Brackets
 const FEDERAL_TAX_BRACKETS_2024 = {
   SINGLE: [
-    { min: 0, max: 11600, baseAmount: 0, rate: 0.10 },
+    { min: 0, max: 11600, baseAmount: 0, rate: 0.1 },
     { min: 11600, max: 47150, baseAmount: 1160, rate: 0.12 },
     { min: 47150, max: 100525, baseAmount: 5426, rate: 0.22 },
-    { min: 100525, max: 191950, baseAmount: 17168.50, rate: 0.24 },
-    { min: 191950, max: 243725, baseAmount: 39110.50, rate: 0.32 },
-    { min: 243725, max: 609350, baseAmount: 55678.50, rate: 0.35 },
+    { min: 100525, max: 191950, baseAmount: 17168.5, rate: 0.24 },
+    { min: 191950, max: 243725, baseAmount: 39110.5, rate: 0.32 },
+    { min: 243725, max: 609350, baseAmount: 55678.5, rate: 0.35 },
     { min: 609350, max: Infinity, baseAmount: 183647.25, rate: 0.37 },
   ],
   MARRIED_FILING_JOINTLY: [
-    { min: 0, max: 23200, baseAmount: 0, rate: 0.10 },
+    { min: 0, max: 23200, baseAmount: 0, rate: 0.1 },
     { min: 23200, max: 94300, baseAmount: 2320, rate: 0.12 },
     { min: 94300, max: 201050, baseAmount: 10852, rate: 0.22 },
     { min: 201050, max: 383900, baseAmount: 34337, rate: 0.24 },
     { min: 383900, max: 487450, baseAmount: 78221, rate: 0.32 },
     { min: 487450, max: 731200, baseAmount: 111357, rate: 0.35 },
-    { min: 731200, max: Infinity, baseAmount: 196669.50, rate: 0.37 },
+    { min: 731200, max: Infinity, baseAmount: 196669.5, rate: 0.37 },
   ],
   MARRIED_FILING_SEPARATELY: [
-    { min: 0, max: 11600, baseAmount: 0, rate: 0.10 },
+    { min: 0, max: 11600, baseAmount: 0, rate: 0.1 },
     { min: 11600, max: 47150, baseAmount: 1160, rate: 0.12 },
     { min: 47150, max: 100525, baseAmount: 5426, rate: 0.22 },
-    { min: 100525, max: 191950, baseAmount: 17168.50, rate: 0.24 },
-    { min: 191950, max: 243725, baseAmount: 39110.50, rate: 0.32 },
-    { min: 243725, max: 365600, baseAmount: 55678.50, rate: 0.35 },
+    { min: 100525, max: 191950, baseAmount: 17168.5, rate: 0.24 },
+    { min: 191950, max: 243725, baseAmount: 39110.5, rate: 0.32 },
+    { min: 243725, max: 365600, baseAmount: 55678.5, rate: 0.35 },
     { min: 365600, max: Infinity, baseAmount: 98334.75, rate: 0.37 },
   ],
   HEAD_OF_HOUSEHOLD: [
-    { min: 0, max: 16550, baseAmount: 0, rate: 0.10 },
+    { min: 0, max: 16550, baseAmount: 0, rate: 0.1 },
     { min: 16550, max: 63100, baseAmount: 1655, rate: 0.12 },
     { min: 63100, max: 100500, baseAmount: 7241, rate: 0.22 },
     { min: 100500, max: 191950, baseAmount: 15469, rate: 0.24 },
     { min: 191950, max: 243700, baseAmount: 37417, rate: 0.32 },
     { min: 243700, max: 609350, baseAmount: 53977, rate: 0.35 },
-    { min: 609350, max: Infinity, baseAmount: 181954.50, rate: 0.37 },
+    { min: 609350, max: Infinity, baseAmount: 181954.5, rate: 0.37 },
   ],
 }
 
@@ -167,7 +165,7 @@ export function calculateFICATaxes(
   const newYtdGross = ytdGross + grossPay
   if (newYtdGross > FICA_RATES.additionalMedicareThreshold) {
     if (ytdGross >= FICA_RATES.additionalMedicareThreshold) {
-      // Todo el pago actual está sobre el umbral
+      // El pago actual está sobre el umbral
       additionalMedicare = grossPay * FICA_RATES.additionalMedicareRate
     } else {
       // Solo la parte que excede el umbral
@@ -252,7 +250,6 @@ export function calculatePayrollTaxes(
     exemptFICA,
     ytdGross,
     ytdSocialSecurity,
-    ytdMedicare,
   } = input
 
   // Federal Income Tax
@@ -295,13 +292,13 @@ export function calculatePayrollTaxes(
     stateSUI
 
   return {
-    federalIncomeTax: parseFloat(federalIncomeTax.toFixed(2)),
-    socialSecurity: parseFloat(socialSecurity.toFixed(2)),
-    medicare: parseFloat(medicare.toFixed(2)),
-    additionalMedicare: parseFloat(additionalMedicare.toFixed(2)),
-    stateIncomeTax: parseFloat(stateIncomeTax.toFixed(2)),
-    stateSUI: parseFloat(stateSUI.toFixed(2)),
-    totalTaxes: parseFloat(totalTaxes.toFixed(2)),
+    federalIncomeTax: Number.parseFloat(federalIncomeTax.toFixed(2)),
+    socialSecurity: Number.parseFloat(socialSecurity.toFixed(2)),
+    medicare: Number.parseFloat(medicare.toFixed(2)),
+    additionalMedicare: Number.parseFloat(additionalMedicare.toFixed(2)),
+    stateIncomeTax: Number.parseFloat(stateIncomeTax.toFixed(2)),
+    stateSUI: Number.parseFloat(stateSUI.toFixed(2)),
+    totalTaxes: Number.parseFloat(totalTaxes.toFixed(2)),
   }
 }
 
@@ -323,14 +320,14 @@ export function calculateOvertimePay(
 } {
   const regularPay = hourlyRate * regularHours
   const overtimePay = hourlyRate * 1.5 * overtimeHours
-  const doubleTimePay = hourlyRate * 2.0 * doubleTimeHours
+  const doubleTimePay = hourlyRate * 2 * doubleTimeHours
   const total = regularPay + overtimePay + doubleTimePay
 
   return {
-    regularPay: parseFloat(regularPay.toFixed(2)),
-    overtimePay: parseFloat(overtimePay.toFixed(2)),
-    doubleTimePay: parseFloat(doubleTimePay.toFixed(2)),
-    total: parseFloat(total.toFixed(2)),
+    regularPay: Number.parseFloat(regularPay.toFixed(2)),
+    overtimePay: Number.parseFloat(overtimePay.toFixed(2)),
+    doubleTimePay: Number.parseFloat(doubleTimePay.toFixed(2)),
+    total: Number.parseFloat(total.toFixed(2)),
   }
 }
 
@@ -404,10 +401,10 @@ export async function seedTaxWithholdingTables() {
 export async function getTaxRates(year: number, filingStatus: string) {
   // Note: TaxWithholding model doesn't have year, filingStatus, or tax bracket fields
   // This function uses in-memory tax tables instead
-  const brackets = filingStatus === 'SINGLE' 
-    ? FEDERAL_TAX_BRACKETS_2024.SINGLE 
+  const brackets = filingStatus === 'SINGLE'
+    ? FEDERAL_TAX_BRACKETS_2024.SINGLE
     : FEDERAL_TAX_BRACKETS_2024.MARRIED_FILING_JOINTLY;
-  
+
   return brackets;
 }
 
@@ -449,10 +446,10 @@ export function calculateEmployerTaxes(
     stateUnemployment
 
   return {
-    employerSocialSecurity: parseFloat(ficaTaxes.socialSecurity.toFixed(2)),
-    employerMedicare: parseFloat(ficaTaxes.medicare.toFixed(2)),
-    federalUnemployment: parseFloat(federalUnemployment.toFixed(2)),
-    stateUnemployment: parseFloat(stateUnemployment.toFixed(2)),
-    totalEmployerTax: parseFloat(totalEmployerTax.toFixed(2)),
+    employerSocialSecurity: Number.parseFloat(ficaTaxes.socialSecurity.toFixed(2)),
+    employerMedicare: Number.parseFloat(ficaTaxes.medicare.toFixed(2)),
+    federalUnemployment: Number.parseFloat(federalUnemployment.toFixed(2)),
+    stateUnemployment: Number.parseFloat(stateUnemployment.toFixed(2)),
+    totalEmployerTax: Number.parseFloat(totalEmployerTax.toFixed(2)),
   }
 }

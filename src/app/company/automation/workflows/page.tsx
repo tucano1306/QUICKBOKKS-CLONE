@@ -718,7 +718,7 @@ export default function WorkflowsPage() {
                   <Input
                     type="text"
                     value={newWorkflow.steps}
-                    onChange={(e) => setNewWorkflow({ ...newWorkflow, steps: parseInt(e.target.value.replace(/,/g, '')) || 3 })}
+                    onChange={(e) => setNewWorkflow({ ...newWorkflow, steps: Number.parseInt(e.target.value.replace(/,/g, '')) || 3 })}
                     className="amount-input mt-1"
                   />
                 </div>

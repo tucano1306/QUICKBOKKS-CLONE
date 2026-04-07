@@ -171,9 +171,9 @@ export async function POST(request: NextRequest) {
     const projection = await prisma.cashFlowProjection.create({
       data: {
         period: new Date(period),
-        projectedIncome: parseFloat(projectedIncome) || 0,
-        projectedExpense: parseFloat(projectedExpense) || 0,
-        projectedBalance: (parseFloat(projectedIncome) || 0) - (parseFloat(projectedExpense) || 0),
+        projectedIncome: Number.parseFloat(projectedIncome) || 0,
+        projectedExpense: Number.parseFloat(projectedExpense) || 0,
+        projectedBalance: (Number.parseFloat(projectedIncome) || 0) - (Number.parseFloat(projectedExpense) || 0),
         notes,
         companyId
       }

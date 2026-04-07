@@ -124,7 +124,7 @@ export default function TransactionsPage() {
           return {
             date: date?.trim(),
             description: description?.trim()?.replace(/"/g, ''),
-            amount: parseFloat(amount?.trim() || '0'),
+            amount: Number.parseFloat(amount?.trim() || '0'),
             category: category?.trim()?.replace(/"/g, '')
           }
         })

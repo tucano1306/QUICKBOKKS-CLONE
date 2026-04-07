@@ -208,7 +208,7 @@ export default function CurrencySettingsPage() {
   const handleEditRate = async () => {
     if (!activeCompany?.id || !selectedCurrency) return
     
-    const rate = parseFloat(editingRate)
+    const rate = Number.parseFloat(editingRate)
     if (isNaN(rate) || rate <= 0) {
       toast.error('Please enter a valid exchange rate')
       return
@@ -711,7 +711,7 @@ export default function CurrencySettingsPage() {
                 type="text"
                 className="amount-input"
                 value={newCurrency.exchangeRate}
-                onChange={(e) => setNewCurrency({ ...newCurrency, exchangeRate: parseFloat(e.target.value.replace(/,/g, '')) || 1 })}
+                onChange={(e) => setNewCurrency({ ...newCurrency, exchangeRate: Number.parseFloat(e.target.value.replace(/,/g, '')) || 1 })}
                 placeholder="Enter exchange rate"
               />
               <p className="text-xs text-gray-500">

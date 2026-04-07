@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     const status = searchParams.get('status')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const page = Number.parseInt(searchParams.get('page') || '1')
+    const limit = Number.parseInt(searchParams.get('limit') || '50')
     const skip = (page - 1) * limit
 
     // Get expenses that have attachments (receipts)
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
     const companyId = formData.get('companyId') as string
     const vendor = formData.get('vendor') as string
-    const amount = parseFloat(formData.get('amount') as string || '0')
+    const amount = Number.parseFloat(formData.get('amount') as string || '0')
     const categoryId = formData.get('categoryId') as string
     const description = formData.get('description') as string
 

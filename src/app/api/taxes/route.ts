@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
         estimatedTax: totalEstimatedTax / 4,
         previousPayments: 0,
         amountDue: totalEstimatedTax / 4,
-        status: getQuarterStatus(1, parseInt(year)),
+        status: getQuarterStatus(1, Number.parseInt(year)),
         paidAmount: undefined // No asumimos pagos sin registro real
       },
       {
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
         estimatedTax: totalEstimatedTax / 4,
         previousPayments: 0, // Sin registro de pagos previos
         amountDue: totalEstimatedTax / 4,
-        status: getQuarterStatus(2, parseInt(year)),
+        status: getQuarterStatus(2, Number.parseInt(year)),
         paidAmount: undefined
       },
       {
@@ -161,17 +161,17 @@ export async function GET(request: NextRequest) {
         estimatedTax: totalEstimatedTax / 4,
         previousPayments: 0,
         amountDue: totalEstimatedTax / 4,
-        status: getQuarterStatus(3, parseInt(year)),
+        status: getQuarterStatus(3, Number.parseInt(year)),
         paidAmount: undefined
       },
       {
         quarter: 'Q4 ' + year,
-        dueDate: `${parseInt(year) + 1}-01-15`,
+        dueDate: `${Number.parseInt(year) + 1}-01-15`,
         estimatedIncome: totalRevenue / 4,
         estimatedTax: totalEstimatedTax / 4,
         previousPayments: 0,
         amountDue: totalEstimatedTax / 4,
-        status: getQuarterStatus(4, parseInt(year)),
+        status: getQuarterStatus(4, Number.parseInt(year)),
         paidAmount: undefined
       }
     ]
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
         type: 'Federal Income Tax',
         description: 'Corporate tax return (Form 1120)',
         frequency: 'Annual',
-        nextDueDate: `${parseInt(year) + 1}-03-15`,
+        nextDueDate: `${Number.parseInt(year) + 1}-03-15`,
         status: 'upcoming',
         amount: estimatedFederalTax,
         filingMethod: 'Electronic (IRS e-file)'
@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
         type: 'Quarterly Estimated Tax',
         description: `Q4 ${year} estimated tax payment`,
         frequency: 'Quarterly',
-        nextDueDate: `${parseInt(year) + 1}-01-15`,
+        nextDueDate: `${Number.parseInt(year) + 1}-01-15`,
         status: 'upcoming',
         amount: totalEstimatedTax / 4,
         filingMethod: 'EFTPS'
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
         type: 'State Corporate Income Tax',
         description: 'State corporate income tax return',
         frequency: 'Annual',
-        nextDueDate: `${parseInt(year) + 1}-05-01`,
+        nextDueDate: `${Number.parseInt(year) + 1}-05-01`,
         status: 'upcoming',
         amount: estimatedStateTax,
         filingMethod: 'State Department of Revenue'
@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
         type: 'Form W-2',
         description: 'Employee wage statements',
         frequency: 'Annual',
-        nextDueDate: `${parseInt(year) + 1}-01-31`,
+        nextDueDate: `${Number.parseInt(year) + 1}-01-31`,
         status: 'upcoming',
         employeeCount: employees.length,
         filingMethod: 'SSA Business Services Online'
@@ -243,7 +243,7 @@ export async function GET(request: NextRequest) {
         type: 'Form 1099-NEC',
         description: 'Nonemployee compensation reporting',
         frequency: 'Annual',
-        nextDueDate: `${parseInt(year) + 1}-01-31`,
+        nextDueDate: `${Number.parseInt(year) + 1}-01-31`,
         status: 'upcoming',
         vendorCount: vendors.length,
         filingMethod: 'IRS FIRE System'

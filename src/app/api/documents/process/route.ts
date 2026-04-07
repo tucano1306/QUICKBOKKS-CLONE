@@ -121,7 +121,7 @@ function analyzeDocument(filename: string, ocrText: string): DocumentAnalysis {
     const invoiceMatch = ocrText.match(/n[uú]mero[:\s]*([A-Z0-9-]+)/i)
     
     extractedData = {
-      amount: amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 986.00,
+      amount: amountMatch ? Number.parseFloat(amountMatch[1].replace(/,/g, '')) : 986.00,
       date: dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0],
       vendor: vendorMatch ? vendorMatch[1].trim() : 'Acme Supplies Corp',
       invoiceNumber: invoiceMatch ? invoiceMatch[1] : 'FAC-2025-1234'
@@ -157,7 +157,7 @@ function analyzeDocument(filename: string, ocrText: string): DocumentAnalysis {
     const vendorMatch = ocrText.match(/establecimiento[:\s]*([^\n]+)/i)
     
     extractedData = {
-      amount: amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 80.79,
+      amount: amountMatch ? Number.parseFloat(amountMatch[1].replace(/,/g, '')) : 80.79,
       date: dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0],
       vendor: vendorMatch ? vendorMatch[1].trim() : 'QuickMart Store',
       description: 'Compra de suministros varios'
@@ -180,7 +180,7 @@ function analyzeDocument(filename: string, ocrText: string): DocumentAnalysis {
     const periodMatch = ocrText.match(/periodo[:\s]*([^\n]+)/i)
     
     extractedData = {
-      amount: balanceMatch ? parseFloat(balanceMatch[1].replace(/,/g, '')) : 72915.00,
+      amount: balanceMatch ? Number.parseFloat(balanceMatch[1].replace(/,/g, '')) : 72915.00,
       date: new Date().toISOString().split('T')[0],
       description: periodMatch ? periodMatch[1].trim() : 'Estado de cuenta mensual'
     }

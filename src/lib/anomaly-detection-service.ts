@@ -102,7 +102,7 @@ export async function detectUnusualAmounts(companyId: string, resource: 'expense
   }
   
   // Calculate statistics
-  const amounts = records.map((r: any) => parseFloat(r.amount?.toString() || r.total?.toString() || '0'));
+  const amounts = records.map((r: any) => Number.parseFloat(r.amount?.toString() || r.total?.toString() || '0'));
   const mean = amounts.reduce((sum, val) => sum + val, 0) / amounts.length;
   const variance = amounts.reduce((sum, val) => sum + (val - mean) ** 2, 0) / amounts.length;
   const stdDev = Math.sqrt(variance);
@@ -111,7 +111,7 @@ export async function detectUnusualAmounts(companyId: string, resource: 'expense
   const outliers = [];
   
   for (const record of records) {
-    const amount = parseFloat((record as any).amount?.toString() || (record as any).total?.toString() || '0');
+    const amount = Number.parseFloat((record as any).amount?.toString() || (record as any).total?.toString() || '0');
     const zScore = Math.abs((amount - mean) / stdDev);
     
     if (zScore > 3) {
@@ -164,7 +164,7 @@ export async function detectSpendingSpikes(companyId: string) {
   for (const expense of expenses) {
     const monthKey = `${expense.date.getFullYear()}-${String(expense.date.getMonth() + 1).padStart(2, '0')}`;
     const current = monthlySpending.get(monthKey) || 0;
-    monthlySpending.set(monthKey, current + parseFloat(expense.amount.toString()));
+    monthlySpending.set(monthKey, current + Number.parseFloat(expense.amount.toString()));
   }
   
   const amounts = Array.from(monthlySpending.values());
@@ -229,7 +229,7 @@ export async function detectSuspiciousVendors(companyId: string) {
     const vendor = expense.vendor || 'Unknown';
     const activity = vendorActivity.get(vendor) || { count: 0, total: 0, expenses: [] };
     activity.count++;
-    activity.total += parseFloat(expense.amount.toString());
+    activity.total += Number.parseFloat(expense.amount.toString());
     activity.expenses.push(expense);
     vendorActivity.set(vendor, activity);
   }
@@ -268,7 +268,7 @@ export async function detectSuspiciousVendors(companyId: string) {
     
     // Flag: Round numbers (potential fraud)
     const roundNumbers = activity.expenses.filter((e: any) => {
-      const amount = parseFloat(e.amount.toString());
+      const amount = Number.parseFloat(e.amount.toString());
       return amount % 100 === 0 || amount % 1000 === 0;
     }).length;
     
@@ -306,7 +306,7 @@ export async function detectMissingReceipts(companyId: string) {
     const hasReceipt = (expense as any).receiptUrl || (expense as any).attachments;
     
     if (!hasReceipt) {
-      const amount = parseFloat(expense.amount.toString());
+      const amount = Number.parseFloat(expense.amount.toString());
       const severity = amount > 1000 ? 'CRITICAL' : amount > 500 ? 'WARNING' : 'INFO';
       
       await (prisma as any).anomalyDetection.create({
@@ -357,8 +357,8 @@ export async function detectBudgetOverruns(companyId: string) {
       },
     });
     
-    const actualSpending = expenses.reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
-    const budgetAmount = parseFloat(budget.amount.toString());
+    const actualSpending = expenses.reduce((sum, e) => sum + Number.parseFloat(e.amount.toString()), 0);
+    const budgetAmount = Number.parseFloat(budget.amount.toString());
     const percentUsed = (actualSpending / budgetAmount) * 100;
     
     if (percentUsed > 90) {

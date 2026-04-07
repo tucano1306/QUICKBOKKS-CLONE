@@ -771,7 +771,7 @@ export default function ReconciliationPage() {
                         bankAccountId: formData.get('bankAccountId'),
                         startDate: formData.get('startDate'),
                         endDate: formData.get('endDate'),
-                        statementBalance: parseFloat(formData.get('statementBalance') as string) || 0,
+                        statementBalance: Number.parseFloat(formData.get('statementBalance') as string) || 0,
                       }),
                     })
                     if (response.ok) {

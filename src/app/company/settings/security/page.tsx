@@ -350,7 +350,7 @@ export default function SecuritySettingsPage() {
                 </label>
                 <select
                   value={securitySettings.minPasswordLength}
-                  onChange={(e) => setSecuritySettings({...securitySettings, minPasswordLength: parseInt(e.target.value)})}
+                  onChange={(e) => setSecuritySettings({...securitySettings, minPasswordLength: Number.parseInt(e.target.value)})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="8">8 characters</option>
@@ -366,7 +366,7 @@ export default function SecuritySettingsPage() {
                 </label>
                 <select
                   value={securitySettings.passwordExpireDays}
-                  onChange={(e) => setSecuritySettings({...securitySettings, passwordExpireDays: parseInt(e.target.value)})}
+                  onChange={(e) => setSecuritySettings({...securitySettings, passwordExpireDays: Number.parseInt(e.target.value)})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="30">30 days</option>
@@ -426,7 +426,7 @@ export default function SecuritySettingsPage() {
                 </label>
                 <select
                   value={securitySettings.preventPasswordReuse}
-                  onChange={(e) => setSecuritySettings({...securitySettings, preventPasswordReuse: parseInt(e.target.value)})}
+                  onChange={(e) => setSecuritySettings({...securitySettings, preventPasswordReuse: Number.parseInt(e.target.value)})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="0">Allow reuse</option>
@@ -455,7 +455,7 @@ export default function SecuritySettingsPage() {
                 </label>
                 <select
                   value={securitySettings.sessionTimeout}
-                  onChange={(e) => setSecuritySettings({...securitySettings, sessionTimeout: parseInt(e.target.value)})}
+                  onChange={(e) => setSecuritySettings({...securitySettings, sessionTimeout: Number.parseInt(e.target.value)})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="15">15 minutes</option>
@@ -472,7 +472,7 @@ export default function SecuritySettingsPage() {
                 </label>
                 <select
                   value={securitySettings.maxConcurrentSessions}
-                  onChange={(e) => setSecuritySettings({...securitySettings, maxConcurrentSessions: parseInt(e.target.value)})}
+                  onChange={(e) => setSecuritySettings({...securitySettings, maxConcurrentSessions: Number.parseInt(e.target.value)})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="1">1 device only</option>
@@ -524,7 +524,7 @@ export default function SecuritySettingsPage() {
                 </label>
                 <select
                   value={securitySettings.maxLoginAttempts}
-                  onChange={(e) => setSecuritySettings({...securitySettings, maxLoginAttempts: parseInt(e.target.value)})}
+                  onChange={(e) => setSecuritySettings({...securitySettings, maxLoginAttempts: Number.parseInt(e.target.value)})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="3">3 attempts</option>
@@ -539,7 +539,7 @@ export default function SecuritySettingsPage() {
                 </label>
                 <select
                   value={securitySettings.lockoutDuration}
-                  onChange={(e) => setSecuritySettings({...securitySettings, lockoutDuration: parseInt(e.target.value)})}
+                  onChange={(e) => setSecuritySettings({...securitySettings, lockoutDuration: Number.parseInt(e.target.value)})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="5">5 minutes</option>

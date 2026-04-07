@@ -219,7 +219,7 @@ export default function TPARSReportPage() {
                 <label className="text-sm font-medium">Fiscal Year</label>
                 <select
                   value={selectedYear}
-                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  onChange={(e) => setSelectedYear(Number.parseInt(e.target.value))}
                   className="mt-1 block w-full sm:w-auto border rounded-md p-2 text-sm"
                 >
                   {years.map(year => (

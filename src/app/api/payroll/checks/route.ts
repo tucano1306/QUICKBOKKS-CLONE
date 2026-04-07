@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
       const lastCheck = await (prisma as any).payrollCheck.findFirst({
         orderBy: { checkNumber: 'desc' }
       })
-      const lastNum = lastCheck ? parseInt(lastCheck.checkNumber.replace(/\D/g, '')) || 0 : 1000
+      const lastNum = lastCheck ? Number.parseInt(lastCheck.checkNumber.replace(/\D/g, '')) || 0 : 1000
       finalCheckNumber = String(lastNum + 1).padStart(6, '0')
     }
 

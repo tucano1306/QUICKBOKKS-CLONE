@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
     
     if (fiscalYear) {
-      where.fiscalYear = parseInt(fiscalYear)
+      where.fiscalYear = Number.parseInt(fiscalYear)
     }
     
     if (status) {
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         description,
-        fiscalYear: parseInt(fiscalYear),
+        fiscalYear: Number.parseInt(fiscalYear),
         startDate: startDate ? new Date(startDate) : new Date(`${fiscalYear}-01-01`),
         endDate: endDate ? new Date(endDate) : new Date(`${fiscalYear}-12-31`),
         status: 'DRAFT',

@@ -48,7 +48,7 @@ function sanitizeOrderItems(rawItems: PurchaseOrderItemInput[] = []): PurchaseOr
     const quantity = Number(item.quantity) || 0
     const unitCost = Number(item.unitCost) || 0
     if (!item.description || quantity <= 0) return
-    const totalCost = parseFloat((quantity * unitCost).toFixed(2))
+    const totalCost = Number.parseFloat((quantity * unitCost).toFixed(2))
     subtotal += totalCost
     items.push({
       inventoryItemId: item.inventoryItemId || null,
@@ -59,7 +59,7 @@ function sanitizeOrderItems(rawItems: PurchaseOrderItemInput[] = []): PurchaseOr
     })
   })
 
-  return { items, subtotal: parseFloat(subtotal.toFixed(2)) }
+  return { items, subtotal: Number.parseFloat(subtotal.toFixed(2)) }
 }
 
 async function getVendorForOrder(vendorId?: string | null, companyId?: string | null) {

@@ -101,10 +101,10 @@ export async function PUT(
     if (priority !== undefined) updateData.priority = priority
     if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null
     if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null
-    if (budget !== undefined) updateData.budget = parseFloat(budget) || 0
-    if (actualCost !== undefined) updateData.actualCost = parseFloat(actualCost) || 0
-    if (revenue !== undefined) updateData.revenue = parseFloat(revenue) || 0
-    if (progress !== undefined) updateData.progress = parseInt(progress) || 0
+    if (budget !== undefined) updateData.budget = Number.parseFloat(budget) || 0
+    if (actualCost !== undefined) updateData.actualCost = Number.parseFloat(actualCost) || 0
+    if (revenue !== undefined) updateData.revenue = Number.parseFloat(revenue) || 0
+    if (progress !== undefined) updateData.progress = Number.parseInt(progress) || 0
     if (managerId !== undefined) updateData.managerId = managerId
     if (customerId !== undefined) updateData.customerId = customerId
     if (costCenterId !== undefined) updateData.costCenterId = costCenterId

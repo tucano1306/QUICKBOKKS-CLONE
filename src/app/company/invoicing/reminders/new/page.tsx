@@ -248,7 +248,7 @@ export default function NewReminderPage() {
                   type="text"
                   className="amount-input"
                   value={days}
-                  onChange={(e) => setDays(parseInt(e.target.value) || 0)}
+                  onChange={(e) => setDays(Number.parseInt(e.target.value) || 0)}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Se enviará {days} {days === 1 ? 'día' : 'días'} {schedule === 'before_due' ? 'antes' : 'después'} del vencimiento

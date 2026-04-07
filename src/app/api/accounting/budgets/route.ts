@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
 
     const where: any = {};
-    if (fiscalYear) where.fiscalYear = parseInt(fiscalYear);
+    if (fiscalYear) where.fiscalYear = Number.parseInt(fiscalYear);
     if (status) where.status = status;
 
     const budgets = await prisma.budget.findMany({

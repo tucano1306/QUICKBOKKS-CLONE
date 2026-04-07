@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       ? new Date(String(searchParams.get('endDate')))
       : undefined
     const limitParam = searchParams.get('limit')
-    const limit = limitParam ? Math.min(parseInt(limitParam, 10) || 200, 500) : 200
+    const limit = limitParam ? Math.min(Number.parseInt(limitParam, 10) || 200, 500) : 200
 
     const result = await getPurchaseOrders(session.user.id, {
       status,

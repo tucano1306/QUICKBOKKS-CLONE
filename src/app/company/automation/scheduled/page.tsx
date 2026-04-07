@@ -447,7 +447,7 @@ export default function ScheduledTasksPage() {
         <div className="space-y-4">
           {filteredTasks.map((task) => {
             const timeUntil = getDaysUntil(task.nextRun)
-            const isUrgent = timeUntil.includes('h') || (timeUntil.includes('d') && parseInt(timeUntil) <= 1)
+            const isUrgent = timeUntil.includes('h') || (timeUntil.includes('d') && Number.parseInt(timeUntil) <= 1)
             const successRate = task.totalRuns > 0 ? (task.successfulRuns / task.totalRuns) * 100 : 100
 
             return (

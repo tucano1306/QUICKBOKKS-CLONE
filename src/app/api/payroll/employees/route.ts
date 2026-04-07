@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         position,
         department,
         hireDate: hireDate ? new Date(hireDate) : new Date(),
-        salary: parseFloat(salary),
+        salary: Number.parseFloat(salary),
         salaryType,
         taxId,
         status: 'ACTIVE',

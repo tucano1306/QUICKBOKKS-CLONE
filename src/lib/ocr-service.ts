@@ -212,7 +212,7 @@ function extractAmounts(text: string): { total: number | null; subtotal: number 
   for (const pattern of totalPatterns) {
     const match = text.match(pattern);
     if (match) {
-      total = parseFloat(match[1].replace(/,/g, ''));
+      total = Number.parseFloat(match[1].replace(/,/g, ''));
       break;
     }
   }
@@ -221,7 +221,7 @@ function extractAmounts(text: string): { total: number | null; subtotal: number 
   for (const pattern of subtotalPatterns) {
     const match = text.match(pattern);
     if (match) {
-      subtotal = parseFloat(match[1].replace(/,/g, ''));
+      subtotal = Number.parseFloat(match[1].replace(/,/g, ''));
       break;
     }
   }
@@ -230,7 +230,7 @@ function extractAmounts(text: string): { total: number | null; subtotal: number 
   for (const pattern of taxPatterns) {
     const match = text.match(pattern);
     if (match) {
-      tax = parseFloat(match[1].replace(/,/g, ''));
+      tax = Number.parseFloat(match[1].replace(/,/g, ''));
       break;
     }
   }
@@ -271,9 +271,9 @@ function extractLineItems(text: string): Array<{
     if (match) {
       lineItems.push({
         description: match[1].trim(),
-        quantity: parseInt(match[2]),
-        unitPrice: parseFloat(match[3].replace(/,/g, '')),
-        amount: parseFloat(match[4].replace(/,/g, '')),
+        quantity: Number.parseInt(match[2]),
+        unitPrice: Number.parseFloat(match[3].replace(/,/g, '')),
+        amount: Number.parseFloat(match[4].replace(/,/g, '')),
       });
     }
   }

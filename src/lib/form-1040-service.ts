@@ -1,6 +1,6 @@
 /**
  * IRS FORM 1040 SERVICE
- * 
+ *
  * Genera y calcula el Form 1040 - U.S. Individual Income Tax Return
  * Incluye todos los schedules principales y asistencia de IA
  * Soporta múltiples años fiscales (2020-2027+)
@@ -12,7 +12,7 @@ import { prisma } from './prisma';
 const TAX_BRACKETS: { [year: number]: any } = {
   2024: {
     SINGLE: [
-      { min: 0, max: 11600, rate: 0.10 },
+      { min: 0, max: 11600, rate: 0.1 },
       { min: 11600, max: 47150, rate: 0.12 },
       { min: 47150, max: 100525, rate: 0.22 },
       { min: 100525, max: 191950, rate: 0.24 },
@@ -21,7 +21,7 @@ const TAX_BRACKETS: { [year: number]: any } = {
       { min: 609350, max: Infinity, rate: 0.37 },
     ],
     MARRIED_FILING_JOINTLY: [
-      { min: 0, max: 23200, rate: 0.10 },
+      { min: 0, max: 23200, rate: 0.1 },
       { min: 23200, max: 94300, rate: 0.12 },
       { min: 94300, max: 201050, rate: 0.22 },
       { min: 201050, max: 383900, rate: 0.24 },
@@ -30,7 +30,7 @@ const TAX_BRACKETS: { [year: number]: any } = {
       { min: 731200, max: Infinity, rate: 0.37 },
     ],
     MARRIED_FILING_SEPARATELY: [
-      { min: 0, max: 11600, rate: 0.10 },
+      { min: 0, max: 11600, rate: 0.1 },
       { min: 11600, max: 47150, rate: 0.12 },
       { min: 47150, max: 100525, rate: 0.22 },
       { min: 100525, max: 191950, rate: 0.24 },
@@ -39,7 +39,7 @@ const TAX_BRACKETS: { [year: number]: any } = {
       { min: 365600, max: Infinity, rate: 0.37 },
     ],
     HEAD_OF_HOUSEHOLD: [
-      { min: 0, max: 16550, rate: 0.10 },
+      { min: 0, max: 16550, rate: 0.1 },
       { min: 16550, max: 63100, rate: 0.12 },
       { min: 63100, max: 100500, rate: 0.22 },
       { min: 100500, max: 191950, rate: 0.24 },
@@ -48,7 +48,7 @@ const TAX_BRACKETS: { [year: number]: any } = {
       { min: 609350, max: Infinity, rate: 0.37 },
     ],
     QUALIFYING_SURVIVING_SPOUSE: [
-      { min: 0, max: 23200, rate: 0.10 },
+      { min: 0, max: 23200, rate: 0.1 },
       { min: 23200, max: 94300, rate: 0.12 },
       { min: 94300, max: 201050, rate: 0.22 },
       { min: 201050, max: 383900, rate: 0.24 },
@@ -222,7 +222,7 @@ export function calculateTaxFromBrackets(
 
   for (const bracket of brackets) {
     if (remainingIncome <= 0) break;
-    
+
     const taxableInBracket = Math.min(remainingIncome, bracket.max - bracket.min);
     tax += taxableInBracket * bracket.rate;
     remainingIncome -= taxableInBracket;
@@ -246,12 +246,12 @@ export function calculateStandardDeduction(
 ): number {
   const yearDeductions = getStandardDeductionForYear(year);
   let deduction = yearDeductions[filingStatus as keyof typeof yearDeductions] || yearDeductions.SINGLE;
-  
+
   if (additionalDeductions) {
     const isMarried = filingStatus.includes('MARRIED');
     const yearAdditional = getAdditionalDeductionForYear(year);
     const additionalAmount = isMarried ? yearAdditional.MARRIED : yearAdditional.SINGLE;
-    
+
     if (additionalDeductions.youBornBefore1960) deduction += additionalAmount;
     if (additionalDeductions.youBlind) deduction += additionalAmount;
     if (additionalDeductions.spouseBornBefore1960 && isMarried) deduction += additionalAmount;
@@ -304,11 +304,11 @@ export async function autoPopulateForm1040FromCompany(
 
   const totalBusinessIncome = invoices.reduce((sum, inv) => sum + inv.total, 0);
 
-  // Get business expenses
+  // Get business expenses (include APPROVED and PAID)
   const expenses = await prisma.expense.findMany({
     where: {
       companyId,
-      status: 'APPROVED',
+      status: { in: ['APPROVED', 'PAID'] },
       date: {
         gte: yearStart,
         lte: yearEnd
@@ -370,8 +370,8 @@ export async function autoPopulateForm1040FromCompany(
       socialSecurity: 0,
       taxableSocialSecurity: 0,
       capitalGainLoss: 0,
-      otherIncome: scheduleC.netProfit, // Business income goes here
-      totalIncome: totalW2Wages + interestIncome + dividendIncome + scheduleC.netProfit
+      otherIncome: 0, // Schedule C flows separately via scheduleC section
+      totalIncome: totalW2Wages + interestIncome + dividendIncome
     },
     adjustments: {
       total: deductibleSelfEmploymentTax,
@@ -420,16 +420,23 @@ export async function saveForm1040(
     totalIncome: 0
   };
 
+  // Include Schedule C net profit in total income (flows to Line 8 via Schedule 1)
+  const scheduleCNetProfit = calculatedData.scheduleC?.netProfit || 0;
+  const fullTotalIncome = income.totalIncome + scheduleCNetProfit;
+
   const adjustments = calculatedData.adjustments?.total || 0;
-  const agi = income.totalIncome - adjustments;
-  
+  const agi = fullTotalIncome - adjustments;
+
+  // QBI deduction (Form 8995): 20% of qualified business income, cannot exceed 20% of taxable income
+  const qbiDeduction = scheduleCNetProfit > 0 ? Math.min(scheduleCNetProfit * 0.2, Math.max(0, fullTotalIncome - adjustments - standardDeduction) * 0.2) : 0;
+
   // Use standard deduction (could implement itemized later)
-  const totalDeduction = standardDeduction;
+  const totalDeduction = standardDeduction + qbiDeduction;
   const taxableIncome = Math.max(0, agi - totalDeduction);
-  
+
   // Calculate tax using the correct year
   const taxFromBrackets = calculateTaxFromBrackets(taxableIncome, input.filingStatus, input.taxYear);
-  
+
   // Self-employment tax if applicable
   let additionalTaxes = 0;
   if (calculatedData.scheduleC && calculatedData.scheduleC.netProfit > 0) {
@@ -438,17 +445,17 @@ export async function saveForm1040(
   }
 
   const totalTax = taxFromBrackets + additionalTaxes;
-  
+
   // Credits (simplified)
   const childTaxCredit = (input.dependents?.filter(d => d.childTaxCredit).length || 0) * 2000;
   const otherDependentCredit = (input.dependents?.filter(d => d.creditOtherDependents).length || 0) * 500;
   const totalCredits = childTaxCredit + otherDependentCredit;
-  
+
   const netTax = Math.max(0, totalTax - totalCredits);
-  
+
   // Payments
   const totalPayments = calculatedData.payments?.totalPayments || 0;
-  
+
   // Result
   const refund = totalPayments > netTax ? totalPayments - netTax : 0;
   const amountOwed = netTax > totalPayments ? netTax - totalPayments : 0;
@@ -494,10 +501,11 @@ export async function saveForm1040(
       line6b_taxableSocialSecurity: income.taxableSocialSecurity,
       line7_capitalGainLoss: income.capitalGainLoss,
       line8_otherIncome: income.otherIncome,
-      line9_totalIncome: income.totalIncome,
+      line9_totalIncome: fullTotalIncome,
       line10_adjustments: adjustments,
       line11_adjustedGrossIncome: agi,
-      line12_standardOrItemized: totalDeduction,
+      line12_standardOrItemized: standardDeduction,
+      line13_qbiDeduction: qbiDeduction,
       line14_totalDeductions: totalDeduction,
       line15_taxableIncome: taxableIncome,
       line16_tax: taxFromBrackets,
@@ -512,11 +520,11 @@ export async function saveForm1040(
       line33_overpayment: refund,
       line34a_refundAmount: refund,
       line36_amountYouOwe: amountOwed,
-      hasScheduleC: (calculatedData.scheduleC?.netProfit || 0) !== 0,
-      hasScheduleSE: (calculatedData.scheduleC?.netProfit || 0) > 0,
+      hasScheduleC: scheduleCNetProfit !== 0,
+      hasScheduleSE: scheduleCNetProfit > 0,
       scheduleC_grossReceipts: calculatedData.scheduleC?.grossReceipts || 0,
       scheduleC_expenses: calculatedData.scheduleC?.expenses || 0,
-      scheduleC_netProfit: calculatedData.scheduleC?.netProfit || 0,
+      scheduleC_netProfit: scheduleCNetProfit,
     },
     create: {
       userId: input.userId,
@@ -553,10 +561,11 @@ export async function saveForm1040(
       line6b_taxableSocialSecurity: income.taxableSocialSecurity,
       line7_capitalGainLoss: income.capitalGainLoss,
       line8_otherIncome: income.otherIncome,
-      line9_totalIncome: income.totalIncome,
+      line9_totalIncome: fullTotalIncome,
       line10_adjustments: adjustments,
       line11_adjustedGrossIncome: agi,
-      line12_standardOrItemized: totalDeduction,
+      line12_standardOrItemized: standardDeduction,
+      line13_qbiDeduction: qbiDeduction,
       line14_totalDeductions: totalDeduction,
       line15_taxableIncome: taxableIncome,
       line16_tax: taxFromBrackets,
@@ -571,11 +580,11 @@ export async function saveForm1040(
       line33_overpayment: refund,
       line34a_refundAmount: refund,
       line36_amountYouOwe: amountOwed,
-      hasScheduleC: (calculatedData.scheduleC?.netProfit || 0) !== 0,
-      hasScheduleSE: (calculatedData.scheduleC?.netProfit || 0) > 0,
+      hasScheduleC: scheduleCNetProfit !== 0,
+      hasScheduleSE: scheduleCNetProfit > 0,
       scheduleC_grossReceipts: calculatedData.scheduleC?.grossReceipts || 0,
       scheduleC_expenses: calculatedData.scheduleC?.expenses || 0,
-      scheduleC_netProfit: calculatedData.scheduleC?.netProfit || 0,
+      scheduleC_netProfit: scheduleCNetProfit,
     }
   });
 
@@ -593,16 +602,84 @@ export async function getForm1040(userId: string, taxYear: number) {
   });
 }
 
+function getFilingStatusThreshold(filingStatus: string): number {
+  if (filingStatus.includes('MARRIED')) return 29200;
+  if (filingStatus === 'HEAD_OF_HOUSEHOLD') return 21900;
+  return 14600;
+}
+
+// ── Tax Suggestion Helpers ──────────────────────────────────────────────────
+
+function scheduleCTaxTips(netProfit: number, taxableIncome: number): any[] {
+  const tips: any[] = [];
+  const maxSEPContribution = Math.min(netProfit * 0.2, 69000);
+  tips.push(
+    {
+      type: 'retirement',
+      title: '💼 SEP-IRA para Trabajadores Independientes',
+      description: `Como trabajador independiente con ganancia neta de $${netProfit.toFixed(2)}, puede contribuir hasta $${maxSEPContribution.toFixed(0)} a una SEP-IRA. Esta contribución reduce directamente su ingreso gravable.`,
+      potentialSavings: maxSEPContribution * 0.24
+    },
+    {
+      type: 'health',
+      title: '🏥 Deducción de Seguro de Salud',
+      description: 'Los trabajadores independientes pueden deducir el 100% de las primas de seguro de salud (medical, dental, long-term care) para usted, su cónyuge y dependientes como un ajuste al ingreso (above-the-line deduction). Esta deducción reduce su AGI y no está limitada por el 7.5% del AGI.',
+      potentialSavings: 12000 * 0.24
+    },
+    {
+      type: 'business',
+      title: '🏠 Deducción de Oficina en Casa',
+      description: 'Si usa una parte de su hogar EXCLUSIVAMENTE para negocios de manera regular, puede deducir: (1) Método simplificado: $5 por pie cuadrado hasta 300 sq ft = $1,500 max, o (2) Método real: porcentaje de hipoteca/renta, utilities, seguros, reparaciones, depreciación.',
+      potentialSavings: 1500 * 0.24
+    }
+  );
+  if (netProfit > 0 && taxableIncome < 191950) {
+    const qbiDeduction = Math.min(netProfit * 0.2, taxableIncome * 0.2);
+    tips.push({
+      type: 'business',
+      title: '📊 Deducción QBI (Qualified Business Income)',
+      description: `Puede calificar para una deducción del 20% de su ingreso calificado de negocio (QBI). Esto podría ser hasta $${qbiDeduction.toFixed(2)}. Esta deducción reduce directamente su ingreso gravable sin necesidad de gastos adicionales.`,
+      potentialSavings: qbiDeduction * 0.24
+    });
+  }
+  tips.push({
+    type: 'business',
+    title: '🚗 Deducción de Millas de Negocio',
+    description: 'Rastree TODAS las millas de negocio. En 2024, la tasa es $0.67 por milla. Si maneja 10,000 millas al año para negocios = $6,700 de deducción. Use una app como MileIQ para rastrear automáticamente.',
+    potentialSavings: 6700 * 0.24
+  });
+  return tips;
+}
+
+function dependentTaxTips(dependents: any[]): any[] {
+  const tips: any[] = [];
+  const eligibleChildren = dependents.filter((d: any) => d.childTaxCredit).length;
+  const potentialCredit = eligibleChildren * 2000;
+  if (potentialCredit > 0) {
+    tips.push({
+      type: 'credits',
+      title: '👨‍👩‍👧‍👦 Maximice Child Tax Credit',
+      description: `Tiene ${eligibleChildren} niño(s) elegible(s) para el Child Tax Credit. Asegúrese de: (1) Tener SSN válido para cada niño, (2) El niño vivió con usted 6+ meses, (3) El niño es menor de 17 años al final del año. Crédito potencial: $${potentialCredit.toLocaleString()}. Hasta $1,700 por niño es reembolsable.`,
+      potentialSavings: potentialCredit
+    });
+  }
+  tips.push({
+    type: 'credits',
+    title: '👶 Crédito por Cuidado de Dependientes',
+    description: 'Si paga por cuidado de niños menores de 13 años para poder trabajar, puede calificar para el Child and Dependent Care Credit. Hasta $3,000 en gastos por 1 niño ($6,000 por 2+). El crédito es 20-35% de los gastos según su AGI.',
+    potentialSavings: 6000 * 0.35
+  });
+  return tips;
+}
+
 /**
  * Get AI suggestions for tax optimization
  */
 export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
   const suggestions: any[] = [];
-  
-  // Safe access to fields
+
   const agi = form1040Data.line11_adjustedGrossIncome || 0;
   const taxableIncome = form1040Data.line15_taxableIncome || 0;
-  const totalTax = form1040Data.line24_totalTax || 0;
   const amountOwed = form1040Data.line36_amountYouOwe || 0;
   const refund = form1040Data.line34a_refundAmount || 0;
   const scheduleC_netProfit = form1040Data.scheduleC_netProfit || 0;
@@ -611,7 +688,11 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
   const filingStatus = form1040Data.filingStatus || 'SINGLE';
   const standardDeduction = form1040Data.line12_standardOrItemized || 0;
 
-  // Always provide general optimization tips
+  // Pre-compute to reduce nested conditions
+  const hasEarnings = w2Wages > 0 || scheduleC_netProfit > 0;
+  const hsaLimit = filingStatus.includes('MARRIED') ? 8300 : 4150;
+  const qualifiesForRoth = refund > 5000 || (agi > 0 && agi < 100000);
+
   if (agi > 0) {
     suggestions.push({
       type: 'general',
@@ -621,66 +702,28 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
     });
   }
 
-  // Retirement contribution suggestions
-  if (w2Wages > 0 || scheduleC_netProfit > 0) {
-    const totalEarnings = w2Wages + scheduleC_netProfit;
-    const iraContributionLimit = 7000; // 2024 limit ($6,500 + $1,000 catch-up if 50+)
-    
-    suggestions.push({
-      type: 'retirement',
-      title: '🏦 Contribución a IRA Tradicional',
-      description: `Puede contribuir hasta $${iraContributionLimit.toLocaleString()} a una IRA tradicional antes del 15 de abril del próximo año y reducir su AGI. Esto puede bajar su tasa impositiva efectiva y aumentar su reembolso.`,
-      potentialSavings: iraContributionLimit * 0.22 // Assuming 22% bracket
-    });
+  if (hasEarnings) {
+    const iraContributionLimit = 7000;
+    suggestions.push(
+      {
+        type: 'retirement',
+        title: '🏦 Contribución a IRA Tradicional',
+        description: `Puede contribuir hasta $${iraContributionLimit.toLocaleString()} a una IRA tradicional antes del 15 de abril del próximo año y reducir su AGI. Esto puede bajar su tasa impositiva efectiva y aumentar su reembolso.`,
+        potentialSavings: iraContributionLimit * 0.22
+      },
+      {
+        type: 'health',
+        title: '💊 Health Savings Account (HSA)',
+        description: `Si tiene un plan de salud con deducible alto (HDHP), puede contribuir hasta $${hsaLimit.toLocaleString()} a una HSA. Triple beneficio tributario: (1) Deducible al contribuir, (2) Crece sin impuestos, (3) Retiros sin impuestos para gastos médicos calificados.`,
+        potentialSavings: hsaLimit * 0.22
+      }
+    );
   }
 
-  // SEP-IRA for self-employed
   if (scheduleC_netProfit > 400) {
-    const maxSEPContribution = Math.min(scheduleC_netProfit * 0.20, 69000); // 20% for Schedule C
-    suggestions.push({
-      type: 'retirement',
-      title: '💼 SEP-IRA para Trabajadores Independientes',
-      description: `Como trabajador independiente con ganancia neta de $${scheduleC_netProfit.toFixed(2)}, puede contribuir hasta $${maxSEPContribution.toFixed(0)} a una SEP-IRA. Esta contribución reduce directamente su ingreso gravable.`,
-      potentialSavings: maxSEPContribution * 0.24
-    });
-
-    // Health insurance deduction
-    suggestions.push({
-      type: 'health',
-      title: '🏥 Deducción de Seguro de Salud',
-      description: 'Los trabajadores independientes pueden deducir el 100% de las primas de seguro de salud (medical, dental, long-term care) para usted, su cónyuge y dependientes como un ajuste al ingreso (above-the-line deduction). Esta deducción reduce su AGI y no está limitada por el 7.5% del AGI.',
-      potentialSavings: 12000 * 0.24 // Estimate $12k annual premium
-    });
-
-    // Home office deduction
-    suggestions.push({
-      type: 'business',
-      title: '🏠 Deducción de Oficina en Casa',
-      description: 'Si usa una parte de su hogar EXCLUSIVAMENTE para negocios de manera regular, puede deducir: (1) Método simplificado: $5 por pie cuadrado hasta 300 sq ft = $1,500 max, o (2) Método real: porcentaje de hipoteca/renta, utilities, seguros, reparaciones, depreciación.',
-      potentialSavings: 1500 * 0.24
-    });
-
-    // QBI Deduction
-    if (scheduleC_netProfit > 0 && taxableIncome < 191950) {
-      const qbiDeduction = Math.min(scheduleC_netProfit * 0.20, taxableIncome * 0.20);
-      suggestions.push({
-        type: 'business',
-        title: '📊 Deducción QBI (Qualified Business Income)',
-        description: `Puede calificar para una deducción del 20% de su ingreso calificado de negocio (QBI). Esto podría ser hasta $${qbiDeduction.toFixed(2)}. Esta deducción reduce directamente su ingreso gravable sin necesidad de gastos adicionales.`,
-        potentialSavings: qbiDeduction * 0.24
-      });
-    }
-
-    // Mileage tracking
-    suggestions.push({
-      type: 'business',
-      title: '🚗 Deducción de Millas de Negocio',
-      description: 'Rastree TODAS las millas de negocio. En 2024, la tasa es $0.67 por milla. Si maneja 10,000 millas al año para negocios = $6,700 de deducción. Use una app como MileIQ para rastrear automáticamente.',
-      potentialSavings: 6700 * 0.24
-    });
+    suggestions.push(...scheduleCTaxTips(scheduleC_netProfit, taxableIncome));
   }
 
-  // Estimated tax payments to avoid penalties
   if (amountOwed > 1000) {
     const penalty = amountOwed * 0.05;
     suggestions.push({
@@ -691,45 +734,12 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
     });
   }
 
-  // HSA contributions
-  if (w2Wages > 0 || scheduleC_netProfit > 0) {
-    const hsaLimit = filingStatus.includes('MARRIED') ? 8300 : 4150; // 2024 family/individual limits
-    suggestions.push({
-      type: 'health',
-      title: '💊 Health Savings Account (HSA)',
-      description: `Si tiene un plan de salud con deducible alto (HDHP), puede contribuir hasta $${hsaLimit.toLocaleString()} a una HSA. Triple beneficio tributario: (1) Deducible al contribuir, (2) Crece sin impuestos, (3) Retiros sin impuestos para gastos médicos calificados.`,
-      potentialSavings: hsaLimit * 0.22
-    });
-  }
-
-  // Child Tax Credit optimization
   if (dependents && dependents.length > 0) {
-    const eligibleChildren = dependents.filter((d: any) => d.childTaxCredit).length;
-    const potentialCredit = eligibleChildren * 2000;
-    
-    if (potentialCredit > 0) {
-      suggestions.push({
-        type: 'credits',
-        title: '👨‍👩‍👧‍👦 Maximice Child Tax Credit',
-        description: `Tiene ${eligibleChildren} niño(s) elegible(s) para el Child Tax Credit. Asegúrese de: (1) Tener SSN válido para cada niño, (2) El niño vivió con usted 6+ meses, (3) El niño es menor de 17 años al final del año. Crédito potencial: $${potentialCredit.toLocaleString()}. Hasta $1,700 por niño es reembolsable.`,
-        potentialSavings: potentialCredit
-      });
-    }
-
-    // Dependent Care Credit
-    suggestions.push({
-      type: 'credits',
-      title: '👶 Crédito por Cuidado de Dependientes',
-      description: 'Si paga por cuidado de niños menores de 13 años para poder trabajar, puede calificar para el Child and Dependent Care Credit. Hasta $3,000 en gastos por 1 niño ($6,000 por 2+). El crédito es 20-35% de los gastos según su AGI.',
-      potentialSavings: 6000 * 0.35
-    });
+    suggestions.push(...dependentTaxTips(dependents));
   }
 
-  // Itemized deductions review
   if (standardDeduction > 0) {
-    const threshold = filingStatus.includes('MARRIED') ? 29200 : 
-                      filingStatus === 'HEAD_OF_HOUSEHOLD' ? 21900 : 14600;
-    
+    const threshold = getFilingStatusThreshold(filingStatus);
     suggestions.push({
       type: 'deduction',
       title: '📋 Revise si Itemizar es Mejor',
@@ -738,7 +748,6 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
     });
   }
 
-  // Charitable contributions
   suggestions.push({
     type: 'deduction',
     title: '❤️ Donaciones Caritativas',
@@ -746,7 +755,6 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
     potentialSavings: null
   });
 
-  // Tax loss harvesting
   if (form1040Data.line7_capitalGainLoss !== undefined) {
     suggestions.push({
       type: 'investment',
@@ -756,8 +764,7 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
     });
   }
 
-  // Roth conversion strategy
-  if (refund > 5000 || (agi > 0 && agi < 100000)) {
+  if (qualifiesForRoth) {
     suggestions.push({
       type: 'retirement',
       title: '💰 Considere Conversión Roth',
@@ -766,7 +773,6 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
     });
   }
 
-  // Energy credits
   suggestions.push({
     type: 'credits',
     title: '🌞 Créditos de Energía',
@@ -774,7 +780,6 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
     potentialSavings: null
   });
 
-  // Student loan interest
   if (w2Wages > 0 && agi < 185000) {
     suggestions.push({
       type: 'deduction',
@@ -784,21 +789,21 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
     });
   }
 
-  // State and local taxes
-  suggestions.push({
-    type: 'planning',
-    title: '🏛️ Planificación de Impuestos Estatales',
-    description: 'El límite SALT (State and Local Taxes) es $10,000. Si está cerca de este límite, considere: (1) Prepagar impuestos estatales en enero, (2) Pagar impuestos de propiedad por adelantado, (3) Hacer donaciones caritativas que den créditos estatales.',
-    potentialSavings: null
-  });
-
-  // Always add final tip
-  suggestions.push({
-    type: 'general',
-    title: '📚 Consulte con un Profesional',
-    description: 'Estas sugerencias son generales. Para maximizar ahorros y asegurar cumplimiento, consulte con un CPA o Enrolled Agent. El costo de asesoría profesional ($200-500) puede ahorrarle miles en impuestos y evitar errores costosos.',
-    potentialSavings: null
-  });
+  // State and local taxes + final tip (merged)
+  suggestions.push(
+    {
+      type: 'planning',
+      title: '🏛️ Planificación de Impuestos Estatales',
+      description: 'El límite SALT (State and Local Taxes) es $10,000. Si está cerca de este límite, considere: (1) Prepagar impuestos estatales en enero, (2) Pagar impuestos de propiedad por adelantado, (3) Hacer donaciones caritativas que den créditos estatales.',
+      potentialSavings: null
+    },
+    {
+      type: 'general',
+      title: '📚 Consulte con un Profesional',
+      description: 'Estas sugerencias son generales. Para maximizar ahorros y asegurar cumplimiento, consulte con un CPA o Enrolled Agent. El costo de asesoría profesional ($200-500) puede ahorrarle miles en impuestos y evitar errores costosos.',
+      potentialSavings: null
+    }
+  );
 
   return suggestions;
 }
@@ -852,7 +857,7 @@ PAGOS
 
 RESULTADO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${form1040.line33_overpayment > 0 
+${form1040.line33_overpayment > 0
   ? `34. REEMBOLSO:                         $${form1040.line34a_refundAmount.toFixed(2)}`
   : `36. CANTIDAD ADEUDADA:                 $${form1040.line36_amountYouOwe.toFixed(2)}`}
 `;

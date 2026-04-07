@@ -44,7 +44,7 @@ export class USInvoiceService {
   
   constructor(config?: any) {
     this.smtpHost = config?.smtpHost || process.env.SMTP_HOST || 'smtp.gmail.com'
-    this.smtpPort = config?.smtpPort || parseInt(process.env.SMTP_PORT || '587')
+    this.smtpPort = config?.smtpPort || Number.parseInt(process.env.SMTP_PORT || '587')
     this.smtpUser = config?.smtpUser || process.env.SMTP_USER || ''
     this.smtpPassword = config?.smtpPassword || process.env.SMTP_PASSWORD || ''
     this.companyEmail = config?.companyEmail || process.env.COMPANY_EMAIL || ''

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,23 +22,23 @@ const TAX_RATES = {
 function calculateFederalWithholding(grossPay: number, payPeriods: number = 24): number {
   const annualSalary = grossPay * payPeriods
   let tax = 0
-  
+
   // 2025 tax brackets (Single filer, standard deduction)
   const standardDeduction = 14600
   const taxableIncome = Math.max(0, annualSalary - standardDeduction)
-  
+
   if (taxableIncome <= 11600) {
-    tax = taxableIncome * 0.10
+    tax = taxableIncome * 0.1
   } else if (taxableIncome <= 47150) {
     tax = 1160 + (taxableIncome - 11600) * 0.12
   } else if (taxableIncome <= 100525) {
     tax = 5426 + (taxableIncome - 47150) * 0.22
   } else if (taxableIncome <= 191950) {
-    tax = 17168.50 + (taxableIncome - 100525) * 0.24
+    tax = 17168.5 + (taxableIncome - 100525) * 0.24
   } else {
-    tax = 39110.50 + (taxableIncome - 191950) * 0.32
+    tax = 39110.5 + (taxableIncome - 191950) * 0.32
   }
-  
+
   return Math.round((tax / payPeriods) * 100) / 100
 }
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     // Default to current pay period if not specified
     const now = new Date()
-    const defaultPeriodStart = periodStart 
+    const defaultPeriodStart = periodStart
       ? new Date(periodStart)
       : new Date(now.getFullYear(), now.getMonth(), 16) // 16th of current month
     const defaultPeriodEnd = periodEnd
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (payrolls.length === 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         records: [],
         summary: {
           period: `${defaultPeriodStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${defaultPeriodEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
@@ -114,25 +114,25 @@ export async function GET(request: NextRequest) {
     // Calculate tax records for each payroll
     const taxRecords = payrolls.map(payroll => {
       const grossPay = payroll.grossSalary
-      
+
       // Calculate federal withholding
       const federalWithholding = calculateFederalWithholding(grossPay)
-      
+
       // Social Security (6.2% up to wage base)
       const socialSecurity = Math.min(grossPay, TAX_RATES.socialSecurityWageBase) * TAX_RATES.socialSecurity
-      
+
       // Medicare (1.45% + additional 0.9% over threshold)
       let medicare = grossPay * TAX_RATES.medicare
       if (grossPay > TAX_RATES.additionalMedicareThreshold) {
         medicare += (grossPay - TAX_RATES.additionalMedicareThreshold) * TAX_RATES.additionalMedicare
       }
-      
+
       // FUTA (employer only, 0.6% on first $7,000)
       const futaEmployer = Math.min(grossPay, TAX_RATES.futaWageBase) * TAX_RATES.futa
-      
+
       // Florida SUTA (employer only, 2.75% on first $7,000)
       const sutaEmployer = Math.min(grossPay, TAX_RATES.sutaWageBase) * TAX_RATES.suta
-      
+
       const totalWithholdings = federalWithholding + socialSecurity + medicare
       const employerContributions = socialSecurity + medicare + futaEmployer + sutaEmployer
 
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
       employees: taxRecords.length
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       records: taxRecords,
       summary
     })

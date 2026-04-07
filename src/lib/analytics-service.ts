@@ -61,7 +61,7 @@ export async function calculateKPI(
         issueDate: { gte: startDate },
       },
     });
-    current = invoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
+    current = invoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
   } else if (metric === 'expenses') {
     const expenses = await prisma.expense.findMany({
       where: {
@@ -69,7 +69,7 @@ export async function calculateKPI(
         date: { gte: startDate },
       },
     });
-    current = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
+    current = expenses.reduce((sum, exp) => sum + Number.parseFloat(exp.amount.toString()), 0);
   }
   
   const change = previous > 0 ? ((current - previous) / previous) * 100 : 0;

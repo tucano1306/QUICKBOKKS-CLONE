@@ -100,7 +100,7 @@ export async function PUT(
         data: {
           name: name || existing.name,
           description: description !== undefined ? description : existing.description,
-          fiscalYear: fiscalYear ? parseInt(fiscalYear) : existing.fiscalYear,
+          fiscalYear: fiscalYear ? Number.parseInt(fiscalYear) : existing.fiscalYear,
           startDate: startDate ? new Date(startDate) : existing.startDate,
           endDate: endDate ? new Date(endDate) : existing.endDate,
           status: status || existing.status,

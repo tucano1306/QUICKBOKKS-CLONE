@@ -1,33 +1,31 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    Building,
+    Calendar,
+    CheckCircle,
+    Copy,
+    DollarSign,
+    Download,
+    Edit,
+    Info,
+    Loader2,
+    Plus,
+    Save,
+    Trash2,
+    TrendingDown,
+    TrendingUp,
+    X
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Plus,
-  Save,
-  Download,
-  Copy,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Building,
-  Trash2,
-  Edit,
-  AlertCircle,
-  CheckCircle,
-  RefreshCw,
-  Info,
-  Loader2,
-  X
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface BudgetItem {
@@ -71,29 +69,28 @@ interface CostCenter {
 
 export default function BudgetCreatePage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [costCenters, setCostCenters] = useState<CostCenter[]>([])
   const [existingPlans, setExistingPlans] = useState<BudgetPlan[]>([])
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
-  
+
   // Form state
   const [budgetYear, setBudgetYear] = useState(new Date().getFullYear() + 1)
   const [budgetName, setBudgetName] = useState(`Presupuesto Anual ${new Date().getFullYear() + 1}`)
   const [budgetDescription, setBudgetDescription] = useState('')
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([])
   const [selectedDepartment, setSelectedDepartment] = useState('all')
-  
+
   // Modal state
   const [showItemModal, setShowItemModal] = useState(false)
   const [showCopyModal, setShowCopyModal] = useState(false)
-  const [editingItem, setEditingItem] = useState<BudgetItem | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [copySourceId, setCopySourceId] = useState<string>('')
   const [copyAdjustment, setCopyAdjustment] = useState(0)
-  
+
   // New item form
   const [newItem, setNewItem] = useState<BudgetItem>({
     category: '',
@@ -193,22 +190,22 @@ export default function BudgetCreatePage() {
   // Add or update item
   const handleSaveItem = () => {
     const itemWithTotal = updateItemBudgets(newItem)
-    
+
     if (!itemWithTotal.category) {
       toast.error('La categoría es requerida')
       return
     }
 
-    if (editingIndex !== null) {
+    if (editingIndex === null) {
+      // Add new
+      setBudgetItems([...budgetItems, itemWithTotal])
+      toast.success('Partida agregada')
+    } else {
       // Update existing
       const updated = [...budgetItems]
       updated[editingIndex] = itemWithTotal
       setBudgetItems(updated)
       toast.success('Partida actualizada')
-    } else {
-      // Add new
-      setBudgetItems([...budgetItems, itemWithTotal])
-      toast.success('Partida agregada')
     }
 
     setShowItemModal(false)
@@ -269,10 +266,10 @@ export default function BudgetCreatePage() {
 
     setSaving(true)
     try {
-      const url = selectedPlanId 
+      const url = selectedPlanId
         ? `/api/budgets/plans/${selectedPlanId}`
         : '/api/budgets/plans'
-      
+
       const response = await fetch(url, {
         method: selectedPlanId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -307,7 +304,7 @@ export default function BudgetCreatePage() {
   // Delete budget plan
   const handleDeleteBudget = async () => {
     if (!selectedPlanId) return
-    
+
     if (!confirm('¿Estás seguro de eliminar este presupuesto? Esta acción no se puede deshacer.')) {
       return
     }
@@ -480,9 +477,9 @@ export default function BudgetCreatePage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowCopyModal(true)}
               disabled={existingPlans.length === 0}
             >
@@ -511,9 +508,9 @@ export default function BudgetCreatePage() {
           <CardContent className="p-4 sm:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <p className="block text-sm font-medium text-gray-700 mb-1">
                   Nombre del Presupuesto
-                </label>
+                </p>
                 <Input
                   value={budgetName}
                   onChange={(e) => setBudgetName(e.target.value)}
@@ -521,13 +518,13 @@ export default function BudgetCreatePage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <p className="block text-sm font-medium text-gray-700 mb-1">
                   Año Fiscal
-                </label>
+                </p>
                 <select
                   value={budgetYear}
                   onChange={(e) => {
-                    setBudgetYear(parseInt(e.target.value))
+                    setBudgetYear(Number.parseInt(e.target.value))
                     if (!selectedPlanId) {
                       setBudgetName(`Presupuesto Anual ${e.target.value}`)
                     }
@@ -540,9 +537,9 @@ export default function BudgetCreatePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <p className="block text-sm font-medium text-gray-700 mb-1">
                   Filtrar por Departamento
-                </label>
+                </p>
                 <select
                   value={selectedDepartment}
                   onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -550,7 +547,7 @@ export default function BudgetCreatePage() {
                 >
                   <option value="all">Todos los Departamentos</option>
                   {departments.map(dept => (
-                    <option key={dept} value={dept!}>{dept}</option>
+                    <option key={dept} value={dept}>{dept}</option>
                   ))}
                   {costCenters.filter(cc => !departments.includes(cc.name)).map(cc => (
                     <option key={cc.id} value={cc.name}>{cc.name}</option>
@@ -558,9 +555,9 @@ export default function BudgetCreatePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <p className="block text-sm font-medium text-gray-700 mb-1">
                   Cargar Presupuesto
-                </label>
+                </p>
                 <select
                   value={selectedPlanId || ''}
                   onChange={(e) => {
@@ -583,9 +580,9 @@ export default function BudgetCreatePage() {
             </div>
             {budgetDescription !== undefined && (
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <p className="block text-sm font-medium text-gray-700 mb-1">
                   Descripción (opcional)
-                </label>
+                </p>
                 <Input
                   value={budgetDescription}
                   onChange={(e) => setBudgetDescription(e.target.value)}
@@ -773,10 +770,10 @@ export default function BudgetCreatePage() {
                     {filteredItems.map((item, index) => {
                       const realIndex = budgetItems.indexOf(item)
                       return (
-                        <tr key={index} className="hover:bg-gray-50">
+                        <tr key={item.id || `${item.category}-${item.type}-${index}`} className="hover:bg-gray-50">
                           <td className="px-3 py-3">
-                            <Badge className={item.type === 'REVENUE' 
-                              ? 'bg-green-100 text-green-700' 
+                            <Badge className={item.type === 'REVENUE'
+                              ? 'bg-green-100 text-green-700'
                               : 'bg-red-100 text-red-700'
                             }>
                               {item.type === 'REVENUE' ? 'Ingreso' : 'Gasto'}
@@ -864,9 +861,9 @@ export default function BudgetCreatePage() {
               <div>
                 <h3 className="font-semibold text-blue-900 mb-2">Sistema de Presupuestos</h3>
                 <p className="text-blue-700 text-sm">
-                  Los datos del presupuesto se guardan en la base de datos y pueden ser editados, 
-                  copiados a otros años con ajustes porcentuales, y comparados con los resultados 
-                  reales para análisis de varianzas. El estado del presupuesto puede ser: 
+                  Los datos del presupuesto se guardan en la base de datos y pueden ser editados,
+                  copiados a otros años con ajustes porcentuales, y comparados con los resultados
+                  reales para análisis de varianzas. El estado del presupuesto puede ser:
                   Borrador, Pendiente de Aprobación, Aprobado, Activo, Cerrado o Cancelado.
                 </p>
               </div>
@@ -881,7 +878,7 @@ export default function BudgetCreatePage() {
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-white">
               <h3 className="text-lg font-semibold">
-                {editingIndex !== null ? 'Editar Partida' : 'Agregar Partida'}
+                {editingIndex === null ? 'Agregar Partida' : 'Editar Partida'}
               </h3>
               <button onClick={() => { setShowItemModal(false); resetItemForm(); }}>
                 <X className="w-5 h-5" />
@@ -890,7 +887,7 @@ export default function BudgetCreatePage() {
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Tipo *</label>
+                  <p className="block text-sm font-medium mb-1">Tipo *</p>
                   <select
                     value={newItem.type}
                     onChange={(e) => setNewItem({ ...newItem, type: e.target.value as 'REVENUE' | 'EXPENSE' })}
@@ -901,7 +898,7 @@ export default function BudgetCreatePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Departamento</label>
+                  <p className="block text-sm font-medium mb-1">Departamento</p>
                   <select
                     value={newItem.department || ''}
                     onChange={(e) => setNewItem({ ...newItem, department: e.target.value || null })}
@@ -923,7 +920,7 @@ export default function BudgetCreatePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Categoría *</label>
+                  <p className="block text-sm font-medium mb-1">Categoría *</p>
                   <Input
                     value={newItem.category}
                     onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
@@ -931,7 +928,7 @@ export default function BudgetCreatePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Subcategoría</label>
+                  <p className="block text-sm font-medium mb-1">Subcategoría</p>
                   <Input
                     value={newItem.subcategory || ''}
                     onChange={(e) => setNewItem({ ...newItem, subcategory: e.target.value || null })}
@@ -939,41 +936,41 @@ export default function BudgetCreatePage() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Q1 (Ene-Mar)</label>
+                  <p className="block text-sm font-medium mb-1">Q1 (Ene-Mar)</p>
                   <Input
                     type="number"
                     value={newItem.q1Budget}
-                    onChange={(e) => setNewItem({ ...newItem, q1Budget: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setNewItem({ ...newItem, q1Budget: Number.parseFloat(e.target.value) || 0 })}
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Q2 (Abr-Jun)</label>
+                  <p className="block text-sm font-medium mb-1">Q2 (Abr-Jun)</p>
                   <Input
                     type="number"
                     value={newItem.q2Budget}
-                    onChange={(e) => setNewItem({ ...newItem, q2Budget: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setNewItem({ ...newItem, q2Budget: Number.parseFloat(e.target.value) || 0 })}
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Q3 (Jul-Sep)</label>
+                  <p className="block text-sm font-medium mb-1">Q3 (Jul-Sep)</p>
                   <Input
                     type="number"
                     value={newItem.q3Budget}
-                    onChange={(e) => setNewItem({ ...newItem, q3Budget: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setNewItem({ ...newItem, q3Budget: Number.parseFloat(e.target.value) || 0 })}
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Q4 (Oct-Dic)</label>
+                  <p className="block text-sm font-medium mb-1">Q4 (Oct-Dic)</p>
                   <Input
                     type="number"
                     value={newItem.q4Budget}
-                    onChange={(e) => setNewItem({ ...newItem, q4Budget: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setNewItem({ ...newItem, q4Budget: Number.parseFloat(e.target.value) || 0 })}
                     min="0"
                   />
                 </div>
@@ -989,7 +986,7 @@ export default function BudgetCreatePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Notas</label>
+                <p className="block text-sm font-medium mb-1">Notas</p>
                 <textarea
                   value={newItem.notes || ''}
                   onChange={(e) => setNewItem({ ...newItem, notes: e.target.value || null })}
@@ -1004,7 +1001,7 @@ export default function BudgetCreatePage() {
                 Cancelar
               </Button>
               <Button onClick={handleSaveItem}>
-                {editingIndex !== null ? 'Actualizar' : 'Agregar'}
+                {editingIndex === null ? 'Agregar' : 'Actualizar'}
               </Button>
             </div>
           </div>
@@ -1023,7 +1020,7 @@ export default function BudgetCreatePage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Presupuesto Fuente *</label>
+                <p className="block text-sm font-medium mb-1">Presupuesto Fuente *</p>
                 <select
                   value={copySourceId}
                   onChange={(e) => setCopySourceId(e.target.value)}
@@ -1038,10 +1035,10 @@ export default function BudgetCreatePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Año Destino</label>
+                <p className="block text-sm font-medium mb-1">Año Destino</p>
                 <select
                   value={budgetYear}
-                  onChange={(e) => setBudgetYear(parseInt(e.target.value))}
+                  onChange={(e) => setBudgetYear(Number.parseInt(e.target.value))}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
                   {[2024, 2025, 2026, 2027, 2028].map(year => (
@@ -1050,22 +1047,22 @@ export default function BudgetCreatePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <p className="block text-sm font-medium mb-1">
                   Ajuste Porcentual (%)
-                </label>
+                </p>
                 <Input
                   type="number"
                   value={copyAdjustment}
-                  onChange={(e) => setCopyAdjustment(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setCopyAdjustment(Number.parseFloat(e.target.value) || 0)}
                   placeholder="Ej: 5 para aumentar 5%"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Positivo para aumentar los valores, negativo para reducir. 
+                  Positivo para aumentar los valores, negativo para reducir.
                   Útil para ajustar por inflación o crecimiento proyectado.
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Nombre del Nuevo Presupuesto</label>
+                <p className="block text-sm font-medium mb-1">Nombre del Nuevo Presupuesto</p>
                 <Input
                   value={budgetName}
                   onChange={(e) => setBudgetName(e.target.value)}

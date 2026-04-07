@@ -1,35 +1,42 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCompany } from '@/contexts/CompanyContext'
 import {
-  FileSpreadsheet,
-  Upload,
-  Table,
-  BarChart3,
-  Download,
-  Trash2,
-  Eye,
-  Calculator,
-  Database,
-  Layers,
-  RefreshCw,
-  CheckCircle,
-  AlertCircle,
-  ArrowRight,
-  Search,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight
+    AlertCircle,
+    ArrowRight,
+    ArrowUpDown,
+    BarChart3,
+    Calculator,
+    CheckCircle,
+    ChevronLeft,
+    ChevronRight,
+    Database,
+    Download,
+    Eye,
+    FileSpreadsheet,
+    Layers,
+    RefreshCw,
+    Search,
+    Table,
+    Trash2,
+    Upload
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useCallback, useState } from 'react'
 import toast from 'react-hot-toast'
+
+function toStr(v: unknown): string {
+  if (v === null || v === undefined) return ''
+  if (typeof v === 'string') return v
+  if (typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint') return String(v)
+  return ''
+}
 
 // Tipos
 interface ExcelSheet {
@@ -76,9 +83,9 @@ interface DetectedType {
 }
 
 export default function ExcelManagerPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
-  
+
   const [excelFiles, setExcelFiles] = useState<ExcelFile[]>([])
   const [selectedFile, setSelectedFile] = useState<ExcelFile | null>(null)
   const [selectedSheet, setSelectedSheet] = useState<ExcelSheet | null>(null)
@@ -87,7 +94,7 @@ export default function ExcelManagerPage() {
   const [activeTab, setActiveTab] = useState('upload')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
-  
+
   // Estados para la tabla
   const [searchTerm, setSearchTerm] = useState('')
   const [sortColumn, setSortColumn] = useState<string | null>(null)
@@ -98,37 +105,37 @@ export default function ExcelManagerPage() {
   // Procesar archivo con la API
   const processFile = async (file: File) => {
     setIsProcessing(true)
-    
+
     try {
       const formData = new FormData()
       formData.append('file', file)
-      
+
       const response = await fetch('/api/tools/excel', {
         method: 'POST',
         body: formData
       })
-      
+
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.error || 'Error al procesar archivo')
       }
-      
+
       const result = await response.json()
-      
+
       setExcelFiles(prev => [...prev, result.file])
       setSelectedFile(result.file)
-      
+
       if (result.file.sheets.length > 0) {
         setSelectedSheet(result.file.sheets[0])
       }
-      
+
       setAnalysis(result.analysis)
       setDetectedType(result.detectedType)
       setActiveTab('view')
       setCurrentPage(1)
-      
+
       toast.success(`Archivo "${file.name}" cargado con ${result.file.totalRows} registros`)
-      
+
     } catch (error) {
       console.error('Error:', error)
       toast.error(error instanceof Error ? error.message : 'Error al procesar archivo')
@@ -141,12 +148,12 @@ export default function ExcelManagerPage() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    
+
     const files = Array.from(e.dataTransfer.files)
-    const excelFile = files.find(f => 
-      f.name.match(/\.(xlsx|xls|csv)$/i)
+    const excelFile = files.find(f =>
+      /\.(xlsx|xls|csv)$/i.exec(f.name)
     )
-    
+
     if (excelFile) {
       processFile(excelFile)
     } else {
@@ -165,7 +172,7 @@ export default function ExcelManagerPage() {
   // Exportar datos
   const handleExport = async () => {
     if (!selectedSheet) return
-    
+
     try {
       const response = await fetch('/api/tools/excel/export', {
         method: 'POST',
@@ -176,9 +183,9 @@ export default function ExcelManagerPage() {
           sheetName: selectedSheet.name
         })
       })
-      
+
       if (!response.ok) throw new Error('Error al exportar')
-      
+
       const blob = await response.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -186,9 +193,10 @@ export default function ExcelManagerPage() {
       a.download = `${selectedSheet.name}_export_${new Date().toISOString().split('T')[0]}.xlsx`
       a.click()
       URL.revokeObjectURL(url)
-      
+
       toast.success('Archivo exportado')
     } catch (error) {
+      console.error(error)
       toast.error('Error al exportar')
     }
   }
@@ -196,39 +204,39 @@ export default function ExcelManagerPage() {
   // Filtrar y ordenar datos
   const getFilteredData = () => {
     if (!selectedSheet) return []
-    
+
     let data = [...selectedSheet.data]
-    
+
     // Búsqueda
     if (searchTerm) {
-      data = data.filter(row => 
-        Object.values(row).some(val => 
-          String(val || '').toLowerCase().includes(searchTerm.toLowerCase())
+      data = data.filter(row =>
+        Object.values(row).some(val =>
+          toStr(val).toLowerCase().includes(searchTerm.toLowerCase())
         )
       )
     }
-    
+
     // Ordenar
     if (sortColumn) {
       data.sort((a, b) => {
         const aVal = a[sortColumn]
         const bVal = b[sortColumn]
-        
+
         if (aVal === null || aVal === undefined) return 1
         if (bVal === null || bVal === undefined) return -1
-        
+
         const aNum = Number(aVal)
         const bNum = Number(bVal)
-        
-        if (!isNaN(aNum) && !isNaN(bNum)) {
+
+        if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
           return sortDirection === 'asc' ? aNum - bNum : bNum - aNum
         }
-        
-        const comparison = String(aVal).localeCompare(String(bVal))
+
+        const comparison = toStr(aVal).localeCompare(toStr(bVal))
         return sortDirection === 'asc' ? comparison : -comparison
       })
     }
-    
+
     return data
   }
 
@@ -284,7 +292,7 @@ export default function ExcelManagerPage() {
               Carga, analiza y gestiona archivos Excel
             </p>
           </div>
-          
+
           {excelFiles.length > 0 && (
             <div className="flex gap-2">
               <Badge variant="secondary" className="px-2 sm:px-3 py-1 text-xs">
@@ -326,17 +334,18 @@ export default function ExcelManagerPage() {
               {/* Uploader */}
               <Card>
                 <CardContent className="p-6">
-                  <div
+                  <section
                     className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
-                      isDragging 
-                        ? 'border-green-500 bg-green-50' 
+                      isDragging
+                        ? 'border-green-500 bg-green-50'
                         : 'border-gray-300 hover:border-green-400 hover:bg-green-50'
                     }`}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
+                    aria-label="Zona de carga de archivos Excel"
                   >
-                    {isProcessing ? (
+                  {isProcessing ? (
                       <div className="space-y-4">
                         <RefreshCw className="w-16 h-16 mx-auto text-green-600 animate-spin" />
                         <p className="text-lg font-semibold text-gray-700">Procesando archivo...</p>
@@ -370,7 +379,7 @@ export default function ExcelManagerPage() {
                         </p>
                       </div>
                     )}
-                  </div>
+                  </section>
                 </CardContent>
               </Card>
 
@@ -390,23 +399,26 @@ export default function ExcelManagerPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {excelFiles.map((file, index) => (
+                      {excelFiles.map((file) => (
                         <div
-                          key={index}
-                          className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all ${
+                          key={file.fileName}
+                          className={`flex items-center justify-between rounded-lg border transition-all ${
                             selectedFile?.fileName === file.fileName
                               ? 'bg-green-50 border-green-300'
                               : 'bg-gray-50 hover:bg-gray-100'
                           }`}
-                          onClick={() => {
-                            setSelectedFile(file)
-                            if (file.sheets.length > 0) {
-                              setSelectedSheet(file.sheets[0])
-                            }
-                            setCurrentPage(1)
-                          }}
                         >
-                          <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            className="flex-1 flex items-center gap-3 p-4 text-left cursor-pointer"
+                            onClick={() => {
+                              setSelectedFile(file)
+                              if (file.sheets.length > 0) {
+                                setSelectedSheet(file.sheets[0])
+                              }
+                              setCurrentPage(1)
+                            }}
+                          >
                             <FileSpreadsheet className="w-10 h-10 text-green-600" />
                             <div>
                               <p className="font-semibold text-gray-900">{file.fileName}</p>
@@ -414,7 +426,7 @@ export default function ExcelManagerPage() {
                                 {file.sheets.length} hoja(s) • {file.totalRows} filas
                               </p>
                             </div>
-                          </div>
+                          </button>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
@@ -461,9 +473,9 @@ export default function ExcelManagerPage() {
                       <div className="flex items-center gap-4">
                         <span className="text-sm font-semibold">Hojas:</span>
                         <div className="flex gap-2">
-                          {selectedFile.sheets.map((sheet, index) => (
+                          {selectedFile.sheets.map((sheet) => (
                             <Button
-                              key={index}
+                              key={sheet.name}
                               variant={selectedSheet.name === sheet.name ? 'default' : 'outline'}
                               size="sm"
                               onClick={() => {
@@ -540,13 +552,13 @@ export default function ExcelManagerPage() {
                         </thead>
                         <tbody className="divide-y">
                           {paginatedData.map((row, rowIndex) => (
-                            <tr key={rowIndex} className="hover:bg-gray-50">
+                            <tr key={`row-${(currentPage - 1) * pageSize + rowIndex}`} className="hover:bg-gray-50">
                               <td className="px-4 py-2 text-sm text-gray-400">
                                 {(currentPage - 1) * pageSize + rowIndex + 1}
                               </td>
                               {selectedSheet.headers.map((header) => (
                                 <td key={header} className="px-4 py-2 text-sm text-gray-700 max-w-xs truncate">
-                                  {String(row[header] ?? '')}
+                                  {toStr(row[header])}
                                 </td>
                               ))}
                             </tr>
@@ -665,8 +677,8 @@ export default function ExcelManagerPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {analysis.numericStats.map((stat, index) => (
-                          <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                        {analysis.numericStats.map((stat) => (
+                          <div key={stat.column} className="p-4 bg-gray-50 rounded-lg">
                             <h4 className="font-semibold text-gray-700 mb-3 truncate">
                               {stat.column}
                             </h4>
@@ -713,8 +725,8 @@ export default function ExcelManagerPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y">
-                          {analysis.columns.map((col, index) => (
-                            <tr key={index} className="hover:bg-gray-50">
+                          {analysis.columns.map((col) => (
+                            <tr key={col.name} className="hover:bg-gray-50">
                               <td className="px-4 py-3 font-medium text-gray-900">{col.name}</td>
                               <td className="px-4 py-3">
                                 <Badge variant={col.type === 'number' ? 'default' : 'secondary'}>
@@ -730,7 +742,7 @@ export default function ExcelManagerPage() {
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">
-                                {col.sampleValues.slice(0, 3).map((v: unknown) => String(v)).join(', ')}
+                                {col.sampleValues.slice(0, 3).map(String).join(', ')}
                               </td>
                             </tr>
                           ))}
@@ -745,7 +757,7 @@ export default function ExcelManagerPage() {
 
           {/* Tab: Importar */}
           <TabsContent value="import" className="space-y-6">
-            <ImportSection 
+            <ImportSection
               selectedSheet={selectedSheet}
               detectedType={detectedType}
               companyId={activeCompany?.id}
@@ -758,15 +770,15 @@ export default function ExcelManagerPage() {
 }
 
 // Componente separado para la importación
-function ImportSection({ 
-  selectedSheet, 
-  detectedType, 
-  companyId 
-}: { 
+function ImportSection({
+  selectedSheet,
+  detectedType,
+  companyId
+}: Readonly<{
   selectedSheet: ExcelSheet | null
   detectedType: DetectedType | null
   companyId: string | undefined
-}) {
+}>) {
   const [importType, setImportType] = useState<string>('')
   const [isImporting, setIsImporting] = useState(false)
   const [importResult, setImportResult] = useState<{
@@ -845,11 +857,11 @@ function ImportSection({
 
     for (const field of fields) {
       const allAliases = [field.field, ...field.aliases]
-      
+
       for (const header of selectedSheet.headers) {
-        const headerLower = header.toLowerCase().replace(/[^a-z0-9]/g, '')
-        
-        if (allAliases.some(alias => headerLower.includes(alias.toLowerCase().replace(/[^a-z0-9]/g, '')))) {
+        const headerLower = header.toLowerCase().replaceAll(/[^a-z0-9]/g, '')
+
+        if (allAliases.some(alias => headerLower.includes(alias.toLowerCase().replaceAll(/[^a-z0-9]/g, '')))) {
           newMappings[header] = field.field
           break
         }
@@ -888,11 +900,11 @@ function ImportSection({
       }
 
       setImportResult(result)
-      
+
       if (result.imported > 0) {
         toast.success(`¡${result.imported} registros importados exitosamente!`)
       }
-      
+
       if (result.errors && result.errors.length > 0) {
         toast.error(`${result.errors.length} errores durante la importación`)
       }
@@ -936,8 +948,8 @@ function ImportSection({
                   Confianza: {detectedType.confidence}% - Puedes seleccionar otro tipo si es incorrecto
                 </p>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => {
                   setImportType(detectedType.type)
@@ -997,7 +1009,7 @@ function ImportSection({
             <p className="text-sm text-gray-500 mb-4">
               Indica qué columna de tu Excel corresponde a cada campo. Los campos con * son obligatorios.
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {expectedFields[importType]?.map(field => (
                 <div key={field.field} className="flex items-center gap-3">
@@ -1090,21 +1102,23 @@ function ImportSection({
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {selectedSheet.data.slice(0, 3).map((row, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
+                  {selectedSheet.data.slice(0, 3).map((row, i) => {
+                    const rowKey = selectedSheet.headers.slice(0, 3).map(h => toStr(row[h])).join('|') || `r${i}`
+                    return (
+                    <tr key={rowKey} className="hover:bg-gray-50">
                       {selectedSheet.headers.slice(0, 6).map(h => (
                         <td key={h} className="px-3 py-2 text-gray-700 truncate max-w-xs">
-                          {String(row[h] ?? '')}
+                          {toStr(row[h])}
                         </td>
                       ))}
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
 
             <div className="flex gap-3">
-              <Button 
+              <Button
                 onClick={handleImport}
                 disabled={isImporting || !companyId}
                 className="flex-1"
@@ -1167,7 +1181,7 @@ function ImportSection({
                   </h4>
                   <ul className="list-disc list-inside text-sm text-orange-700 max-h-32 overflow-y-auto">
                     {importResult.errors.slice(0, 10).map((error, i) => (
-                      <li key={i}>{error}</li>
+                      <li key={`err-${i}-${error.slice(0, 20)}`}>{error}</li>
                     ))}
                     {importResult.errors.length > 10 && (
                       <li>... y {importResult.errors.length - 10} errores más</li>

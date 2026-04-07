@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const state = searchParams.get('state') || undefined;
-    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
+    const year = searchParams.get('year') ? Number.parseInt(searchParams.get('year')!) : undefined;
 
     if (type === 'pending') {
       const filings = await getPendingFilings(session.user.id);

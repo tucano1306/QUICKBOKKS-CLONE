@@ -1,6 +1,6 @@
 /**
  * FASE 7: Sales Tax Automation Service
- * 
+ *
  * Handles multi-state sales tax compliance
  * Economic nexus determination
  * Sales tax calculation and filing
@@ -92,7 +92,7 @@ export const STATE_THRESHOLDS: StateThresholds[] = [
 export const STATE_TAX_RATES: { [key: string]: number } = {
   'FL': 0.07,    // 6% state + 1% avg local
   'CA': 0.0863,  // 7.25% state + 1.38% avg local
-  'TX': 0.0820,  // 6.25% state + 1.95% avg local
+  'TX': 0.082,  // 6.25% state + 1.95% avg local
   'NY': 0.0852,  // 4% state + 4.52% avg local
   'GA': 0.0729,  // 4% state + 3.29% avg local
   'NC': 0.0695,  // 4.75% state + 2.2% avg local
@@ -117,6 +117,36 @@ export const STATE_TAX_RATES: { [key: string]: number } = {
 /**
  * Analiza si hay nexus económico en cada estado
  */
+
+function determineNexus(sales: { total: number; count: number }, stateData: typeof STATE_THRESHOLDS[0]) {
+  let hasNexus = false;
+  let nexusType: NexusType | undefined;
+  if (sales.total >= stateData.economicThreshold) {
+    hasNexus = true;
+    nexusType = 'ECONOMIC';
+  }
+  if (stateData.hasTransactionThreshold && stateData.transactionThreshold && sales.count >= stateData.transactionThreshold) {
+    hasNexus = true;
+    nexusType = 'ECONOMIC';
+  }
+  return { hasNexus, nexusType };
+}
+
+function buildNexusRecommendation(hasNexus: boolean, pct: number, stateName: string, hasAnySales: boolean): string {
+  if (hasNexus) return `Registrarse para cobrar sales tax en ${stateName}`;
+  if (pct > 75) return `Monitorear de cerca. A punto de alcanzar nexus en ${stateName}`;
+  if (pct > 50) return `Prepararse para posible nexus en ${stateName}`;
+  if (hasAnySales) return 'Ventas por debajo del threshold. No hay obligación de nexus aún.';
+  return `Sin ventas en ${stateName}`;
+}
+
+function calcDaysUntilNexus(hasNexus: boolean, sales: { total: number }, startDate: Date, threshold: number): number | undefined {
+  if (hasNexus || sales.total === 0) return undefined;
+  const daysElapsed = Math.floor((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const remaining = threshold - sales.total;
+  return Math.ceil(remaining / (sales.total / daysElapsed));
+}
+
 export async function analyzeNexusForAllStates(
   userId: string,
   year?: number
@@ -157,52 +187,12 @@ export async function analyzeNexusForAllStates(
 
   for (const stateData of STATE_THRESHOLDS) {
     const sales = salesByState[stateData.state] || { total: 0, count: 0 };
-    
-    // Determinar si hay nexus
-    let hasNexus = false;
-    let nexusType: NexusType | undefined;
 
-    // Economic nexus por monto
-    if (sales.total >= stateData.economicThreshold) {
-      hasNexus = true;
-      nexusType = 'ECONOMIC';
-    }
-
-    // Economic nexus por transacciones (si aplica)
-    if (stateData.hasTransactionThreshold && stateData.transactionThreshold) {
-      if (sales.count >= stateData.transactionThreshold) {
-        hasNexus = true;
-        nexusType = 'ECONOMIC';
-      }
-    }
-
-    // Porcentaje del threshold
+    const { hasNexus, nexusType } = determineNexus(sales, stateData);
     const percentageOfThreshold = Math.round((sales.total / stateData.economicThreshold) * 100);
+    const daysUntilNexus = calcDaysUntilNexus(hasNexus, sales, startDate, stateData.economicThreshold);
+    const recommendation = buildNexusRecommendation(hasNexus, percentageOfThreshold, stateData.stateName, sales.total > 0);
 
-    // Estimación de días hasta alcanzar nexus
-    let daysUntilNexus: number | undefined;
-    if (!hasNexus && sales.total > 0) {
-      const daysElapsed = Math.floor((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      const dailyAverage = sales.total / daysElapsed;
-      const remaining = stateData.economicThreshold - sales.total;
-      daysUntilNexus = Math.ceil(remaining / dailyAverage);
-    }
-
-    // Recomendación
-    let recommendation = '';
-    if (hasNexus) {
-      recommendation = `Registrarse para cobrar sales tax en ${stateData.stateName}`;
-    } else if (percentageOfThreshold > 75) {
-      recommendation = `Monitorear de cerca. A punto de alcanzar nexus en ${stateData.stateName}`;
-    } else if (percentageOfThreshold > 50) {
-      recommendation = `Prepararse para posible nexus en ${stateData.stateName}`;
-    } else if (sales.total > 0) {
-      recommendation = `Ventas por debajo del threshold. No hay obligación de nexus aún.`;
-    } else {
-      recommendation = `Sin ventas en ${stateData.stateName}`;
-    }
-
-    // Solo incluir estados con ventas o nexus
     if (sales.total > 0 || hasNexus) {
       analyses.push({
         state: stateData.state,
@@ -315,7 +305,7 @@ export function calculateSalesTax(
 
   // Aproximación del breakdown (en realidad varía por condado)
   const stateTax = taxAmount * 0.85; // ~85% es tax estatal
-  const countyTax = taxAmount * 0.10; // ~10% es county
+  const countyTax = taxAmount * 0.1; // ~10% es county
   const cityTax = taxAmount * 0.03;   // ~3% es city
   const specialDistrictTax = taxAmount * 0.02; // ~2% special districts
 
@@ -373,7 +363,7 @@ export async function calculateSalesTaxReturn(
 
   invoices.forEach((invoice) => {
     grossSales += invoice.total;
-    
+
     // Asumir que todas las ventas son taxables por ahora
     // En producción, verificar campo "taxExempt" en customer o invoice
     taxableSales += invoice.subtotal;
@@ -423,7 +413,7 @@ export async function createSalesTaxFiling(
       periodStart,
       periodEnd,
       dueDate,
-      
+
       grossSales: calculations.grossSales,
       taxableSales: calculations.taxableSales,
       exemptSales: calculations.exemptSales,
@@ -431,7 +421,7 @@ export async function createSalesTaxFiling(
       taxCollected: calculations.taxCollected,
       taxDue,
       netTaxDue,
-      
+
       status: 'DRAFT',
       hasNexus: true,
       nexusType: 'ECONOMIC',
@@ -564,10 +554,7 @@ export function generateFilingSchedule(
     case 'QUARTERLY':
       // 4 filings: Q1 (Jan-Mar), Q2 (Apr-Jun), Q3 (Jul-Sep), Q4 (Oct-Dec)
       // Due: Apr 20, Jul 20, Oct 20, Jan 20 (next year)
-      dueDates.push(new Date(year, 3, 20));  // Q1
-      dueDates.push(new Date(year, 6, 20));  // Q2
-      dueDates.push(new Date(year, 9, 20));  // Q3
-      dueDates.push(new Date(year + 1, 0, 20)); // Q4
+      dueDates.push(new Date(year, 3, 20), new Date(year, 6, 20), new Date(year, 9, 20), new Date(year + 1, 0, 20));  // Q1, Q2, Q3, Q4
       break;
 
     case 'ANNUALLY':

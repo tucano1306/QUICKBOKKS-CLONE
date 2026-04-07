@@ -246,20 +246,20 @@ export default function ExpensesListPage() {
 
     // Filtro por mes y año específico
     if (filterMonth && filterYear) {
-      const month = parseInt(filterMonth)
-      const year = parseInt(filterYear)
+      const month = Number.parseInt(filterMonth)
+      const year = Number.parseInt(filterYear)
       filtered = filtered.filter(e => {
         const expenseDate = new Date(e.date)
         return expenseDate.getMonth() + 1 === month && expenseDate.getFullYear() === year
       })
     } else if (filterMonth) {
-      const month = parseInt(filterMonth)
+      const month = Number.parseInt(filterMonth)
       filtered = filtered.filter(e => {
         const expenseDate = new Date(e.date)
         return expenseDate.getMonth() + 1 === month
       })
     } else if (filterYear) {
-      const year = parseInt(filterYear)
+      const year = Number.parseInt(filterYear)
       filtered = filtered.filter(e => {
         const expenseDate = new Date(e.date)
         return expenseDate.getFullYear() === year
@@ -980,7 +980,7 @@ export default function ExpensesListPage() {
             <div className="flex items-end lg:col-span-2">
               {(filterMonth || filterYear) && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg text-sm text-blue-700">
-                  <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
+                  <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][Number.parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
                   <button 
                     onClick={() => { setFilterMonth(''); setFilterYear(''); }}
                     className="text-blue-500 hover:text-blue-700 font-medium"

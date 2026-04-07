@@ -1,16 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import {
-  autoPopulateForm1040FromCompany,
-  saveForm1040,
-  getForm1040,
-  getAITaxSuggestions,
-  calculateTaxFromBrackets,
-  calculateStandardDeduction,
-  generateForm1040Summary
+    autoPopulateForm1040FromCompany,
+    calculateStandardDeduction,
+    generateForm1040Summary,
+    getAITaxSuggestions,
+    getForm1040,
+    saveForm1040
 } from '@/lib/form-1040-service';
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+    const year = Number.parseInt(searchParams.get('year') || new Date().getFullYear().toString(), 10);
     const companyId = searchParams.get('companyId');
     const action = searchParams.get('action');
 
@@ -62,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     // Obtener Form 1040 existente
     const form1040 = await getForm1040(session.user.id, year);
-    
+
     if (!form1040) {
       // Retornar estructura vacía para nuevo formulario
       return NextResponse.json({
@@ -102,11 +101,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { 
-      taxYear, 
-      companyId, 
-      filingStatus, 
-      personalInfo, 
+    const {
+      taxYear,
+      companyId,
+      filingStatus,
+      personalInfo,
       additionalDeductions,
       dependents,
       income,
@@ -119,9 +118,9 @@ export async function POST(request: NextRequest) {
     // Si es auto-populate, obtener datos de la empresa
     if (action === 'auto-populate' && companyId) {
       const autoData = await autoPopulateForm1040FromCompany(companyId, session.user.id, taxYear);
-      
+
       // Si también hay personalInfo, guardar el formulario
-      if (personalInfo && personalInfo.firstName && personalInfo.ssn) {
+      if (personalInfo?.firstName && personalInfo?.ssn) {
         const form1040 = await saveForm1040(
           {
             userId: session.user.id,
@@ -152,14 +151,14 @@ export async function POST(request: NextRequest) {
 
     // Validar datos mínimos requeridos
     if (!taxYear || !filingStatus || !personalInfo) {
-      return NextResponse.json({ 
-        error: 'Se requiere taxYear, filingStatus y personalInfo' 
+      return NextResponse.json({
+        error: 'Se requiere taxYear, filingStatus y personalInfo'
       }, { status: 400 });
     }
 
     if (!personalInfo.firstName || !personalInfo.lastName || !personalInfo.ssn) {
-      return NextResponse.json({ 
-        error: 'personalInfo debe incluir firstName, lastName y ssn' 
+      return NextResponse.json({
+        error: 'personalInfo debe incluir firstName, lastName y ssn'
       }, { status: 400 });
     }
 
@@ -180,13 +179,13 @@ export async function POST(request: NextRequest) {
         taxableSocialSecurity: income.taxableSocialSecurity || 0,
         capitalGainLoss: income.capitalGainLoss || 0,
         otherIncome: income.otherIncome || 0,
-        totalIncome: (income.wages || 0) + 
-                     (income.taxableInterest || 0) + 
-                     (income.ordinaryDividends || 0) + 
-                     (income.taxableIRA || 0) + 
-                     (income.taxablePensions || 0) + 
-                     (income.taxableSocialSecurity || 0) + 
-                     (income.capitalGainLoss || 0) + 
+        totalIncome: (income.wages || 0) +
+                     (income.taxableInterest || 0) +
+                     (income.ordinaryDividends || 0) +
+                     (income.taxableIRA || 0) +
+                     (income.taxablePensions || 0) +
+                     (income.taxableSocialSecurity || 0) +
+                     (income.capitalGainLoss || 0) +
                      (income.otherIncome || 0)
       };
     }
@@ -202,10 +201,10 @@ export async function POST(request: NextRequest) {
         earnedIncomeCredit: payments.earnedIncomeCredit || 0,
         additionalChildCredit: payments.additionalChildCredit || 0,
         otherPayments: payments.otherPayments || 0,
-        totalPayments: (payments.withholding || 0) + 
-                       (payments.estimatedPayments || 0) + 
-                       (payments.earnedIncomeCredit || 0) + 
-                       (payments.additionalChildCredit || 0) + 
+        totalPayments: (payments.withholding || 0) +
+                       (payments.estimatedPayments || 0) +
+                       (payments.earnedIncomeCredit || 0) +
+                       (payments.additionalChildCredit || 0) +
                        (payments.otherPayments || 0)
       };
     }
@@ -260,7 +259,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const year = parseInt(searchParams.get('year') || '0');
+    const year = Number.parseInt(searchParams.get('year') || '0', 10);
 
     if (!year) {
       return NextResponse.json({ error: 'Se requiere el año' }, { status: 400 });

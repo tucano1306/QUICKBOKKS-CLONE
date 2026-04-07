@@ -463,7 +463,7 @@ async function importVendors(
         orderBy: { vendorNumber: 'desc' }
       })
       const nextNumber = lastVendor 
-        ? String(parseInt(lastVendor.vendorNumber.replace(/\D/g, '') || '0') + 1).padStart(6, '0')
+        ? String(Number.parseInt(lastVendor.vendorNumber.replace(/\D/g, '') || '0') + 1).padStart(6, '0')
         : '000001'
       const vendorNumber = `VND-${nextNumber}`
 
@@ -559,7 +559,7 @@ async function importInvoices(
         orderBy: { invoiceNumber: 'desc' }
       })
       const nextNumber = lastInvoice 
-        ? String(parseInt(lastInvoice.invoiceNumber.replace(/\D/g, '') || '0') + 1).padStart(6, '0')
+        ? String(Number.parseInt(lastInvoice.invoiceNumber.replace(/\D/g, '') || '0') + 1).padStart(6, '0')
         : '000001'
 
       await prisma.invoice.create({
@@ -658,7 +658,7 @@ function getNumber(
   const str = getString(row, mappings, possibleKeys)
   if (str) {
     const cleaned = str.replace(/[$€£¥,\s]/g, '').replace(',', '.')
-    const num = parseFloat(cleaned)
+    const num = Number.parseFloat(cleaned)
     if (!isNaN(num) && (allowZero || num > 0)) return num
   }
   
@@ -682,7 +682,7 @@ function getNumber(
         // Si es string, intentar convertir
         if (value !== null && value !== undefined && value !== '') {
           const cleaned = String(value).replace(/[$€£¥,\s]/g, '').replace(',', '.')
-          const num = parseFloat(cleaned)
+          const num = Number.parseFloat(cleaned)
           if (!isNaN(num) && (allowZero || num > 0)) return num
         }
       }
@@ -707,7 +707,7 @@ function getNumber(
       const strValue = String(value).trim()
       // Limpiar símbolos de moneda y separadores
       const cleaned = strValue.replace(/[$€£¥,\s]/g, '').replace(',', '.')
-      const num = parseFloat(cleaned)
+      const num = Number.parseFloat(cleaned)
       if (!isNaN(num) && (allowZero || num > 0)) {
         numericValues.push({ key: rowKey, value: num })
       }

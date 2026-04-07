@@ -81,7 +81,7 @@ export async function PUT(
       }
     }
 
-    const newAmount = amount ? parseFloat(amount) : undefined;
+    const newAmount = amount ? Number.parseFloat(amount) : undefined;
 
     const expense = await prisma.expense.update({
       where: { id: params.id },

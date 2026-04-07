@@ -136,14 +136,14 @@ export default function TransactionsPage() {
         const transYear = transDate.getUTCFullYear()
         
         if (filterMonth && filterYear) {
-          const month = parseInt(filterMonth)
-          const year = parseInt(filterYear)
+          const month = Number.parseInt(filterMonth)
+          const year = Number.parseInt(filterYear)
           if (transMonth !== month || transYear !== year) return false
         } else if (filterMonth) {
-          const month = parseInt(filterMonth)
+          const month = Number.parseInt(filterMonth)
           if (transMonth !== month) return false
         } else if (filterYear) {
-          const year = parseInt(filterYear)
+          const year = Number.parseInt(filterYear)
           if (transYear !== year) return false
         }
       }
@@ -586,7 +586,7 @@ export default function TransactionsPage() {
               <div className="flex items-end lg:col-span-2">
                 {(filterMonth || filterYear) && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg text-sm text-green-700">
-                    <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
+                    <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][Number.parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
                     <button 
                       onClick={() => { setFilterMonth(''); setFilterYear(''); }}
                       className="text-green-500 hover:text-green-700 font-medium"

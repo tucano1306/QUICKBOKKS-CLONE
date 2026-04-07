@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     const method = searchParams.get('method')
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const page = Number.parseInt(searchParams.get('page') || '1')
+    const limit = Number.parseInt(searchParams.get('limit') || '50')
     const skip = (page - 1) * limit
 
     const where: any = {}

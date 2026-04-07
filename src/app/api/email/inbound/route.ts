@@ -105,7 +105,7 @@ function extractBasicData(email: InboundEmail): Record<string, unknown> {
   // Buscar montos en el cuerpo
   const amountMatch = email.body.match(/\$[\d,]+\.?\d*/g)
   if (amountMatch) {
-    data.detectedAmounts = amountMatch.map(a => parseFloat(a.replace(/[$,]/g, '')))
+    data.detectedAmounts = amountMatch.map(a => Number.parseFloat(a.replace(/[$,]/g, '')))
   }
   
   // Buscar fechas
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Procesar adjuntos si vienen en el form
-      const attachmentCount = parseInt(formData.get('attachment-count') as string || '0')
+      const attachmentCount = Number.parseInt(formData.get('attachment-count') as string || '0')
       for (let i = 1; i <= attachmentCount; i++) {
         const file = formData.get(`attachment-${i}`) as File
         if (file) {

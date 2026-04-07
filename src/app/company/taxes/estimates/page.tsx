@@ -426,7 +426,7 @@ export default function TaxEstimatesPage() {
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg"><div className="text-sm font-semibold text-blue-900 mb-1">Q1 {selectedYear}</div><div className="text-lg font-bold text-blue-600">April 15</div><div className="text-xs text-blue-700 mt-1">Jan 1 - Mar 31</div></div>
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg"><div className="text-sm font-semibold text-green-900 mb-1">Q2 {selectedYear}</div><div className="text-lg font-bold text-green-600">June 15</div><div className="text-xs text-green-700 mt-1">Apr 1 - May 31</div></div>
               <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg"><div className="text-sm font-semibold text-purple-900 mb-1">Q3 {selectedYear}</div><div className="text-lg font-bold text-purple-600">Sept 15</div><div className="text-xs text-purple-700 mt-1">Jun 1 - Aug 31</div></div>
-              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg"><div className="text-sm font-semibold text-orange-900 mb-1">Q4 {selectedYear}</div><div className="text-lg font-bold text-orange-600">Jan 15, {parseInt(selectedYear) + 1}</div><div className="text-xs text-orange-700 mt-1">Sep 1 - Dec 31</div></div>
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg"><div className="text-sm font-semibold text-orange-900 mb-1">Q4 {selectedYear}</div><div className="text-lg font-bold text-orange-600">Jan 15, {Number.parseInt(selectedYear) + 1}</div><div className="text-xs text-orange-700 mt-1">Sep 1 - Dec 31</div></div>
             </div>
           </CardContent>
         </Card>

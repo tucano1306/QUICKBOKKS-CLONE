@@ -185,7 +185,7 @@ export async function generateForm941(
   payrolls.forEach(payroll => {
     employeeSet.add(payroll.employeeId);
 
-    const grossPay = parseFloat(payroll.grossSalary.toString());
+    const grossPay = Number.parseFloat(payroll.grossSalary.toString());
     totalWages += grossPay;
 
     // Impuesto federal retenido (aproximación 15% de deducciones)
@@ -325,7 +325,7 @@ export async function generateForm940(
 
   payrolls.forEach(payroll => {
     const employeeId = payroll.employeeId;
-    const grossPay = parseFloat(payroll.grossSalary.toString());
+    const grossPay = Number.parseFloat(payroll.grossSalary.toString());
     
     totalPayments += grossPay;
 
@@ -455,7 +455,7 @@ export async function generateRT6(
 
   payrolls.forEach(payroll => {
     const employeeId = payroll.employeeId;
-    const grossPay = parseFloat(payroll.grossSalary.toString());
+    const grossPay = Number.parseFloat(payroll.grossSalary.toString());
     
     if (!employeeWages[employeeId]) {
       employeeWages[employeeId] = {
@@ -599,7 +599,7 @@ export async function generateW2(
   let ssWagesYTD = 0;
 
   payrolls.forEach(payroll => {
-    const grossPay = parseFloat(payroll.grossSalary.toString());
+    const grossPay = Number.parseFloat(payroll.grossSalary.toString());
     totalWages += grossPay;
     stateWages += grossPay;
 

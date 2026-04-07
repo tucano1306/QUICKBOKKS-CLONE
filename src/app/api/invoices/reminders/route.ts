@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
         reminderNumber: reminderNumber || 1,
         sentDate: new Date(),
         dueDate: new Date(dueDate),
-        amount: parseFloat(amount),
+        amount: Number.parseFloat(amount),
         status: 'PENDING',
         emailSent: false,
         notes,

@@ -149,7 +149,7 @@ async function handleRevenueQuery(companyId: string, message: string): Promise<C
     },
   });
   
-  const totalRevenue = invoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
+  const totalRevenue = invoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
   const avgInvoice = invoices.length > 0 ? totalRevenue / invoices.length : 0;
   
   return {
@@ -183,12 +183,12 @@ async function handleExpenseQuery(companyId: string, message: string): Promise<C
     },
   });
   
-  const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
+  const totalExpenses = expenses.reduce((sum, exp) => sum + Number.parseFloat(exp.amount.toString()), 0);
   
   // Group by category
   const byCategory = expenses.reduce((acc: any, exp) => {
     const category = exp.categoryId || 'Uncategorized';
-    acc[category] = (acc[category] || 0) + parseFloat(exp.amount.toString());
+    acc[category] = (acc[category] || 0) + Number.parseFloat(exp.amount.toString());
     return acc;
   }, {});
   
@@ -231,10 +231,10 @@ async function handleInvoiceQuery(companyId: string, message: string): Promise<C
     },
   });
   
-  const totalUnpaid = unpaidInvoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
+  const totalUnpaid = unpaidInvoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
   
   const overdue = unpaidInvoices.filter(inv => inv.dueDate < new Date());
-  const totalOverdue = overdue.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
+  const totalOverdue = overdue.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
   
   return {
     message: `📄 **Invoice Summary**\n\n` +
@@ -276,8 +276,8 @@ async function handleCashFlowQuery(companyId: string, message: string): Promise<
     },
   });
   
-  const inflow = invoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
-  const outflow = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
+  const inflow = invoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
+  const outflow = expenses.reduce((sum, exp) => sum + Number.parseFloat(exp.amount.toString()), 0);
   const netFlow = inflow - outflow;
   
   return {
@@ -323,8 +323,8 @@ async function handleTaxQuery(companyId: string, message: string): Promise<ChatR
     },
   });
   
-  const revenue = invoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
-  const deductions = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
+  const revenue = invoices.reduce((sum, inv) => sum + Number.parseFloat(inv.total.toString()), 0);
+  const deductions = expenses.reduce((sum, exp) => sum + Number.parseFloat(exp.amount.toString()), 0);
   const taxableIncome = revenue - deductions;
   const estimatedTax = taxableIncome * 0.25; // Simplified 25% rate
   

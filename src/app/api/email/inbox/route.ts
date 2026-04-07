@@ -142,7 +142,7 @@ function detectDocumentType(subject: string, body: string): string {
 // Extraer montos del texto
 function extractAmounts(text: string): number[] {
   const matches = text.match(/\$[\d,]+\.?\d*/g) || []
-  return matches.map(m => parseFloat(m.replace(/[$,]/g, ''))).filter(n => !isNaN(n))
+  return matches.map(m => Number.parseFloat(m.replace(/[$,]/g, ''))).filter(n => !isNaN(n))
 }
 
 // GET - Obtener emails para una empresa

@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('endDate')
     const type = searchParams.get('type') // 'internal' | 'external' | 'all'
     const status = searchParams.get('status') // 'pending' | 'completed' | 'cancelled'
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const limit = Number.parseInt(searchParams.get('limit') || '50')
 
     // Get transfers - transactions categorized as transfers
     const whereClause: any = {
