@@ -581,8 +581,7 @@ async function getCategoriesResponse(companyId: string) {
     else if (uncategorized.length > 0) categSuggestion = 'Tienes algunas transacciones pendientes de categorizar.'
 
     return {
-
-**Transacciones Totales:** ${total}
+      content: `**Transacciones Totales:** ${total}
 - Categorizadas: ${categorizedCount} (${accuracy}%)
 - Pendientes de revisión: ${uncategorized.length}
 

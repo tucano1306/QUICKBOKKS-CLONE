@@ -429,8 +429,9 @@ export default function TaxDeductionsPage() {
       </div>
 
       {showAddModal && (
-        <div role="presentation" className="qb-modal-overlay" onClick={() => setShowAddModal(false)} onKeyDown={(e) => e.key === 'Escape' && setShowAddModal(false)}>
-          <div role="dialog" aria-modal="true" className="qb-modal max-w-md" onClick={(e) => e.stopPropagation()}
+        <div className="qb-modal-overlay" onClick={() => setShowAddModal(false)} onKeyDown={(e) => e.key === 'Escape' && setShowAddModal(false)} aria-hidden="true">
+          <dialog open aria-modal="true" aria-label="Nueva Deducción" className="qb-modal max-w-md">
+            <form method="dialog" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && setShowAddModal(false)}>
             <div className="qb-modal-header">
               <h2 className="qb-modal-title">Nueva Deducción</h2>
               <button className="qb-modal-close" onClick={() => setShowAddModal(false)}>
@@ -466,7 +467,8 @@ export default function TaxDeductionsPage() {
               <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancelar</Button>
               <Button variant="success" onClick={() => { setShowAddModal(false); fetchDeductions() }}><Save className="w-4 h-4 mr-2" />Guardar</Button>
             </div>
-          </div>
+            </form>
+          </dialog>
         </div>
       )}
     </CompanyTabsLayout>

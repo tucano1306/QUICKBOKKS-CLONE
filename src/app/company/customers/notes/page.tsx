@@ -488,7 +488,6 @@ export default function CustomerNotesPage() {
               className={`hover:shadow-lg transition cursor-pointer ${
                 note.isPinned ? 'border-2 border-purple-300 bg-purple-50/30' : ''
               }`}
-              onClick={() => setSelectedNote(note)}
             >
               <CardContent className="p-5">
                 {/* Header */}
