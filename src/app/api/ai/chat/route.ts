@@ -7,11 +7,11 @@ import OpenAI from 'openai'
 
 export const dynamic = 'force-dynamic'
 
-// Inicializar cliente OpenAI
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-let openai: OpenAI | null = null;
-if (OPENAI_API_KEY) {
-  openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// Inicializar cliente OpenAI de forma lazy (dentro del request para leer env vars correctamente)
+function getOpenAIClient(): OpenAI | null {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return null;
+  return new OpenAI({ apiKey: key });
 }
 
 // System prompt con conocimiento de la aplicación
@@ -116,6 +116,7 @@ export async function POST(req: NextRequest) {
     console.log('[AI] 👤 Usuario:', userId, '| Compañía:', activeCompanyId);
     console.log('═══════════════════════════════════════════════════════════════');
 
+    const openai = getOpenAIClient();
     if (!openai) {
       return NextResponse.json({
         success: true,
@@ -127,8 +128,8 @@ export async function POST(req: NextRequest) {
     // Obtener contexto del negocio
     const context = await getBusinessContext(activeCompanyId);
 
-    // Llamar a Groq con Function Calling
-    const response = await callGroqWithTools(message, context, userId, activeCompanyId);
+    // Llamar a GPT-4o con Function Calling
+    const response = await callGroqWithTools(openai, message, context, userId, activeCompanyId);
 
     return NextResponse.json({
       success: true,
@@ -153,6 +154,7 @@ export async function POST(req: NextRequest) {
  * Llamar a Groq con Function Calling (Tool Use)
  */
 async function callGroqWithTools(
+  client: OpenAI,
   message: string,
   context: string,
   userId: string,
@@ -165,9 +167,6 @@ async function callGroqWithTools(
 📋 DATOS ACTUALES DEL NEGOCIO:
 ═══════════════════════════════════════════════════════════════
 ${context}`;
-
-  if (!openai) throw new Error('OpenAI client not initialized');
-  const client = openai;
 
   console.log('[AI] 🚀 Llamando a OpenAI GPT-4o con Function Calling...');
 
