@@ -371,7 +371,13 @@
     "Utilidad",
     "Sugerencias", "contextuales", "basadas", "realizada",
     "otro", "gané", "deuda",
-    "Comparar", "Mejores", "reporte"
+    "Comparar", "Mejores", "reporte",
+    "llenar", "Llenar", "Llena",
+    "fiscales", "Fiscales",
+    "impuestos", "Impuestos",
+    "completar", "Completar",
+    "preparar", "Preparar", "Prepara",
+    "pide", "debo"
   ],
   "ignorePaths": [
     "node_modules/**",
