@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { AI_TOOLS, executeToolCall } from '@/lib/ai-tools'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import Groq from 'groq-sdk'
-import { AI_TOOLS, executeToolCall } from '@/lib/ai-tools'
+import { getServerSession } from 'next-auth'
+import { NextRequest, NextResponse } from 'next/server'
+import OpenAI from 'openai'
 
 export const dynamic = 'force-dynamic'
 
-// Inicializar cliente Groq
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-let groq: Groq | null = null;
-if (GROQ_API_KEY) {
-  groq = new Groq({ apiKey: GROQ_API_KEY });
+// Inicializar cliente OpenAI
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+let openai: OpenAI | null = null;
+if (OPENAI_API_KEY) {
+  openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 }
 
 // System prompt con conocimiento de la aplicación
@@ -62,7 +62,7 @@ REGLAS DE USO DE HERRAMIENTAS:
   - Asientos contables automáticos (Journal Entries)
   - Relación con el Plan de Cuentas
 
-- Categorías disponibles: Combustible, Seguro, Mantenimiento, Salarios, Alquiler, 
+- Categorías disponibles: Combustible, Seguro, Mantenimiento, Salarios, Alquiler,
   Servicios, Permisos, Peajes, Repuestos, Vehiculo, Oficina, Marketing, Viajes, Otros
 
 ═══════════════════════════════════════════════════════════════
@@ -98,7 +98,7 @@ Usuario: "¿Cómo registro una factura?"
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -116,20 +116,20 @@ export async function POST(req: NextRequest) {
     console.log('[AI] 👤 Usuario:', userId, '| Compañía:', activeCompanyId);
     console.log('═══════════════════════════════════════════════════════════════');
 
-    if (!groq) {
+    if (!openai) {
       return NextResponse.json({
         success: true,
-        response: '⚠️ IA no configurada. Configura GROQ_API_KEY en .env.local',
+        response: '⚠️ IA no configurada. Configura OPENAI_API_KEY en .env.local',
         timestamp: new Date().toISOString()
       });
     }
 
     // Obtener contexto del negocio
     const context = await getBusinessContext(activeCompanyId);
-    
+
     // Llamar a Groq con Function Calling
     const response = await callGroqWithTools(message, context, userId, activeCompanyId);
-    
+
     return NextResponse.json({
       success: true,
       response: response.text,
@@ -153,12 +153,12 @@ export async function POST(req: NextRequest) {
  * Llamar a Groq con Function Calling (Tool Use)
  */
 async function callGroqWithTools(
-  message: string, 
-  context: string, 
-  userId: string, 
+  message: string,
+  context: string,
+  userId: string,
   companyId: string
 ): Promise<{ text: string; toolUsed?: string }> {
-  
+
   const systemWithContext = `${SYSTEM_PROMPT}
 
 ═══════════════════════════════════════════════════════════════
@@ -166,11 +166,14 @@ async function callGroqWithTools(
 ═══════════════════════════════════════════════════════════════
 ${context}`;
 
-  console.log('[AI] 🚀 Llamando a Groq con Function Calling...');
+  if (!openai) throw new Error('OpenAI client not initialized');
+  const client = openai;
+
+  console.log('[AI] 🚀 Llamando a OpenAI GPT-4o con Function Calling...');
 
   // Primera llamada - el modelo decide si usar herramientas
-  const completion = await groq!.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+  const completion = await client.chat.completions.create({
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: systemWithContext },
       { role: 'user', content: message }
@@ -182,26 +185,26 @@ ${context}`;
   });
 
   const responseMessage = completion.choices[0]?.message;
-  
+
   // Verificar si el modelo quiere usar herramientas
   if (responseMessage?.tool_calls && responseMessage.tool_calls.length > 0) {
     console.log('[AI] 🔧 Modelo decidió usar herramientas:', responseMessage.tool_calls.map(t => t.function.name));
-    
+
     // Ejecutar cada herramienta que el modelo pidió
     const toolResults: Array<{ toolCallId: string; result: string }> = [];
     let mainToolUsed = '';
-    
+
     for (const toolCall of responseMessage.tool_calls) {
       const functionName = toolCall.function.name;
       const args = JSON.parse(toolCall.function.arguments);
-      
+
       console.log(`[AI] ⚡ Ejecutando: ${functionName}`, args);
       mainToolUsed = functionName;
-      
+
       const result = await executeToolCall(functionName, args, userId, companyId);
-      
+
       console.log(`[AI] ✅ Resultado:`, result.success ? 'Exitoso' : 'Error');
-      
+
       toolResults.push({
         toolCallId: toolCall.id,
         result: result.result
@@ -212,13 +215,13 @@ ${context}`;
     const messages: any[] = [
       { role: 'system', content: systemWithContext },
       { role: 'user', content: message },
-      { 
-        role: 'assistant', 
+      {
+        role: 'assistant',
         content: null,
-        tool_calls: responseMessage.tool_calls 
+        tool_calls: responseMessage.tool_calls
       }
     ];
-    
+
     // Agregar resultados de cada herramienta
     for (const result of toolResults) {
       messages.push({
@@ -228,15 +231,15 @@ ${context}`;
       });
     }
 
-    const finalCompletion = await groq!.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const finalCompletion = await client.chat.completions.create({
+      model: 'gpt-4o',
       messages,
       temperature: 0.5,
       max_tokens: 1000
     });
 
     const finalText = finalCompletion.choices[0]?.message?.content || toolResults[0]?.result;
-    
+
     return { text: finalText, toolUsed: mainToolUsed };
   }
 
@@ -263,11 +266,11 @@ async function getBusinessContext(companyId: string): Promise<string> {
     const invoiceRevenue = invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + (i.total || 0), 0);
     const transactionIncome = transactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + (t.amount || 0), 0);
     const totalRevenue = invoiceRevenue + transactionIncome;
-    
+
     const expenseTotal = expenses._sum.amount || 0;
     const transactionExpense = transactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + (t.amount || 0), 0);
     const totalExpenses = expenseTotal + transactionExpense;
-    
+
     const pending = invoices.filter(i => i.status === 'SENT' || i.status === 'OVERDUE');
 
     return `
@@ -292,7 +295,7 @@ function getSuggestions(toolUsed?: string): string[] {
     'Registrar un ingreso',
     '¿Cuánto gasté este mes?'
   ];
-  
+
   switch (toolUsed) {
     case 'crear_gasto':
       return [
@@ -301,7 +304,7 @@ function getSuggestions(toolUsed?: string): string[] {
         'Ver gastos por categoría',
         '¿Cómo va mi negocio?'
       ];
-    
+
     case 'crear_ingreso':
       return [
         '¿Cuánto gané este mes?',
@@ -309,7 +312,7 @@ function getSuggestions(toolUsed?: string): string[] {
         'Crear factura',
         'Ver clientes con deuda'
       ];
-    
+
     case 'consultar_gastos':
     case 'consultar_ingresos':
       return [
@@ -318,7 +321,7 @@ function getSuggestions(toolUsed?: string): string[] {
         'Ingresos por cliente',
         'Comparar con mes anterior'
       ];
-    
+
     case 'resumen_financiero':
       return [
         'Ver facturas pendientes',
@@ -326,7 +329,7 @@ function getSuggestions(toolUsed?: string): string[] {
         'Mejores clientes',
         'Exportar reporte'
       ];
-    
+
     default:
       return baseSuggestions;
   }
