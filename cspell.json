@@ -438,7 +438,12 @@
     "operación", "recomienda", "mantener", "mínimo",
     "Acelerar", "reducir", "esenciales", "términos",
     "respaldo", "Establecer",
-    "Automatización", "repetitivos", "Automatizar"
+    "Automatización", "repetitivos", "Automatizar",
+    "Contactar", "errores", "recurrentes", "plantillas", "calendarios",
+    "Activar", "cobros", "Monitorear", "necesidad",
+    "Estimado", "Ahorrado", "recomendaciones", "inteligentes",
+    "Actualiza", "recomendación", "implementación", "completa",
+    "guardaríamos", "esto", "ahora", "retornamos"
   ],
   "ignorePaths": [
     "node_modules/**",
