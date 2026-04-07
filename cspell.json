@@ -402,7 +402,19 @@
     "estimados", "trimestrales", "turbotax",
     "Procesamiento", "Usuarios", "Integraciones", "Monedas",
     "pida", "explica", "requiere", "indica",
-    "Cuántos", "tengo"
+    "Cuántos", "tengo",
+    "selección", "múltiple", "múltiples",
+    "Formulario", "Organizar", "organizar",
+    "estructura", "jerárquica", "jerarquía",
+    "mapa", "Ordenar", "accs",
+    "Debes", "creada", "Eliminar", "eliminar", "eliminada",
+    "Estás", "deshacer",
+    "visibles", "Saldo", "Pasivo", "Pasivos",
+    "Filtrar", "búsqueda",
+    "estadísticas", "conectado",
+    "Deseleccionar",
+    "encontraron", "criterio", "registradas",
+    "Efectivo", "Nivel", "asociados"
   ],
   "ignorePaths": [
     "node_modules/**",
