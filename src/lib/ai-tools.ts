@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { createExpenseWithJE, createTransactionWithJE } from '@/lib/accounting-service';
+import { autoPopulateForm1040FromCompany } from '@/lib/form-1040-service';
 
 /**
  * Parsear fecha correctamente desde diferentes formatos
@@ -16,12 +17,12 @@ function parseDate(dateStr: string | null | undefined): Date {
   if (!dateStr) return new Date();
   
   // Si viene en formato YYYY-MM-DD
-  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+  if (/^\d{4}-\d{2}-\d{2}$/.exec(dateStr)) {
     const [year, month, day] = dateStr.split('-').map(Number);
     return new Date(year, month - 1, day, 12, 0, 0);
   } 
   // Si viene en formato MM/DD/YYYY (formato americano)
-  else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+  else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.exec(dateStr)) {
     const [month, day, year] = dateStr.split('/').map(Number);
     return new Date(year, month - 1, day, 12, 0, 0);
   }
@@ -251,6 +252,23 @@ export const AI_TOOLS = [
   {
     type: "function" as const,
     function: {
+      name: "llenar_formularios_fiscales",
+      description: "Llena automáticamente el Form 1040 y formularios fiscales usando los datos de la empresa (ingresos, gastos, facturas pagadas). Úsalo cuando el usuario pida llenar, completar, preparar o calcular sus impuestos o formularios fiscales.",
+      parameters: {
+        type: "object",
+        properties: {
+          year: {
+            type: "number",
+            description: "Año fiscal a calcular (ej: 2024, 2025). Si no se especifica, usar el año actual."
+          }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: "function" as const,
+    function: {
       name: "crear_factura",
       description: "Crea una nueva factura para un cliente.",
       parameters: {
@@ -324,6 +342,9 @@ export async function executeToolCall(
       
       case 'crear_factura':
         return await ejecutarCrearFactura(args as any, userId, companyId);
+      
+      case 'llenar_formularios_fiscales':
+        return await ejecutarLlenarFormulariosFiscales(args as any, userId, companyId);
       
       default:
         return { success: false, result: `Herramienta desconocida: ${toolName}` };
@@ -676,7 +697,7 @@ async function ejecutarResumenFinanciero(
       startDate = new Date(now.getFullYear(), 0, 1);
       break;
     default:
-      startDate = new Date(2020, 0, 1); // Todo
+      startDate = new Date(2020, 0, 1); // Historial completo desde 2020
   }
   
   const [expenses, incomes, invoicesPending, invoicesPaid, customers] = await Promise.all([
@@ -790,7 +811,7 @@ async function ejecutarCrearFactura(
       status: 'DRAFT',
       items: {
         create: args.items.map(item => ({
-          productId: product!.id,
+          productId: product.id,
           description: item.description,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
@@ -807,5 +828,70 @@ async function ejecutarCrearFactura(
     success: true,
     result: `Factura ${invoiceNumber} creada para ${customer.name} - Total: $${total.toLocaleString()}`,
     data: { invoiceId: invoice.id, invoiceNumber, total }
+  };
+}
+
+async function ejecutarLlenarFormulariosFiscales(
+  args: { year?: number },
+  userId: string,
+  companyId: string
+) {
+  const taxYear = args.year || new Date().getFullYear();
+
+  const data = await autoPopulateForm1040FromCompany(companyId, userId, taxYear);
+
+  const scheduleC = data.scheduleC as any;
+  const income = data.income;
+  const payments = data.payments;
+  const adjustments = data.adjustments;
+
+  const grossReceipts = scheduleC?.grossReceipts || 0;
+  const totalExpenses = scheduleC?.expenses || 0;
+  const netProfit = scheduleC?.netProfit || 0;
+  const wages = income?.wages || 0;
+  const withholding = payments?.withholding || 0;
+  const selfEmploymentTaxDeduction = adjustments?.total || 0;
+
+  // Estimated self-employment tax (15.3% on 92.35% of net profit)
+  const selfEmploymentTax = netProfit * 0.9235 * 0.153;
+  const totalIncome = wages + netProfit;
+  const agi = totalIncome - selfEmploymentTaxDeduction;
+
+  const summary = `✅ **Form 1040 Auto-Completado — Año Fiscal ${taxYear}**
+
+📊 **SCHEDULE C — Negocio/Self-Employment:**
+• Ingresos brutos del negocio: $${grossReceipts.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• Gastos deducibles del negocio: $${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• **Utilidad neta (Línea 31):** $${netProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+
+💼 **FORMULARIO 1040 — Ingresos:**
+• Salarios W-2 (Línea 1): $${wages.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• Ingreso Schedule C (Línea 8): $${netProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• **Ingreso Total (Línea 9):** $${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+
+📉 **DEDUCCIONES Y AJUSTES:**
+• Deducción ½ Self-Employment Tax: $${selfEmploymentTaxDeduction.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• **AGI (Línea 11):** $${agi.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+
+💸 **IMPUESTOS ESTIMADOS:**
+• Self-Employment Tax (SE): $${selfEmploymentTax.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+• Retenciones federales (W-2): $${withholding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+
+📋 Los datos han sido calculados con la información registrada en la aplicación. Ve a **Impuestos → Form 1040** para completar la información personal (SSN, nombre, dirección) y generar el formulario final.`;
+
+  return {
+    success: true,
+    result: summary,
+    data: {
+      taxYear,
+      grossReceipts,
+      totalExpenses,
+      netProfit,
+      wages,
+      totalIncome,
+      agi,
+      selfEmploymentTax,
+      withholding
+    }
   };
 }
