@@ -355,7 +355,22 @@
     "EJEMPLOS",
     "carro",
     "transporte",
-    "noviembre"
+    "noviembre",
+    "explicando", "pasos",
+    "recibido", "Compañía",
+    "configurada", "Configura",
+    "Obtener", "contexto",
+    "Llamar", "Llamando", "llamada",
+    "Hubo", "problema", "procesando", "solicitud",
+    "cuándo", "decidió", "pidió",
+    "Ejecutando", "Exitoso",
+    "Segunda", "darle", "resultados",
+    "devolver", "directa",
+    "siento", "pude",
+    "Utilidad",
+    "Sugerencias", "contextuales", "basadas", "realizada",
+    "otro", "gané", "deuda",
+    "Comparar", "Mejores", "reporte"
   ],
   "ignorePaths": [
     "node_modules/**",
