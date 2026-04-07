@@ -140,10 +140,10 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('[AI] Error:', error);
+    console.error('[AI] Error completo:', error?.status, error?.message, error?.code);
     return NextResponse.json({
       success: false,
-      response: `⚠️ Hubo un problema procesando tu solicitud. Por favor intenta de nuevo.`,
+      response: `⚠️ Error: ${error?.message || 'Error desconocido'} (código: ${error?.status || error?.code || 'N/A'})`,
       error: error.message || 'Error desconocido',
       timestamp: new Date().toISOString()
     });
