@@ -1,20 +1,32 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+  AlertCircle,
+  BookOpen,
+  Building2,
+  CheckCircle,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  DollarSign,
+  Download,
+  Edit,
+  Eye,
+  FileText,
+  Plus,
+  RefreshCw,
+  Search,
+  Square,
+  Trash2
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { 
-  BookOpen, Plus, Search, Filter, Download, Upload, Edit, Trash2,
-  ChevronRight, ChevronDown, Eye, DollarSign, Building2, FileText,
-  Receipt, Calculator, LayoutDashboard, PieChart, ArrowRightLeft,
-  RefreshCw, AlertCircle, CheckCircle, Square, CheckSquare
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface Account {
   id: string
@@ -33,7 +45,7 @@ interface Account {
 
 export default function ChartOfAccountsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -45,7 +57,7 @@ export default function ChartOfAccountsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  
+
   // Estado para selección múltiple
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
@@ -60,27 +72,37 @@ export default function ChartOfAccountsPage() {
     parentId: ''
   })
 
+  // Flatten account tree (shared utility)
+  const flattenAccounts = (accs: Account[]): Account[] => {
+    const result: Account[] = []
+    accs.forEach(acc => {
+      result.push(acc)
+      if (acc.children) result.push(...flattenAccounts(acc.children))
+    })
+    return result
+  }
+
   // Fetch accounts from API
   const fetchAccounts = useCallback(async () => {
     if (!activeCompany?.id) return
-    
+
     try {
       setLoading(true)
       setError(null)
-      
+
       const params = new URLSearchParams()
       params.append('companyId', activeCompany.id)
       if (filterType !== 'all') params.append('type', filterType)
       params.append('isActive', 'true')
 
       const response = await fetch(`/api/accounting/chart-of-accounts?${params}`)
-      
+
       if (!response.ok) {
         throw new Error('Error al cargar el catálogo de cuentas')
       }
 
       const data = await response.json()
-      
+
       // Organizar cuentas en estructura jerárquica
       const accountsMap = new Map<string, Account>()
       const rootAccounts: Account[] = []
@@ -92,9 +114,11 @@ export default function ChartOfAccountsPage() {
 
       // Luego, organizar jerarquía
       data.forEach((acc: Account) => {
-        const account = accountsMap.get(acc.id)!
+        const account = accountsMap.get(acc.id)
+        if (!account) return
         if (acc.parentId && accountsMap.has(acc.parentId)) {
-          const parent = accountsMap.get(acc.parentId)!
+          const parent = accountsMap.get(acc.parentId)
+          if (!parent) return
           parent.children = parent.children || []
           parent.children.push(account)
         } else {
@@ -104,7 +128,7 @@ export default function ChartOfAccountsPage() {
 
       // Ordenar por código
       const sortAccounts = (accs: Account[]): Account[] => {
-        return accs.sort((a, b) => a.code.localeCompare(b.code)).map(acc => ({
+        return accs.toSorted((a, b) => a.code.localeCompare(b.code)).map(acc => ({
           ...acc,
           children: acc.children ? sortAccounts(acc.children) : []
         }))
@@ -136,7 +160,7 @@ export default function ChartOfAccountsPage() {
       setError('Debes seleccionar una empresa')
       return
     }
-    
+
     try {
       setSaving(true)
       setError(null)
@@ -233,7 +257,7 @@ export default function ChartOfAccountsPage() {
   // Eliminar múltiples cuentas
   const handleDeleteMultiple = async () => {
     if (selectedAccounts.size === 0) return
-    
+
     if (!confirm(`¿Estás seguro de eliminar ${selectedAccounts.size} cuenta(s)? Esta acción no se puede deshacer.`)) {
       return
     }
@@ -283,7 +307,7 @@ export default function ChartOfAccountsPage() {
       })
       return result
     }
-    
+
     const allIds = flattenAccounts(accounts)
     if (selectedAccounts.size === allIds.length) {
       setSelectedAccounts(new Set())
@@ -300,21 +324,12 @@ export default function ChartOfAccountsPage() {
 
   // Exportar a CSV
   const handleExport = () => {
-    const flattenAccounts = (accs: Account[]): Account[] => {
-      const result: Account[] = []
-      accs.forEach(acc => {
-        result.push(acc)
-        if (acc.children) result.push(...flattenAccounts(acc.children))
-      })
-      return result
-    }
-    
     const allAccounts = flattenAccounts(accounts)
-    const csv = 'Código,Nombre,Tipo,Categoría,Saldo,Activa\n' + 
-      allAccounts.map(acc => 
+    const csv = 'Código,Nombre,Tipo,Categoría,Saldo,Activa\n' +
+      allAccounts.map(acc =>
         `${acc.code},"${acc.name}",${acc.type},"${acc.category || ''}",${acc.balance || 0},${acc.isActive}`
       ).join('\n')
-    
+
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -369,7 +384,7 @@ export default function ChartOfAccountsPage() {
   // Filtrar cuentas por búsqueda
   const filterAccounts = (accs: Account[]): Account[] => {
     if (!searchTerm) return accs
-    
+
     return accs.filter(acc => {
       const matchesSelf = (acc.code?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                           (acc.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
@@ -390,7 +405,7 @@ export default function ChartOfAccountsPage() {
     return (
       <div key={account.id}>
         {/* Vista móvil - Card */}
-        <div 
+        <div
           className={`block md:hidden p-3 border-b border-gray-100 hover:bg-green-50/50 transition-colors ${
             depth === 0 ? 'bg-gray-50/80' : ''
           } ${selectedAccounts.has(account.id) ? 'bg-green-50 border-l-4 border-l-[#2CA01C]' : ''}`}
@@ -431,20 +446,20 @@ export default function ChartOfAccountsPage() {
                 </span>
                 {!selectMode && (
                   <div className="flex gap-1">
-                    <button 
+                    <button
                       onClick={() => setEditingAccount(account)}
                       className="p-1.5 text-[#0077C5] hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => setEditingAccount(account)}
                       className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     {!hasChildren && (
-                      <button 
+                      <button
                         onClick={() => handleDeleteAccount(account.id)}
                         className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       >
@@ -459,7 +474,7 @@ export default function ChartOfAccountsPage() {
         </div>
 
         {/* Vista desktop - Fila de tabla */}
-        <div 
+        <div
           className={`hidden md:flex items-center py-3 px-4 hover:bg-green-50/50 border-b border-gray-100 transition-colors ${
             depth === 0 ? 'bg-gray-50/80 font-bold' : ''
           } ${selectedAccounts.has(account.id) ? 'bg-green-50 border-l-4 border-l-[#2CA01C]' : ''}`}
@@ -510,20 +525,20 @@ export default function ChartOfAccountsPage() {
             <div className="col-span-2 flex justify-end gap-2">
               {!selectMode && (
                 <>
-                  <button 
+                  <button
                     onClick={() => setEditingAccount(account)}
                     className="p-1.5 text-[#0077C5] hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
-                  <button 
+                  <button
                     onClick={() => setEditingAccount(account)}
                     className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   {!hasChildren && (
-                    <button 
+                    <button
                       onClick={() => handleDeleteAccount(account.id)}
                       className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
@@ -537,7 +552,7 @@ export default function ChartOfAccountsPage() {
         </div>
         {hasChildren && isExpanded && (
           <div>
-            {account.children!.map(child => renderAccount(child, depth + 1))}
+            {account.children?.map(child => renderAccount(child, depth + 1))}
           </div>
         )}
       </div>
@@ -546,25 +561,16 @@ export default function ChartOfAccountsPage() {
 
   // Calcular estadísticas
   const calculateStats = () => {
-    const flattenAccounts = (accs: Account[]): Account[] => {
-      const result: Account[] = []
-      accs.forEach(acc => {
-        result.push(acc)
-        if (acc.children) result.push(...flattenAccounts(acc.children))
-      })
-      return result
-    }
-    
     const allAccounts = flattenAccounts(accounts)
-    
+
     const totalAssets = allAccounts
       .filter(a => a.type === 'ASSET' && a.level === 1)
       .reduce((sum, a) => sum + (a.balance || 0), 0)
-    
+
     const totalLiabilities = allAccounts
       .filter(a => a.type === 'LIABILITY' && a.level === 1)
       .reduce((sum, a) => sum + (a.balance || 0), 0)
-    
+
     const totalEquity = allAccounts
       .filter(a => a.type === 'EQUITY' && a.level === 1)
       .reduce((sum, a) => sum + (a.balance || 0), 0)
@@ -605,7 +611,7 @@ export default function ChartOfAccountsPage() {
             <button onClick={() => setError(null)} className="ml-auto text-red-600 hover:text-red-800">×</button>
           </div>
         )}
-        
+
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
             <CheckCircle className="w-5 h-5 text-[#2CA01C]" />
@@ -627,8 +633,8 @@ export default function ChartOfAccountsPage() {
                   <CheckSquare className="w-4 h-4 sm:mr-2" />
                   <span className="hidden sm:inline">{selectedAccounts.size > 0 ? 'Deseleccionar' : 'Seleccionar Todo'}</span>
                 </Button>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   size="sm"
                   onClick={handleDeleteMultiple}
                   disabled={selectedAccounts.size === 0}
@@ -733,7 +739,7 @@ export default function ChartOfAccountsPage() {
                   className="pl-10"
                 />
               </div>
-              <select 
+              <select
                 className="px-3 sm:px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#2CA01C] focus:border-[#2CA01C] transition-all text-sm"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
@@ -784,8 +790,8 @@ export default function ChartOfAccountsPage() {
 
         {/* Modal Nueva Cuenta */}
         {showNewAccountModal && (
-          <div className="qb-modal-overlay" onClick={() => setShowNewAccountModal(false)}>
-            <div className="qb-modal max-w-[95vw] sm:max-w-2xl" onClick={(e) => e.stopPropagation()}>
+          <div role="presentation" className="qb-modal-overlay" onClick={() => setShowNewAccountModal(false)} onKeyDown={(e) => e.key === 'Escape' && setShowNewAccountModal(false)}>
+            <div role="dialog" aria-modal="true" aria-label="Nueva Cuenta Contable" className="qb-modal max-w-[95vw] sm:max-w-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="qb-modal-header">
                 <h2 className="qb-modal-title text-base sm:text-lg">Nueva Cuenta Contable</h2>
                 <button className="qb-modal-close" onClick={() => setShowNewAccountModal(false)}>
@@ -797,16 +803,18 @@ export default function ChartOfAccountsPage() {
               <div className="qb-modal-body space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="qb-form-group">
-                    <label className="qb-label">Código *</label>
-                    <Input 
-                      placeholder="1001" 
+                    <label htmlFor="new-code" className="qb-label">Código *</label>
+                    <Input
+                      id="new-code"
+                      placeholder="1001"
                       value={newAccount.code}
                       onChange={(e) => setNewAccount({...newAccount, code: e.target.value})}
                     />
                   </div>
                   <div className="qb-form-group">
-                    <label className="qb-label">Tipo *</label>
-                    <select 
+                    <label htmlFor="new-type" className="qb-label">Tipo *</label>
+                    <select
+                      id="new-type"
                       className="qb-select"
                       value={newAccount.type}
                       onChange={(e) => setNewAccount({...newAccount, type: e.target.value as Account['type']})}
@@ -820,24 +828,27 @@ export default function ChartOfAccountsPage() {
                   </div>
                 </div>
                 <div className="qb-form-group">
-                  <label className="qb-label">Nombre de la Cuenta *</label>
-                  <Input 
+                  <label htmlFor="new-name" className="qb-label">Nombre de la Cuenta *</label>
+                  <Input
+                    id="new-name"
                     placeholder="Caja General"
                     value={newAccount.name}
                     onChange={(e) => setNewAccount({...newAccount, name: e.target.value})}
                   />
                 </div>
                 <div className="qb-form-group">
-                  <label className="qb-label">Categoría</label>
-                  <Input 
+                  <label htmlFor="new-category" className="qb-label">Categoría</label>
+                  <Input
+                    id="new-category"
                     placeholder="CASH, BANK, RECEIVABLES, etc."
                     value={newAccount.category}
                     onChange={(e) => setNewAccount({...newAccount, category: e.target.value})}
                   />
                 </div>
                 <div className="qb-form-group">
-                  <label className="qb-label">Descripción</label>
-                  <Input 
+                  <label htmlFor="new-description" className="qb-label">Descripción</label>
+                  <Input
+                    id="new-description"
                     placeholder="Efectivo disponible en caja"
                     value={newAccount.description}
                     onChange={(e) => setNewAccount({...newAccount, description: e.target.value})}
@@ -856,8 +867,8 @@ export default function ChartOfAccountsPage() {
 
         {/* Modal Editar Cuenta */}
         {editingAccount && (
-          <div className="qb-modal-overlay" onClick={() => setEditingAccount(null)}>
-            <div className="qb-modal" onClick={(e) => e.stopPropagation()}>
+          <div role="presentation" className="qb-modal-overlay" onClick={() => setEditingAccount(null)} onKeyDown={(e) => e.key === 'Escape' && setEditingAccount(null)}>
+            <div role="dialog" aria-modal="true" aria-label="Editar Cuenta" className="qb-modal" onClick={(e) => e.stopPropagation()}>
               <div className="qb-modal-header">
                 <h2 className="qb-modal-title">Editar Cuenta: {editingAccount.code}</h2>
                 <button className="qb-modal-close" onClick={() => setEditingAccount(null)}>
@@ -869,43 +880,47 @@ export default function ChartOfAccountsPage() {
               <div className="qb-modal-body space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="qb-form-group">
-                    <label className="qb-label">Código</label>
-                    <Input value={editingAccount.code} disabled className="bg-gray-100 opacity-60" />
+                    <label htmlFor="edit-code" className="qb-label">Código</label>
+                    <Input id="edit-code" value={editingAccount.code} disabled className="bg-gray-100 opacity-60" />
                   </div>
                   <div className="qb-form-group">
-                    <label className="qb-label">Tipo</label>
-                    <Input value={getTypeLabel(editingAccount.type)} disabled className="bg-gray-100 opacity-60" />
+                    <label htmlFor="edit-type" className="qb-label">Tipo</label>
+                    <Input id="edit-type" value={getTypeLabel(editingAccount.type)} disabled className="bg-gray-100 opacity-60" />
                   </div>
                 </div>
                 <div className="qb-form-group">
-                  <label className="qb-label">Nombre de la Cuenta</label>
-                  <Input 
+                  <label htmlFor="edit-name" className="qb-label">Nombre de la Cuenta</label>
+                  <Input
+                    id="edit-name"
                     value={editingAccount.name}
                     onChange={(e) => setEditingAccount({...editingAccount, name: e.target.value})}
                   />
                 </div>
                 <div className="qb-form-group">
-                  <label className="qb-label">Categoría</label>
-                  <Input 
+                  <label htmlFor="edit-category" className="qb-label">Categoría</label>
+                  <Input
+                    id="edit-category"
                     value={editingAccount.category || ''}
                     onChange={(e) => setEditingAccount({...editingAccount, category: e.target.value})}
                   />
                 </div>
                 <div className="qb-form-group">
-                  <label className="qb-label">Descripción</label>
-                  <Input 
+                  <label htmlFor="edit-description" className="qb-label">Descripción</label>
+                  <Input
+                    id="edit-description"
                     value={editingAccount.description || ''}
                     onChange={(e) => setEditingAccount({...editingAccount, description: e.target.value})}
                   />
                 </div>
                 <div className="flex items-center gap-3">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    id="edit-active"
+                    type="checkbox"
                     className="qb-checkbox"
                     checked={editingAccount.isActive}
                     onChange={(e) => setEditingAccount({...editingAccount, isActive: e.target.checked})}
                   />
-                  <label className="text-sm font-medium text-gray-700">Cuenta activa</label>
+                  <label htmlFor="edit-active" className="text-sm font-medium text-gray-700">Cuenta activa</label>
                 </div>
                 <div className="qb-info-box">
                   <div className="text-sm text-gray-600 space-y-1">
