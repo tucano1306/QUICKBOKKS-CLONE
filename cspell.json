@@ -402,7 +402,7 @@
     "estimados", "trimestrales", "turbotax",
     "Procesamiento", "Usuarios", "Integraciones", "Monedas",
     "pida", "explica", "requiere", "indica",
-    "Cuántos"
+    "Cuántos", "tengo"
   ],
   "ignorePaths": [
     "node_modules/**",
