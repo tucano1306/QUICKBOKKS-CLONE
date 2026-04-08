@@ -1,27 +1,27 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
 import {
-  Plus,
-  Edit,
-  Trash2,
-  FolderOpen,
-  X,
-  Save,
-  Briefcase,
-  ShoppingCart,
-  DollarSign,
-  Settings,
-  AlertCircle,
-  CheckCircle
+    AlertCircle,
+    Briefcase,
+    CheckCircle,
+    DollarSign,
+    Edit,
+    FolderOpen,
+    Plus,
+    Save,
+    Settings,
+    ShoppingCart,
+    Trash2,
+    X
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface Category {
   id: string
@@ -131,17 +131,17 @@ export default function CategoriesPage() {
 
   const handleDelete = async (category: Category) => {
     const expenseCount = category._count?.expenses || 0
-    
+
     // Si tiene gastos asociados, mostrar mensaje de error y no continuar
     if (expenseCount > 0) {
-      setMessage({ 
-        type: 'error', 
-        text: `No se puede eliminar "${category.name}". Tiene ${expenseCount} gasto(s) asociados. Mueve los gastos a otra categoría primero.` 
+      setMessage({
+        type: 'error',
+        text: `No se puede eliminar "${category.name}". Tiene ${expenseCount} gasto(s) asociados. Mueve los gastos a otra categoría primero.`
       })
       setTimeout(() => setMessage(null), 5000)
       return
     }
-    
+
     if (!confirm(`¿Eliminar la categoría "${category.name}"? Esta acción no se puede deshacer.`)) return
 
     try {
@@ -229,12 +229,12 @@ export default function CategoriesPage() {
         {/* Message Feedback */}
         {message && (
           <div className={`p-4 rounded-lg flex items-center gap-2 ${
-            message.type === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
+            message.type === 'success'
+              ? 'bg-green-50 text-green-800 border border-green-200'
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}>
-            {message.type === 'success' 
-              ? <CheckCircle className="h-5 w-5" /> 
+            {message.type === 'success'
+              ? <CheckCircle className="h-5 w-5" />
               : <AlertCircle className="h-5 w-5" />}
             <span>{message.text}</span>
           </div>
@@ -296,7 +296,7 @@ export default function CategoriesPage() {
                           ? "text-gray-400 cursor-not-allowed"
                           : "text-red-600 hover:text-red-800 hover:bg-red-50"
                       )}
-                      title={(category._count?.expenses || 0) > 0 
+                      title={(category._count?.expenses || 0) > 0
                         ? `No se puede eliminar: ${category._count?.expenses} gastos asociados`
                         : "Eliminar"
                       }

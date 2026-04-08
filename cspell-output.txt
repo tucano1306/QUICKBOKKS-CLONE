@@ -1,2 +1,3 @@
 Need to install the following packages:
 cspell@10.0.0
+Ok to proceed? (y) 
