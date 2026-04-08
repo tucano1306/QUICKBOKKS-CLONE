@@ -132,14 +132,18 @@ export default function AIAssistPage() {
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      setAttachedFile({ name: file.name, content: reader.result as string, mimeType: file.type || 'text/plain' })
-    }
     if (isImage) {
+      const reader = new FileReader()
+      reader.onload = () => {
+        setAttachedFile({ name: file.name, content: reader.result as string, mimeType: file.type })
+      }
       reader.readAsDataURL(file)
     } else {
-      reader.readAsText(file)
+      file.text().then((text) => {
+        setAttachedFile({ name: file.name, content: text, mimeType: file.type || 'text/plain' })
+      }).catch(() => {
+        setFileError('No se pudo leer el archivo.')
+      })
     }
     e.target.value = ''
   }
