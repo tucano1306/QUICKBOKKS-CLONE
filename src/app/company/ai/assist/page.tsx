@@ -126,9 +126,16 @@ export default function AIAssistPage() {
 
     const isPdf = file.type === 'application/pdf'
     const isImage = file.type.startsWith('image/')
-    const maxSize = isPdf ? 20 * 1024 * 1024 : isImage ? 5 * 1024 * 1024 : 512 * 1024
+    let maxSize: number
+    if (isPdf) { maxSize = 20 * 1024 * 1024 }
+    else if (isImage) { maxSize = 5 * 1024 * 1024 }
+    else { maxSize = 512 * 1024 }
+    let maxSizeLabel: string
+    if (isPdf) { maxSizeLabel = '20 MB para PDFs' }
+    else if (isImage) { maxSizeLabel = '5 MB para imágenes' }
+    else { maxSizeLabel = '512 KB para texto' }
     if (file.size > maxSize) {
-      setFileError(`Archivo demasiado grande. Máximo ${isPdf ? '20 MB para PDFs' : isImage ? '5 MB para imágenes' : '512 KB para texto'}.`)
+      setFileError(`Archivo demasiado grande. Máximo ${maxSizeLabel}.`)
       e.target.value = ''
       return
     }

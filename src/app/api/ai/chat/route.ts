@@ -228,7 +228,10 @@ export async function POST(req: NextRequest) {
     if (fileAttachment) {
       const isPdf = fileAttachment.mimeType === 'application/pdf'
       const isImage = fileAttachment.mimeType.startsWith('image/')
-      const maxLen = isPdf ? 28 * 1024 * 1024 : isImage ? 7 * 1024 * 1024 : 524288
+      let maxLen: number
+      if (isPdf) { maxLen = 28 * 1024 * 1024 }
+      else if (isImage) { maxLen = 7 * 1024 * 1024 }
+      else { maxLen = 524288 }
       if (fileAttachment.content.length > maxLen) {
         return NextResponse.json({ error: 'Archivo demasiado grande' }, { status: 400 })
       }
