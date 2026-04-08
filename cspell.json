@@ -443,7 +443,11 @@
     "Activar", "cobros", "Monitorear", "necesidad",
     "Estimado", "Ahorrado", "recomendaciones", "inteligentes",
     "Actualiza", "recomendación", "implementación", "completa",
-    "guardaríamos", "esto", "ahora", "retornamos"
+    "guardaríamos", "esto", "ahora", "retornamos",
+    "continuar", "Mueve", "otra",
+    "Operativo", "Administrativo", "Organiza",
+    "Papelería", "Suministros", "incluye",
+    "Clasifica", "área"
   ],
   "ignorePaths": [
     "node_modules/**",
