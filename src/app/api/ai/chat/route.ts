@@ -277,7 +277,68 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Llamar a Groq con Function Calling (Tool Use)
+ * Builds the user message content, optionally including a file attachment.
+ */
+function buildUserContent(message: string, fileAttachment?: { name: string; content: string; mimeType: string }): any { // any: supports OpenAI text+image_url union type
+  if (!fileAttachment) return message
+
+  if (fileAttachment.mimeType.startsWith('image/')) {
+    return [
+      { type: 'text', text: message || 'Analiza este archivo adjunto y dame informacion relevante.' },
+      { type: 'image_url', image_url: { url: fileAttachment.content, detail: 'auto' } }
+    ]
+  }
+
+  const maxChars = 8000
+  const snippet = fileAttachment.content.length > maxChars
+    ? fileAttachment.content.substring(0, maxChars) + '\n... [truncado]'
+    : fileAttachment.content
+  return `${message || 'Analiza el siguiente archivo:'}\n\n---\nArchivo: ${fileAttachment.name}\n\`\`\`\n${snippet}\n\`\`\`\nResponde en espanol y extrae informacion relevante para la contabilidad.`
+}
+
+/**
+ * Executes the tool calls requested by the model and returns the final AI response.
+ */
+async function runToolCalls(
+  client: OpenAI,
+  systemWithContext: string,
+  userContent: any,
+  toolCalls: any[],
+  userId: string,
+  companyId: string
+): Promise<{ text: string; toolUsed: string }> {
+  const toolResults: Array<{ toolCallId: string; result: string }> = []
+  let mainToolUsed = ''
+
+  for (const toolCall of toolCalls) {
+    const functionName = toolCall.function.name
+    const args = JSON.parse(toolCall.function.arguments)
+    console.log(`[AI] ⚡ Ejecutando: ${functionName}`, args)
+    mainToolUsed = functionName
+    const result = await executeToolCall(functionName, args, userId, companyId)
+    console.log(`[AI] ✅ Resultado:`, result.success ? 'Exitoso' : 'Error')
+    toolResults.push({ toolCallId: toolCall.id, result: result.result })
+  }
+
+  const msgs: any[] = [
+    { role: 'system', content: systemWithContext },
+    { role: 'user', content: userContent },
+    { role: 'assistant', content: null, tool_calls: toolCalls }
+  ]
+  for (const r of toolResults) {
+    msgs.push({ role: 'tool', tool_call_id: r.toolCallId, content: r.result })
+  }
+
+  const finalCompletion = await client.chat.completions.create({
+    model: 'gpt-4o', messages: msgs, temperature: 0.5, max_tokens: 1000
+  })
+
+  const finalText = finalCompletion.choices[0]?.message?.content || toolResults[0]?.result
+  return { text: finalText, toolUsed: mainToolUsed }
+}
+
+/**
+ * Llamar a GPT-4o con Function Calling (Tool Use)
  */
 async function callGroqWithTools(
   client: OpenAI,
@@ -297,26 +358,8 @@ ${context}`;
 
   console.log('[AI] 🚀 Llamando a OpenAI GPT-4o con Function Calling...');
 
-  // Construir contenido del usuario (texto + archivo opcional)
-  let userContent: any // necesario para soportar text y image_url parts de OpenAI
-  if (fileAttachment) {
-    if (fileAttachment.mimeType.startsWith('image/')) {
-      userContent = [
-        { type: 'text', text: message || 'Analiza este archivo adjunto y dame informacion relevante para la contabilidad.' },
-        { type: 'image_url', image_url: { url: fileAttachment.content, detail: 'auto' } }
-      ]
-    } else {
-      const maxChars = 8000
-      const snippet = fileAttachment.content.length > maxChars
-        ? fileAttachment.content.substring(0, maxChars) + '\n... [truncado]'
-        : fileAttachment.content
-      userContent = `${message || 'Analiza el siguiente archivo:'}\n\n---\n📎 Archivo adjunto: ${fileAttachment.name}\n\`\`\`\n${snippet}\n\`\`\`\nResponde en espanol y extrae informacion relevante para la contabilidad.`
-    }
-  } else {
-    userContent = message
-  }
+  const userContent = buildUserContent(message, fileAttachment)
 
-  // Primera llamada - el modelo decide si usar herramientas
   const completion = await client.chat.completions.create({
     model: 'gpt-4o',
     messages: [
@@ -324,71 +367,18 @@ ${context}`;
       { role: 'user', content: userContent }
     ],
     tools: AI_TOOLS,
-    tool_choice: 'auto', // El modelo decide cuándo usar herramientas
+    tool_choice: 'auto',
     temperature: 0.3,
     max_tokens: 2000
   });
 
   const responseMessage = completion.choices[0]?.message;
 
-  // Verificar si el modelo quiere usar herramientas
   if (responseMessage?.tool_calls && responseMessage.tool_calls.length > 0) {
-    console.log('[AI] 🔧 Modelo decidió usar herramientas:', responseMessage.tool_calls.map(t => t.function.name));
-
-    // Ejecutar cada herramienta que el modelo pidió
-    const toolResults: Array<{ toolCallId: string; result: string }> = [];
-    let mainToolUsed = '';
-
-    for (const toolCall of responseMessage.tool_calls) {
-      const functionName = toolCall.function.name;
-      const args = JSON.parse(toolCall.function.arguments);
-
-      console.log(`[AI] ⚡ Ejecutando: ${functionName}`, args);
-      mainToolUsed = functionName;
-
-      const result = await executeToolCall(functionName, args, userId, companyId);
-
-      console.log(`[AI] ✅ Resultado:`, result.success ? 'Exitoso' : 'Error');
-
-      toolResults.push({
-        toolCallId: toolCall.id,
-        result: result.result
-      });
-    }
-
-    // Segunda llamada - darle los resultados al modelo para generar respuesta final
-    const messages: any[] = [
-      { role: 'system', content: systemWithContext },
-      { role: 'user', content: userContent },
-      {
-        role: 'assistant',
-        content: null,
-        tool_calls: responseMessage.tool_calls
-      }
-    ];
-
-    // Agregar resultados de cada herramienta
-    for (const result of toolResults) {
-      messages.push({
-        role: 'tool',
-        tool_call_id: result.toolCallId,
-        content: result.result
-      });
-    }
-
-    const finalCompletion = await client.chat.completions.create({
-      model: 'gpt-4o',
-      messages,
-      temperature: 0.5,
-      max_tokens: 1000
-    });
-
-    const finalText = finalCompletion.choices[0]?.message?.content || toolResults[0]?.result;
-
-    return { text: finalText, toolUsed: mainToolUsed };
+    console.log('[AI] 🔧 Modelo decidio usar herramientas:', responseMessage.tool_calls.map((t: { function: { name: string } }) => t.function.name));
+    return runToolCalls(client, systemWithContext, userContent, responseMessage.tool_calls, userId, companyId)
   }
 
-  // Si no usó herramientas, devolver respuesta directa
   console.log('[AI] 💬 Respuesta directa sin herramientas');
   return { text: responseMessage?.content || 'Lo siento, no pude procesar tu solicitud.' };
 }

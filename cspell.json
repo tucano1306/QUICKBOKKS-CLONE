@@ -447,7 +447,9 @@
     "continuar", "Mueve", "otra",
     "Operativo", "Administrativo", "Organiza",
     "Papelería", "Suministros", "incluye",
-    "Clasifica", "área"
+    "Clasifica", "área",
+    "demasiado", "permitido", "Construir", "contenido",
+    "soportar", "Analiza", "adjunto", "relevante", "truncado", "extrae"
   ],
   "ignorePaths": [
     "node_modules/**",
