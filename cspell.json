@@ -449,7 +449,15 @@
     "Papelería", "Suministros", "incluye",
     "Clasifica", "área",
     "demasiado", "permitido", "Construir", "contenido",
-    "soportar", "Analiza", "adjunto", "relevante", "truncado", "extrae"
+    "soportar", "Analiza", "adjunto", "relevante", "truncado", "extrae",
+    "Puedo", "puedo", "agrega", "viaje", "flete", "También", "situación",
+    "financiera", "Mostrarte", "Analizar", "dudas", "ayudarte", "conv",
+    "imágenes", "Cuál", "ejecutivo", "Cuáles", "suman", "tendencias",
+    "Muéstrame", "Proyección", "alguna", "alerta", "deba", "Quiénes",
+    "Ordénalos", "conversación", "Conversación", "conversaciones",
+    "asegurar", "componente", "esté", "listo", "después", "separada",
+    "consulta", "Iniciando", "Reciente", "aparecerán", "aquí",
+    "mensajes", "gustaría", "Preguntar", "Quitar", "Adjuntar"
   ],
   "ignorePaths": [
     "node_modules/**",
