@@ -226,12 +226,13 @@ export async function POST(req: NextRequest) {
 
     // Validate attachment size and type
     if (fileAttachment) {
+      const isPdf = fileAttachment.mimeType === 'application/pdf'
       const isImage = fileAttachment.mimeType.startsWith('image/')
-      const maxLen = isImage ? 7 * 1024 * 1024 : 524288
+      const maxLen = isPdf ? 28 * 1024 * 1024 : isImage ? 7 * 1024 * 1024 : 524288
       if (fileAttachment.content.length > maxLen) {
         return NextResponse.json({ error: 'Archivo demasiado grande' }, { status: 400 })
       }
-      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'text/plain', 'text/csv', 'application/json', 'text/markdown']
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'text/plain', 'text/csv', 'application/json', 'text/markdown']
       if (!allowed.includes(fileAttachment.mimeType)) {
         return NextResponse.json({ error: 'Tipo de archivo no permitido' }, { status: 400 })
       }
@@ -282,10 +283,10 @@ export async function POST(req: NextRequest) {
 function buildUserContent(message: string, fileAttachment?: { name: string; content: string; mimeType: string }): any { // any: supports OpenAI text+image_url union type
   if (!fileAttachment) return message
 
-  if (fileAttachment.mimeType.startsWith('image/')) {
+  if (fileAttachment.mimeType.startsWith('image/') || fileAttachment.mimeType === 'application/pdf') {
     return [
-      { type: 'text', text: message || 'Analiza este archivo adjunto y dame informacion relevante.' },
-      { type: 'image_url', image_url: { url: fileAttachment.content, detail: 'auto' } }
+      { type: 'text', text: message || 'Analiza este archivo y dame informacion relevante para la contabilidad.' },
+      { type: 'image_url', image_url: { url: fileAttachment.content, detail: 'high' } }
     ]
   }
 

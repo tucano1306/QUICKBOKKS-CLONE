@@ -1,38 +1,38 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { useCompany } from '@/contexts/CompanyContext'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { useCallback, useEffect, useRef, useState } from 'react'
 // Card imports removed - not used in this component
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { 
-  MessageSquare,
-  Send,
-  Bot,
-  User,
-  Sparkles,
-  ThumbsUp,
-  ThumbsDown,
-  Copy,
-  Check,
-  TrendingUp,
-  Calculator,
-  Plus,
-  Trash2,
-  History,
-  Paperclip,
-  ArrowRight,
-  BarChart3,
-  Users,
-  Receipt,
-  PiggyBank,
-  X,
-  FileText,
-  Image as ImageIcon
+import {
+    ArrowRight,
+    BarChart3,
+    Bot,
+    Calculator,
+    Check,
+    Copy,
+    FileText,
+    History,
+    Image as ImageIcon,
+    MessageSquare,
+    Paperclip,
+    PiggyBank,
+    Plus,
+    Receipt,
+    Send,
+    Sparkles,
+    ThumbsDown,
+    ThumbsUp,
+    Trash2,
+    TrendingUp,
+    User,
+    Users,
+    X
 } from 'lucide-react'
 
 interface Message {
@@ -100,7 +100,7 @@ export default function AIAssistPage() {
   const [recentConversations, setRecentConversations] = useState<Conversation[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [currentConversationId, setCurrentConversationId] = useState<string>(() => 
+  const [currentConversationId, setCurrentConversationId] = useState<string>(() =>
     `conv-${Date.now()}`
   )
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -124,15 +124,16 @@ export default function AIAssistPage() {
     if (!file) return
     setFileError(null)
 
+    const isPdf = file.type === 'application/pdf'
     const isImage = file.type.startsWith('image/')
-    const maxSize = isImage ? 5 * 1024 * 1024 : 512 * 1024
+    const maxSize = isPdf ? 20 * 1024 * 1024 : isImage ? 5 * 1024 * 1024 : 512 * 1024
     if (file.size > maxSize) {
-      setFileError(`Archivo demasiado grande. Máximo ${isImage ? '5 MB para imágenes' : '512 KB para texto'}.`)
+      setFileError(`Archivo demasiado grande. Máximo ${isPdf ? '20 MB para PDFs' : isImage ? '5 MB para imágenes' : '512 KB para texto'}.`)
       e.target.value = ''
       return
     }
 
-    if (isImage) {
+    if (isImage || isPdf) {
       const reader = new FileReader()
       reader.onload = () => {
         setAttachedFile({ name: file.name, content: reader.result as string, mimeType: file.type })
@@ -210,7 +211,7 @@ export default function AIAssistPage() {
   // Load conversations from localStorage
   const loadConversationsFromStorage = useCallback(() => {
     if (!activeCompany?.id) return
-    
+
     try {
       const storageKey = `ai-conversations-${activeCompany.id}`
       const saved = localStorage.getItem(storageKey)
@@ -226,17 +227,17 @@ export default function AIAssistPage() {
   // Save current conversation to localStorage
   const saveConversation = useCallback((msgs: Message[], convId: string) => {
     if (!activeCompany?.id || msgs.length <= 1) return
-    
+
     try {
       const storageKey = `ai-conversations-${activeCompany.id}`
       const saved = localStorage.getItem(storageKey)
       const existing: Conversation[] = saved ? JSON.parse(saved) : []
-      
+
       // Get first user message as title
       const firstUserMsg = msgs.find(m => m.type === 'user')
       const userMessages = msgs.filter(m => m.type === 'user')
       const lastUserMsg = userMessages.at(-1)
-      
+
       // Find or create conversation
       const existingIndex = existing.findIndex(c => c.id === convId)
       const conversation: Conversation = {
@@ -246,7 +247,7 @@ export default function AIAssistPage() {
         timestamp: new Date().toISOString(),
         messageCount: userMessages.length
       }
-      
+
       if (existingIndex >= 0) {
         existing[existingIndex] = conversation
         // Move to top
@@ -255,15 +256,15 @@ export default function AIAssistPage() {
       } else {
         existing.unshift(conversation)
       }
-      
+
       // Keep only last 20 conversations
       const toSave = existing.slice(0, 20)
       localStorage.setItem(storageKey, JSON.stringify(toSave))
-      
+
       // Also save messages for this conversation
       const messagesKey = `ai-messages-${activeCompany.id}-${convId}`
       localStorage.setItem(messagesKey, JSON.stringify(msgs))
-      
+
       setRecentConversations(toSave.slice(0, 10))
     } catch (error) {
       console.error('Error saving conversation:', error)
@@ -273,7 +274,7 @@ export default function AIAssistPage() {
   // Load a specific conversation
   const loadConversation = useCallback((conversationId: string) => {
     if (!activeCompany?.id) return
-    
+
     try {
       const messagesKey = `ai-messages-${activeCompany.id}-${conversationId}`
       const saved = localStorage.getItem(messagesKey)
@@ -292,7 +293,7 @@ export default function AIAssistPage() {
   const deleteConversation = useCallback((conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!activeCompany?.id) return
-    
+
     try {
       const storageKey = `ai-conversations-${activeCompany.id}`
       const saved = localStorage.getItem(storageKey)
@@ -302,10 +303,10 @@ export default function AIAssistPage() {
         localStorage.setItem(storageKey, JSON.stringify(filtered))
         setRecentConversations(filtered.slice(0, 10))
       }
-      
+
       const messagesKey = `ai-messages-${activeCompany.id}-${conversationId}`
       localStorage.removeItem(messagesKey)
-      
+
       if (conversationId === currentConversationId) {
         handleNewChat()
       }
@@ -495,7 +496,7 @@ export default function AIAssistPage() {
   }
 
   const handleFeedback = (messageId: string, helpful: boolean) => {
-    setMessages(messages.map(msg => 
+    setMessages(messages.map(msg =>
       msg.id === messageId ? { ...msg, helpful } : msg
     ))
   }
@@ -533,7 +534,7 @@ export default function AIAssistPage() {
         )}>
           {/* Sidebar Header */}
           <div className="p-4 border-b bg-white">
-            <Button 
+            <Button
               onClick={handleNewChat}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
             >
@@ -548,7 +549,7 @@ export default function AIAssistPage() {
               <History className="w-3 h-3" />
               Historial Reciente
             </div>
-            
+
             {recentConversations.length === 0 ? (
               <div className="text-center py-8 px-4">
                 <MessageSquare className="w-10 h-10 mx-auto text-gray-300 mb-3" />
@@ -586,9 +587,9 @@ export default function AIAssistPage() {
                   <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
                     <span>{conv.messageCount} mensajes</span>
                     <span>•</span>
-                    <span>{new Date(conv.timestamp).toLocaleDateString('es-ES', { 
-                      day: 'numeric', 
-                      month: 'short' 
+                    <span>{new Date(conv.timestamp).toLocaleDateString('es-ES', {
+                      day: 'numeric',
+                      month: 'short'
                     })}</span>
                   </div>
                 </button>
@@ -697,8 +698,8 @@ export default function AIAssistPage() {
                   {/* Avatar */}
                   <div className={cn(
                     "flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-md",
-                    message.type === 'user' 
-                      ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
+                    message.type === 'user'
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600'
                       : 'bg-gradient-to-br from-purple-500 to-purple-600'
                   )}>
                     {message.type === 'user' ? (
@@ -715,8 +716,8 @@ export default function AIAssistPage() {
                   )}>
                     <div className={cn(
                       "px-5 py-4 rounded-2xl shadow-sm",
-                      message.type === 'user' 
-                        ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md' 
+                      message.type === 'user'
+                        ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md'
                         : 'bg-gray-100 text-gray-900 rounded-bl-md'
                     )}>
                       <div className="prose prose-sm max-w-none">
@@ -737,15 +738,15 @@ export default function AIAssistPage() {
                           minute: '2-digit'
                         })}
                       </span>
-                      
+
                       {message.type === 'assistant' && index > 0 && (
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleFeedback(message.id, true)}
                             className={cn(
                               "p-1.5 rounded-lg transition-colors",
-                              message.helpful === true 
-                                ? 'bg-green-100 text-green-600' 
+                              message.helpful === true
+                                ? 'bg-green-100 text-green-600'
                                 : 'hover:bg-gray-200 text-gray-400'
                             )}
                           >
@@ -755,8 +756,8 @@ export default function AIAssistPage() {
                             onClick={() => handleFeedback(message.id, false)}
                             className={cn(
                               "p-1.5 rounded-lg transition-colors",
-                              message.helpful === false 
-                                ? 'bg-red-100 text-red-600' 
+                              message.helpful === false
+                                ? 'bg-red-100 text-red-600'
                                 : 'hover:bg-gray-200 text-gray-400'
                             )}
                           >
@@ -838,17 +839,17 @@ export default function AIAssistPage() {
                   className="w-full px-3 sm:px-5 py-3 sm:py-4 pr-20 sm:pr-32 bg-transparent resize-none focus:outline-none text-sm sm:text-base text-gray-900 placeholder-gray-400"
                   style={{ maxHeight: '200px' }}
                 />
-                
+
                 {/* Input Actions */}
                 <div className="absolute right-2 bottom-2 flex items-center gap-1">
                   <input
                     ref={fileInputRef}
                     type="file"
                     className="hidden"
-                    accept=".txt,.csv,.md,.json,image/jpeg,image/png,image/webp,image/gif"
+                    accept=".txt,.csv,.md,.json,.pdf,image/jpeg,image/png,image/webp,image/gif,application/pdf"
                     onChange={handleFileSelect}
                   />
-                  <button 
+                  <button
                     type="button"
                     className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     title="Adjuntar archivo (imagen, txt, csv, json)"
@@ -870,7 +871,7 @@ export default function AIAssistPage() {
                   </Button>
                 </div>
               </div>
-              
+
               {/* Quick Suggestions */}
               <div className="flex items-center justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 flex-wrap">
                 <span className="text-xs text-gray-400 hidden sm:inline">Sugerencias:</span>
