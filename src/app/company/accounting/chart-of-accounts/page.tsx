@@ -790,8 +790,9 @@ export default function ChartOfAccountsPage() {
 
         {/* Modal Nueva Cuenta */}
         {showNewAccountModal && (
-          <div className="qb-modal-overlay" onClick={() => setShowNewAccountModal(false)}>
-            <dialog open aria-label="Nueva Cuenta Contable" className="qb-modal max-w-[95vw] sm:max-w-2xl" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && setShowNewAccountModal(false)}>
+          <>
+            <button type="button" className="qb-modal-overlay" aria-label="Cerrar" onClick={() => setShowNewAccountModal(false)} />
+            <dialog open aria-label="Nueva Cuenta Contable" className="qb-modal max-w-[95vw] sm:max-w-2xl">
               <div className="qb-modal-header">
                 <h2 className="qb-modal-title text-base sm:text-lg">Nueva Cuenta Contable</h2>
                 <button className="qb-modal-close" onClick={() => setShowNewAccountModal(false)}>
@@ -862,13 +863,14 @@ export default function ChartOfAccountsPage() {
                 </Button>
               </div>
             </dialog>
-          </div>
+          </>
         )}
 
         {/* Modal Editar Cuenta */}
         {editingAccount && (
-          <div className="qb-modal-overlay" onClick={() => setEditingAccount(null)}>
-            <dialog open aria-label="Editar Cuenta" className="qb-modal" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && setEditingAccount(null)}>
+          <>
+            <button type="button" className="qb-modal-overlay" aria-label="Cerrar" onClick={() => setEditingAccount(null)} />
+            <dialog open aria-label="Editar Cuenta" className="qb-modal">
               <div className="qb-modal-header">
                 <h2 className="qb-modal-title">Editar Cuenta: {editingAccount.code}</h2>
                 <button className="qb-modal-close" onClick={() => setEditingAccount(null)}>
@@ -942,7 +944,7 @@ export default function ChartOfAccountsPage() {
                 </Button>
               </div>
             </dialog>
-          </div>
+          </>
         )}
       </div>
     </CompanyTabsLayout>
