@@ -29,7 +29,10 @@ import {
   BarChart3,
   Users,
   Receipt,
-  PiggyBank
+  PiggyBank,
+  X,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react'
 
 interface Message {
@@ -102,6 +105,10 @@ export default function AIAssistPage() {
   )
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string; mimeType: string } | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
 
   // Auto-scroll to bottom when messages change
   const scrollToBottom = () => {
@@ -111,6 +118,31 @@ export default function AIAssistPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, isTyping])
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFileError(null)
+
+    const isImage = file.type.startsWith('image/')
+    const maxSize = isImage ? 5 * 1024 * 1024 : 512 * 1024
+    if (file.size > maxSize) {
+      setFileError(`Archivo demasiado grande. Máximo ${isImage ? '5 MB para imágenes' : '512 KB para texto'}.`)
+      e.target.value = ''
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setAttachedFile({ name: file.name, content: reader.result as string, mimeType: file.type || 'text/plain' })
+    }
+    if (isImage) {
+      reader.readAsDataURL(file)
+    } else {
+      reader.readAsText(file)
+    }
+    e.target.value = ''
+  }
 
   // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -394,6 +426,8 @@ export default function AIAssistPage() {
     if (inputRef.current) {
       inputRef.current.style.height = 'auto'
     }
+    const fileToSend = attachedFile
+    setAttachedFile(null)
     setIsTyping(true)
 
     try {
@@ -402,7 +436,8 @@ export default function AIAssistPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: inputMessage,
-          companyId: activeCompany?.id
+          companyId: activeCompany?.id,
+          fileAttachment: fileToSend ?? undefined
         })
       })
 
@@ -764,6 +799,31 @@ export default function AIAssistPage() {
           <div className="border-t bg-gradient-to-t from-gray-50 to-white p-2 sm:p-4">
             <div className="max-w-4xl mx-auto">
               <div className="relative bg-white border-2 border-gray-200 rounded-xl sm:rounded-2xl shadow-lg focus-within:border-blue-400 focus-within:ring-2 sm:focus-within:ring-4 focus-within:ring-blue-100 transition-all">
+                {/* File preview */}
+                {(attachedFile ?? fileError) && (
+                  <div className="flex items-center gap-2 px-3 pt-3">
+                    {attachedFile && (
+                      <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1 text-xs text-blue-700">
+                        {attachedFile.mimeType.startsWith('image/') ? (
+                          <ImageIcon className="w-3 h-3" aria-hidden="true" />
+                        ) : (
+                          <FileText className="w-3 h-3" />
+                        )}
+                        <span className="truncate max-w-[200px]">{attachedFile.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => setAttachedFile(null)}
+                          className="ml-1 hover:text-red-600 transition-colors"
+                          aria-label="Quitar archivo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    {fileError && <p className="text-xs text-red-500">{fileError}</p>}
+                  </div>
+                )}
+
                 <textarea
                   ref={inputRef}
                   value={inputMessage}
@@ -777,9 +837,18 @@ export default function AIAssistPage() {
                 
                 {/* Input Actions */}
                 <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".txt,.csv,.md,.json,image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleFileSelect}
+                  />
                   <button 
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Adjuntar archivo (próximamente)"
+                    type="button"
+                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Adjuntar archivo (imagen, txt, csv, json)"
+                    onClick={() => { setFileError(null); fileInputRef.current?.click() }}
                   >
                     <Paperclip className="w-5 h-5" />
                   </button>

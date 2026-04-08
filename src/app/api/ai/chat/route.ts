@@ -214,12 +214,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { message, companyId } = await req.json()
+    const body = await req.json()
+    const { message, companyId } = body
+    const fileAttachment: { name: string; content: string; mimeType: string } | undefined = body.fileAttachment
     const userId = session.user.id
     const activeCompanyId = companyId || userId
 
-    if (!message) {
+    if (!message && !fileAttachment) {
       return NextResponse.json({ error: 'Message required' }, { status: 400 })
+    }
+
+    // Validate attachment size and type
+    if (fileAttachment) {
+      const isImage = fileAttachment.mimeType.startsWith('image/')
+      const maxLen = isImage ? 7 * 1024 * 1024 : 524288
+      if (fileAttachment.content.length > maxLen) {
+        return NextResponse.json({ error: 'Archivo demasiado grande' }, { status: 400 })
+      }
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'text/plain', 'text/csv', 'application/json', 'text/markdown']
+      if (!allowed.includes(fileAttachment.mimeType)) {
+        return NextResponse.json({ error: 'Tipo de archivo no permitido' }, { status: 400 })
+      }
     }
 
     console.log('═══════════════════════════════════════════════════════════════');
@@ -240,7 +255,7 @@ export async function POST(req: NextRequest) {
     const context = await getBusinessContext(activeCompanyId);
 
     // Llamar a GPT-4o con Function Calling
-    const response = await callGroqWithTools(openai, message, context, userId, activeCompanyId);
+    const response = await callGroqWithTools(openai, message || '', context, userId, activeCompanyId, fileAttachment);
 
     return NextResponse.json({
       success: true,
@@ -269,7 +284,8 @@ async function callGroqWithTools(
   message: string,
   context: string,
   userId: string,
-  companyId: string
+  companyId: string,
+  fileAttachment?: { name: string; content: string; mimeType: string }
 ): Promise<{ text: string; toolUsed?: string }> {
 
   const systemWithContext = `${SYSTEM_PROMPT}
@@ -281,12 +297,31 @@ ${context}`;
 
   console.log('[AI] 🚀 Llamando a OpenAI GPT-4o con Function Calling...');
 
+  // Construir contenido del usuario (texto + archivo opcional)
+  let userContent: any // necesario para soportar text y image_url parts de OpenAI
+  if (fileAttachment) {
+    if (fileAttachment.mimeType.startsWith('image/')) {
+      userContent = [
+        { type: 'text', text: message || 'Analiza este archivo adjunto y dame informacion relevante para la contabilidad.' },
+        { type: 'image_url', image_url: { url: fileAttachment.content, detail: 'auto' } }
+      ]
+    } else {
+      const maxChars = 8000
+      const snippet = fileAttachment.content.length > maxChars
+        ? fileAttachment.content.substring(0, maxChars) + '\n... [truncado]'
+        : fileAttachment.content
+      userContent = `${message || 'Analiza el siguiente archivo:'}\n\n---\n📎 Archivo adjunto: ${fileAttachment.name}\n\`\`\`\n${snippet}\n\`\`\`\nResponde en espanol y extrae informacion relevante para la contabilidad.`
+    }
+  } else {
+    userContent = message
+  }
+
   // Primera llamada - el modelo decide si usar herramientas
   const completion = await client.chat.completions.create({
     model: 'gpt-4o',
     messages: [
       { role: 'system', content: systemWithContext },
-      { role: 'user', content: message }
+      { role: 'user', content: userContent }
     ],
     tools: AI_TOOLS,
     tool_choice: 'auto', // El modelo decide cuándo usar herramientas
@@ -324,7 +359,7 @@ ${context}`;
     // Segunda llamada - darle los resultados al modelo para generar respuesta final
     const messages: any[] = [
       { role: 'system', content: systemWithContext },
-      { role: 'user', content: message },
+      { role: 'user', content: userContent },
       {
         role: 'assistant',
         content: null,
