@@ -374,8 +374,8 @@ export async function autoPopulateForm1040FromCompany(
       socialSecurity: 0,
       taxableSocialSecurity: 0,
       capitalGainLoss: 0,
-      otherIncome: 0, // Schedule C flows separately via scheduleC section
-      totalIncome: totalW2Wages + interestIncome + dividendIncome
+      otherIncome: scheduleC.netProfit, // Schedule C net profit flows to Line 8 (Other Income / Schedule 1)
+      totalIncome: totalW2Wages + interestIncome + dividendIncome + scheduleC.netProfit
     },
     adjustments: {
       total: deductibleSelfEmploymentTax,

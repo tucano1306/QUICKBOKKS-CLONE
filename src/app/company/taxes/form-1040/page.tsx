@@ -1,23 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import Form1040Help from '@/components/taxes/form-1040-help'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -25,26 +12,38 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+  AlertCircle,
+  Building2,
+  Calculator,
+  CheckCircle2,
+  DollarSign,
+  Eye,
   FileText,
-  Download,
+  Lightbulb,
+  Plus,
   Save,
   Sparkles,
-  Calculator,
-  User,
-  DollarSign,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle2,
-  Plus,
   Trash2,
-  Eye,
-  Users,
-  Building2,
-  Lightbulb
+  TrendingUp,
+  User,
+  Users
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import Form1040Help from '@/components/taxes/form-1040-help'
 
 interface Dependent {
   id: string
@@ -123,8 +122,8 @@ export default function Form1040Page() {
   const [dependents, setDependents] = useState<Dependent[]>([])
 
   // Calculations
-  const totalIncome = wages + taxableInterest + ordinaryDividends + taxableIRA + 
-                      taxablePensions + taxableSocialSecurity + capitalGainLoss + 
+  const totalIncome = wages + taxableInterest + ordinaryDividends + taxableIRA +
+                      taxablePensions + taxableSocialSecurity + capitalGainLoss +
                       otherIncome + (scheduleC_grossReceipts - scheduleC_expenses)
 
   useEffect(() => {
@@ -183,18 +182,51 @@ export default function Form1040Page() {
   ])
 
   useEffect(() => {
-    loadExistingForm()
+    if (activeCompany?.id) {
+      loadExistingForm()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taxYear])
+  }, [taxYear, activeCompany?.id])
 
   const loadExistingForm = async () => {
     try {
-      const response = await fetch(`/api/tax-forms/1040?year=${taxYear}${activeCompany?.id ? `&companyId=${activeCompany.id}` : ''}`)
-      if (response.ok) {
-        const data = await response.json()
+      // Load saved form (personal info) and fresh financial data in parallel
+      const [savedRes, autoRes] = await Promise.all([
+        fetch(`/api/tax-forms/1040?year=${taxYear}${activeCompany?.id ? `&companyId=${activeCompany.id}` : ''}`),
+        activeCompany?.id
+          ? fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${activeCompany.id}&action=auto-populate`)
+          : Promise.resolve(null)
+      ])
+
+      // Personal info from saved record
+      if (savedRes.ok) {
+        const data = await savedRes.json()
         if (data.exists) {
           setExistingForm(data)
           populateFormFromData(data)
+        }
+      }
+
+      // Always overwrite financial fields with fresh data from transactions
+      if (autoRes && autoRes.ok) {
+        const autoResult = await autoRes.json()
+        const autoData = autoResult.data || autoResult.autoData
+        if (autoData) {
+          if (autoData.income) {
+            setWages(autoData.income.wages || 0)
+            setTaxableInterest(autoData.income.taxableInterest || 0)
+            setOrdinaryDividends(autoData.income.ordinaryDividends || 0)
+            setQualifiedDividends(autoData.income.qualifiedDividends || 0)
+            setOtherIncome(autoData.income.otherIncome || 0)
+          }
+          if (autoData.scheduleC) {
+            setScheduleC_grossReceipts(autoData.scheduleC.grossReceipts || 0)
+            setScheduleC_expenses(autoData.scheduleC.expenses || 0)
+          }
+          if (autoData.payments) {
+            setWithholding(autoData.payments.withholding || 0)
+            setEstimatedPayments(autoData.payments.estimatedPayments || 0)
+          }
         }
       }
     } catch (error) {
@@ -217,7 +249,7 @@ export default function Form1040Page() {
     setCity(data.city || '')
     setState(data.state || 'FL')
     setZipCode(data.zipCode || '')
-    
+
     setYouBornBefore1960(data.youBornBefore1960 || false)
     setYouBlind(data.youBlind || false)
     setSpouseBornBefore1960(data.spouseBornBefore1960 || false)
@@ -261,7 +293,7 @@ export default function Form1040Page() {
     if (draft.city) setCity(draft.city)
     if (draft.state) setState(draft.state)
     if (draft.zipCode) setZipCode(draft.zipCode)
-    
+
     setYouBornBefore1960(draft.youBornBefore1960 || false)
     setYouBlind(draft.youBlind || false)
     setSpouseBornBefore1960(draft.spouseBornBefore1960 || false)
@@ -325,7 +357,7 @@ export default function Form1040Page() {
           newOrdinaryDividends = autoData.income.ordinaryDividends || 0
           newQualifiedDividends = autoData.income.qualifiedDividends || 0
           newOtherIncome = autoData.income.otherIncome || 0
-          
+
           setWages(newWages)
           setTaxableInterest(newTaxableInterest)
           setOrdinaryDividends(newOrdinaryDividends)
@@ -336,7 +368,7 @@ export default function Form1040Page() {
         if (autoData.scheduleC) {
           newScheduleC_grossReceipts = autoData.scheduleC.grossReceipts || 0
           newScheduleC_expenses = autoData.scheduleC.expenses || 0
-          
+
           setScheduleC_grossReceipts(newScheduleC_grossReceipts)
           setScheduleC_expenses(newScheduleC_expenses)
         }
@@ -351,7 +383,7 @@ export default function Form1040Page() {
         if (autoData.income) loadedItems.push('Ingresos')
         if (autoData.scheduleC) loadedItems.push('Schedule C')
         if (autoData.payments) loadedItems.push('Pagos/Retenciones')
-        
+
         toast.success(
           `✅ Datos cargados: ${loadedItems.join(', ')}\n📋 Los datos se guardan automáticamente como borrador`,
           { duration: 4000 }
@@ -538,7 +570,7 @@ export default function Form1040Page() {
   }
 
   const updateDependent = (id: string, field: string, value: any) => {
-    setDependents(dependents.map(d => 
+    setDependents(dependents.map(d =>
       d.id === id ? { ...d, [field]: value } : d
     ))
   }
@@ -591,9 +623,9 @@ export default function Form1040Page() {
                     </p>
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={clearDraft}
                   className="text-amber-700 border-amber-300 hover:bg-amber-100"
                 >
@@ -615,7 +647,7 @@ export default function Form1040Page() {
                   <div>
                     <p className="font-semibold">Formulario Guardado</p>
                     <p className="text-sm text-muted-foreground">
-                      {existingForm.line33_overpayment > 0 
+                      {existingForm.line33_overpayment > 0
                         ? `Reembolso esperado: $${existingForm.line34a_refundAmount?.toFixed(2) || '0.00'}`
                         : `Cantidad adeudada: $${existingForm.line36_amountYouOwe?.toFixed(2) || '0.00'}`
                       }
@@ -1237,7 +1269,7 @@ export default function Form1040Page() {
                             <Trash2 className="w-4 h-4 text-red-600" />
                           </Button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="space-y-2">
                             <Label>First Name</Label>
@@ -1326,7 +1358,7 @@ export default function Form1040Page() {
                     <span className="text-sm text-muted-foreground">Salarios (W-2):</span>
                     <span className="font-mono text-sm">${wages.toFixed(2)}</span>
                   </div>
-                  
+
                   {scheduleC_grossReceipts > 0 && (
                     <>
                       <div className="flex justify-between items-center py-2">
@@ -1413,7 +1445,7 @@ export default function Form1040Page() {
                         {existingForm.line33_overpayment > 0 ? 'REEMBOLSO:' : 'CANTIDAD ADEUDADA:'}
                       </span>
                       <span className={`font-mono font-bold text-2xl ${existingForm.line33_overpayment > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${existingForm.line33_overpayment > 0 
+                        ${existingForm.line33_overpayment > 0
                           ? existingForm.line34a_refundAmount?.toFixed(2) || '0.00'
                           : existingForm.line36_amountYouOwe?.toFixed(2) || '0.00'
                         }
