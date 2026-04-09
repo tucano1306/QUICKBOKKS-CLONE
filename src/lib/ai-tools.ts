@@ -258,7 +258,7 @@ export const AI_TOOLS = [
         properties: {
           year: {
             type: "number",
-            description: "Año fiscal a calcular (ej: 2024, 2025). Si no se especifica, usar el año actual."
+            description: "Año fiscal a calcular (ej: 2024, 2025). Si no se especifica, usar el año fiscal anterior (el año más reciente para declarar impuestos, no el año corriente)."
           }
         },
         required: []
@@ -1192,7 +1192,7 @@ async function ejecutarLlenarFormulariosFiscales(
   userId: string,
   companyId: string
 ) {
-  const taxYear = args.year || new Date().getFullYear();
+  const taxYear = args.year || (new Date().getFullYear() - 1);
 
   const data = await autoPopulateForm1040FromCompany(companyId, userId, taxYear);
 

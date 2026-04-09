@@ -291,6 +291,7 @@ export async function autoPopulateForm1040FromCompany(
   });
 
   // Get business income (Schedule C - Self Employment)
+  // Primary: paid invoices
   const invoices = await prisma.invoice.findMany({
     where: {
       companyId,
@@ -302,13 +303,29 @@ export async function autoPopulateForm1040FromCompany(
     }
   });
 
-  const totalBusinessIncome = invoices.reduce((sum, inv) => sum + inv.total, 0);
+  const invoiceIncome = invoices.reduce((sum, inv) => sum + inv.total, 0);
 
-  // Get business expenses (include APPROVED and PAID)
+  // Secondary: income transactions (used when invoices are not the primary record)
+  const allTransactions = await prisma.transaction.findMany({
+    where: {
+      companyId,
+      date: {
+        gte: yearStart,
+        lte: yearEnd
+      }
+    }
+  });
+
+  const incomeTransactions = allTransactions.filter(t => t.type === 'INCOME');
+  const transactionIncome = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  // Use whichever source has data (prefer invoices if both exist)
+  const totalBusinessIncome = invoiceIncome > 0 ? invoiceIncome : transactionIncome;
+
+  // Get business expenses — include all statuses since some may not be APPROVED
   const expenses = await prisma.expense.findMany({
     where: {
       companyId,
-      status: { in: ['APPROVED', 'PAID'] },
       date: {
         gte: yearStart,
         lte: yearEnd
@@ -318,25 +335,12 @@ export async function autoPopulateForm1040FromCompany(
 
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  // Get transactions for interest/dividend income
-  const transactions = await prisma.transaction.findMany({
-    where: {
-      companyId,
-      date: {
-        gte: yearStart,
-        lte: yearEnd
-      },
-      category: {
-        in: ['Interest Income', 'Dividend Income', 'Investment Income']
-      }
-    }
-  });
-
-  const interestIncome = transactions
+  // Interest/dividend income from transactions
+  const interestIncome = allTransactions
     .filter(t => t.category === 'Interest Income')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const dividendIncome = transactions
+  const dividendIncome = allTransactions
     .filter(t => t.category?.includes('Dividend'))
     .reduce((sum, t) => sum + t.amount, 0);
 
