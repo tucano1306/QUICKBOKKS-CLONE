@@ -286,11 +286,15 @@ export async function POST(req: NextRequest) {
 function buildUserContent(message: string, fileAttachment?: { name: string; content: string; mimeType: string }): any { // any: supports OpenAI text+image_url union type
   if (!fileAttachment) return message
 
-  if (fileAttachment.mimeType.startsWith('image/') || fileAttachment.mimeType === 'application/pdf') {
+  if (fileAttachment.mimeType.startsWith('image/')) {
     return [
-      { type: 'text', text: message || 'Analiza este archivo y dame informacion relevante para la contabilidad.' },
+      { type: 'text', text: message || 'Analiza esta imagen y dame informacion relevante para la contabilidad.' },
       { type: 'image_url', image_url: { url: fileAttachment.content, detail: 'high' } }
     ]
+  }
+
+  if (fileAttachment.mimeType === 'application/pdf') {
+    return `${message || 'El usuario adjuntó un archivo PDF.'}\n\n---\n📄 Archivo adjunto: ${fileAttachment.name} (PDF)\n⚠️ El análisis visual de PDFs no está disponible en el chat. Para procesar este documento automáticamente con OCR e IA, súbelo en: /company/documents/upload`
   }
 
   const maxChars = 8000
