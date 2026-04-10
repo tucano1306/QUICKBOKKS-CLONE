@@ -6,8 +6,6 @@ import OpenAI from 'openai';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdfParse = require('pdf-parse');
 
-export const dynamic = 'force-dynamic';
-// Allow larger payloads for PDF uploads (up to 10 MB)
 export const dynamic = 'force-dynamic'
 
 function getOpenAIClient(): OpenAI {
