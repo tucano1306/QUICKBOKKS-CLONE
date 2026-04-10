@@ -1,6 +1,7 @@
 'use client'
 
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { downloadTaxPDF } from '@/lib/tax-pdf'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -160,6 +161,35 @@ export default function TaxDeductionsPage() {
           <div className="flex gap-2 w-full sm:w-auto">
             <Button variant="outline" onClick={fetchDeductions} size="sm">
               <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button variant="outline" onClick={() => {
+              downloadTaxPDF({
+                title: 'Tax Deductions Tracker',
+                subtitle: 'Business Deductions & Tax Optimization',
+                year: selectedYear,
+                company: activeCompany?.name ?? undefined,
+                fileName: 'tax_deductions',
+                sections: [
+                  {
+                    title: `Deductions Summary – ${selectedYear}`,
+                    columns: ['Metric', 'Amount ($)'],
+                    rows: [
+                      ['Total Deductions', totalDeductions],
+                      ['Total Deductible Amount', totalDeductible],
+                      ['Needs Documentation', needsDocumentation],
+                    ],
+                  },
+                  {
+                    title: 'Deduction Details',
+                    columns: ['Category', 'Description', 'Amount ($)', 'Deductible ($)', 'Status'],
+                    rows: filteredDeductions.map(d => [
+                      d.category, d.description, d.amount, d.deductibleAmount, d.status,
+                    ]),
+                  },
+                ],
+              })
+            }} size="sm" className="hidden sm:flex">
+              <Download className="w-4 h-4 mr-2" />Descargar PDF
             </Button>
             <Button variant="outline" onClick={() => router.push('/company/taxes/export')} size="sm" className="hidden sm:flex">
               <Download className="w-4 h-4 mr-2" />Exportar

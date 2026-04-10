@@ -7,16 +7,19 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  
+
+  // Packages that should not be bundled by webpack (use Node.js require at runtime)
+  serverExternalPackages: ['pdf-parse'],
+
   // Configuración necesaria para despliegue con API routes
   output: undefined, // No usar export estático
-  
+
   // Optimización de imágenes
   images: {
     domains: ['localhost'],
     formats: ['image/avif', 'image/webp'],
   },
-  
+
   // Optimización de compilación
   compiler: {
     // Eliminar console.log en producción
@@ -24,7 +27,7 @@ const nextConfig = {
       exclude: ['error', 'warn'],
     } : false,
   },
-  
+
   // Optimización experimental
   experimental: {
     // Optimiza el tree-shaking de paquetes
@@ -36,7 +39,7 @@ const nextConfig = {
       'recharts',
     ],
   },
-  
+
   // Headers de caché para assets estáticos
   async headers() {
     return [
@@ -60,7 +63,7 @@ const nextConfig = {
       },
     ]
   },
-  
+
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
     // Optimizaciones solo en producción

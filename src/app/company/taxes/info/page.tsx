@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
+import { downloadTaxPDF } from '@/lib/tax-pdf'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -229,6 +230,41 @@ export default function TaxInfoPage() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => { setEditingSettings(taxSettings || {}); setShowSettingsModal(true) }}>
               <Edit className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Settings</span>
+            </Button>
+            <Button size="sm" onClick={() => {
+              downloadTaxPDF({
+                title: 'Tax Information Center',
+                subtitle: 'Compliance Dashboard & Filing Status',
+                year: selectedYear,
+                company: activeCompany?.name ?? undefined,
+                fileName: 'tax_info',
+                sections: [
+                  {
+                    title: 'Financial Summary',
+                    columns: ['Metric', 'Amount ($)'],
+                    rows: summary ? [
+                      ['Total Revenue', summary.totalRevenue],
+                      ['Total Expenses', summary.totalExpenses],
+                      ['Total Payroll', summary.totalPayroll],
+                      ['Payroll Taxes', summary.payrollTaxes],
+                      ['Net Income', summary.netIncome],
+                      ['Total Deductions', summary.totalDeductions],
+                      ['Estimated Federal Tax', summary.estimatedFederalTax],
+                      ['Estimated State Tax', summary.estimatedStateTax],
+                      ['Total Estimated Tax', summary.totalEstimatedTax],
+                    ] : [['No data available', '']],
+                  },
+                  {
+                    title: 'Tax Obligations',
+                    columns: ['Type', 'Description', 'Frequency', 'Next Due', 'Status'],
+                    rows: taxObligations.map(o => [
+                      o.type, o.description, o.frequency, o.nextDueDate, o.status,
+                    ]),
+                  },
+                ],
+              })
+            }}>
+              <Download className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Descargar PDF</span>
             </Button>
             <Button size="sm" onClick={() => router.push('/company/taxes/export')}>
               <Download className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Export</span>

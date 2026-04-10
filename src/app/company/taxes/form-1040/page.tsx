@@ -23,11 +23,14 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCompany } from '@/contexts/CompanyContext'
+import { downloadTaxPDF } from '@/lib/tax-pdf'
 import {
   AlertCircle,
   Building2,
   Calculator,
   CheckCircle2,
+  Copy,
+  Download,
   DollarSign,
   Eye,
   FileText,
@@ -37,12 +40,13 @@ import {
   Sparkles,
   Trash2,
   TrendingUp,
+  Upload,
   User,
   Users
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface Dependent {
@@ -74,6 +78,9 @@ export default function Form1040Page() {
   const [aiSuggestions, setAISuggestions] = useState<any[]>([])
   const [showSummary, setShowSummary] = useState(false)
   const [summary, setSummary] = useState<string>('')
+  const [copiedFromYear, setCopiedFromYear] = useState<number | null>(null)
+  const [pdfExtracted, setPdfExtracted] = useState(false)
+  const pdfInputRef = useRef<HTMLInputElement>(null)
 
   // Personal Info
   const [firstName, setFirstName] = useState('')
@@ -326,6 +333,173 @@ export default function Form1040Page() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`)
     }
+  }
+
+  const handlePdfUpload = async (file: File) => {
+    setLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('pdf', file)
+
+      const response = await fetch('/api/tax-forms/1040/extract-pdf', {
+        method: 'POST',
+        body: formData
+      })
+      const result = await response.json()
+      if (!response.ok) {
+        toast.error(result.error || 'Error al procesar el PDF')
+        return
+      }
+
+      const e = result.extracted
+
+      // Map extracted data onto existing populateFormFromData shape
+      if (e.filingStatus) setFilingStatus(e.filingStatus)
+      if (e.firstName) setFirstName(e.firstName)
+      if (e.middleInitial) setMiddleInitial(e.middleInitial)
+      if (e.lastName) setLastName(e.lastName)
+      if (e.ssn) setSsn(e.ssn)
+      if (e.spouseFirstName) setSpouseFirstName(e.spouseFirstName)
+      if (e.spouseMiddleInitial) setSpouseMiddleInitial(e.spouseMiddleInitial)
+      if (e.spouseLastName) setSpouseLastName(e.spouseLastName)
+      if (e.spouseSsn) setSpouseSsn(e.spouseSsn)
+      if (e.homeAddress) setHomeAddress(e.homeAddress)
+      if (e.aptNo) setAptNo(e.aptNo)
+      if (e.city) setCity(e.city)
+      if (e.state) setState(e.state)
+      if (e.zipCode) setZipCode(e.zipCode)
+      setYouBornBefore1960(e.youBornBefore1960 ?? false)
+      setYouBlind(e.youBlind ?? false)
+      setSpouseBornBefore1960(e.spouseBornBefore1960 ?? false)
+      setSpouseBlind(e.spouseBlind ?? false)
+      if (Array.isArray(e.dependents) && e.dependents.length > 0) {
+        setDependents(
+          e.dependents.map((d: any, i: number) => ({
+            id: `dep-pdf-${i}`,
+            firstName: d.firstName || '',
+            lastName: d.lastName || '',
+            ssn: d.ssn || '',
+            relationship: d.relationship || '',
+            childTaxCredit: d.childTaxCredit ?? false,
+            creditOtherDependents: d.creditOtherDependents ?? false
+          }))
+        )
+      }
+      setWages(e.wages ?? 0)
+      setTaxableInterest(e.taxableInterest ?? 0)
+      setOrdinaryDividends(e.ordinaryDividends ?? 0)
+      setQualifiedDividends(e.qualifiedDividends ?? 0)
+      setIraDistributions(e.iraDistributions ?? 0)
+      setTaxableIRA(e.taxableIRA ?? 0)
+      setPensionsAnnuities(e.pensionsAnnuities ?? 0)
+      setTaxablePensions(e.taxablePensions ?? 0)
+      setSocialSecurity(e.socialSecurity ?? 0)
+      setTaxableSocialSecurity(e.taxableSocialSecurity ?? 0)
+      setCapitalGainLoss(e.capitalGainLoss ?? 0)
+      setOtherIncome(e.otherIncome ?? 0)
+      setScheduleC_grossReceipts(e.scheduleC_grossReceipts ?? 0)
+      setScheduleC_expenses(e.scheduleC_expenses ?? 0)
+      setWithholding(e.withholding ?? 0)
+      setEstimatedPayments(e.estimatedPayments ?? 0)
+
+      setPdfExtracted(true)
+      toast.success(
+        `✅ PDF analizado correctamente. Todos los campos del formulario han sido llenados con los datos del PDF. Revise y guarde.`,
+        { duration: 6000 }
+      )
+    } catch (error) {
+      console.error('Error processing PDF:', error)
+      toast.error('Error al procesar el PDF')
+    } finally {
+      setLoading(false)
+      // Reset file input so the same file can be re-uploaded if needed
+      if (pdfInputRef.current) pdfInputRef.current.value = ''
+    }
+  }
+
+  const handleCopyFromPreviousYear = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/tax-forms/1040?year=${taxYear}&action=copy-from-previous-year`)
+      const result = await response.json()
+      if (!response.ok) {
+        toast.error(result.error || 'No se encontraron datos del año anterior')
+        return
+      }
+      const prev = result.previousForm
+      populateFormFromData(prev)
+      setCopiedFromYear(result.previousYear)
+      const deps = result.copiedFields?.dependents ?? 0
+      toast.success(
+        `✅ Formulario ${taxYear} llenado con los datos del ${result.previousYear}. ` +
+        `Información personal, estado civil${deps > 0 ? `, ${deps} dependiente(s)` : ''} e ingresos copiados. Revise y ajuste los montos si es necesario.`,
+        { duration: 7000 }
+      )
+    } catch (error) {
+      console.error('Error copying from previous year:', error)
+      toast.error('Error al copiar datos del año anterior')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDownloadPDF = () => {
+    const businessNetProfit = scheduleC_grossReceipts - scheduleC_expenses
+    downloadTaxPDF({
+      title: 'Form 1040 – U.S. Individual Income Tax Return',
+      subtitle: `Tax Year ${taxYear}`,
+      year: taxYear,
+      company: activeCompany?.name ?? undefined,
+      fileName: 'form_1040',
+      sections: [
+        {
+          title: 'Personal Information',
+          columns: ['Field', 'Value'],
+          rows: [
+            ['Name', `${firstName}${middleInitial ? ' ' + middleInitial : ''} ${lastName}`.trim() || '—'],
+            ['SSN', ssn ? `***-**-${ssn.slice(-4)}` : '—'],
+            ['Filing Status', filingStatus],
+            ['Address', [homeAddress, aptNo, city, state, zipCode].filter(Boolean).join(', ') || '—'],
+          ],
+        },
+        {
+          title: 'Income (Lines 1–8)',
+          columns: ['Line', 'Description', 'Amount ($)'],
+          rows: [
+            ['1a', 'Wages, Salaries, Tips (W-2)', wages],
+            ['2b', 'Taxable Interest', taxableInterest],
+            ['3a', 'Qualified Dividends', qualifiedDividends],
+            ['3b', 'Ordinary Dividends', ordinaryDividends],
+            ['4b', 'Taxable IRA Distributions', taxableIRA],
+            ['5b', 'Taxable Pensions & Annuities', taxablePensions],
+            ['6b', 'Taxable Social Security', taxableSocialSecurity],
+            ['7',  'Capital Gain or (Loss)', capitalGainLoss],
+            ['8',  'Other Income', otherIncome],
+            ['—',  'Sch C Net Profit / Loss', businessNetProfit],
+            ['9',  'Total Income', totalIncome],
+          ],
+        },
+        {
+          title: 'Payments & Withholding',
+          columns: ['Line', 'Description', 'Amount ($)'],
+          rows: [
+            ['25a', 'W-2 Federal Income Tax Withheld', withholding],
+            ['26',  'Estimated Tax Payments', estimatedPayments],
+            ['—',   'Total Payments', withholding + estimatedPayments],
+          ],
+        },
+        ...(dependents.length > 0 ? [{
+          title: 'Dependents',
+          columns: ['Name', 'Relationship', 'Child Tax Credit', 'Credit Other Dep.'],
+          rows: dependents.map(d => [
+            `${d.firstName} ${d.lastName}`.trim(),
+            d.relationship,
+            d.childTaxCredit ? 'Yes' : 'No',
+            d.creditOtherDependents ? 'Yes' : 'No',
+          ]),
+        }] : []),
+      ],
+    })
   }
 
   const handleAutoPopulate = async () => {
@@ -609,6 +783,63 @@ export default function Form1040Page() {
           </div>
         </div>
 
+        {/* Banner: datos extraídos del PDF */}
+        {pdfExtracted && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-6 h-6 text-green-600" />
+                  <div>
+                    <p className="font-semibold text-green-800">📄 Formulario llenado desde PDF</p>
+                    <p className="text-sm text-green-700">
+                      La AI extrajo los datos de su PDF y llenó todos los campos automáticamente.
+                      Revise cada sección y presione &quot;Guardar Formulario&quot; cuando todo esté correcto.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPdfExtracted(false)}
+                  className="text-green-700 border-green-300 hover:bg-green-100"
+                >
+                  Listo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Banner: datos copiados del año anterior */}
+        {copiedFromYear && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Copy className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <p className="font-semibold text-blue-800">📋 Datos copiados del año {copiedFromYear}</p>
+                    <p className="text-sm text-blue-700">
+                      Información personal e ingresos del {copiedFromYear} cargados en el formulario {taxYear}.
+                      Revise los montos y use &quot;Auto-Llenar desde Empresa&quot; para actualizar los ingresos con datos reales de {taxYear}.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCopiedFromYear(null)}
+                  className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Descartar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Draft Status Card - Mostrar si hay datos sin guardar */}
         {!existingForm && draftLoaded && (firstName || wages > 0 || scheduleC_grossReceipts > 0) && (
           <Card className="border-amber-200 bg-amber-50">
@@ -673,6 +904,33 @@ export default function Form1040Page() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
+              {/* Hidden file input for PDF */}
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handlePdfUpload(file)
+                }}
+              />
+              <Button
+                onClick={() => pdfInputRef.current?.click()}
+                disabled={loading}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Llenar desde PDF
+              </Button>
+              <Button
+                onClick={handleCopyFromPreviousYear}
+                disabled={loading}
+                variant="outline"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copiar del Año {taxYear - 1}
+              </Button>
               <Button onClick={handleAutoPopulate} disabled={loading || !activeCompany}>
                 <Building2 className="w-4 h-4 mr-2" />
                 Auto-Llenar desde Empresa
@@ -688,6 +946,10 @@ export default function Form1040Page() {
               <Button variant="outline" onClick={handleGetAISuggestions} disabled={!existingForm}>
                 <Lightbulb className="w-4 h-4 mr-2" />
                 Sugerencias de IA
+              </Button>
+              <Button variant="outline" onClick={handleDownloadPDF}>
+                <Download className="w-4 h-4 mr-2" />
+                Descargar PDF
               </Button>
             </div>
           </CardContent>

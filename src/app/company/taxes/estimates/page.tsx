@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
+import { downloadTaxPDF } from '@/lib/tax-pdf'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -181,6 +182,42 @@ export default function TaxEstimatesPage() {
             <p className="text-sm sm:text-base text-gray-600 mt-1">Quarterly payments & safe harbor</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => {
+              downloadTaxPDF({
+                title: 'Estimated Tax Calculator',
+                subtitle: 'Quarterly Payments & Safe Harbor',
+                year: selectedYear,
+                company: activeCompany?.name ?? undefined,
+                fileName: 'tax_estimates',
+                sections: [
+                  {
+                    title: 'Annual Tax Summary',
+                    columns: ['Metric', 'Amount ($)'],
+                    rows: taxEstimate ? [
+                      ['Total Revenue', taxEstimate.totalRevenue],
+                      ['Total Expenses', taxEstimate.totalExpenses],
+                      ['Total Payroll', taxEstimate.totalPayroll],
+                      ['Net Income', taxEstimate.netIncome],
+                      ['Federal Tax', taxEstimate.federalTax],
+                      ['State Tax', taxEstimate.stateTax],
+                      ['Self-Employment Tax', taxEstimate.selfEmploymentTax],
+                      ['Total Tax', taxEstimate.totalTax],
+                      ['Quarterly Payment', taxEstimate.quarterlyPayment],
+                      ['Effective Rate', `${taxEstimate.effectiveRate.toFixed(2)}%`],
+                    ] : [['No data available', '']],
+                  },
+                  {
+                    title: 'Quarterly Estimates',
+                    columns: ['Quarter', 'Due Date', 'Est. Tax', 'Amt Due', 'Status'],
+                    rows: quarterlyEstimates.map(q => [
+                      q.quarter, q.dueDate, q.estimatedTax, q.amountDue, q.status,
+                    ]),
+                  },
+                ],
+              })
+            }} size="sm" className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Descargar PDF</span>
+            </Button>
             <Button variant="outline" onClick={() => router.push('/company/taxes/export')} size="sm" className="flex-1 sm:flex-none">
               <Download className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Export</span>
             </Button>

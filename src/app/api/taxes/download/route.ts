@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,16 +21,16 @@ export async function GET(request: NextRequest) {
     const [company, invoices, expenses, employees, payrolls, vendors, customers] = await Promise.all([
       prisma.company.findUnique({ where: { id: companyId } }),
       prisma.invoice.findMany({
-        where: { 
-          companyId, 
-          issueDate: { gte: new Date(startDate), lte: new Date(endDate) } 
+        where: {
+          companyId,
+          issueDate: { gte: new Date(startDate), lte: new Date(endDate) }
         },
         include: { customer: true, items: true }
       }),
       prisma.expense.findMany({
-        where: { 
-          companyId, 
-          date: { gte: new Date(startDate), lte: new Date(endDate) } 
+        where: {
+          companyId,
+          date: { gte: new Date(startDate), lte: new Date(endDate) }
         },
         include: { category: true }
       }),
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
         include: { payrolls: { where: { periodEnd: { gte: new Date(startDate), lte: new Date(endDate) } } } }
       }),
       prisma.payroll.findMany({
-        where: { 
-          companyId, 
-          periodEnd: { gte: new Date(startDate), lte: new Date(endDate) } 
+        where: {
+          companyId,
+          periodEnd: { gte: new Date(startDate), lte: new Date(endDate) }
         }
       }),
       prisma.vendor.findMany({ where: { companyId } }),
@@ -65,21 +65,38 @@ export async function GET(request: NextRequest) {
     let contentType: string
     let fileName: string
 
+    const exportData: TaxExportData = {
+      company,
+      invoices,
+      expenses,
+      employees,
+      payrolls,
+      vendors,
+      customers,
+      year,
+      startDate,
+      endDate,
+      totalIncome,
+      totalExpenses,
+      totalPayroll,
+      netIncome,
+    }
+
     switch (format.toLowerCase()) {
       case 'txf':
-        content = generateTXF(company, invoices, expenses, employees, payrolls, year, totalIncome, totalExpenses, totalPayroll, netIncome)
+        content = generateTXF(exportData)
         contentType = 'application/x-txf'
         fileName = `tax_export_${year}_txf.txf`
         break
 
       case 'iif':
-        content = generateIIF(company, invoices, expenses, employees, payrolls, year, totalIncome, totalExpenses, totalPayroll)
+        content = generateIIF(exportData)
         contentType = 'application/x-iif'
         fileName = `tax_export_${year}_iif.iif`
         break
 
       case 'csv':
-        content = generateCSV(company, invoices, expenses, employees, payrolls, year)
+        content = generateCSV(exportData)
         contentType = 'text/csv'
         fileName = `tax_export_${year}_data.csv`
         break
@@ -87,20 +104,20 @@ export async function GET(request: NextRequest) {
       case 'excel':
       case 'xlsx':
         // Para Excel generamos CSV con tabs (TSV) que Excel puede abrir directamente
-        content = generateExcelTSV(company, invoices, expenses, employees, payrolls, year, totalIncome, totalExpenses, totalPayroll, netIncome)
+        content = generateExcelTSV(exportData)
         contentType = 'text/tab-separated-values'
         fileName = `tax_export_${year}_workbook.tsv`
         break
 
       case 'pdf':
         // Para PDF generamos HTML que se puede convertir/imprimir
-        content = generatePDFReport(company, invoices, expenses, employees, payrolls, year, totalIncome, totalExpenses, totalPayroll, netIncome)
+        content = generatePDFReport(exportData)
         contentType = 'text/html'
         fileName = `tax_report_${year}.html`
         break
 
       case 'json':
-        content = generateJSON(company, invoices, expenses, employees, payrolls, vendors, customers, year, startDate, endDate, totalIncome, totalExpenses, totalPayroll, netIncome)
+        content = generateJSON(exportData)
         contentType = 'application/json'
         fileName = `tax_export_${year}_data.json`
         break
@@ -120,302 +137,236 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error generating export:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Error generating export',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }
 
-// Generar archivo TXF (Tax Exchange Format)
-function generateTXF(
-  company: { name: string; taxId: string | null },
-  invoices: any[],
-  expenses: any[],
-  employees: any[],
-  payrolls: any[],
-  year: string,
-  totalIncome: number,
-  totalExpenses: number,
-  totalPayroll: number,
+interface TaxExportData {
+  company: { name: string; taxId: string | null; id?: string; address?: string | null }
+  invoices: any[]
+  expenses: any[]
+  employees: any[]
+  payrolls: any[]
+  vendors: any[]
+  customers: any[]
+  year: string
+  startDate: string
+  endDate: string
+  totalIncome: number
+  totalExpenses: number
+  totalPayroll: number
   netIncome: number
-) {
+}
+
+// Generar archivo TXF (Tax Exchange Format)
+function generateTXF({ company, invoices, expenses, employees, payrolls, year, totalIncome, totalExpenses, totalPayroll, netIncome }: TaxExportData) {
   const lines: string[] = []
-  
-  // Header TXF
-  lines.push('V042') // TXF Version
-  lines.push('AComputoPlus Tax Export') // Application name
-  lines.push(`D${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}`) // Date
-  lines.push('^') // Separator
-  
-  // Company Info
-  lines.push(`N${company.taxId || 'XX-XXXXXXX'}`) // EIN
-  lines.push(`C1`) // Category: Business Income
-  lines.push(`L1`) // Line number
-  lines.push(`$${totalIncome.toFixed(2)}`) // Amount
-  lines.push(`XGross Receipts - ${company.name}`) // Description
-  lines.push('^')
-  
+
+  // Header TXF + Company Info
+  lines.push(
+    'V042', // TXF Version
+    'AComputoPlus Tax Export', // Application name
+    `D${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}`, // Date
+    '^', // Separator
+    `N${company.taxId || 'XX-XXXXXXX'}`, // EIN
+    'C1', // Category: Business Income
+    'L1', // Line number
+    `$${totalIncome.toFixed(2)}`, // Amount
+    `XGross Receipts - ${company.name}`, // Description
+    '^'
+  )
+
   // Expenses by category (Form 1120 deductions)
   const expenseCategories = groupExpensesByCategory(expenses)
-  
+
   // Cost of Goods Sold (Line 2)
   const cogsAmount = expenseCategories['Cost of Goods'] || expenseCategories['Costo de Ventas'] || 0
   if (cogsAmount > 0) {
-    lines.push('N261') // TXF Code for COGS
-    lines.push('C1')
-    lines.push('L2')
-    lines.push(`$${cogsAmount.toFixed(2)}`)
-    lines.push('XCost of Goods Sold')
-    lines.push('^')
+    lines.push('N261', 'C1', 'L2', `$${cogsAmount.toFixed(2)}`, 'XCost of Goods Sold', '^') // TXF Code for COGS
   }
 
   // Salaries and Wages (Line 13)
   if (totalPayroll > 0) {
-    lines.push('N507') // TXF Code for Wages
-    lines.push('C1')
-    lines.push('L13')
-    lines.push(`$${totalPayroll.toFixed(2)}`)
-    lines.push(`XSalaries and wages - ${employees.length} employees`)
-    lines.push('^')
+    lines.push('N507', 'C1', 'L13', `$${totalPayroll.toFixed(2)}`, `XSalaries and wages - ${employees.length} employees`, '^') // TXF Code for Wages
   }
 
   // Rent (Line 16)
   const rentAmount = expenseCategories['Rent'] || expenseCategories['Alquiler'] || 0
   if (rentAmount > 0) {
-    lines.push('N327') // TXF Code for Rent
-    lines.push('C1')
-    lines.push('L16')
-    lines.push(`$${rentAmount.toFixed(2)}`)
-    lines.push('XRents')
-    lines.push('^')
+    lines.push('N327', 'C1', 'L16', `$${rentAmount.toFixed(2)}`, 'XRents', '^') // TXF Code for Rent
   }
 
   // Taxes and Licenses (Line 17)
   const taxesAmount = expenseCategories['Taxes'] || expenseCategories['Impuestos'] || 0
   if (taxesAmount > 0) {
-    lines.push('N509') // TXF Code for Taxes
-    lines.push('C1')
-    lines.push('L17')
-    lines.push(`$${taxesAmount.toFixed(2)}`)
-    lines.push('XTaxes and licenses')
-    lines.push('^')
+    lines.push('N509', 'C1', 'L17', `$${taxesAmount.toFixed(2)}`, 'XTaxes and licenses', '^') // TXF Code for Taxes
   }
 
   // Other Deductions (Line 26)
   const otherExpenses = totalExpenses - cogsAmount - rentAmount - taxesAmount
   if (otherExpenses > 0) {
-    lines.push('N264')
-    lines.push('C1')
-    lines.push('L26')
-    lines.push(`$${otherExpenses.toFixed(2)}`)
-    lines.push('XOther deductions')
-    lines.push('^')
+    lines.push('N264', 'C1', 'L26', `$${otherExpenses.toFixed(2)}`, 'XOther deductions', '^')
   }
 
   // Net Income (Line 30)
-  lines.push('N465')
-  lines.push('C1')
-  lines.push('L30')
-  lines.push(`$${netIncome.toFixed(2)}`)
-  lines.push('XTaxable income before NOL deduction')
-  lines.push('^')
+  lines.push('N465', 'C1', 'L30', `$${netIncome.toFixed(2)}`, 'XTaxable income before NOL deduction', '^')
 
   return lines.join('\r\n')
 }
 
 // Generar archivo IIF (Intuit Interchange Format)
-function generateIIF(
-  company: { name: string; taxId: string | null },
-  invoices: any[],
-  expenses: any[],
-  employees: any[],
-  payrolls: any[],
-  year: string,
-  totalIncome: number,
-  totalExpenses: number,
-  totalPayroll: number
-) {
+function generateIIF({ company, invoices, expenses, employees, payrolls, year, totalIncome, totalExpenses, totalPayroll }: TaxExportData) {
   const lines: string[] = []
-  
-  // Header IIF
-  lines.push('!HDR\tPROD\tVER\tREL\tIIFVER\tDATE\tTIME\tACCNTNT\tACCNTNTSPLITTIME')
-  lines.push(`HDR\tComputoPlus\t1.0\t1\t1\t${new Date().toLocaleDateString('en-US')}\t${new Date().toLocaleTimeString('en-US')}\tN\t0`)
-  lines.push('')
-  
-  // Chart of Accounts
-  lines.push('!ACCNT\tNAME\tACCNTTYPE\tDESC\tACCNUM\tEXTRA')
-  lines.push('ACCNT\tIncome\tINC\tSales Revenue\t4000\t')
-  lines.push('ACCNT\tCost of Goods Sold\tCOGS\tCost of Sales\t5000\t')
-  lines.push('ACCNT\tOperating Expenses\tEXP\tGeneral Expenses\t6000\t')
-  lines.push('ACCNT\tPayroll Expenses\tEXP\tSalaries and Wages\t6200\t')
-  lines.push('ACCNT\tAccounts Receivable\tAR\tCustomer Receivables\t1100\t')
-  lines.push('ACCNT\tAccounts Payable\tAP\tVendor Payables\t2000\t')
-  lines.push('ACCNT\tCash\tBANK\tOperating Account\t1000\t')
-  lines.push('')
-  
-  // Transactions - Invoices
-  lines.push('!TRNS\tTRNSTYPE\tDATE\tACCNT\tNAME\tAMOUNT\tDOCNUM\tMEMO\tCLEAR\tTOPRINT\tNAMEISTAXABLE')
-  lines.push('!SPL\tTRNSTYPE\tDATE\tACCNT\tNAME\tAMOUNT\tDOCNUM\tMEMO\tCLEAR\tQNTY\tREIMBEXP')
-  lines.push('!ENDTRNS')
-  
+
+  // Header IIF, Chart of Accounts, and Transaction templates
+  lines.push(
+    '!HDR\tPROD\tVER\tREL\tIIFVER\tDATE\tTIME\tACCNTNT\tACCNTNTSPLITTIME',
+    `HDR\tComputoPlus\t1.0\t1\t1\t${new Date().toLocaleDateString('en-US')}\t${new Date().toLocaleTimeString('en-US')}\tN\t0`,
+    '',
+    '!ACCNT\tNAME\tACCNTTYPE\tDESC\tACCNUM\tEXTRA',
+    'ACCNT\tIncome\tINC\tSales Revenue\t4000\t',
+    'ACCNT\tCost of Goods Sold\tCOGS\tCost of Sales\t5000\t',
+    'ACCNT\tOperating Expenses\tEXP\tGeneral Expenses\t6000\t',
+    'ACCNT\tPayroll Expenses\tEXP\tSalaries and Wages\t6200\t',
+    'ACCNT\tAccounts Receivable\tAR\tCustomer Receivables\t1100\t',
+    'ACCNT\tAccounts Payable\tAP\tVendor Payables\t2000\t',
+    'ACCNT\tCash\tBANK\tOperating Account\t1000\t',
+    '',
+    '!TRNS\tTRNSTYPE\tDATE\tACCNT\tNAME\tAMOUNT\tDOCNUM\tMEMO\tCLEAR\tTOPRINT\tNAMEISTAXABLE',
+    '!SPL\tTRNSTYPE\tDATE\tACCNT\tNAME\tAMOUNT\tDOCNUM\tMEMO\tCLEAR\tQNTY\tREIMBEXP',
+    '!ENDTRNS'
+  )
+
   // Add invoices
   invoices.forEach(inv => {
     const date = new Date(inv.issueDate).toLocaleDateString('en-US')
     const amount = Number(inv.total)
-    
-    lines.push(`TRNS\tINVOICE\t${date}\tAccounts Receivable\t${inv.customer?.name || 'Customer'}\t${amount.toFixed(2)}\t${inv.invoiceNumber}\tInvoice ${inv.invoiceNumber}\tN\tN\tN`)
-    lines.push(`SPL\tINVOICE\t${date}\tIncome\t${inv.customer?.name || 'Customer'}\t${(-amount).toFixed(2)}\t${inv.invoiceNumber}\tSales Revenue\tN\t\tNOTHING`)
-    lines.push('ENDTRNS')
+
+    lines.push(
+      `TRNS\tINVOICE\t${date}\tAccounts Receivable\t${inv.customer?.name || 'Customer'}\t${amount.toFixed(2)}\t${inv.invoiceNumber}\tInvoice ${inv.invoiceNumber}\tN\tN\tN`,
+      `SPL\tINVOICE\t${date}\tIncome\t${inv.customer?.name || 'Customer'}\t${(-amount).toFixed(2)}\t${inv.invoiceNumber}\tSales Revenue\tN\t\tNOTHING`,
+      'ENDTRNS'
+    )
   })
   lines.push('')
-  
+
   // Add expenses
   expenses.forEach(exp => {
     const date = new Date(exp.date).toLocaleDateString('en-US')
     const amount = Number(exp.amount)
     const category = exp.category?.name || 'Operating Expenses'
-    
-    lines.push(`TRNS\tCHECK\t${date}\tCash\t${exp.vendor || 'Vendor'}\t${(-amount).toFixed(2)}\t\t${exp.description}\tN\tN\tN`)
-    lines.push(`SPL\tCHECK\t${date}\t${mapCategoryToAccount(category)}\t${exp.vendor || 'Vendor'}\t${amount.toFixed(2)}\t\t${exp.description}\tN\t\tNOTHING`)
-    lines.push('ENDTRNS')
+
+    lines.push(
+      `TRNS\tCHECK\t${date}\tCash\t${exp.vendor || 'Vendor'}\t${(-amount).toFixed(2)}\t\t${exp.description}\tN\tN\tN`,
+      `SPL\tCHECK\t${date}\t${mapCategoryToAccount(category)}\t${exp.vendor || 'Vendor'}\t${amount.toFixed(2)}\t\t${exp.description}\tN\t\tNOTHING`,
+      'ENDTRNS'
+    )
   })
   lines.push('')
-  
+
   // Add payroll
   payrolls.forEach(pay => {
     const date = new Date(pay.payDate).toLocaleDateString('en-US')
     const gross = Number(pay.grossSalary)
-    
-    lines.push(`TRNS\tCHECK\t${date}\tCash\tPayroll\t${(-gross).toFixed(2)}\t\tPayroll ${pay.periodStart} - ${pay.periodEnd}\tN\tN\tN`)
-    lines.push(`SPL\tCHECK\t${date}\tPayroll Expenses\tPayroll\t${gross.toFixed(2)}\t\tGross Wages\tN\t\tNOTHING`)
-    lines.push('ENDTRNS')
+
+    lines.push(
+      `TRNS\tCHECK\t${date}\tCash\tPayroll\t${(-gross).toFixed(2)}\t\tPayroll ${pay.periodStart} - ${pay.periodEnd}\tN\tN\tN`,
+      `SPL\tCHECK\t${date}\tPayroll Expenses\tPayroll\t${gross.toFixed(2)}\t\tGross Wages\tN\t\tNOTHING`,
+      'ENDTRNS'
+    )
   })
 
   return lines.join('\r\n')
 }
 
 // Generar CSV
-function generateCSV(
-  company: { name: string; taxId: string | null },
-  invoices: any[],
-  expenses: any[],
-  employees: any[],
-  payrolls: any[],
-  year: string
-) {
+function generateCSV({ company, invoices, expenses, employees, payrolls, year }: TaxExportData) {
   const lines: string[] = []
-  
-  // Header
-  lines.push(`"Company","${company.name}"`)
-  lines.push(`"Tax ID","${company.taxId || 'N/A'}"`)
-  lines.push(`"Tax Year","${year}"`)
-  lines.push(`"Export Date","${new Date().toISOString()}"`)
-  lines.push('')
-  
-  // Income Section
-  lines.push('"=== INCOME ==="')
-  lines.push('"Date","Invoice Number","Customer","Subtotal","Tax","Total","Status"')
+
+  // Header + Income Section
+  lines.push(
+    `"Company","${company.name}"`,
+    `"Tax ID","${company.taxId || 'N/A'}"`,
+    `"Tax Year","${year}"`,
+    `"Export Date","${new Date().toISOString()}"`,
+    '',
+    '"=== INCOME ==="',
+    '"Date","Invoice Number","Customer","Subtotal","Tax","Total","Status"'
+  )
   invoices.forEach(inv => {
     lines.push(`"${new Date(inv.issueDate).toLocaleDateString()}","${inv.invoiceNumber}","${inv.customer?.name || ''}","${Number(inv.subtotal).toFixed(2)}","${Number(inv.taxAmount).toFixed(2)}","${Number(inv.total).toFixed(2)}","${inv.status}"`)
   })
-  lines.push('')
-  
   // Expenses Section
-  lines.push('"=== EXPENSES ==="')
-  lines.push('"Date","Description","Category","Amount","Vendor","Tax Deductible"')
+  lines.push('', '"=== EXPENSES ==="', '"Date","Description","Category","Amount","Vendor","Tax Deductible"')
   expenses.forEach(exp => {
     lines.push(`"${new Date(exp.date).toLocaleDateString()}","${exp.description}","${exp.category?.name || 'Uncategorized'}","${Number(exp.amount).toFixed(2)}","${exp.vendor || ''}","Yes"`)
   })
-  lines.push('')
-  
   // Payroll Section
-  lines.push('"=== PAYROLL ==="')
-  lines.push('"Pay Date","Period Start","Period End","Gross Salary","Deductions","Net Pay"')
+  lines.push('', '"=== PAYROLL ==="', '"Pay Date","Period Start","Period End","Gross Salary","Deductions","Net Pay"')
   payrolls.forEach(pay => {
     lines.push(`"${new Date(pay.payDate).toLocaleDateString()}","${new Date(pay.periodStart).toLocaleDateString()}","${new Date(pay.periodEnd).toLocaleDateString()}","${Number(pay.grossSalary).toFixed(2)}","${Number(pay.deductions).toFixed(2)}","${Number(pay.netSalary).toFixed(2)}"`)
   })
-  lines.push('')
-  
   // Employees Section
-  lines.push('"=== EMPLOYEES (W-2) ==="')
-  lines.push('"Name","Position","Email","Hire Date","Salary"')
+  lines.push('', '"=== EMPLOYEES (W-2) ==="', '"Name","Position","Email","Hire Date","Salary"')
   employees.forEach(emp => {
     lines.push(`"${emp.name}","${emp.position || ''}","${emp.email || ''}","${emp.hireDate ? new Date(emp.hireDate).toLocaleDateString() : ''}","${Number(emp.salary).toFixed(2)}"`)
   })
-  
+
   // Summary
   const totalIncome = invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + Number(i.total), 0)
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0)
   const totalPayroll = payrolls.reduce((s, p) => s + Number(p.grossSalary), 0)
-  
-  lines.push('')
-  lines.push('"=== SUMMARY ==="')
-  lines.push(`"Total Income","${totalIncome.toFixed(2)}"`)
-  lines.push(`"Total Expenses","${totalExpenses.toFixed(2)}"`)
-  lines.push(`"Total Payroll","${totalPayroll.toFixed(2)}"`)
-  lines.push(`"Net Income","${(totalIncome - totalExpenses - totalPayroll).toFixed(2)}"`)
+
+  lines.push(
+    '',
+    '"=== SUMMARY ==="',
+    `"Total Income","${totalIncome.toFixed(2)}"`,
+    `"Total Expenses","${totalExpenses.toFixed(2)}"`,
+    `"Total Payroll","${totalPayroll.toFixed(2)}"`,
+    `"Net Income","${(totalIncome - totalExpenses - totalPayroll).toFixed(2)}"`
+  )
 
   return lines.join('\r\n')
 }
 
 // Generar Excel TSV (Tab-separated for Excel)
-function generateExcelTSV(
-  company: { name: string; taxId: string | null },
-  invoices: any[],
-  expenses: any[],
-  employees: any[],
-  payrolls: any[],
-  year: string,
-  totalIncome: number,
-  totalExpenses: number,
-  totalPayroll: number,
-  netIncome: number
-) {
+function generateExcelTSV({ company, invoices, expenses, employees, payrolls, year, totalIncome, totalExpenses, totalPayroll, netIncome }: TaxExportData) {
   const lines: string[] = []
-  
-  // Summary Sheet Header
-  lines.push(`${company.name} - Tax Year ${year}`)
-  lines.push(`Tax ID: ${company.taxId || 'N/A'}`)
-  lines.push(`Export Date: ${new Date().toLocaleDateString()}`)
-  lines.push('')
-  
-  // Financial Summary
-  lines.push('FINANCIAL SUMMARY')
-  lines.push('Category\tAmount')
-  lines.push(`Total Income\t${totalIncome.toFixed(2)}`)
-  lines.push(`Total Expenses\t${totalExpenses.toFixed(2)}`)
-  lines.push(`Total Payroll\t${totalPayroll.toFixed(2)}`)
-  lines.push(`Net Income\t${netIncome.toFixed(2)}`)
-  lines.push('')
-  
-  // Income Details
-  lines.push('INCOME DETAILS')
-  lines.push('Date\tInvoice #\tCustomer\tSubtotal\tTax\tTotal\tStatus')
+
+  // Summary Sheet Header + Financial Summary + Income Details
+  lines.push(
+    `${company.name} - Tax Year ${year}`,
+    `Tax ID: ${company.taxId || 'N/A'}`,
+    `Export Date: ${new Date().toLocaleDateString()}`,
+    '',
+    'FINANCIAL SUMMARY',
+    'Category\tAmount',
+    `Total Income\t${totalIncome.toFixed(2)}`,
+    `Total Expenses\t${totalExpenses.toFixed(2)}`,
+    `Total Payroll\t${totalPayroll.toFixed(2)}`,
+    `Net Income\t${netIncome.toFixed(2)}`,
+    '',
+    'INCOME DETAILS',
+    'Date\tInvoice #\tCustomer\tSubtotal\tTax\tTotal\tStatus'
+  )
   invoices.forEach(inv => {
     lines.push(`${new Date(inv.issueDate).toLocaleDateString()}\t${inv.invoiceNumber}\t${inv.customer?.name || ''}\t${Number(inv.subtotal).toFixed(2)}\t${Number(inv.taxAmount).toFixed(2)}\t${Number(inv.total).toFixed(2)}\t${inv.status}`)
   })
-  lines.push('')
-  
   // Expense Details
-  lines.push('EXPENSE DETAILS')
-  lines.push('Date\tDescription\tCategory\tAmount\tVendor\tDeductible')
+  lines.push('', 'EXPENSE DETAILS', 'Date\tDescription\tCategory\tAmount\tVendor\tDeductible')
   expenses.forEach(exp => {
     lines.push(`${new Date(exp.date).toLocaleDateString()}\t${exp.description}\t${exp.category?.name || ''}\t${Number(exp.amount).toFixed(2)}\t${exp.vendor || ''}\tYes`)
   })
-  lines.push('')
-  
   // Payroll Details
-  lines.push('PAYROLL DETAILS')
-  lines.push('Pay Date\tEmployee\tGross\tDeductions\tNet\tFederal Tax\tState Tax\tSS\tMedicare')
+  lines.push('', 'PAYROLL DETAILS', 'Pay Date\tEmployee\tGross\tDeductions\tNet\tFederal Tax\tState Tax\tSS\tMedicare')
   payrolls.forEach(pay => {
     lines.push(`${new Date(pay.payDate).toLocaleDateString()}\t${pay.employeeId}\t${Number(pay.grossSalary).toFixed(2)}\t${Number(pay.deductions).toFixed(2)}\t${Number(pay.netSalary).toFixed(2)}\t${Number(pay.federalTax || 0).toFixed(2)}\t${Number(pay.stateTax || 0).toFixed(2)}\t${Number(pay.socialSecurity || 0).toFixed(2)}\t${Number(pay.medicare || 0).toFixed(2)}`)
   })
-  lines.push('')
-  
   // Employee W-2 Info
-  lines.push('EMPLOYEE W-2 INFORMATION')
-  lines.push('Name\tPosition\tEmail\tHire Date\tAnnual Salary\tTotal Gross YTD')
+  lines.push('', 'EMPLOYEE W-2 INFORMATION', 'Name\tPosition\tEmail\tHire Date\tAnnual Salary\tTotal Gross YTD')
   employees.forEach(emp => {
     const empPayrolls = payrolls.filter(p => p.employeeId === emp.id)
     const ytdGross = empPayrolls.reduce((s, p) => s + Number(p.grossSalary), 0)
@@ -426,21 +377,10 @@ function generateExcelTSV(
 }
 
 // Generar reporte PDF (como HTML para imprimir)
-function generatePDFReport(
-  company: { name: string; taxId: string | null },
-  invoices: any[],
-  expenses: any[],
-  employees: any[],
-  payrolls: any[],
-  year: string,
-  totalIncome: number,
-  totalExpenses: number,
-  totalPayroll: number,
-  netIncome: number
-) {
+function generatePDFReport({ company, invoices, expenses, employees, payrolls, year, totalIncome, totalExpenses, totalPayroll, netIncome }: TaxExportData) {
   const federalTax = Math.max(0, netIncome * 0.21)
   const stateTax = Math.max(0, netIncome * 0.055)
-  
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -468,7 +408,7 @@ function generatePDFReport(
     <h1>📊 Tax Report ${year}</h1>
     <p style="color: #6b7280;">Generated by ComputoPlus on ${new Date().toLocaleDateString()}</p>
   </div>
-  
+
   <div class="company-info">
     <h3 style="margin-top: 0;">Company Information</h3>
     <p><strong>Company Name:</strong> ${company.name}</p>
@@ -562,22 +502,7 @@ function generatePDFReport(
 }
 
 // Generar JSON completo
-function generateJSON(
-  company: { name: string; taxId: string | null; id?: string; address?: string | null },
-  invoices: any[],
-  expenses: any[],
-  employees: any[],
-  payrolls: any[],
-  vendors: any[],
-  customers: any[],
-  year: string,
-  startDate: string,
-  endDate: string,
-  totalIncome: number,
-  totalExpenses: number,
-  totalPayroll: number,
-  netIncome: number
-) {
+function generateJSON({ company, invoices, expenses, employees, payrolls, vendors, customers, year, startDate, endDate, totalIncome, totalExpenses, totalPayroll, netIncome }: TaxExportData) {
   const federalTax = Math.max(0, netIncome * 0.21)
   const stateTax = Math.max(0, netIncome * 0.055)
 
@@ -724,7 +649,7 @@ function groupExpensesByCategoryDetailed(expenses: any[]): any[] {
     acc[category].count += 1
     return acc
   }, {} as Record<string, any>)
-  
+
   return Object.values(grouped)
 }
 
@@ -739,7 +664,7 @@ function mapCategoryToAccount(category: string): string {
     'Payroll': 'Payroll Expenses',
     'Nómina': 'Payroll Expenses'
   }
-  
+
   for (const [key, account] of Object.entries(mapping)) {
     if (category.toLowerCase().includes(key.toLowerCase())) {
       return account

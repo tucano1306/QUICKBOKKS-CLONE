@@ -59,6 +59,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ summary });
     }
 
+    // Copiar datos del año anterior para llenar el formulario actual
+    if (action === 'copy-from-previous-year') {
+      const previousYear = year - 1;
+      const previousForm = await getForm1040(session.user.id, previousYear);
+      if (!previousForm) {
+        return NextResponse.json({
+          error: `No se encontró un formulario guardado para el año ${previousYear}. Primero debe guardar un Form 1040 del año anterior.`
+        }, { status: 404 });
+      }
+      // Build a summary of what was copied to show the user
+      const copiedFields = {
+        personalInfo: !!(previousForm.firstName && previousForm.lastName && previousForm.ssn),
+        filingStatus: previousForm.filingStatus,
+        dependents: Array.isArray(previousForm.dependents) ? (previousForm.dependents as any[]).length : 0,
+        income: {
+          wages: previousForm.line1a_w2Wages,
+          scheduleC_gross: previousForm.scheduleC_grossReceipts,
+          scheduleC_expenses: previousForm.scheduleC_expenses,
+          withholding: previousForm.line25a_w2Withholding,
+          estimatedPayments: previousForm.line26_estimatedPayments,
+        }
+      };
+      return NextResponse.json({ previousForm, previousYear, copiedFields });
+    }
+
     // Obtener Form 1040 existente
     const form1040 = await getForm1040(session.user.id, year);
 
