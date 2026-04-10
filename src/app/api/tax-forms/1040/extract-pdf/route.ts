@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 // pdf-parse is a CommonJS module
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pdfParse = require('pdf-parse');
 
 export const dynamic = 'force-dynamic'
