@@ -8,7 +8,7 @@ const pdfParse = require('pdf-parse');
 
 export const dynamic = 'force-dynamic';
 // Allow larger payloads for PDF uploads (up to 10 MB)
-export const config = { api: { bodyParser: false } };
+export const dynamic = 'force-dynamic'
 
 function getOpenAIClient(): OpenAI {
   const key = process.env.OPENAI_API_KEY;
