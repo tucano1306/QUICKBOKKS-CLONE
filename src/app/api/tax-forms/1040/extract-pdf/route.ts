@@ -154,8 +154,8 @@ Rules:
 `;
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  const mod = await import('pdf-parse');
-  const pdfParse = (mod.default ?? mod) as (buf: Buffer) => Promise<{ text: string }>;
+  const mod = await import('pdf-parse') as any;
+  const pdfParse: (buf: Buffer) => Promise<{ text: string }> = mod.default ?? mod;
   const parsed = await pdfParse(buffer);
   return parsed.text;
 }
