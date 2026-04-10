@@ -154,9 +154,10 @@ Rules:
 `;
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  const pdfParse = (await import('pdf-parse')).default;
+  const mod = await import('pdf-parse');
+  const pdfParse = (mod.default ?? mod) as (buf: Buffer) => Promise<{ text: string }>;
   const parsed = await pdfParse(buffer);
-  return parsed.text as string;
+  return parsed.text;
 }
 
 const NUM_FIELDS = [
