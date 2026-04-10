@@ -2,9 +2,6 @@ import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-// pdf-parse is a CommonJS module
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const pdfParse = require('pdf-parse');
 
 export const dynamic = 'force-dynamic'
 
@@ -157,6 +154,7 @@ Rules:
 `;
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
+  const pdfParse = (await import('pdf-parse')).default;
   const parsed = await pdfParse(buffer);
   return parsed.text as string;
 }
