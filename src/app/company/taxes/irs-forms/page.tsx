@@ -13,16 +13,19 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCompany } from '@/contexts/CompanyContext'
+import { downloadTaxPDF } from '@/lib/tax-pdf'
 import {
     AlertCircle,
     Calculator,
+    Download,
     FileText,
     Printer,
     RefreshCw,
+    Upload,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -176,7 +179,11 @@ async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFo
     payroll: taxInfo.totalPayroll || 0,
     mortgageInterest: taxInfo.expensesByCategory?.['Mortgage Interest'] || 0,
     businessAssets: taxInfo.totalAssets || 0,
-    expenseBreakdown: taxInfo.expensesByCategory || {},
+    expenseBreakdown: Array.isArray(taxInfo.expensesByCategory)
+      ? Object.fromEntries(
+          (taxInfo.expensesByCategory as { name: string; amount: number }[]).map((c) => [c.name, c.amount])
+        )
+      : (taxInfo.expensesByCategory || {}),
     employeeCount: taxInfo.employeeCount || 0,
   }
 
@@ -331,6 +338,123 @@ function computeIrsForms(bundle: TaxFormBundle, companyName?: string): ComputedF
     summaryBorderClass,
   }
 }
+// ── PDF Extraction Helpers ──────────────────────────────────────────────────
+
+type ExtractedPdf = Record<string, number | string | boolean | null | undefined>
+
+function buildBundleFromPdf(e: ExtractedPdf, taxYear: number): TaxFormBundle {
+  const scheduleCGross = (e.scheduleC_grossReceipts as number) ?? 0
+  const scheduleCExpenses = (e.scheduleC_expenses as number) ?? 0
+  const scheduleCNet = (e.scheduleC_netProfit as number) > 0
+    ? (e.scheduleC_netProfit as number)
+    : scheduleCGross - scheduleCExpenses
+  const seNetEarnings = (e.scheduleSE_netEarnings as number) ?? (Math.max(0, scheduleCNet) * 0.9235)
+  const seTax = (e.scheduleSE_selfEmploymentTax as number) ?? (seNetEarnings * 0.153)
+  const seDeductible = (e.scheduleSE_deductiblePortion as number) ?? (seTax / 2)
+  const wages = (e.wages as number) ?? 0
+  const agi = (e.agi as number) ?? 0
+  const filingStatus = (e.filingStatus as string) ?? 'SINGLE'
+  const defaultStdDed = filingStatus.includes('JOINT') ? 27700 : 13850
+  const stdDedRaw = (e.standardDeduction as number) ?? 0
+  const standardDed = stdDedRaw > 0 ? stdDedRaw : defaultStdDed
+  const qbiRaw = (e.qbiDeduction as number) ?? 0
+  const qbiComputed = scheduleCNet > 0
+    ? Math.min(scheduleCNet * 0.2, Math.max(0, agi - standardDed) * 0.2)
+    : 0
+  const qbiDeduction = qbiRaw > 0 ? qbiRaw : qbiComputed
+  const tiRaw = (e.taxableIncome as number) ?? 0
+  const taxableIncome = tiRaw > 0 ? tiRaw : Math.max(0, agi - standardDed - qbiDeduction)
+  const incomeTax = (e.incomeTax as number) ?? 0
+  const ttRaw = (e.totalTax as number) ?? 0
+  const totalTax = ttRaw > 0 ? ttRaw : incomeTax + seTax
+  const w2Withholding = (e.withholding as number) ?? 0
+  const estimatedPayments = (e.estimatedPayments as number) ?? 0
+  const totalPayments = w2Withholding + estimatedPayments
+  const refundRaw = (e.refundAmount as number) ?? 0
+  const refund = refundRaw > 0 ? refundRaw : Math.max(0, totalPayments - totalTax)
+  const owedRaw = (e.amountOwed as number) ?? 0
+  const amountOwed = owedRaw > 0 ? owedRaw : Math.max(0, totalTax - totalPayments)
+  const mortgageInterest =
+    ((e.scheduleA_mortgageInterest as number) ?? 0) ||
+    ((e.form8396_mortgageInterest as number) ?? 0)
+  const businessAssets = (e.form4562_businessAssets as number) ?? 0
+  const totalIncomeRaw = (e.totalIncome as number) ?? 0
+  const totalIncome = totalIncomeRaw > 0 ? totalIncomeRaw : wages + scheduleCNet + ((e.otherIncome as number) ?? 0)
+  const adjustmentsRaw = (e.adjustmentsToIncome as number) ?? 0
+
+  return {
+    taxYear,
+    filing: { status: filingStatus, firstName: (e.firstName as string) ?? '', lastName: (e.lastName as string) ?? '', ssn: (e.ssn as string) ?? '' },
+    form1040: {
+      wages, taxableInterest: (e.taxableInterest as number) ?? 0, ordinaryDividends: (e.ordinaryDividends as number) ?? 0,
+      qualifiedDividends: (e.qualifiedDividends as number) ?? 0, iraDistributions: (e.iraDistributions as number) ?? 0,
+      taxableIRA: (e.taxableIRA as number) ?? 0, pensionsAnnuities: (e.pensionsAnnuities as number) ?? 0,
+      taxablePensions: (e.taxablePensions as number) ?? 0, socialSecurity: (e.socialSecurity as number) ?? 0,
+      taxableSocialSecurity: (e.taxableSocialSecurity as number) ?? 0, capitalGainLoss: (e.capitalGainLoss as number) ?? 0,
+      otherIncome: (e.otherIncome as number) ?? 0, totalIncome, adjustments: adjustmentsRaw > 0 ? adjustmentsRaw : seDeductible,
+      agi, standardDeduction: standardDed, qbiDeduction, totalDeductions: standardDed + qbiDeduction, taxableIncome,
+      tax: incomeTax, additionalTaxes: seTax, totalTax, childTaxCredit: (e.childTaxCredit as number) ?? 0,
+      netTax: totalTax, w2Withholding, estimatedPayments, totalPayments, refund, amountOwed,
+    },
+    scheduleC: { grossReceipts: scheduleCGross, expenses: scheduleCExpenses, netProfit: scheduleCNet, selfEmploymentTax: seTax, deductibleSETax: seDeductible },
+    scheduleSE: { netEarnings: seNetEarnings, selfEmploymentTax: seTax, deductiblePortion: seDeductible },
+    companyData: {
+      totalRevenue: scheduleCGross, totalExpenses: scheduleCExpenses, payroll: wages, mortgageInterest, businessAssets,
+      expenseBreakdown: { Medical: (e.scheduleA_medicalExpenses as number) ?? 0, Charitable: (e.scheduleA_charitableContributions as number) ?? 0, 'Mortgage Interest': mortgageInterest },
+      employeeCount: 0,
+    },
+    priorYearTax: totalTax,
+  }
+}
+
+function patchFormsFromPdf(forms: ComputedForms, e: ExtractedPdf): void {
+  if ((e.scheduleA_total as number) > 0) {
+    forms.scheduleA.medicalExpenses = (e.scheduleA_medicalExpenses as number) ?? forms.scheduleA.medicalExpenses
+    forms.scheduleA.stateLocalTax = (e.scheduleA_stateLocalTax as number) ?? forms.scheduleA.stateLocalTax
+    forms.scheduleA.mortgageInterest = (e.scheduleA_mortgageInterest as number) ?? forms.scheduleA.mortgageInterest
+    forms.scheduleA.charitableContributions = (e.scheduleA_charitableContributions as number) ?? forms.scheduleA.charitableContributions
+    forms.scheduleA.total = e.scheduleA_total as number
+  }
+  if ((e.form5329_totalAdditionalTax as number) > 0) {
+    forms.form5329.iraDistributions = (e.form5329_iraDistributions as number) ?? forms.form5329.iraDistributions
+    forms.form5329.earlyWithdrawalPenalty = (e.form5329_earlyWithdrawalPenalty as number) ?? forms.form5329.earlyWithdrawalPenalty
+    forms.form5329.totalAdditionalTax = e.form5329_totalAdditionalTax as number
+  }
+  if ((e.form8995_qbiDeduction as number) > 0) {
+    forms.form8995.qbiDeduction = e.form8995_qbiDeduction as number
+    forms.form8995.totalQBI = (e.form8995_qualifiedBusinessIncome as number) ?? forms.form8995.totalQBI
+    forms.form8995.nol = (e.form8995_netOperatingLoss as number) ?? forms.form8995.nol
+  }
+  if ((e.form8962_taxCredit as number) > 0) {
+    forms.form8962.agi = (e.form8962_agi as number) > 0 ? (e.form8962_agi as number) : forms.form8962.agi
+    forms.form8962.estimatedCredit = e.form8962_taxCredit as number
+    forms.form8962.eligibleForCredit = true
+  }
+  if ((e.form8396_credit as number) > 0) {
+    forms.form8396.mortgageInterest = (e.form8396_mortgageInterest as number) ?? forms.form8396.mortgageInterest
+    forms.form8396.creditRate = (e.form8396_creditRate as number) > 0 ? (e.form8396_creditRate as number) : forms.form8396.creditRate
+    forms.form8396.credit = e.form8396_credit as number
+  }
+  if ((e.form4562_totalDepreciation as number) > 0) {
+    forms.form4562.businessAssets = (e.form4562_businessAssets as number) ?? forms.form4562.businessAssets
+    forms.form4562.section179Deduction = (e.form4562_section179Deduction as number) ?? forms.form4562.section179Deduction
+    forms.form4562.bonusDepreciation = (e.form4562_bonusDepreciation as number) ?? forms.form4562.bonusDepreciation
+    forms.form4562.macrsDepreciation = (e.form4562_macrsDepreciation as number) ?? forms.form4562.macrsDepreciation
+    forms.form4562.totalDepreciation = e.form4562_totalDepreciation as number
+  }
+  if ((e.schedule2_totalAdditionalTaxes as number) > 0) {
+    forms.schedule2.selfEmploymentTax = (e.schedule2_selfEmploymentTax as number) ?? forms.schedule2.selfEmploymentTax
+    forms.schedule2.form8959Tax = (e.schedule2_additionalMedicareTax as number) ?? forms.schedule2.form8959Tax
+    forms.schedule2.form5329Tax = (e.schedule2_form5329Tax as number) ?? forms.schedule2.form5329Tax
+    forms.schedule2.totalAdditionalTaxes = e.schedule2_totalAdditionalTaxes as number
+  }
+  if ((e.schedule3_totalAdditionalCredits as number) > 0) {
+    forms.schedule3.mortgageInterestCredit = (e.schedule3_mortgageInterestCredit as number) ?? forms.schedule3.mortgageInterestCredit
+    forms.schedule3.premiumTaxCredit = (e.schedule3_premiumTaxCredit as number) ?? forms.schedule3.premiumTaxCredit
+    forms.schedule3.totalAdditionalCredits = e.schedule3_totalAdditionalCredits as number
+  }
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────
 
 export default function IrsFormsPage() {
@@ -346,10 +470,34 @@ export default function IrsFormsPage() {
     error: null,
     taxYear: currentYear - 1,
   })
+  const pdfInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/auth/login')
   }, [status, router])
+
+  const handlePdfFromUpload = useCallback(async (file: File) => {
+    setState(s => ({ ...s, loading: true, error: null }))
+    try {
+      const formData = new FormData()
+      formData.append('pdf', file)
+      const response = await fetch('/api/tax-forms/1040/extract-pdf', { method: 'POST', body: formData })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Error al procesar el PDF')
+
+      const bundle = buildBundleFromPdf(result.extracted, state.taxYear)
+      const forms = computeIrsForms(bundle, activeCompany?.name ?? undefined)
+      patchFormsFromPdf(forms, result.extracted)
+
+      setState(s => ({ ...s, bundle, forms, loading: false }))
+      toast.success('✅ PDF analizado. Todos los formularios IRS han sido llenados. Revise cada pestaña.', { duration: 7000 })
+    } catch (err: any) {
+      setState(s => ({ ...s, loading: false, error: err.message || 'Error al procesar el PDF' }))
+      toast.error(err.message || 'Error al procesar el PDF')
+    } finally {
+      if (pdfInputRef.current) pdfInputRef.current.value = ''
+    }
+  }, [activeCompany?.name, state.taxYear])
 
   const loadBundle = useCallback(async () => {
     if (!activeCompany?.id) {
@@ -367,6 +515,66 @@ export default function IrsFormsPage() {
       toast.error(err.message || 'Error al cargar datos')
     }
   }, [activeCompany?.id, activeCompany?.name, state.taxYear])
+
+  const handleDownloadPDF = () => {
+    if (!bundle) return
+    const f = bundle.form1040
+    const c = bundle.companyData
+    downloadTaxPDF({
+      title: 'IRS Tax Forms Summary',
+      subtitle: 'Form 1040 & Schedules',
+      year: bundle.taxYear,
+      company: activeCompany?.name ?? undefined,
+      fileName: 'irs_forms',
+      sections: [
+        {
+          title: 'Form 1040 – Income',
+          columns: ['Line', 'Description', 'Amount'],
+          rows: [
+            ['1a', 'Wages, Salaries, Tips', f.wages],
+            ['2b', 'Taxable Interest', f.taxableInterest],
+            ['3b', 'Ordinary Dividends', f.ordinaryDividends],
+            ['4b', 'Taxable IRA Distributions', f.taxableIRA],
+            ['5b', 'Taxable Pensions & Annuities', f.taxablePensions],
+            ['6b', 'Taxable Social Security', f.taxableSocialSecurity],
+            ['7',  'Capital Gain or Loss', f.capitalGainLoss],
+            ['8',  'Other Income', f.otherIncome],
+            ['9',  'Total Income', f.totalIncome],
+            ['11', 'Adjusted Gross Income (AGI)', f.agi],
+            ['12', 'Standard Deduction', f.standardDeduction],
+            ['15', 'Taxable Income', f.taxableIncome],
+            ['24', 'Total Tax', f.totalTax],
+            ['25a','W-2 Withholding', f.w2Withholding],
+            ['26', 'Estimated Tax Payments', f.estimatedPayments],
+            ['35', 'Refund', f.refund],
+            ['37', 'Amount Owed', f.amountOwed],
+          ],
+        },
+        {
+          title: 'Schedule C – Business Income',
+          columns: ['Item', 'Amount'],
+          rows: [
+            ['Gross Receipts', bundle.scheduleC.grossReceipts],
+            ['Business Expenses', bundle.scheduleC.expenses],
+            ['Net Profit / Loss', bundle.scheduleC.netProfit],
+            ['Self-Employment Tax', bundle.scheduleC.selfEmploymentTax],
+          ],
+        },
+        {
+          title: 'Company Financial Data',
+          columns: ['Item', 'Amount'],
+          rows: [
+            ['Total Revenue', c.totalRevenue],
+            ['Total Expenses', c.totalExpenses],
+            ['Payroll', c.payroll],
+            ['Mortgage Interest', c.mortgageInterest],
+            ['Business Assets', c.businessAssets],
+            ['Employees', c.employeeCount],
+          ],
+        },
+      ],
+    })
+  }
 
   const handlePrint = () => {
     globalThis.window.print()
@@ -412,15 +620,40 @@ export default function IrsFormsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={loadBundle} disabled={loading || !activeCompany}>
+            {/* Hidden PDF input */}
+            <input
+              ref={pdfInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handlePdfFromUpload(file)
+              }}
+            />
+            <Button
+              onClick={() => pdfInputRef.current?.click()}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Upload className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              {loading ? 'Procesando PDF...' : 'Llenar desde PDF'}
+            </Button>
+            <Button onClick={loadBundle} disabled={loading || !activeCompany} variant="outline">
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? 'Cargando...' : 'Cargar Formularios'}
+              {loading ? 'Cargando...' : 'Cargar desde DB'}
             </Button>
             {bundle && (
-              <Button variant="outline" onClick={handlePrint}>
-                <Printer className="w-4 h-4 mr-2" />
-                Imprimir
-              </Button>
+              <>
+                <Button variant="outline" onClick={handleDownloadPDF}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Descargar PDF
+                </Button>
+                <Button variant="outline" onClick={handlePrint}>
+                  <Printer className="w-4 h-4 mr-2" />
+                  Imprimir
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -434,9 +667,11 @@ export default function IrsFormsPage() {
                 <div>
                   <p className="font-semibold text-blue-800 dark:text-blue-200">Instrucciones</p>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    Primero complete y guarde su <strong>Form 1040</strong> en la sección &quot;Form 1040 (Individual)&quot;.
-                    Luego seleccione el año fiscal y presione <strong>&quot;Cargar Formularios&quot;</strong> para generar
-                    el paquete completo de formularios IRS basado en los datos de su empresa.
+                    <strong>Opción 1 — Desde PDF:</strong> Haga clic en <strong>&quot;Llenar desde PDF&quot;</strong> y suba el PDF con sus datos fiscales.
+                    La IA leerá todos los formularios del PDF (1040, Schedule A/C/SE, Form 4562, 8995, 8962, 8396, 5329, etc.) y llenará todos los campos automáticamente.{' '}
+                    <br className="mt-1" />
+                    <strong>Opción 2 — Desde base de datos:</strong> Complete y guarde primero el <strong>Form 1040</strong> en la sección &quot;Form 1040 (Individual)&quot;,
+                    luego presione <strong>&quot;Cargar desde DB&quot;</strong>.
                   </p>
                 </div>
               </div>
