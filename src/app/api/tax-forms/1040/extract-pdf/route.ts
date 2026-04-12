@@ -154,11 +154,16 @@ Rules:
 `;
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  // Lazy-load pdf-parse inside the function so any load error is caught by the caller's try/catch
-  // rather than crashing the entire route module at initialization time
-  const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
-  const parsed = await pdfParse(buffer);
-  return parsed.text;
+  // pdf-parse v2 uses a class-based API: new PDFParse({ data: buffer }).getText()
+  // The v1 callable-function API no longer exists in v2.x.
+  const { PDFParse } = require('pdf-parse') as { PDFParse: new (opts: { data: Buffer }) => { getText: () => Promise<{ text: string }>; destroy: () => Promise<void> } };
+  const parser = new PDFParse({ data: buffer });
+  try {
+    const result = await parser.getText();
+    return result.text;
+  } finally {
+    await parser.destroy();
+  }
 }
 
 const NUM_FIELDS = [
