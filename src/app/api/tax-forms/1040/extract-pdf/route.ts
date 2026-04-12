@@ -3,8 +3,6 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
-
 export const dynamic = 'force-dynamic'
 
 function getOpenAIClient(): OpenAI {
@@ -156,6 +154,9 @@ Rules:
 `;
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
+  // Lazy-load pdf-parse inside the function so any load error is caught by the caller's try/catch
+  // rather than crashing the entire route module at initialization time
+  const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
   const parsed = await pdfParse(buffer);
   return parsed.text;
 }
