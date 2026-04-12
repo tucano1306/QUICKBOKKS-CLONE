@@ -154,7 +154,8 @@ Rules:
 `;
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  const mod = await import('pdf-parse') as any;
+  // Import the internal module directly to avoid pdf-parse's test-file access on Vercel
+  const mod = await import('pdf-parse/lib/pdf-parse.js') as any;
   const pdfParse: (buf: Buffer) => Promise<{ text: string }> = mod.default ?? mod;
   const parsed = await pdfParse(buffer);
   return parsed.text;
