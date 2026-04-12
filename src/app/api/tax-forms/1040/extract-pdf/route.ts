@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
+
 export const dynamic = 'force-dynamic'
 
 function getOpenAIClient(): OpenAI {
@@ -154,9 +156,6 @@ Rules:
 `;
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  // Import the internal module directly to avoid pdf-parse's test-file access on Vercel
-  const mod = await import('pdf-parse/lib/pdf-parse.js') as any;
-  const pdfParse: (buf: Buffer) => Promise<{ text: string }> = mod.default ?? mod;
   const parsed = await pdfParse(buffer);
   return parsed.text;
 }
