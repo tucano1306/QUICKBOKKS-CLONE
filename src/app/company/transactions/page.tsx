@@ -87,11 +87,19 @@ const getTypeLabel = (filter: string): string => {
   return 'transacciones'
 }
 
-const buildPdfFilterText = (
-  filter: string, filterCategory: string, filterVendor: string,
-  filterDescription: string, dateFrom: string, dateTo: string,
-  minAmount: string, maxAmount: string
-): string => {
+interface PdfFilterOptions {
+  filter: string
+  filterCategory: string
+  filterVendor: string
+  filterDescription: string
+  dateFrom: string
+  dateTo: string
+  minAmount: string
+  maxAmount: string
+}
+
+const buildPdfFilterText = (opts: PdfFilterOptions): string => {
+  const { filter, filterCategory, filterVendor, filterDescription, dateFrom, dateTo, minAmount, maxAmount } = opts
   const filters: string[] = []
   if (filter !== 'ALL') filters.push(filter === 'INCOME' ? 'Solo Ingresos' : 'Solo Gastos')
   if (filterCategory) filters.push(`Categoría: ${filterCategory}`)
@@ -352,7 +360,7 @@ export default function TransactionsPage() {
     doc.text(`Generado: ${today}`, pageWidth / 2, 30, { align: 'center' })
 
     // Filtros aplicados
-    const filterText = buildPdfFilterText(filter, filterCategory, filterVendor, filterDescription, dateFrom, dateTo, minAmount, maxAmount)
+    const filterText = buildPdfFilterText({ filter, filterCategory, filterVendor, filterDescription, dateFrom, dateTo, minAmount, maxAmount })
 
     doc.setFontSize(9)
     doc.text(filterText, pageWidth / 2, 38, { align: 'center' })
