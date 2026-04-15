@@ -306,7 +306,7 @@ export default function TransactionsPage() {
     const rows = filteredTransactions.map(t => [
       new Date(t.date).toLocaleDateString('es-MX'),
       getTransactionLabel(t.type),
-      t.category || ''
+      t.category || '',
       t.description || '',
       t.amount.toFixed(2),
       t.status
