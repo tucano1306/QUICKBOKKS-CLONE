@@ -152,6 +152,46 @@ function LineRow({ label, value, sub = false, bold = false, indent = false }: Re
     </div>
   )
 }
+// ── fetchIrsBundle helpers (extracted to reduce cognitive complexity) ──────
+
+function resolveExpenseBreakdown(taxInfo: any): Record<string, number> {
+  if (Array.isArray(taxInfo.expensesByCategory)) {
+    return Object.fromEntries(
+      (taxInfo.expensesByCategory as { name: string; amount: number }[]).map((c) => [c.name, c.amount])
+    )
+  }
+  return taxInfo.expensesByCategory || {}
+}
+
+function computeScheduleCAndSE(companyAutoData: any, form1040Data: any, companyData: { totalRevenue: number; totalExpenses: number }, savedFormBelongsToCompany: boolean) {
+  const gross = companyAutoData.scheduleC?.grossReceipts
+    || (savedFormBelongsToCompany ? form1040Data.scheduleC_grossReceipts : 0)
+    || companyData.totalRevenue
+  const expenses = companyAutoData.scheduleC?.expenses
+    || (savedFormBelongsToCompany ? form1040Data.scheduleC_expenses : 0)
+    || companyData.totalExpenses
+  const net = Math.round((gross - expenses) * 100) / 100
+  const seBase = Math.max(0, net) * 0.9235
+  const seTax = Math.round(seBase * 0.153 * 100) / 100
+  const seDeductible = Math.round(seTax / 2 * 100) / 100
+  return { gross, expenses, net, seBase, seTax, seDeductible }
+}
+
+function resolveIncomeLines(form1040Data: any, companyAutoData: any, savedFormBelongsToCompany: boolean) {
+  const saved = <T>(val: T): T | 0 => savedFormBelongsToCompany ? val : 0
+  return {
+    wages:             saved(form1040Data.line1a_w2Wages)          || companyAutoData.income?.wages             || 0,
+    taxableInterest:   saved(form1040Data.line2b_taxableInterest)   || companyAutoData.income?.taxableInterest   || 0,
+    ordinaryDividends: saved(form1040Data.line3b_ordinaryDividends) || companyAutoData.income?.ordinaryDividends || 0,
+    qualifiedDividends:saved(form1040Data.line3a_qualifiedDividends)|| companyAutoData.income?.qualifiedDividends|| 0,
+    otherIncome:       saved(form1040Data.line8_otherIncome)        || companyAutoData.income?.otherIncome       || 0,
+    w2Withholding:     saved(form1040Data.line25a_w2Withholding)    || companyAutoData.payments?.withholding     || 0,
+    estimatedPayments: saved(form1040Data.line26_estimatedPayments) || companyAutoData.payments?.estimatedPayments || 0,
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+
 async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFormBundle> {
   const [form1040Res, taxInfoRes] = await Promise.all([
     fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${companyId}`),
@@ -172,50 +212,28 @@ async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFo
   const autoRes = await fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${companyId}&action=auto-populate`)
   const companyAutoData: any = autoRes.ok ? ((await autoRes.json()).data || {}) : {}
 
-  // Only use financial data stored in the form if it was saved for THIS company.
-  // The TaxForm1040 is unique per user+year (not per company), so switching companies
-  // must always use the live auto-populate data for financial/business figures.
+  // The TaxForm1040 is unique per user+year (not per company). Only use saved financial
+  // data if it was saved for THIS company; otherwise always use live auto-populate data.
   const savedFormBelongsToCompany = form1040Data.companyId === companyId
 
   const companyData = {
-    totalRevenue: companyAutoData.scheduleC?.grossReceipts || taxInfo.totalRevenue || 0,
-    totalExpenses: companyAutoData.scheduleC?.expenses || taxInfo.totalExpenses || 0,
-    payroll: taxInfo.totalPayroll || 0,
+    totalRevenue:     companyAutoData.scheduleC?.grossReceipts || taxInfo.totalRevenue || 0,
+    totalExpenses:    companyAutoData.scheduleC?.expenses      || taxInfo.totalExpenses || 0,
+    payroll:          taxInfo.totalPayroll || 0,
     mortgageInterest: taxInfo.expensesByCategory?.['Mortgage Interest'] || 0,
-    businessAssets: taxInfo.totalAssets || 0,
-    expenseBreakdown: Array.isArray(taxInfo.expensesByCategory)
-      ? Object.fromEntries(
-          (taxInfo.expensesByCategory as { name: string; amount: number }[]).map((c) => [c.name, c.amount])
-        )
-      : (taxInfo.expensesByCategory || {}),
-    employeeCount: taxInfo.employeeCount || 0,
+    businessAssets:   taxInfo.totalAssets || 0,
+    expenseBreakdown: resolveExpenseBreakdown(taxInfo),
+    employeeCount:    taxInfo.employeeCount || 0,
   }
 
-  // Always prefer live company auto-populate for Schedule C; only use saved form values
-  // if they were saved for this specific company.
-  const scheduleCGross = companyAutoData.scheduleC?.grossReceipts
-    || (savedFormBelongsToCompany ? form1040Data.scheduleC_grossReceipts : 0)
-    || companyData.totalRevenue
-  const scheduleCExpenses = companyAutoData.scheduleC?.expenses
-    || (savedFormBelongsToCompany ? form1040Data.scheduleC_expenses : 0)
-    || companyData.totalExpenses
-  const scheduleCNet = Math.round((scheduleCGross - scheduleCExpenses) * 100) / 100
-  const seBase = Math.max(0, scheduleCNet) * 0.9235
-  const seTax = Math.round(seBase * 0.153 * 100) / 100
-  const seDeductible = Math.round(seTax / 2 * 100) / 100
+  const sc = computeScheduleCAndSE(companyAutoData, form1040Data, companyData, savedFormBelongsToCompany)
+  const inc = resolveIncomeLines(form1040Data, companyAutoData, savedFormBelongsToCompany)
 
-  // For income lines: use saved form values only for this company, otherwise live data
-  const wages = (savedFormBelongsToCompany ? form1040Data.line1a_w2Wages : 0) || companyAutoData.income?.wages || 0
-  const taxableInterest = (savedFormBelongsToCompany ? form1040Data.line2b_taxableInterest : 0) || companyAutoData.income?.taxableInterest || 0
-  const ordinaryDividends = (savedFormBelongsToCompany ? form1040Data.line3b_ordinaryDividends : 0) || companyAutoData.income?.ordinaryDividends || 0
-  const otherIncome = (savedFormBelongsToCompany ? form1040Data.line8_otherIncome : 0) || companyAutoData.income?.otherIncome || 0
-  const computedTotalIncome = Math.round((wages + taxableInterest + ordinaryDividends + otherIncome + scheduleCNet) * 100) / 100
+  const computedTotalIncome = Math.round((inc.wages + inc.taxableInterest + inc.ordinaryDividends + inc.otherIncome + sc.net) * 100) / 100
   const totalIncome = (savedFormBelongsToCompany && form1040Data.line9_totalIncome) || computedTotalIncome
-  const deductSeTax = seDeductible
-  const computedAgi = Math.round((totalIncome - deductSeTax) * 100) / 100
-  const agi = (savedFormBelongsToCompany && form1040Data.line11_adjustedGrossIncome) || computedAgi
+  const agi = (savedFormBelongsToCompany && form1040Data.line11_adjustedGrossIncome) || Math.round((totalIncome - sc.seDeductible) * 100) / 100
   const standardDed = form1040Data.line12_standardOrItemized || 0
-  const qbiDeduction = form1040Data.line13_qbiDeduction || (scheduleCNet > 0 ? Math.min(scheduleCNet * 0.2, Math.max(0, agi - standardDed) * 0.2) : 0)
+  const qbiDeduction = form1040Data.line13_qbiDeduction || (sc.net > 0 ? Math.min(sc.net * 0.2, Math.max(0, agi - standardDed) * 0.2) : 0)
 
   return {
     taxYear,
@@ -226,47 +244,47 @@ async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFo
       ssn: form1040Data.ssn || '',
     },
     form1040: {
-      wages,
-      taxableInterest,
-      ordinaryDividends,
-      qualifiedDividends: (savedFormBelongsToCompany ? form1040Data.line3a_qualifiedDividends : 0) || companyAutoData.income?.qualifiedDividends || 0,
-      iraDistributions: form1040Data.line4a_iraDistributions || 0,
-      taxableIRA: form1040Data.line4b_taxableIRA || 0,
-      pensionsAnnuities: form1040Data.line5a_pensionsAnnuities || 0,
-      taxablePensions: form1040Data.line5b_taxablePensions || 0,
-      socialSecurity: form1040Data.line6a_socialSecurity || 0,
-      taxableSocialSecurity: form1040Data.line6b_taxableSocialSecurity || 0,
-      capitalGainLoss: form1040Data.line7_capitalGainLoss || 0,
-      otherIncome,
+      wages:                inc.wages,
+      taxableInterest:      inc.taxableInterest,
+      ordinaryDividends:    inc.ordinaryDividends,
+      qualifiedDividends:   inc.qualifiedDividends,
+      iraDistributions:     form1040Data.line4a_iraDistributions || 0,
+      taxableIRA:           form1040Data.line4b_taxableIRA || 0,
+      pensionsAnnuities:    form1040Data.line5a_pensionsAnnuities || 0,
+      taxablePensions:      form1040Data.line5b_taxablePensions || 0,
+      socialSecurity:       form1040Data.line6a_socialSecurity || 0,
+      taxableSocialSecurity:form1040Data.line6b_taxableSocialSecurity || 0,
+      capitalGainLoss:      form1040Data.line7_capitalGainLoss || 0,
+      otherIncome:          inc.otherIncome,
       totalIncome,
-      adjustments: deductSeTax,
+      adjustments:          sc.seDeductible,
       agi,
-      standardDeduction: standardDed,
+      standardDeduction:    standardDed,
       qbiDeduction,
-      totalDeductions: form1040Data.line14_totalDeductions || (standardDed + qbiDeduction),
-      taxableIncome: form1040Data.line15_taxableIncome || 0,
-      tax: form1040Data.line16_tax || 0,
-      additionalTaxes: form1040Data.line17_schedule2Tax || 0,
-      totalTax: form1040Data.line18_totalTax || 0,
-      childTaxCredit: form1040Data.line19_childTaxCredit || 0,
-      netTax: form1040Data.line24_totalTax || 0,
-      w2Withholding: (savedFormBelongsToCompany ? form1040Data.line25a_w2Withholding : 0) || companyAutoData.payments?.withholding || 0,
-      estimatedPayments: (savedFormBelongsToCompany ? form1040Data.line26_estimatedPayments : 0) || companyAutoData.payments?.estimatedPayments || 0,
-      totalPayments: form1040Data.line32_totalPayments || 0,
-      refund: form1040Data.line34a_refundAmount || 0,
-      amountOwed: form1040Data.line36_amountYouOwe || 0,
+      totalDeductions:      form1040Data.line14_totalDeductions || (standardDed + qbiDeduction),
+      taxableIncome:        form1040Data.line15_taxableIncome || 0,
+      tax:                  form1040Data.line16_tax || 0,
+      additionalTaxes:      form1040Data.line17_schedule2Tax || 0,
+      totalTax:             form1040Data.line18_totalTax || 0,
+      childTaxCredit:       form1040Data.line19_childTaxCredit || 0,
+      netTax:               form1040Data.line24_totalTax || 0,
+      w2Withholding:        inc.w2Withholding,
+      estimatedPayments:    inc.estimatedPayments,
+      totalPayments:        form1040Data.line32_totalPayments || 0,
+      refund:               form1040Data.line34a_refundAmount || 0,
+      amountOwed:           form1040Data.line36_amountYouOwe || 0,
     },
     scheduleC: {
-      grossReceipts: scheduleCGross,
-      expenses: scheduleCExpenses,
-      netProfit: scheduleCNet,
-      selfEmploymentTax: seTax,
-      deductibleSETax: seDeductible,
+      grossReceipts:    sc.gross,
+      expenses:         sc.expenses,
+      netProfit:        sc.net,
+      selfEmploymentTax:sc.seTax,
+      deductibleSETax:  sc.seDeductible,
     },
     scheduleSE: {
-      netEarnings: seBase,
-      selfEmploymentTax: seTax,
-      deductiblePortion: seDeductible,
+      netEarnings:      sc.seBase,
+      selfEmploymentTax:sc.seTax,
+      deductiblePortion:sc.seDeductible,
     },
     companyData,
     priorYearTax: form1040Data.line24_totalTax || 0,
