@@ -21,11 +21,10 @@ import {
     FileText,
     Printer,
     RefreshCw,
-    Upload,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -470,34 +469,10 @@ export default function IrsFormsPage() {
     error: null,
     taxYear: currentYear - 1,
   })
-  const pdfInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/auth/login')
   }, [status, router])
-
-  const handlePdfFromUpload = useCallback(async (file: File) => {
-    setState(s => ({ ...s, loading: true, error: null }))
-    try {
-      const formData = new FormData()
-      formData.append('pdf', file)
-      const response = await fetch('/api/tax-forms/1040/extract-pdf', { method: 'POST', body: formData })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'Error al procesar el PDF')
-
-      const bundle = buildBundleFromPdf(result.extracted, state.taxYear)
-      const forms = computeIrsForms(bundle, activeCompany?.name ?? undefined)
-      patchFormsFromPdf(forms, result.extracted)
-
-      setState(s => ({ ...s, bundle, forms, loading: false }))
-      toast.success('✅ PDF analizado. Todos los formularios IRS han sido llenados. Revise cada pestaña.', { duration: 7000 })
-    } catch (err: any) {
-      setState(s => ({ ...s, loading: false, error: err.message || 'Error al procesar el PDF' }))
-      toast.error(err.message || 'Error al procesar el PDF')
-    } finally {
-      if (pdfInputRef.current) pdfInputRef.current.value = ''
-    }
-  }, [activeCompany?.name, state.taxYear])
 
   const loadBundle = useCallback(async () => {
     if (!activeCompany?.id) {
@@ -620,25 +595,6 @@ export default function IrsFormsPage() {
                 ))}
               </SelectContent>
             </Select>
-            {/* Hidden PDF input */}
-            <input
-              ref={pdfInputRef}
-              type="file"
-              accept=".pdf,application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) handlePdfFromUpload(file)
-              }}
-            />
-            <Button
-              onClick={() => pdfInputRef.current?.click()}
-              disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Upload className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? 'Procesando PDF...' : 'Llenar desde PDF'}
-            </Button>
             <Button onClick={loadBundle} disabled={loading || !activeCompany} variant="outline">
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Cargando...' : 'Cargar desde DB'}
@@ -667,10 +623,7 @@ export default function IrsFormsPage() {
                 <div>
                   <p className="font-semibold text-blue-800 dark:text-blue-200">Instrucciones</p>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    <strong>Opción 1 — Desde PDF:</strong> Haga clic en <strong>&quot;Llenar desde PDF&quot;</strong> y suba el PDF con sus datos fiscales.
-                    La IA leerá todos los formularios del PDF (1040, Schedule A/C/SE, Form 4562, 8995, 8962, 8396, 5329, etc.) y llenará todos los campos automáticamente.{' '}
-                    <br className="mt-1" />
-                    <strong>Opción 2 — Desde base de datos:</strong> Complete y guarde primero el <strong>Form 1040</strong> en la sección &quot;Form 1040 (Individual)&quot;,
+                    Complete y guarde primero el <strong>Form 1040</strong> en la sección &quot;Form 1040 (Individual)&quot;,
                     luego presione <strong>&quot;Cargar desde DB&quot;</strong>.
                   </p>
                 </div>
