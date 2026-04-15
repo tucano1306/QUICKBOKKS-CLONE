@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, type ReactNode } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -37,9 +37,7 @@ import {
   Info,
   AlertCircle,
   Plus,
-  Edit,
-  Trash2,
-  Loader2
+  Edit
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -60,7 +58,7 @@ interface ExchangeRateHistory {
 
 export default function CurrencySettingsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -72,7 +70,7 @@ export default function CurrencySettingsPage() {
   const [autoUpdateRates, setAutoUpdateRates] = useState(true)
   const [updateFrequency, setUpdateFrequency] = useState('Daily')
   const [rateSource, setRateSource] = useState('European Central Bank')
-  const [exchangeRateHistory, setExchangeRateHistory] = useState<ExchangeRateHistory[]>([])
+  const [exchangeRateHistory] = useState<ExchangeRateHistory[]>([])
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false)
@@ -209,7 +207,7 @@ export default function CurrencySettingsPage() {
     if (!activeCompany?.id || !selectedCurrency) return
     
     const rate = Number.parseFloat(editingRate)
-    if (isNaN(rate) || rate <= 0) {
+    if (Number.isNaN(rate) || rate <= 0) {
       toast.error('Please enter a valid exchange rate')
       return
     }
@@ -295,6 +293,30 @@ export default function CurrencySettingsPage() {
     )
   }
 
+  let saveButtonContent: ReactNode
+  if (saving) {
+    saveButtonContent = (
+      <>
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white sm:mr-2"></div>
+        <span className="hidden sm:inline">Saving...</span>
+      </>
+    )
+  } else if (saved) {
+    saveButtonContent = (
+      <>
+        <CheckCircle className="w-4 h-4 sm:mr-2" />
+        <span className="hidden sm:inline">Saved!</span>
+      </>
+    )
+  } else {
+    saveButtonContent = (
+      <>
+        <Save className="w-4 h-4 sm:mr-2" />
+        <span className="hidden sm:inline">Save Settings</span>
+      </>
+    )
+  }
+
   return (
     <CompanyTabsLayout>
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
@@ -324,22 +346,7 @@ export default function CurrencySettingsPage() {
               )}
             </Button>
             <Button onClick={handleSave} disabled={saving} size="sm">
-              {saving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white sm:mr-2"></div>
-                  <span className="hidden sm:inline">Saving...</span>
-                </>
-              ) : saved ? (
-                <>
-                  <CheckCircle className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Saved!</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Save Settings</span>
-                </>
-              )}
+              {saveButtonContent}
             </Button>
           </div>
         </div>
@@ -414,10 +421,11 @@ export default function CurrencySettingsPage() {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="base-currency" className="block text-sm font-medium text-gray-700 mb-2">
                   Home Currency (Base Currency)
                 </label>
                 <select
+                  id="base-currency"
                   value={baseCurrency}
                   onChange={(e) => setBaseCurrency(e.target.value)}
                   className="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -428,8 +436,8 @@ export default function CurrencySettingsPage() {
                   <option value="CAD">CAD - Canadian Dollar (C$)</option>
                 </select>
                 <p className="text-xs text-gray-600 mt-2">
-                  This is your company's primary currency. All financial reports will be displayed in this currency. 
-                  <strong className="text-yellow-700"> Warning: Changing base currency requires careful review of existing transactions.</strong>
+                  This is your company&apos;s primary currency. All financial reports will be displayed in this currency.{' '}
+                  <strong className="text-yellow-700">Warning: Changing base currency requires careful review of existing transactions.</strong>
                 </p>
               </div>
             </div>
@@ -446,23 +454,25 @@ export default function CurrencySettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                  <input
-                    type="checkbox"
-                    checked={autoUpdateRates}
-                    onChange={(e) => setAutoUpdateRates(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                  />
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  id="auto-update-rates"
+                  type="checkbox"
+                  checked={autoUpdateRates}
+                  onChange={(e) => setAutoUpdateRates(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="auto-update-rates" className="text-sm font-medium text-gray-700">
                   Automatically update exchange rates
                 </label>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="update-frequency" className="block text-sm font-medium text-gray-700 mb-2">
                   Update Frequency
                 </label>
                 <select
+                  id="update-frequency"
                   value={updateFrequency}
                   onChange={(e) => setUpdateFrequency(e.target.value)}
                   disabled={!autoUpdateRates}
@@ -476,10 +486,11 @@ export default function CurrencySettingsPage() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="rate-source" className="block text-sm font-medium text-gray-700 mb-2">
                   Exchange Rate Source
                 </label>
                 <select
+                  id="rate-source"
                   value={rateSource}
                   onChange={(e) => setRateSource(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -545,17 +556,8 @@ export default function CurrencySettingsPage() {
                           </div>
                           {currency.enabled && currency.code !== baseCurrency && (
                             <div className="flex items-center gap-1">
-                              {Math.random() > 0.5 ? (
-                                <>
-                                  <TrendingUp className="w-4 h-4 text-green-600" />
-                                  <span className="text-green-600">+0.22%</span>
-                                </>
-                              ) : (
-                                <>
-                                  <TrendingDown className="w-4 h-4 text-red-600" />
-                                  <span className="text-red-600">-0.15%</span>
-                                </>
-                              )}
+                              <TrendingUp className="w-4 h-4 text-green-600" />
+                              <span className="text-green-600">+0.22%</span>
                             </div>
                           )}
                         </div>
@@ -596,8 +598,8 @@ export default function CurrencySettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {exchangeRateHistory.map((history, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              {exchangeRateHistory.map((history) => (
+                <div key={history.date} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-4">
                     <Calendar className="w-4 h-4 text-gray-600" />
                     <span className="font-medium text-gray-900">{history.date}</span>
@@ -711,7 +713,7 @@ export default function CurrencySettingsPage() {
                 type="text"
                 className="amount-input"
                 value={newCurrency.exchangeRate}
-                onChange={(e) => setNewCurrency({ ...newCurrency, exchangeRate: Number.parseFloat(e.target.value.replace(/,/g, '')) || 1 })}
+                onChange={(e) => setNewCurrency({ ...newCurrency, exchangeRate: Number.parseFloat(e.target.value.replaceAll(',', '')) || 1 })}
                 placeholder="Enter exchange rate"
               />
               <p className="text-xs text-gray-500">
