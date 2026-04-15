@@ -29,6 +29,22 @@ import toast from 'react-hot-toast'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+interface VehicleAsset {
+  assetNumber: string
+  name: string
+  vin?: string
+  yearModel?: number
+  purchaseDate: string
+  purchasePrice: number
+  salvageValue: number
+  usefulLife: number
+  accumulatedDepreciation: number
+  bookValue: number
+  depreciationMethod: string
+  currentMileage?: number
+  estimatedLifetimeMiles?: number
+}
+
 interface TaxFormBundle {
   taxYear: number
   filing: {
@@ -98,6 +114,7 @@ interface TaxFormBundle {
     businessAssets: number
     expenseBreakdown: Record<string, number>
     employeeCount: number
+    vehicles: VehicleAsset[]
   }
   // Prior year data (for penalty calculation)
   priorYearTax: number
@@ -109,7 +126,7 @@ interface ComputedForms {
   form5329: { iraDistributions: number; earlyWithdrawalPenalty: number; totalAdditionalTax: number }
   form8962: { agi: number; eligibleForCredit: boolean; estimatedCredit: number }
   form8396: { mortgageInterest: number; creditRate: number; credit: number }
-  form4562: { businessAssets: number; section179Deduction: number; bonusDepreciation: number; macrsDepreciation: number; totalDepreciation: number }
+  form4562: { businessAssets: number; section179Deduction: number; bonusDepreciation: number; macrsDepreciation: number; totalDepreciation: number; vehicles: VehicleAsset[]; vehicleAnnualDepreciation: number; vehicleTotalAccumulated: number }
   schedule2: { selfEmploymentTax: number; form8959Tax: number; form5329Tax: number; totalAdditionalTaxes: number }
   schedule3: { mortgageInterestCredit: number; premiumTaxCredit: number; totalAdditionalCredits: number }
   form8995: { totalQBI: number; qbiDeduction: number; nol: number; activities: Array<{ name: string; qbi: number; w2Wages: number; qualifiedProperty: number }> }
@@ -193,9 +210,10 @@ function resolveIncomeLines(form1040Data: any, companyAutoData: any, savedFormBe
 // ──────────────────────────────────────────────────────────────────────────
 
 async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFormBundle> {
-  const [form1040Res, taxInfoRes] = await Promise.all([
+  const [form1040Res, taxInfoRes, vehiclesRes] = await Promise.all([
     fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${companyId}`),
     fetch(`/api/taxes?companyId=${companyId}&year=${taxYear}`),
+    fetch(`/api/accounting/assets?companyId=${companyId}&category=VEHICLE&status=ACTIVE`),
   ])
 
   if (!form1040Res.ok) {
@@ -204,6 +222,7 @@ async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFo
 
   const form1040Data = await form1040Res.json()
   const taxInfo = taxInfoRes.ok ? await taxInfoRes.json() : {}
+  const vehiclesData: VehicleAsset[] = vehiclesRes.ok ? await vehiclesRes.json() : []
 
   if (!form1040Data.exists) {
     throw new Error('No se encontró el Form 1040 guardado para este año. Por favor complete y guarde el Form 1040 primero.')
@@ -224,6 +243,7 @@ async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFo
     businessAssets:   taxInfo.totalAssets || 0,
     expenseBreakdown: resolveExpenseBreakdown(taxInfo),
     employeeCount:    taxInfo.employeeCount || 0,
+    vehicles:         Array.isArray(vehiclesData) ? vehiclesData : [],
   }
 
   const sc = computeScheduleCAndSE(companyAutoData, form1040Data, companyData, savedFormBelongsToCompany)
@@ -303,6 +323,13 @@ function computeIrsForms(bundle: TaxFormBundle, companyName?: string): ComputedF
     : 0
   const form8396Credit = Math.min(mortgageInterest * 0.2, 2000)
   const assets = bundle.companyData.businessAssets
+  const vehicles = bundle.companyData.vehicles || []
+  // Compute annual vehicle depreciation (straight-line) for the tax year
+  const vehicleAnnualDepreciation = vehicles.reduce((sum, v) => {
+    const annualDep = v.usefulLife > 0 ? (v.purchasePrice - v.salvageValue) / v.usefulLife : 0
+    return sum + annualDep
+  }, 0)
+  const vehicleTotalAccumulated = vehicles.reduce((sum, v) => sum + (v.accumulatedDepreciation || 0), 0)
   const section179Deduction = Math.min(assets, 1_160_000)
   const form8959Tax = bundle.form1040.agi > 200000 ? (bundle.form1040.agi - 200000) * 0.009 : 0
   const seTaxTotal = bundle.scheduleSE.selfEmploymentTax
@@ -345,8 +372,11 @@ function computeIrsForms(bundle: TaxFormBundle, companyName?: string): ComputedF
       businessAssets: assets,
       section179Deduction,
       bonusDepreciation: assets * 0.6,
-      macrsDepreciation: assets * 0.2,
-      totalDepreciation: section179Deduction,
+      macrsDepreciation: vehicleAnnualDepreciation > 0 ? vehicleAnnualDepreciation : assets * 0.2,
+      totalDepreciation: section179Deduction + vehicleAnnualDepreciation,
+      vehicles,
+      vehicleAnnualDepreciation,
+      vehicleTotalAccumulated,
     },
     schedule2: {
       selfEmploymentTax: seTaxTotal,
@@ -439,6 +469,7 @@ function buildBundleFromPdf(e: ExtractedPdf, taxYear: number): TaxFormBundle {
       totalRevenue: scheduleCGross, totalExpenses: scheduleCExpenses, payroll: wages, mortgageInterest, businessAssets,
       expenseBreakdown: { Medical: (e.scheduleA_medicalExpenses as number) ?? 0, Charitable: (e.scheduleA_charitableContributions as number) ?? 0, 'Mortgage Interest': mortgageInterest },
       employeeCount: 0,
+      vehicles: [],
     },
     priorYearTax: totalTax,
   }
@@ -1153,6 +1184,75 @@ export default function IrsFormsPage() {
                   <LineRow label="19h. 5-year property (computers, etc.)" value={0} sub />
                   <LineRow label="19i. 7-year property (office furniture, etc.)" value={form4562?.macrsDepreciation || 0} sub />
                   <LineRow label="22. Total MACRS Deduction" value={form4562?.macrsDepreciation || 0} sub />
+
+                  <h4 className="font-semibold text-sm mb-2 mt-4 text-primary">Part V — Listed Property (Vehicles &amp; Other)</h4>
+                  {form4562?.vehicles && form4562.vehicles.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-muted text-left">
+                              <th className="p-2 border font-semibold">Asset #</th>
+                              <th className="p-2 border font-semibold">Description / VIN</th>
+                              <th className="p-2 border font-semibold">Date in Service</th>
+                              <th className="p-2 border font-semibold">Business Use %</th>
+                              <th className="p-2 border font-semibold">Cost</th>
+                              <th className="p-2 border font-semibold">Prior Depreciation</th>
+                              <th className="p-2 border font-semibold">Method / Life</th>
+                              <th className="p-2 border font-semibold">Current Year Deduction</th>
+                              <th className="p-2 border font-semibold">Book Value</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {form4562.vehicles.map((v) => {
+                              const annualDep = v.usefulLife > 0
+                                ? (v.purchasePrice - v.salvageValue) / v.usefulLife
+                                : 0
+                              const businessUsePct = v.currentMileage && v.estimatedLifetimeMiles
+                                ? Math.min(100, Math.round((v.currentMileage / v.estimatedLifetimeMiles) * 100))
+                                : 100
+                              const purchaseDateStr = v.purchaseDate
+                                ? new Date(v.purchaseDate).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+                                : '—'
+                              return (
+                                <tr key={v.assetNumber} className="odd:bg-background even:bg-muted/30">
+                                  <td className="p-2 border font-mono">{v.assetNumber}</td>
+                                  <td className="p-2 border">
+                                    <p className="font-semibold">{v.yearModel ? `${v.yearModel} ` : ''}{v.name}</p>
+                                    {v.vin && <p className="text-muted-foreground">VIN: {v.vin}</p>}
+                                  </td>
+                                  <td className="p-2 border font-mono">{purchaseDateStr}</td>
+                                  <td className="p-2 border text-center">{businessUsePct}%</td>
+                                  <td className="p-2 border font-mono text-right">${fmt(v.purchasePrice)}</td>
+                                  <td className="p-2 border font-mono text-right">${fmt(v.accumulatedDepreciation)}</td>
+                                  <td className="p-2 border text-center">
+                                    {v.depreciationMethod === 'STRAIGHT_LINE' ? 'SL' : v.depreciationMethod} / {v.usefulLife}yr
+                                  </td>
+                                  <td className="p-2 border font-mono text-right font-semibold">${fmt(annualDep)}</td>
+                                  <td className="p-2 border font-mono text-right">${fmt(v.bookValue)}</td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-muted font-semibold">
+                              <td colSpan={7} className="p-2 border text-right">Totals</td>
+                              <td className="p-2 border font-mono text-right">${fmt(form4562.vehicleAnnualDepreciation || 0)}</td>
+                              <td className="p-2 border font-mono text-right">
+                                ${fmt(form4562.vehicles.reduce((s, v) => s + v.bookValue, 0))}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                      <div className="p-2 bg-amber-50 dark:bg-amber-950 rounded text-xs text-amber-700 dark:text-amber-300">
+                        ⚠️ Vehicles used {`>`} 50% for business must be reported here. Verify business use percentage with mileage logs.
+                        Luxury vehicle limits may apply (IRC §179(b)(5), §280F).
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">No hay vehículos activos registrados para esta empresa.</p>
+                  )}
 
                   <h4 className="font-semibold text-sm mb-2 mt-4 text-primary">Summary</h4>
                   <LineRow label="40. Total Depreciation and Section 179 Deduction" value={form4562?.totalDepreciation || 0} bold />

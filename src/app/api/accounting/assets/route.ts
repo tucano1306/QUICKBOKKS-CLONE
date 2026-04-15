@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic'
 
@@ -14,9 +14,13 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const category = searchParams.get('category');
+    const companyId = searchParams.get('companyId');
 
     const where: any = {};
     if (status) where.status = status;
+    if (category) where.category = category;
+    if (companyId) where.companyId = companyId;
 
     const assets = await prisma.asset.findMany({
       where,

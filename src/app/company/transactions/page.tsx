@@ -127,6 +127,18 @@ const buildPdfFilterText = (opts: PdfFilterOptions): string => {
   return filters.length > 0 ? filters.join(' | ') : 'Todas las transacciones'
 }
 
+const formatLocalDate = (d: Date = new Date()): string => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const formatTransactionDate = (dateStr: string, options: Intl.DateTimeFormatOptions): string => {
+  const [year, month, day] = dateStr.split('T')[0].split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('es-ES', options)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function TransactionsPage() {
@@ -204,15 +216,14 @@ export default function TransactionsPage() {
       const res = await fetch(`/api/transactions?companyId=${activeCompany.id}&limit=5000`)
       if (res.ok) {
         const data = await res.json()
-        console.log(`[Transactions] Cargadas ${data.transactions?.length || 0} transacciones para empresa: ${activeCompany.name} (${activeCompany.id})`)
-        setTransactions(data.transactions || [])
+          setTransactions(data.transactions || [])
       }
     } catch (e) {
       console.error('Error loading transactions:', e)
     } finally {
       setLoading(false)
     }
-  }, [activeCompany?.id, activeCompany?.name])
+  }, [activeCompany?.id])
 
   // Limpiar transacciones cuando cambia de empresa
   useEffect(() => {
@@ -370,8 +381,7 @@ export default function TransactionsPage() {
     const url = globalThis.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    const localDate = (d = new Date()) => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}` }
-    a.download = `transacciones_${localDate()}.csv`
+    a.download = `transacciones_${formatLocalDate()}.csv`
     a.click()
   }
 
@@ -441,7 +451,7 @@ export default function TransactionsPage() {
       new Date(t.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }),
       getTransactionArrowLabel(t.type),
       t.category || '-',
-      (t.description || '-').length > 30 ? (t.description || '').substring(0, 30) + '...' : (t.description || '-'),
+      (t.description || '-').length > 30 ? `${(t.description || '').substring(0, 30)}...` : (t.description || '-'),
       `$${t.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
       t.status
     ])
@@ -494,8 +504,7 @@ export default function TransactionsPage() {
 
     // Guardar PDF
     const typeLabel = getTypeLabel(filter)
-    const localDate2 = (d = new Date()) => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}` }
-    const fileName = `reporte_${typeLabel}_${localDate2()}.pdf`
+    const fileName = `reporte_${typeLabel}_${formatLocalDate()}.pdf`
     doc.save(fileName)
   }
 
@@ -741,7 +750,10 @@ export default function TransactionsPage() {
                   <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg text-sm text-green-700">
                     <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][Number.parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
                     <button
-                      onClick={() => { setFilterMonth(''); setFilterYear(''); }}
+                      onClick={() => {
+                        setFilterMonth('')
+                        setFilterYear('')
+                      }}
                       className="text-green-500 hover:text-green-700 font-medium"
                     >
                       ✕
@@ -955,15 +967,7 @@ export default function TransactionsPage() {
                       <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {(() => {
-                            const dateStr = t.date.split('T')[0];
-                            const [year, month, day] = dateStr.split('-').map(Number);
-                            const localDate = new Date(year, month - 1, day);
-                            return localDate.toLocaleDateString('es-ES', {
-                              day: '2-digit',
-                              month: 'short'
-                            });
-                          })()}
+                          {formatTransactionDate(t.date, { day: '2-digit', month: 'short' })}
                         </span>
                         <span className="text-gray-400">•</span>
                         <Badge variant="outline" className="text-xs py-0 h-5">{t.category}</Badge>
@@ -1033,16 +1037,7 @@ export default function TransactionsPage() {
                       <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {(() => {
-                            const dateStr = t.date.split('T')[0];
-                            const [year, month, day] = dateStr.split('-').map(Number);
-                            const localDate = new Date(year, month - 1, day);
-                            return localDate.toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            });
-                          })()}
+                          {formatTransactionDate(t.date, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                         <Badge variant="outline" className="text-xs">{t.category}</Badge>
                       </div>

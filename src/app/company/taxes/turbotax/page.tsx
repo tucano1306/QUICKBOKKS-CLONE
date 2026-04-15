@@ -4,6 +4,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useCompany } from '@/contexts/CompanyContext'
 import {
     AlertCircle,
@@ -51,6 +52,43 @@ interface ImportHistory {
   errors: number
 }
 
+// ── Module-level helpers ──────────────────────────────────────────────────
+
+function getStepIcon(stepStatus: string) {
+  switch (stepStatus) {
+    case 'completed': return <CheckCircle className="w-5 h-5 text-green-600" />
+    case 'current': return <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
+    case 'error': return <AlertCircle className="w-5 h-5 text-red-600" />
+    default: return <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+  }
+}
+
+function getStatusBadge(mappingStatus: string) {
+  switch (mappingStatus) {
+    case 'mapped': return <Badge className="bg-green-100 text-green-700"><Check className="w-3 h-3 mr-1" /> Mapped</Badge>
+    case 'review': return <Badge className="bg-yellow-100 text-yellow-700"><AlertTriangle className="w-3 h-3 mr-1" /> Review</Badge>
+    case 'error': return <Badge className="bg-red-100 text-red-700"><X className="w-3 h-3 mr-1" /> Error</Badge>
+    default: return <Badge>{mappingStatus}</Badge>
+  }
+}
+
+function getImportStatusBadge(importStatus: string) {
+  switch (importStatus) {
+    case 'success': return <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" /> Success</Badge>
+    case 'partial': return <Badge className="bg-yellow-100 text-yellow-700"><AlertTriangle className="w-3 h-3 mr-1" /> Partial</Badge>
+    case 'failed': return <Badge className="bg-red-100 text-red-700"><AlertCircle className="w-3 h-3 mr-1" /> Failed</Badge>
+    default: return <Badge>{importStatus}</Badge>
+  }
+}
+
+function mappingRowClass(status: string): string {
+  if (status === 'review') return 'border-b bg-yellow-50'
+  if (status === 'error') return 'border-b bg-red-50'
+  return 'border-b'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function TurboTaxPage() {
   const router = useRouter()
   const { status } = useSession()
@@ -58,11 +96,13 @@ export default function TurboTaxPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [connectionStatus] = useState<'connected' | 'disconnected'>('connected')
-  const [selectedYear] = useState(new Date().getFullYear().toString())
+  const connectionStatus = 'connected' as const
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
   const [dataMappings, setDataMappings] = useState<DataMapping[]>([])
   const [importHistory, setImportHistory] = useState<ImportHistory[]>([])
   const [currentStep, setCurrentStep] = useState(0)
+  const [showReviewModal, setShowReviewModal] = useState(false)
+  const [selectedImportDetail, setSelectedImportDetail] = useState<ImportHistory | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -129,7 +169,8 @@ export default function TurboTaxPage() {
         }
         setImportHistory(prev => [newImport, ...prev])
 
-        setMessage({ type: 'success', text: `Sincronización completada: ${data.sync.recordsSynced} registros sincronizados` }); setTimeout(() => setMessage(null), 3000)
+        setMessage({ type: 'success', text: `Sincronización completada: ${data.sync.recordsSynced} registros sincronizados` })
+        setTimeout(() => setMessage(null), 3000)
       }
     } catch (error) {
       console.error('Error syncing with TurboTax:', error)
@@ -145,7 +186,7 @@ export default function TurboTaxPage() {
   }
 
   const importSteps: ImportStep[] = [
-    { id: '1', title: 'Connect to TurboTax', description: 'Establish secure connection', status: currentStep >= 1 ? 'completed' : 'pending', details: 'TurboTax Business ' + selectedYear },
+    { id: '1', title: 'Connect to TurboTax', description: 'Establish secure connection', status: currentStep >= 1 ? 'completed' : 'pending', details: `TurboTax Business ${selectedYear}` },
     { id: '2', title: 'Verify Company Information', description: 'Confirm EIN and business details', status: stepStatus(2), details: activeCompany?.name },
     { id: '3', title: 'Map Chart of Accounts', description: 'Automatically map accounts to tax forms', status: stepStatus(3), details: `${dataMappings.length} accounts mapped` },
     { id: '4', title: 'Import Financial Data', description: 'Transfer income statement and balance sheet', status: stepStatus(4) },
@@ -160,33 +201,6 @@ export default function TurboTaxPage() {
     needsReview: dataMappings.filter(m => m.status === 'review').length,
     totalRecords: dataMappings.length,
     completedSteps: currentStep
-  }
-
-  const getStepIcon = (status: string) => {
-    switch (status) {
-      case 'completed': return <CheckCircle className="w-5 h-5 text-green-600" />
-      case 'current': return <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
-      case 'error': return <AlertCircle className="w-5 h-5 text-red-600" />
-      default: return <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
-    }
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'mapped': return <Badge className="bg-green-100 text-green-700"><Check className="w-3 h-3 mr-1" /> Mapped</Badge>
-      case 'review': return <Badge className="bg-yellow-100 text-yellow-700"><AlertTriangle className="w-3 h-3 mr-1" /> Review</Badge>
-      case 'error': return <Badge className="bg-red-100 text-red-700"><X className="w-3 h-3 mr-1" /> Error</Badge>
-      default: return <Badge>{status}</Badge>
-    }
-  }
-
-  const getImportStatusBadge = (status: string) => {
-    switch (status) {
-      case 'success': return <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" /> Success</Badge>
-      case 'partial': return <Badge className="bg-yellow-100 text-yellow-700"><AlertTriangle className="w-3 h-3 mr-1" /> Partial</Badge>
-      case 'failed': return <Badge className="bg-red-100 text-red-700"><AlertCircle className="w-3 h-3 mr-1" /> Failed</Badge>
-      default: return <Badge>{status}</Badge>
-    }
   }
 
   if (status === 'loading' || loading) {
@@ -207,7 +221,20 @@ export default function TurboTaxPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">TurboTax Integration</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">Direct import to TurboTax Business for seamless tax filing</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <label htmlFor="turbotax-year" className="text-sm font-medium text-gray-600 whitespace-nowrap">Tax Year:</label>
+              <select
+                id="turbotax-year"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map(yr => (
+                  <option key={yr} value={yr.toString()}>{yr}</option>
+                ))}
+              </select>
+            </div>
             <Button variant="outline" onClick={fetchTurboTaxData}>
               <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Refresh</span>
             </Button>
@@ -306,7 +333,7 @@ export default function TurboTaxPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Account Mapping to TurboTax Forms</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => setMessage({ type: 'success', text: 'Revise cada mapeo y actualice si es necesario. Los items marcados como "Review" necesitan su atención.' })}>Review All Mappings</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowReviewModal(true)}>Review All Mappings</Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -343,9 +370,15 @@ export default function TurboTaxPage() {
           </CardContent>
         </Card>
 
-        {importHistory.length > 0 && (
-          <Card>
-            <CardHeader><CardTitle>Import History</CardTitle></CardHeader>
+        <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Import History — Tax Year {selectedYear}</CardTitle>
+                {!importHistory.some(h => h.turboTaxYear === selectedYear) && (
+                  <span className="text-sm text-gray-500">No imports for {selectedYear} yet</span>
+                )}
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -361,23 +394,28 @@ export default function TurboTaxPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {importHistory.map((import_item) => (
-                      <tr key={import_item.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3"><div className="text-sm text-gray-900">{new Date(import_item.date).toLocaleDateString()}</div></td>
-                        <td className="px-4 py-3"><div className="text-sm font-semibold text-gray-900">{import_item.turboTaxYear}</div></td>
-                        <td className="px-4 py-3 text-right"><div className="text-sm text-gray-900">{import_item.recordsImported.toLocaleString()}</div></td>
-                        <td className="px-4 py-3"><div className="text-sm text-gray-700">{import_item.duration}</div></td>
-                        <td className="px-4 py-3 text-center"><div className={`text-sm font-semibold ${import_item.errors === 0 ? 'text-green-600' : 'text-red-600'}`}>{import_item.errors}</div></td>
-                        <td className="px-4 py-3 text-center">{getImportStatusBadge(import_item.status)}</td>
-                        <td className="px-4 py-3"><Button size="sm" variant="outline" onClick={() => setMessage({ type: 'success', text: `Importación del ${new Date(import_item.date).toLocaleDateString()}: ${import_item.recordsImported} registros sincronizados en ${import_item.duration}` })}>View Details</Button></td>
-                      </tr>
-                    ))}
+                    {!importHistory.some(h => h.turboTaxYear === selectedYear) ? (
+                      <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No import history for {selectedYear}. Click &quot;Start Import&quot; to begin.</td></tr>
+                    ) : (
+                      importHistory
+                        .filter(h => h.turboTaxYear === selectedYear)
+                        .map((importItem) => (
+                          <tr key={importItem.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3"><div className="text-sm text-gray-900">{new Date(importItem.date).toLocaleDateString()}</div></td>
+                            <td className="px-4 py-3"><div className="text-sm font-semibold text-gray-900">{importItem.turboTaxYear}</div></td>
+                            <td className="px-4 py-3 text-right"><div className="text-sm text-gray-900">{importItem.recordsImported.toLocaleString()}</div></td>
+                            <td className="px-4 py-3"><div className="text-sm text-gray-700">{importItem.duration}</div></td>
+                            <td className="px-4 py-3 text-center"><div className={`text-sm font-semibold ${importItem.errors === 0 ? 'text-green-600' : 'text-red-600'}`}>{importItem.errors}</div></td>
+                            <td className="px-4 py-3 text-center">{getImportStatusBadge(importItem.status)}</td>
+                            <td className="px-4 py-3"><Button size="sm" variant="outline" onClick={() => setSelectedImportDetail(importItem)}>View Details</Button></td>
+                          </tr>
+                        ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </CardContent>
           </Card>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-green-50 border-green-200">
@@ -416,6 +454,122 @@ export default function TurboTaxPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Review All Mappings Modal */}
+        <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Account Mapping Review — TurboTax {selectedYear}</DialogTitle>
+            </DialogHeader>
+            {dataMappings.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">
+                <AlertCircle className="w-10 h-10 mx-auto mb-3 text-gray-400" />
+                <p className="font-medium">No mappings available yet.</p>
+                <p className="text-sm mt-1">Click <strong>Start Import</strong> on the main page to generate account mappings.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {dataMappings.some(m => m.status === 'review') && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                    <AlertTriangle className="w-4 h-4 inline mr-1" />
+                    <strong>{dataMappings.filter(m => m.status === 'review').length} item(s)</strong> require your review before filing.
+                  </div>
+                )}
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600 border">Category</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600 border">QB Account</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600 border">TurboTax Form</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600 border">Line</th>
+                      <th className="px-3 py-2 text-right font-semibold text-gray-600 border">Amount</th>
+                      <th className="px-3 py-2 text-center font-semibold text-gray-600 border">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dataMappings.map((m) => (
+                      <tr key={m.category} className={mappingRowClass(m.status)}>
+                        <td className="px-3 py-2 border font-medium">{m.category}</td>
+                        <td className="px-3 py-2 border text-gray-700">{m.quickbooksAccount}</td>
+                        <td className="px-3 py-2 border text-blue-700 font-medium">{m.turboTaxForm}</td>
+                        <td className="px-3 py-2 border text-gray-600">{m.turboTaxLine}</td>
+                        <td className="px-3 py-2 border text-right font-semibold">${m.amount.toLocaleString()}</td>
+                        <td className="px-3 py-2 border text-center">{getStatusBadge(m.status)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-50 font-semibold">
+                      <td colSpan={4} className="px-3 py-2 border text-right">Total</td>
+                      <td className="px-3 py-2 border text-right">${dataMappings.reduce((s, m) => s + m.amount, 0).toLocaleString()}</td>
+                      <td className="border" />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Import Detail Modal */}
+        <Dialog open={!!selectedImportDetail} onOpenChange={() => setSelectedImportDetail(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Import Details</DialogTitle>
+            </DialogHeader>
+            {selectedImportDetail && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500 font-medium">Date &amp; Time</p>
+                    <p className="font-semibold text-sm mt-0.5">{new Date(selectedImportDetail.date).toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500 font-medium">Tax Year</p>
+                    <p className="font-semibold text-sm mt-0.5">{selectedImportDetail.turboTaxYear}</p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <p className="text-xs text-green-700 font-medium">Records Imported</p>
+                    <p className="font-bold text-lg text-green-800">{selectedImportDetail.recordsImported.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-700 font-medium">Duration</p>
+                    <p className="font-semibold text-sm mt-0.5">{selectedImportDetail.duration}</p>
+                  </div>
+                  <div className={`p-3 rounded-lg ${selectedImportDetail.errors === 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                    <p className={`text-xs font-medium ${selectedImportDetail.errors === 0 ? 'text-green-700' : 'text-red-700'}`}>Errors</p>
+                    <p className={`font-bold text-lg ${selectedImportDetail.errors === 0 ? 'text-green-800' : 'text-red-800'}`}>{selectedImportDetail.errors}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500 font-medium">Status</p>
+                    <div className="mt-1">{getImportStatusBadge(selectedImportDetail.status)}</div>
+                  </div>
+                </div>
+                {selectedImportDetail.status === 'success' && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                    <CheckCircle className="w-4 h-4 inline mr-1" />
+                    All {selectedImportDetail.recordsImported} records were successfully imported into TurboTax {selectedImportDetail.turboTaxYear} with no errors.
+                  </div>
+                )}
+                {selectedImportDetail.status === 'partial' && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                    <AlertTriangle className="w-4 h-4 inline mr-1" />
+                    Import was partially successful. {selectedImportDetail.errors} record(s) could not be imported. Review the flagged items in the mapping table.
+                  </div>
+                )}
+                {selectedImportDetail.status === 'failed' && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                    <AlertCircle className="w-4 h-4 inline mr-1" />
+                    Import failed. Please try again or contact support if the issue persists.
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={() => setSelectedImportDetail(null)}>Close</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-6">
