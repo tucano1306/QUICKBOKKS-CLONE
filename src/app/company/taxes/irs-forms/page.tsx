@@ -178,7 +178,6 @@ function computeScheduleCAndSE(companyAutoData: any, form1040Data: any, companyD
 }
 
 function resolveIncomeLines(form1040Data: any, companyAutoData: any, savedFormBelongsToCompany: boolean) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const saved = (val: any) => savedFormBelongsToCompany ? val : 0
   return {
     wages:             saved(form1040Data.line1a_w2Wages)          || companyAutoData.income?.wages             || 0,
