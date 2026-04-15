@@ -18,11 +18,13 @@ import {
   Download,
   Edit,
   Eye,
+  EyeOff,
   FileText,
   Filter,
   Plus,
   RefreshCw,
   Search,
+  Settings2,
   Square,
   Trash2,
   TrendingDown,
@@ -154,20 +156,39 @@ export default function TransactionsPage() {
 
   // Categorías personalizadas guardadas en localStorage
   const [customCategories, setCustomCategories] = useState<string[]>([])
+  const [hiddenCategories, setHiddenCategories] = useState<string[]>([])
+  const [showCatManager, setShowCatManager] = useState(false)
+
   useEffect(() => {
     const income: string[] = JSON.parse(globalThis.localStorage?.getItem('custom_income_categories') ?? 'null') ?? []
     const expense: string[] = JSON.parse(globalThis.localStorage?.getItem('custom_expense_categories') ?? 'null') ?? []
     setCustomCategories([...income, ...expense])
+    const hidden: string[] = JSON.parse(globalThis.localStorage?.getItem('hidden_filter_categories') ?? 'null') ?? ['General Expense']
+    setHiddenCategories(hidden)
   }, [])
 
-  // Categorías únicas para el dropdown (derivadas de los datos + personalizadas)
-  const uniqueCategories = useMemo(() => {
+  const toggleHideCategory = (cat: string) => {
+    const updated = hiddenCategories.includes(cat)
+      ? hiddenCategories.filter(c => c !== cat)
+      : [...hiddenCategories, cat]
+    setHiddenCategories(updated)
+    globalThis.localStorage?.setItem('hidden_filter_categories', JSON.stringify(updated))
+    if (updated.includes(filterCategory)) setFilterCategory('')
+  }
+
+  // Todas las categorías disponibles (para el manager)
+  const allCategories = useMemo(() => {
     const cats = new Set([
       ...transactions.map(t => t.category).filter(Boolean),
       ...customCategories
     ])
     return Array.from(cats).sort((a, b) => a.localeCompare(b))
   }, [transactions, customCategories])
+
+  // Categorías únicas para el dropdown (excluyendo las ocultas)
+  const uniqueCategories = useMemo(() => {
+    return allCategories.filter(c => !hiddenCategories.includes(c))
+  }, [allCategories, hiddenCategories])
 
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1)
@@ -538,7 +559,17 @@ export default function TransactionsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Filtro por Categoría */}
               <div>
-                <label htmlFor="filter-category" className="text-sm font-medium mb-1 block">Categoría</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="filter-category" className="text-sm font-medium">Categoría</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCatManager(v => !v)}
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    <Settings2 className="h-3 w-3" />
+                    {showCatManager ? 'Cerrar' : 'Gestionar'}
+                  </button>
+                </div>
                 <select
                   id="filter-category"
                   value={filterCategory}
@@ -550,6 +581,30 @@ export default function TransactionsPage() {
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
+                {/* Manager inline */}
+                {showCatManager && (
+                  <div className="mt-2 border border-gray-200 rounded-lg bg-gray-50 p-2 max-h-48 overflow-y-auto space-y-1">
+                    {allCategories.length === 0 && (
+                      <p className="text-xs text-gray-400 text-center py-2">No hay categorías</p>
+                    )}
+                    {allCategories.map(cat => {
+                      const hidden = hiddenCategories.includes(cat)
+                      return (
+                        <div key={cat} className="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-gray-100">
+                          <span className={`text-xs truncate ${hidden ? 'line-through text-gray-400' : 'text-gray-700'}`}>{cat}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleHideCategory(cat)}
+                            className={`flex-shrink-0 ${hidden ? 'text-green-500 hover:text-green-700' : 'text-red-400 hover:text-red-600'}`}
+                            title={hidden ? 'Mostrar en dropdown' : 'Ocultar del dropdown'}
+                          >
+                            {hidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Filtro por Proveedor */}
