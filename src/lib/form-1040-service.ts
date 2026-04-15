@@ -319,11 +319,11 @@ export async function autoPopulateForm1040FromCompany(
   const businessIncomeTransactions = incomeTransactions.filter(
     t => !t.category?.includes('Interest') && !t.category?.includes('Dividend')
   );
-  const transactionIncome = businessIncomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const transactionIncome = Math.round(businessIncomeTransactions.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
 
   // Use whichever source has data (prefer invoices if both exist)
   // Use subtotal (pre-tax) not total, so collected sales tax is not counted as income
-  const invoiceSubtotalIncome = invoices.reduce((sum, inv) => sum + (inv.subtotal ?? inv.total), 0);
+  const invoiceSubtotalIncome = Math.round(invoices.reduce((sum, inv) => sum + (inv.subtotal ?? inv.total), 0) * 100) / 100;
   const totalBusinessIncome = invoiceSubtotalIncome > 0 ? invoiceSubtotalIncome : transactionIncome;
 
   // Get business expenses — only tax-deductible ones
@@ -338,7 +338,7 @@ export async function autoPopulateForm1040FromCompany(
     }
   });
 
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalExpenses = Math.round(expenses.reduce((sum, exp) => sum + exp.amount, 0) * 100) / 100;
 
   // Interest/dividend income from transactions
   const interestIncome = allTransactions
@@ -357,7 +357,7 @@ export async function autoPopulateForm1040FromCompany(
   const scheduleC = {
     grossReceipts: totalBusinessIncome,
     expenses: totalExpenses,
-    netProfit: totalBusinessIncome - totalExpenses
+    netProfit: Math.round((totalBusinessIncome - totalExpenses) * 100) / 100
   };
 
   // Self-employment tax (15.3% on 92.35% of net profit) — only if profitable
