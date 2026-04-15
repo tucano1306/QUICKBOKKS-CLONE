@@ -1,44 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { cn } from '@/lib/utils'
+import {
+    Activity,
+    BarChart3,
+    BookOpen,
+    Building2,
+    Calculator,
+    Car,
+    CheckCircle,
+    CheckSquare,
+    ChevronDown,
+    ChevronRight,
+    Database,
+    Download,
+    Edit,
+    FileText,
+    HardDrive,
+    History,
+    Link as LinkIcon,
+    PlusCircle,
+    Receipt,
+    RefreshCw,
+    Search,
+    Settings,
+    Trash2,
+    TrendingDown,
+    Upload
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  ChevronDown,
-  ChevronRight,
-  BookOpen,
-  FileText,
-  PlusCircle,
-  Edit,
-  Trash2,
-  Download,
-  Upload,
-  Search,
-  Filter,
-  CheckSquare,
-  Brain,
-  ThumbsUp,
-  ThumbsDown,
-  RefreshCw,
-  Repeat,
-  Building2,
-  Link as LinkIcon,
-  CheckCircle,
-  Eye,
-  Activity,
-  Receipt,
-  History,
-  FileSpreadsheet,
-  Settings,
-  Sliders,
-  Database,
-  BarChart3,
-  HardDrive,
-  Car,
-  TrendingDown,
-  Calculator,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useState } from 'react'
 
 interface MenuItem {
   name: string
@@ -107,11 +99,6 @@ const accountingMenuItems: SubMenu[] = [
         href: '/company/accounting/bank-sync',
       },
       {
-        name: 'Clasificar transacciones',
-        icon: CheckSquare,
-        href: '/company/accounting/ai-categorization',
-      },
-      {
         name: 'Buscar/Filtrar',
         icon: Search,
         href: '/company/accounting/transactions?action=search',
@@ -126,44 +113,6 @@ const accountingMenuItems: SubMenu[] = [
         icon: Trash2,
         href: '/company/accounting/transactions?action=delete',
         variant: 'danger',
-      },
-    ],
-  },
-  {
-    title: 'Clasificación Inteligente',
-    icon: Brain,
-    href: '/company/accounting/ai-categorization',
-    items: [
-      {
-        name: 'Activar AI Auto-Categorización',
-        icon: Brain,
-        href: '/company/accounting/ai-categorization?action=activate',
-        variant: 'primary',
-      },
-      {
-        name: 'Revisar sugerencias',
-        icon: Eye,
-        href: '/company/accounting/ai-categorization?action=review',
-      },
-      {
-        name: 'Aceptar clasificación',
-        icon: ThumbsUp,
-        href: '/company/accounting/ai-categorization?action=accept',
-      },
-      {
-        name: 'Rechazar clasificación',
-        icon: ThumbsDown,
-        href: '/company/accounting/ai-categorization?action=reject',
-      },
-      {
-        name: 'Reclasificación masiva',
-        icon: RefreshCw,
-        href: '/company/accounting/mass-reclassification',
-      },
-      {
-        name: 'Cambio de cuentas en lote',
-        icon: Repeat,
-        href: '/company/accounting/mass-reclassification?action=batch',
       },
     ],
   },
@@ -291,11 +240,6 @@ const accountingMenuItems: SubMenu[] = [
     href: '/company/accounting/settings',
     items: [
       {
-        name: 'Configurar reglas de clasificación',
-        icon: Sliders,
-        href: '/company/accounting/ai-categorization?action=rules',
-      },
-      {
         name: 'Administrar conexiones bancarias',
         icon: Database,
         href: '/company/accounting/bank-sync?action=manage',
@@ -345,7 +289,7 @@ export default function AccountingMenu({ onItemClick }: AccountingMenuProps) {
     if (isActive) {
       return 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
     }
-    
+
     switch (variant) {
       case 'primary':
         return 'text-blue-600 hover:bg-blue-50 hover:text-blue-700'

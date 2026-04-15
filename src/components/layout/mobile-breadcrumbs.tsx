@@ -1,7 +1,7 @@
 'use client'
 
+import { Building2, ChevronRight, LayoutDashboard, Settings } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronRight, Home, Building2, Bot, Settings, LayoutDashboard } from 'lucide-react'
 
 interface BreadcrumbSection {
   id: string
@@ -32,15 +32,6 @@ const mainSections: BreadcrumbSection[] = [
     ]
   },
   {
-    id: 'ai-agent',
-    name: 'Agente IA',
-    icon: Bot,
-    basePath: '/ai-agent',
-    items: [
-      { name: 'Asistente', href: '/ai-agent' }
-    ]
-  },
-  {
     id: 'settings',
     name: 'Configuración',
     icon: Settings,
@@ -67,11 +58,11 @@ export default function MobileBreadcrumbs({ sections = mainSections, className =
     for (const section of sections) {
       if (pathname?.startsWith(section.basePath)) {
         // Encontrar el item específico
-        const item = section.items.find(i => 
+        const item = section.items.find(i =>
           pathname === i.href || pathname?.startsWith(i.href + '/')
         )
-        return { 
-          section, 
+        return {
+          section,
           item: item || section.items[0]
         }
       }
@@ -95,7 +86,7 @@ export default function MobileBreadcrumbs({ sections = mainSections, className =
         <Icon className="w-4 h-4" />
         <span>{breadcrumb.section.name}</span>
       </button>
-      
+
       {/* Separador y página actual */}
       {breadcrumb.item && breadcrumb.item.href !== breadcrumb.section.items[0].href && (
         <>

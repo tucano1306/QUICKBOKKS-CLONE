@@ -11,7 +11,6 @@ const apiRoutesWithInternalAuth = [
   '/api/accounting/',
   '/api/transactions',
   '/api/expenses',
-  '/api/ai/',
   '/api/reports/'
 ]
 

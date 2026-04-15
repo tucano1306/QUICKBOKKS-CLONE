@@ -1,31 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import Image from 'next/image'
 import { useCompany } from '@/contexts/CompanyContext'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard,
-  FileText,
-  DollarSign,
-  Users,
-  TrendingUp,
-  Settings,
-  Building2,
-  Receipt,
-  ChevronDown,
-  Calculator,
-  FolderKanban,
-  ShoppingCart,
-  FileCheck,
-  Target,
-  Zap,
-  Brain,
-  Home,
-  ArrowLeftRight
+    ArrowLeftRight,
+    Building2,
+    Calculator,
+    ChevronDown,
+    DollarSign,
+    FileCheck,
+    FileText,
+    FolderKanban,
+    Home,
+    LayoutDashboard,
+    Receipt,
+    Settings,
+    ShoppingCart,
+    Target,
+    TrendingUp,
+    Users,
+    Zap
 } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface SubMenuItem {
   name: string
@@ -49,9 +48,7 @@ const tabSections: TabSection[] = [
     color: 'blue',
     submenus: [
       { name: 'Resumen General', href: '/company/dashboard', description: 'Vista general del negocio' },
-      { name: 'Métricas Clave', href: '/company/dashboard/metrics', description: 'KPIs y estadísticas' },
-      { name: 'Asistente IA', href: '/company/ai-assistant', description: 'Chatbot inteligente personalizado' },
-      { name: 'Insights IA', href: '/company/dashboard/ai-insights', description: 'Recomendaciones inteligentes' }
+      { name: 'Métricas Clave', href: '/company/dashboard/metrics', description: 'KPIs y estadísticas' }
     ]
   },
   {
@@ -62,7 +59,6 @@ const tabSections: TabSection[] = [
     submenus: [
       { name: 'Plan de Cuentas', href: '/company/accounting/chart-of-accounts', description: 'Catálogo de cuentas contables' },
       { name: 'Transacciones', href: '/company/accounting/transactions', description: 'Importar y clasificar transacciones' },
-      { name: 'AI Auto-Categorización', href: '/company/accounting/ai-categorization', description: 'Clasificación inteligente' },
       { name: 'Reclasificación Masiva', href: '/company/accounting/mass-reclassification', description: 'Cambio de cuentas en lote' },
       { name: 'Conciliación Bancaria', href: '/company/accounting/reconciliation', description: 'Cuadrar cuentas bancarias' },
       { name: 'Asientos Contables', href: '/company/accounting/journal-entries', description: 'Registros manuales' },
@@ -127,9 +123,7 @@ const tabSections: TabSection[] = [
     submenus: [
       { name: 'Lista de Clientes', href: '/company/customers', description: 'Directorio completo' },
       { name: 'Portal del Cliente', href: '/company/customers/portal', description: 'Acceso para clientes' },
-      { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir docs con IA' },
-      { name: '🤖 AI Doc Processor', href: '/company/documents/ai', description: 'Procesar con IA' },
-      { name: '🤖 Revisión IA Docs', href: '/company/documents/review', description: 'Aprobar y reclasificar' },
+      { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir documentos' },
       { name: 'Historial de Transacciones', href: '/company/customers/transactions', description: 'Facturas y pagos' },
       { name: 'Notas y Seguimiento', href: '/company/customers/notes', description: 'CRM básico' }
     ]
@@ -244,18 +238,6 @@ const tabSections: TabSection[] = [
     ]
   },
   {
-    id: 'ai',
-    name: 'IA & Insights',
-    icon: Brain,
-    color: 'fuchsia',
-    submenus: [
-      { name: 'Intuit Assist', href: '/company/ai/assist', description: 'Asistente de negocios IA' },
-      { name: 'Predicciones', href: '/company/ai/predictions', description: 'Pronósticos inteligentes' },
-      { name: 'Recomendaciones', href: '/company/ai/recommendations', description: 'Sugerencias de IA' },
-      { name: 'Agente IA', href: '/company/ai/agent', description: 'Automatización agéntica' }
-    ]
-  },
-  {
     id: 'settings',
     name: 'Configuración',
     icon: Settings,
@@ -280,19 +262,19 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
-  
+
   // Construir la URL completa con query params para comparar
-  const currentUrl = searchParams.toString() 
-    ? `${pathname}?${searchParams.toString()}` 
+  const currentUrl = searchParams.toString()
+    ? `${pathname}?${searchParams.toString()}`
     : pathname
-  
+
   // Detectar la pestaña activa según la URL (ANTES del return condicional)
-  const currentTab = tabSections.find(tab => 
+  const currentTab = tabSections.find(tab =>
     pathname?.startsWith(`/company/${tab.id}`)
   ) || tabSections[0]
 
   const currentTabId = currentTab?.id || 'dashboard'
-  
+
   const [activeTab, setActiveTab] = useState<string>(currentTabId)
   const [showSubmenu, setShowSubmenu] = useState<{[key: string]: boolean}>({ [currentTabId]: true })
 
@@ -352,7 +334,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 </p>
               </div>
             </div>
-            
+
             {/* Botón para salir al menú principal */}
             <button
               onClick={() => router.push('/dashboard')}
@@ -372,7 +354,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                 const Icon = tab.icon
                 const isActive = currentTab.id === tab.id
                 const isSubmenuOpen = showSubmenu[tab.id] || false
-                
+
                 return (
                   <button
                     key={tab.id}
@@ -442,8 +424,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
       </main>
 
       {/* AI Assistant flotante disponible en todas las páginas de company */}
-      {/* <FloatingAssistant /> */}
-      
+
       {/* Actualizaciones en tiempo real */}
       {/* Temporalmente desactivado para evitar rebuilds constantes */}
       {/* <RealTimeUpdates /> */}

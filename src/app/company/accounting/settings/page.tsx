@@ -1,30 +1,25 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import ActionButtonsGroup from '@/components/ui/action-buttons-group'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Settings,
-  Sliders,
-  Database,
-  BarChart3,
-  HardDrive,
-  CheckCircle,
-  AlertCircle,
-  Brain,
-  Building2,
-  FileText,
-  Download,
-  Calendar,
-  Shield,
-  Activity
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    Activity,
+    AlertCircle,
+    BarChart3,
+    Building2,
+    CheckCircle,
+    Database,
+    HardDrive,
+    Settings,
+    Shield
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 interface BankConnection {
   id: string
@@ -106,20 +101,12 @@ export default function AccountingSettingsPage() {
   // Botones de acción de Configuración
   const settingsActions = [
     {
-      label: 'Configurar reglas IA',
-      icon: Sliders,
-      onClick: () => {
-        router.push('/company/accounting/ai-categorization?action=rules')
-      },
-      variant: 'primary' as const,
-    },
-    {
       label: 'Conexiones bancarias',
       icon: Database,
       onClick: () => {
         router.push('/company/accounting/bank-sync?action=manage')
       },
-      variant: 'outline' as const,
+      variant: 'primary' as const,
     },
     {
       label: 'Ver reportes',
@@ -246,8 +233,8 @@ export default function AccountingSettingsPage() {
                 <Database className="w-5 h-5" />
                 Conexiones Bancarias
               </span>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => router.push('/company/accounting/bank-sync')}
               >
@@ -258,7 +245,7 @@ export default function AccountingSettingsPage() {
           <CardContent>
             <div className="space-y-3">
               {bankConnections.map((bank) => (
-                <div 
+                <div
                   key={bank.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition"
                 >
@@ -290,64 +277,6 @@ export default function AccountingSettingsPage() {
                         Error
                       </Badge>
                     )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Classification Rules */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Brain className="w-5 h-5" />
-                Reglas de Clasificación IA
-              </span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => router.push('/company/accounting/ai-categorization?action=rules')}
-              >
-                Configurar
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {classificationRules.map((rule) => (
-                <div 
-                  key={rule.id}
-                  className={`p-4 border rounded-lg ${
-                    rule.isActive ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-semibold text-gray-900">{rule.name}</h4>
-                        <Badge className={
-                          rule.isActive 
-                            ? 'bg-green-100 text-green-700 text-xs' 
-                            : 'bg-gray-100 text-gray-600 text-xs'
-                        }>
-                          {rule.isActive ? 'Activa' : 'Inactiva'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        <strong>Condición:</strong> {rule.condition}
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        <strong>Categoría:</strong> {rule.category}
-                      </p>
-                    </div>
-                    <div className="text-right ml-4">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {rule.confidence}%
-                      </div>
-                      <div className="text-xs text-gray-500">Confianza</div>
-                    </div>
                   </div>
                 </div>
               ))}

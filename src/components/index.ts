@@ -1,5 +1,5 @@
 // Main Components Index
-// 
+//
 // Component Structure:
 // - shared/: Reusable components used across the entire application
 //   - ui/: Basic UI elements (buttons, inputs, cards, tables)
@@ -15,8 +15,8 @@ export * from './shared'
 
 // Feature-specific exports
 export { BankConnectionManager } from './banking/plaid-link'
-export { default as FloatingAssistant } from './ai-assistant/floating-assistant'
+
 
 // Context and providers
-export { Providers } from './providers'
 export { default as CompanySelector } from './CompanySelector'
+export { Providers } from './providers'

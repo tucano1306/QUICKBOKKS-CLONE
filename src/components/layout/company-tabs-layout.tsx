@@ -7,7 +7,6 @@ import {
     AlertTriangle,
     ArrowLeftRight,
     Bell,
-    Brain,
     Building2,
     Calculator,
     CheckCircle,
@@ -65,9 +64,7 @@ const tabSections: TabSection[] = [
     color: 'blue',
     submenus: [
       { name: 'Resumen General', href: '/company/dashboard', description: 'Vista general del negocio' },
-      { name: 'Métricas Clave', href: '/company/dashboard/metrics', description: 'KPIs y estadísticas' },
-      { name: 'Asistente IA', href: '/company/ai-assistant', description: 'Chatbot inteligente personalizado' },
-      { name: 'Insights IA', href: '/company/dashboard/ai-insights', description: 'Recomendaciones inteligentes' }
+      { name: 'Métricas Clave', href: '/company/dashboard/metrics', description: 'KPIs y estadísticas' }
     ]
   },
   {
@@ -78,7 +75,6 @@ const tabSections: TabSection[] = [
     submenus: [
       { name: 'Plan de Cuentas', href: '/company/accounting/chart-of-accounts', description: 'Catálogo de cuentas contables' },
       { name: 'Transacciones', href: '/company/accounting/transactions', description: 'Importar y clasificar transacciones' },
-      { name: 'AI Auto-Categorización', href: '/company/accounting/ai-categorization', description: 'Clasificación inteligente' },
       { name: 'Reclasificación Masiva', href: '/company/accounting/mass-reclassification', description: 'Cambio de cuentas en lote' },
       { name: 'Conciliación Bancaria', href: '/company/accounting/reconciliation', description: 'Cuadrar cuentas bancarias' },
       { name: 'Asientos Contables', href: '/company/accounting/journal-entries', description: 'Registros manuales' },
@@ -144,9 +140,7 @@ const tabSections: TabSection[] = [
       { name: 'Lista de Clientes', href: '/company/customers', description: 'Directorio completo' },
       { name: 'Portal del Cliente', href: '/company/customers/portal', description: 'Acceso para clientes' },
       { name: '📧 Bandeja de Email', href: '/company/documents/inbox', description: 'Recibir docs por email' },
-      { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir docs con IA' },
-      { name: '🤖 AI Doc Processor', href: '/company/documents/ai', description: 'Procesar con IA' },
-      { name: '🤖 Revisión IA Docs', href: '/company/documents/review', description: 'Aprobar y reclasificar' },
+      { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir documentos' },
       { name: 'Historial de Transacciones', href: '/company/customers/transactions', description: 'Facturas y pagos' },
       { name: 'Notas y Seguimiento', href: '/company/customers/notes', description: 'CRM básico' }
     ]
@@ -263,18 +257,6 @@ const tabSections: TabSection[] = [
     ]
   },
   {
-    id: 'ai',
-    name: 'IA & Insights',
-    icon: Brain,
-    color: 'fuchsia',
-    submenus: [
-      { name: 'Intuit Assist', href: '/company/ai/assist', description: 'Asistente de negocios IA' },
-      { name: 'Predicciones', href: '/company/ai/predictions', description: 'Pronósticos inteligentes' },
-      { name: 'Recomendaciones', href: '/company/ai/recommendations', description: 'Sugerencias de IA' },
-      { name: 'Agente IA', href: '/company/ai/agent', description: 'Automatización agéntica' }
-    ]
-  },
-  {
     id: 'tools',
     name: 'Herramientas',
     icon: Wrench,
@@ -340,8 +322,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
   // Mapa de rutas especiales que no coinciden con el patrón /company/{tabId}
   // pero pertenecen a un tab específico
   const specialRouteMappings: { [key: string]: string } = {
-    '/company/documents': 'customers',  // Bandeja email, AI docs, etc. pertenecen a Clientes
-    '/company/ai-assistant': 'dashboard' // Asistente IA pertenece a Dashboard
+    '/company/documents': 'customers'  // Bandeja email, docs, etc. pertenecen a Clientes
   }
 
   // Detectar la pestaña activa según la URL (ANTES del return condicional)
@@ -1049,7 +1030,6 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
       </main>
 
       {/* AI Assistant flotante disponible en todas las páginas de company */}
-      {/* <FloatingAssistant /> */}
 
       {/* Actualizaciones en tiempo real */}
       {/* Temporalmente desactivado para evitar rebuilds constantes */}

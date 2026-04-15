@@ -1,34 +1,31 @@
 'use client'
 
-import { useEffect } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    ArrowRight,
+    BarChart3,
+    Building2,
+    Calculator,
+    DollarSign,
+    FileText,
+    FolderKanban,
+    LayoutDashboard,
+    PieChart,
+    Receipt,
+    Settings,
+    ShoppingCart,
+    Sparkles,
+    Target,
+    TrendingUp,
+    Users,
+    Zap
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { 
-  LayoutDashboard,
-  Calculator,
-  Receipt,
-  Users,
-  Building2,
-  DollarSign,
-  PieChart,
-  FileText,
-  TrendingUp,
-  Zap,
-  Target,
-  Settings,
-  ArrowRight,
-  Sparkles,
-  BarChart3,
-  Wallet,
-  ShoppingCart,
-  FolderKanban,
-  Brain,
-  Bot
-} from 'lucide-react'
+import { useEffect } from 'react'
 
 interface QuickAccessCard {
   title: string
@@ -88,7 +85,7 @@ export default function CompanyHomePage() {
     },
     {
       title: 'Clientes',
-      description: 'Gestión de clientes y portal con upload de documentos IA',
+      description: 'Gestión de clientes y portal con upload de documentos',
       icon: Users,
       href: '/company/customers/list',
       color: 'cyan',
@@ -149,23 +146,6 @@ export default function CompanyHomePage() {
       href: '/company/taxes/info',
       color: 'teal',
       gradient: 'from-teal-500 to-cyan-600'
-    },
-    {
-      title: 'IA & Automatización',
-      description: 'Agente IA, predicciones y workflows automáticos',
-      icon: Brain,
-      href: '/company/ai-assistant',
-      color: 'purple',
-      gradient: 'from-purple-600 to-pink-600',
-      featured: true
-    },
-    {
-      title: 'Documentos IA',
-      description: 'Revisión inteligente y reclasificación de documentos',
-      icon: Bot,
-      href: '/company/documents/review',
-      color: 'blue',
-      gradient: 'from-blue-600 to-indigo-600'
     }
   ]
 
@@ -201,7 +181,7 @@ export default function CompanyHomePage() {
             {featuredCards.map((card) => {
               const Icon = card.icon
               return (
-                <Card 
+                <Card
                   key={card.href}
                   className="group relative overflow-hidden border-2 hover:border-blue-400 hover:shadow-2xl transition-all duration-300 cursor-pointer"
                   onClick={() => router.push(card.href)}
@@ -237,7 +217,7 @@ export default function CompanyHomePage() {
             {regularCards.map((card) => {
               const Icon = card.icon
               return (
-                <Card 
+                <Card
                   key={card.href}
                   className="group hover:shadow-lg transition-all duration-300 cursor-pointer border hover:border-gray-300"
                   onClick={() => router.push(card.href)}
@@ -292,8 +272,8 @@ export default function CompanyHomePage() {
 
         {/* Settings Link */}
         <div className="flex justify-center">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="lg"
             onClick={() => router.push('/company/settings/company')}
             className="gap-2"

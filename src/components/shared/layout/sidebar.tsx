@@ -1,27 +1,25 @@
 'use client'
 
+import CompanySelector from '@/components/CompanySelector'
+import { cn } from '@/lib/utils'
+import {
+    Building2,
+    ChevronLeft,
+    ChevronRight,
+    LayoutDashboard,
+    LogOut,
+    Menu,
+    Settings,
+    X,
+} from 'lucide-react'
+import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut, useSession } from 'next-auth/react'
-import {
-  LayoutDashboard,
-  TrendingUp,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Building2,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react'
-import { useState, useEffect } from 'react'
-import { cn } from '@/lib/utils'
-import CompanySelector from '@/components/CompanySelector'
+import { useEffect, useState } from 'react'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Empresas', href: '/companies', icon: Building2 },
-  { name: 'Agente IA', href: '/ai-agent', icon: TrendingUp },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ]
 
@@ -30,7 +28,7 @@ export default function Sidebar() {
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
-  
+
   // Detectar tamaño de pantalla para colapsar automáticamente en tablets
   useEffect(() => {
     const handleResize = () => {
@@ -70,8 +68,8 @@ export default function Sidebar() {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <Link 
-            href="/dashboard" 
+          <Link
+            href="/dashboard"
             className="flex items-center justify-center h-16 bg-[#0D2942] border-b border-white/10 hover:bg-white/5 transition-all duration-200 cursor-pointer"
           >
             {isCollapsed ? (
@@ -97,7 +95,7 @@ export default function Sidebar() {
             "bg-white/5 backdrop-blur-sm border-b border-white/10 transition-all duration-300",
             isCollapsed ? "p-2" : "p-4"
           )}>
-            <Link 
+            <Link
               href="/dashboard"
               className={cn(
                 "flex items-center rounded-xl hover:bg-white/10 transition-all duration-200 cursor-pointer group",
