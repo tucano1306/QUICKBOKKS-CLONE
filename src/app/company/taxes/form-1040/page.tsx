@@ -137,7 +137,7 @@ export default function Form1040Page() {
 
   // Cargar borrador de localStorage al iniciar
   useEffect(() => {
-    if (typeof window !== 'undefined' && !draftLoaded) {
+    if (globalThis.window !== undefined && !draftLoaded) {
       const savedDraft = localStorage.getItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`)
       if (savedDraft) {
         try {
@@ -154,7 +154,7 @@ export default function Form1040Page() {
 
   // Guardar borrador en localStorage cuando cambien los datos importantes
   useEffect(() => {
-    if (typeof window !== 'undefined' && draftLoaded) {
+    if (globalThis.window !== undefined && draftLoaded) {
       const draft = {
         taxYear,
         filingStatus,
@@ -191,11 +191,30 @@ export default function Form1040Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taxYear, activeCompany?.id])
 
+  const applyAutoData = (autoData: any) => {
+    if (autoData.income) {
+      setWages(autoData.income.wages || 0)
+      setTaxableInterest(autoData.income.taxableInterest || 0)
+      setOrdinaryDividends(autoData.income.ordinaryDividends || 0)
+      setQualifiedDividends(autoData.income.qualifiedDividends || 0)
+      setOtherIncome(autoData.income.otherIncome || 0)
+    }
+    if (autoData.scheduleC) {
+      setScheduleC_grossReceipts(autoData.scheduleC.grossReceipts || 0)
+      setScheduleC_expenses(autoData.scheduleC.expenses || 0)
+    }
+    if (autoData.payments) {
+      setWithholding(autoData.payments.withholding || 0)
+      setEstimatedPayments(autoData.payments.estimatedPayments || 0)
+    }
+  }
+
   const loadExistingForm = async () => {
     try {
+      const companyParam = activeCompany?.id ? `&companyId=${activeCompany.id}` : ''
       // Load saved form (personal info) and fresh financial data in parallel
       const [savedRes, autoRes] = await Promise.all([
-        fetch(`/api/tax-forms/1040?year=${taxYear}${activeCompany?.id ? `&companyId=${activeCompany.id}` : ''}`),
+        fetch(`/api/tax-forms/1040?year=${taxYear}${companyParam}`),
         activeCompany?.id
           ? fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${activeCompany.id}&action=auto-populate`)
           : Promise.resolve(null)
@@ -211,26 +230,10 @@ export default function Form1040Page() {
       }
 
       // Always overwrite financial fields with fresh data from transactions
-      if (autoRes && autoRes.ok) {
+      if (autoRes?.ok) {
         const autoResult = await autoRes.json()
         const autoData = autoResult.data || autoResult.autoData
-        if (autoData) {
-          if (autoData.income) {
-            setWages(autoData.income.wages || 0)
-            setTaxableInterest(autoData.income.taxableInterest || 0)
-            setOrdinaryDividends(autoData.income.ordinaryDividends || 0)
-            setQualifiedDividends(autoData.income.qualifiedDividends || 0)
-            setOtherIncome(autoData.income.otherIncome || 0)
-          }
-          if (autoData.scheduleC) {
-            setScheduleC_grossReceipts(autoData.scheduleC.grossReceipts || 0)
-            setScheduleC_expenses(autoData.scheduleC.expenses || 0)
-          }
-          if (autoData.payments) {
-            setWithholding(autoData.payments.withholding || 0)
-            setEstimatedPayments(autoData.payments.estimatedPayments || 0)
-          }
-        }
+        if (autoData) applyAutoData(autoData)
       }
     } catch (error) {
       console.error('Error loading form:', error)
@@ -280,8 +283,8 @@ export default function Form1040Page() {
     setDependents(data.dependents || [])
   }
 
-  // Función para cargar datos desde borrador de localStorage
-  const populateDraftFromData = (draft: any) => {
+  // Función para cargar datos desde borrador de localStorage — dividida en helpers para reducir complejidad cognitiva
+  const applyDraftPersonalInfo = (draft: any) => {
     if (draft.filingStatus) setFilingStatus(draft.filingStatus)
     if (draft.firstName) setFirstName(draft.firstName)
     if (draft.middleInitial) setMiddleInitial(draft.middleInitial)
@@ -296,12 +299,13 @@ export default function Form1040Page() {
     if (draft.city) setCity(draft.city)
     if (draft.state) setState(draft.state)
     if (draft.zipCode) setZipCode(draft.zipCode)
-
     setYouBornBefore1960(draft.youBornBefore1960 || false)
     setYouBlind(draft.youBlind || false)
     setSpouseBornBefore1960(draft.spouseBornBefore1960 || false)
     setSpouseBlind(draft.spouseBlind || false)
+  }
 
+  const applyDraftIncome = (draft: any) => {
     if (draft.wages !== undefined) setWages(draft.wages)
     if (draft.taxableInterest !== undefined) setTaxableInterest(draft.taxableInterest)
     if (draft.ordinaryDividends !== undefined) setOrdinaryDividends(draft.ordinaryDividends)
@@ -314,19 +318,25 @@ export default function Form1040Page() {
     if (draft.taxableSocialSecurity !== undefined) setTaxableSocialSecurity(draft.taxableSocialSecurity)
     if (draft.capitalGainLoss !== undefined) setCapitalGainLoss(draft.capitalGainLoss)
     if (draft.otherIncome !== undefined) setOtherIncome(draft.otherIncome)
+  }
 
+  const applyDraftOther = (draft: any) => {
     if (draft.scheduleC_grossReceipts !== undefined) setScheduleC_grossReceipts(draft.scheduleC_grossReceipts)
     if (draft.scheduleC_expenses !== undefined) setScheduleC_expenses(draft.scheduleC_expenses)
-
     if (draft.withholding !== undefined) setWithholding(draft.withholding)
     if (draft.estimatedPayments !== undefined) setEstimatedPayments(draft.estimatedPayments)
-
     if (draft.dependents) setDependents(draft.dependents)
+  }
+
+  const populateDraftFromData = (draft: any) => {
+    applyDraftPersonalInfo(draft)
+    applyDraftIncome(draft)
+    applyDraftOther(draft)
   }
 
   // Limpiar borrador después de guardar exitosamente
   const clearDraft = () => {
-    if (typeof window !== 'undefined') {
+    if (globalThis.window !== undefined) {
       localStorage.removeItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`)
     }
   }
@@ -344,9 +354,10 @@ export default function Form1040Page() {
       populateFormFromData(prev)
       setCopiedFromYear(result.previousYear)
       const deps = result.copiedFields?.dependents ?? 0
+      const depsLabel = deps > 0 ? `, ${deps} dependiente(s)` : ''
       toast.success(
         `✅ Formulario ${taxYear} llenado con los datos del ${result.previousYear}. ` +
-        `Información personal, estado civil${deps > 0 ? `, ${deps} dependiente(s)` : ''} e ingresos copiados. Revise y ajuste los montos si es necesario.`,
+        `Información personal, estado civil${depsLabel} e ingresos copiados. Revise y ajuste los montos si es necesario.`,
         { duration: 7000 }
       )
     } catch (error) {
@@ -416,82 +427,41 @@ export default function Form1040Page() {
     })
   }
 
+  const showAutoPopulateToast = (autoData: any) => {
+    const loadedItems: string[] = []
+    if (autoData?.income) loadedItems.push('Ingresos')
+    if (autoData?.scheduleC) loadedItems.push('Schedule C')
+    if (autoData?.payments) loadedItems.push('Pagos/Retenciones')
+    toast.success(
+      `✅ Datos cargados: ${loadedItems.join(', ')}\n📋 Los datos se guardan automáticamente como borrador`,
+      { duration: 4000 }
+    )
+    if (firstName && lastName && ssn && homeAddress && city && state && zipCode) {
+      toast.success(
+        '💾 Información personal completa detectada. Presione "Guardar Formulario" para guardar en la base de datos.',
+        { duration: 5000 }
+      )
+    } else {
+      toast(
+        '📝 Complete la información personal (nombre, SSN, dirección) para poder guardar el formulario.',
+        { duration: 5000, icon: 'ℹ️' }
+      )
+    }
+  }
+
   const handleAutoPopulate = async () => {
     if (!activeCompany?.id) {
       toast.error('Seleccione una empresa primero')
       return
     }
-
     setLoading(true)
     try {
       const response = await fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${activeCompany.id}&action=auto-populate`)
-      if (response.ok) {
-        const result = await response.json()
-        const autoData = result.data || result.autoData
-
-        // Variables temporales para actualizar el estado
-        let newWages = wages
-        let newTaxableInterest = taxableInterest
-        let newOrdinaryDividends = ordinaryDividends
-        let newQualifiedDividends = qualifiedDividends
-        let newOtherIncome = otherIncome
-        let newScheduleC_grossReceipts = scheduleC_grossReceipts
-        let newScheduleC_expenses = scheduleC_expenses
-        let newWithholding = withholding
-
-        if (autoData.income) {
-          newWages = autoData.income.wages || 0
-          newTaxableInterest = autoData.income.taxableInterest || 0
-          newOrdinaryDividends = autoData.income.ordinaryDividends || 0
-          newQualifiedDividends = autoData.income.qualifiedDividends || 0
-          newOtherIncome = autoData.income.otherIncome || 0
-
-          setWages(newWages)
-          setTaxableInterest(newTaxableInterest)
-          setOrdinaryDividends(newOrdinaryDividends)
-          setQualifiedDividends(newQualifiedDividends)
-          setOtherIncome(newOtherIncome)
-        }
-
-        if (autoData.scheduleC) {
-          newScheduleC_grossReceipts = autoData.scheduleC.grossReceipts || 0
-          newScheduleC_expenses = autoData.scheduleC.expenses || 0
-
-          setScheduleC_grossReceipts(newScheduleC_grossReceipts)
-          setScheduleC_expenses(newScheduleC_expenses)
-        }
-
-        if (autoData.payments) {
-          newWithholding = autoData.payments.withholding || 0
-          setWithholding(newWithholding)
-        }
-
-        // Mostrar resumen de lo que se cargó
-        const loadedItems = []
-        if (autoData.income) loadedItems.push('Ingresos')
-        if (autoData.scheduleC) loadedItems.push('Schedule C')
-        if (autoData.payments) loadedItems.push('Pagos/Retenciones')
-
-        toast.success(
-          `✅ Datos cargados: ${loadedItems.join(', ')}\n📋 Los datos se guardan automáticamente como borrador`,
-          { duration: 4000 }
-        )
-
-        // Informar al usuario sobre el guardado automático de borrador
-        if (firstName && lastName && ssn && homeAddress && city && state && zipCode) {
-          toast.success(
-            '💾 Información personal completa detectada. Presione "Guardar Formulario" para guardar en la base de datos.',
-            { duration: 5000 }
-          )
-        } else {
-          toast(
-            '📝 Complete la información personal (nombre, SSN, dirección) para poder guardar el formulario.',
-            { duration: 5000, icon: 'ℹ️' }
-          )
-        }
-      } else {
-        throw new Error('Error al cargar datos')
-      }
+      if (!response.ok) throw new Error('Error al cargar datos')
+      const result = await response.json()
+      const autoData = result.data || result.autoData
+      applyAutoData(autoData)
+      showAutoPopulateToast(autoData)
     } catch (error: any) {
       console.error('Error auto-populating:', error)
       toast.error('Error al cargar datos automáticamente')
@@ -679,7 +649,7 @@ export default function Form1040Page() {
           </div>
           <div className="flex items-center gap-2">
             <Form1040Help />
-            <Select value={taxYear.toString()} onValueChange={(v) => setTaxYear(parseInt(v))}>
+            <Select value={taxYear.toString()} onValueChange={(v) => setTaxYear(Number.parseInt(v))}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -698,7 +668,7 @@ export default function Form1040Page() {
         </div>
 
         {/* Banner: datos copiados del año anterior */}
-        {copiedFromYear && (
+        {!!copiedFromYear && (
           <Card className="border-blue-200 bg-blue-50">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -1101,7 +1071,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={wages}
-                      onChange={(e) => setWages(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setWages(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1115,7 +1085,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={taxableInterest}
-                      onChange={(e) => setTaxableInterest(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setTaxableInterest(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1129,7 +1099,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={ordinaryDividends}
-                      onChange={(e) => setOrdinaryDividends(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setOrdinaryDividends(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1143,7 +1113,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={qualifiedDividends}
-                      onChange={(e) => setQualifiedDividends(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setQualifiedDividends(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1157,7 +1127,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={iraDistributions}
-                      onChange={(e) => setIraDistributions(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setIraDistributions(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1171,7 +1141,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={taxableIRA}
-                      onChange={(e) => setTaxableIRA(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setTaxableIRA(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1185,7 +1155,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={pensionsAnnuities}
-                      onChange={(e) => setPensionsAnnuities(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setPensionsAnnuities(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1199,7 +1169,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={taxablePensions}
-                      onChange={(e) => setTaxablePensions(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setTaxablePensions(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1213,7 +1183,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={socialSecurity}
-                      onChange={(e) => setSocialSecurity(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setSocialSecurity(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1227,7 +1197,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={taxableSocialSecurity}
-                      onChange={(e) => setTaxableSocialSecurity(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setTaxableSocialSecurity(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1241,7 +1211,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={capitalGainLoss}
-                      onChange={(e) => setCapitalGainLoss(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setCapitalGainLoss(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1255,7 +1225,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={otherIncome}
-                      onChange={(e) => setOtherIncome(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setOtherIncome(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1273,7 +1243,7 @@ export default function Form1040Page() {
                         type="number"
                         step="0.01"
                         value={withholding}
-                        onChange={(e) => setWithholding(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => setWithholding(Number.parseFloat(e.target.value) || 0)}
                         placeholder="0.00"
                       />
                     </div>
@@ -1287,7 +1257,7 @@ export default function Form1040Page() {
                         type="number"
                         step="0.01"
                         value={estimatedPayments}
-                        onChange={(e) => setEstimatedPayments(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => setEstimatedPayments(Number.parseFloat(e.target.value) || 0)}
                         placeholder="0.00"
                       />
                     </div>
@@ -1324,7 +1294,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={scheduleC_grossReceipts}
-                      onChange={(e) => setScheduleC_grossReceipts(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setScheduleC_grossReceipts(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1338,7 +1308,7 @@ export default function Form1040Page() {
                       type="number"
                       step="0.01"
                       value={scheduleC_expenses}
-                      onChange={(e) => setScheduleC_expenses(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => setScheduleC_expenses(Number.parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -1607,7 +1577,7 @@ export default function Form1040Page() {
                 </div>
               ) : (
                 aiSuggestions.map((suggestion, index) => (
-                  <Card key={index} className="border-l-4 border-l-yellow-500">
+                  <Card key={suggestion.title ?? String(index)} className="border-l-4 border-l-yellow-500">
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-3">
                         <Badge variant="outline" className="mt-1">
