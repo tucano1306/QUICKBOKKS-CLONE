@@ -49,7 +49,7 @@ export default function TransactionsPage() {
   const [dateTo, setDateTo] = useState('')
   const [minAmount, setMinAmount] = useState('')
   const [maxAmount, setMaxAmount] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFilters, setShowFilters] = useState(true)
 
   // Filtro por mes y año específico
   const [filterMonth, setFilterMonth] = useState('')
