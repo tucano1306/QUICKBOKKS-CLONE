@@ -42,7 +42,9 @@ export default function TransactionsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   
   // Filtros de búsqueda
-  const [searchText, setSearchText] = useState('')
+  const [filterCategory, setFilterCategory] = useState('')
+  const [filterVendor, setFilterVendor] = useState('')
+  const [filterDescription, setFilterDescription] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [minAmount, setMinAmount] = useState('')
@@ -52,6 +54,12 @@ export default function TransactionsPage() {
   // Filtro por mes y año específico
   const [filterMonth, setFilterMonth] = useState('')
   const [filterYear, setFilterYear] = useState('')
+
+  // Categorías únicas para el dropdown (derivadas de los datos)
+  const uniqueCategories = useMemo(() => {
+    const cats = new Set(transactions.map(t => t.category).filter(Boolean))
+    return Array.from(cats).sort((a, b) => a.localeCompare(b))
+  }, [transactions])
 
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1)
@@ -90,14 +98,22 @@ export default function TransactionsPage() {
       // Filtro por tipo
       if (filter !== 'ALL' && t.type !== filter) return false
       
-      // Filtro por texto (descripción, categoría, notas)
-      if (searchText) {
-        const search = searchText.toLowerCase()
-        const matchText = 
+      // Filtro por categoría
+      if (filterCategory && t.category !== filterCategory) return false
+
+      // Filtro por proveedor (busca en descripción y notas)
+      if (filterVendor) {
+        const search = filterVendor.toLowerCase()
+        const matchVendor =
           (t.description?.toLowerCase().includes(search)) ||
-          (t.category?.toLowerCase().includes(search)) ||
           (t.notes?.toLowerCase().includes(search))
-        if (!matchText) return false
+        if (!matchVendor) return false
+      }
+
+      // Filtro por descripción
+      if (filterDescription) {
+        const search = filterDescription.toLowerCase()
+        if (!t.description?.toLowerCase().includes(search)) return false
       }
       
       // Filtro por fecha desde (comparar solo fecha, ignorando hora)
@@ -150,12 +166,12 @@ export default function TransactionsPage() {
       
       return true
     })
-  }, [transactions, filter, searchText, dateFrom, dateTo, minAmount, maxAmount, filterMonth, filterYear])
+  }, [transactions, filter, filterCategory, filterVendor, filterDescription, dateFrom, dateTo, minAmount, maxAmount, filterMonth, filterYear])
 
   // Reset página cuando cambian filtros
   useEffect(() => {
     setCurrentPage(1)
-  }, [filter, searchText, dateFrom, dateTo, minAmount, maxAmount, filterMonth, filterYear])
+  }, [filter, filterCategory, filterVendor, filterDescription, dateFrom, dateTo, minAmount, maxAmount, filterMonth, filterYear])
 
   // Calcular datos paginados
   const paginatedTransactions = useMemo(() => {
@@ -250,7 +266,9 @@ export default function TransactionsPage() {
 
   // Limpiar filtros
   const clearFilters = () => {
-    setSearchText('')
+    setFilterCategory('')
+    setFilterVendor('')
+    setFilterDescription('')
     setDateFrom('')
     setDateTo('')
     setMinAmount('')
@@ -260,7 +278,7 @@ export default function TransactionsPage() {
     setFilterYear('')
   }
 
-  const hasActiveFilters = searchText || dateFrom || dateTo || minAmount || maxAmount || filterMonth || filterYear
+  const hasActiveFilters = filterCategory || filterVendor || filterDescription || dateFrom || dateTo || minAmount || maxAmount || filterMonth || filterYear
 
   // Exportar a CSV
   const exportToCSV = () => {
@@ -322,6 +340,9 @@ export default function TransactionsPage() {
     let filterText = 'Todas las transacciones'
     const filters: string[] = []
     if (filter !== 'ALL') filters.push(filter === 'INCOME' ? 'Solo Ingresos' : 'Solo Gastos')
+    if (filterCategory) filters.push(`Categoría: ${filterCategory}`)
+    if (filterVendor) filters.push(`Proveedor: ${filterVendor}`)
+    if (filterDescription) filters.push(`Descripción: ${filterDescription}`)
     if (dateFrom) filters.push(`Desde: ${dateFrom}`)
     if (dateTo) filters.push(`Hasta: ${dateTo}`)
     if (minAmount) filters.push(`Mín: $${minAmount}`)
@@ -476,22 +497,57 @@ export default function TransactionsPage() {
       {showFilters && (
         <Card className="bg-white border-gray-200">
           <CardContent className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Búsqueda por texto */}
+            {/* Fila 1: Categoría, Proveedor, Descripción */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Filtro por Categoría */}
               <div>
-                <label htmlFor="search-text" className="text-sm font-medium mb-1 block">Buscar</label>
+                <label htmlFor="filter-category" className="text-sm font-medium mb-1 block">Categoría</label>
+                <select
+                  id="filter-category"
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">Todas las categorías</option>
+                  {uniqueCategories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filtro por Proveedor */}
+              <div>
+                <label htmlFor="filter-vendor" className="text-sm font-medium mb-1 block">Nombre de proveedor</label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    id="search-text"
-                    placeholder="Descripción, categoría..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
+                    id="filter-vendor"
+                    placeholder="Ej: Amazon, Walmart..."
+                    value={filterVendor}
+                    onChange={(e) => setFilterVendor(e.target.value)}
                     className="pl-9"
                   />
                 </div>
               </div>
-              
+
+              {/* Filtro por Descripción */}
+              <div>
+                <label htmlFor="filter-description" className="text-sm font-medium mb-1 block">Descripción</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="filter-description"
+                    placeholder="Buscar en descripción..."
+                    value={filterDescription}
+                    onChange={(e) => setFilterDescription(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Fila 2: Fechas y montos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
               {/* Fecha desde */}
               <div>
                 <span className="text-sm font-medium mb-1 block">Desde</span>
@@ -537,6 +593,9 @@ export default function TransactionsPage() {
                   />
                 </div>
               </div>
+
+              {/* Placeholder para alinear */}
+              <div />
             </div>
 
             {/* Segunda fila - Filtro por Mes y Año */}
