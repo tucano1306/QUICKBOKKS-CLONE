@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DatePicker } from "@/components/ui/date-picker"
-import { ArrowLeft, Save, TrendingUp, TrendingDown, Plus, Pencil, Trash2, Check, X, Settings2 } from 'lucide-react'
 import { useCompany } from "@/contexts/CompanyContext"
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { ArrowLeft, Check, Pencil, Plus, Save, Settings2, Trash2, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 const DEFAULT_INCOME_CATEGORIES = [
   'Ventas',
@@ -37,11 +37,8 @@ const LS_KEY_INCOME = 'custom_income_categories'
 const LS_KEY_EXPENSE = 'custom_expense_categories'
 
 function loadCategories(type: 'INCOME' | 'EXPENSE'): string[] {
-  if (typeof window === 'undefined') {
-    return type === 'INCOME' ? DEFAULT_INCOME_CATEGORIES : DEFAULT_EXPENSE_CATEGORIES
-  }
   const key = type === 'INCOME' ? LS_KEY_INCOME : LS_KEY_EXPENSE
-  const stored = localStorage.getItem(key)
+  const stored = globalThis.localStorage?.getItem(key)
   if (stored) {
     try { return JSON.parse(stored) } catch { /* ignore */ }
   }
@@ -50,7 +47,7 @@ function loadCategories(type: 'INCOME' | 'EXPENSE'): string[] {
 
 function saveCategories(type: 'INCOME' | 'EXPENSE', cats: string[]) {
   const key = type === 'INCOME' ? LS_KEY_INCOME : LS_KEY_EXPENSE
-  localStorage.setItem(key, JSON.stringify(cats))
+  globalThis.localStorage?.setItem(key, JSON.stringify(cats))
 }
 
 export default function NewTransactionPage() {
@@ -394,238 +391,6 @@ export default function NewTransactionPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={loading}
-                  className={`flex-1 ${formData.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Guardando...' : 'Guardar'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </CompanyTabsLayout>
-  )
-}
-
-
-export default function NewTransactionPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { activeCompany } = useCompany()
-  
-  const typeParam = searchParams.get('type') || 'INCOME'
-  
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    type: typeParam as 'INCOME' | 'EXPENSE',
-    category: '',
-    amount: '',
-    date: new Date().toISOString().split('T')[0],
-    description: '',
-    notes: '',
-    reference: ''
-  })
-
-  const categories = formData.type === 'INCOME' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!activeCompany?.id) {
-      alert('No hay empresa activa')
-      return
-    }
-    
-    if (!formData.amount || !formData.category) {
-      alert('Completa los campos requeridos')
-      return
-    }
-    
-    setLoading(true)
-    
-    try {
-      const res = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          amount: Number.parseFloat(formData.amount),
-          companyId: activeCompany.id,
-          status: 'COMPLETED',
-          createJournalEntry: true // Para que cree el journal entry automáticamente
-        })
-      })
-      
-      if (res.ok) {
-        alert(`${formData.type === 'INCOME' ? 'Ingreso' : 'Gasto'} registrado exitosamente`)
-        router.push('/company/transactions')
-      } else {
-        const error = await res.json()
-        alert(`Error: ${error.message || 'No se pudo guardar'}`)
-      }
-    } catch (e) {
-      console.error(e)
-      alert('Error de conexión')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <CompanyTabsLayout>
-      <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 px-3 sm:px-0">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          <Button variant="ghost" onClick={() => router.back()} size="sm" className="w-fit">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              {formData.type === 'INCOME' ? (
-                <span className="flex items-center gap-2">
-                  <TrendingUp className="h-6 w-6 text-green-600" />
-                  Nuevo Ingreso
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <TrendingDown className="h-6 w-6 text-red-600" />
-                  Nuevo Gasto
-                </span>
-              )}
-            </h1>
-          </div>
-        </div>
-
-        {/* Formulario */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Detalles de la Transacción</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Tipo */}
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  type="button"
-                  variant={formData.type === 'INCOME' ? 'default' : 'outline'}
-                  className={formData.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700' : ''}
-                  onClick={() => setFormData({ ...formData, type: 'INCOME', category: '' })}
-                >
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Ingreso
-                </Button>
-                <Button
-                  type="button"
-                  variant={formData.type === 'EXPENSE' ? 'default' : 'outline'}
-                  className={formData.type === 'EXPENSE' ? 'bg-red-600 hover:bg-red-700' : ''}
-                  onClick={() => setFormData({ ...formData, type: 'EXPENSE', category: '' })}
-                >
-                  <TrendingDown className="h-4 w-4 mr-2" />
-                  Gasto
-                </Button>
-              </div>
-
-              {/* Monto */}
-              <div>
-                <Label htmlFor="amount">Monto *</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                  <Input
-                    id="amount"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    value={formData.amount}
-                    onChange={(e) => {
-                      const val = e.target.value.replaceAll(',', '.');
-                      if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
-                        setFormData({ ...formData, amount: val });
-                      }
-                    }}
-                    className="pl-8"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Categoría */}
-              <div>
-                <Label htmlFor="category">Categoría *</Label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(v) => setFormData({ ...formData, category: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Fecha */}
-              <div>
-                <Label htmlFor="date">Fecha *</Label>
-                <DatePicker
-                  value={formData.date}
-                  onChange={(date: string) => setFormData({ ...formData, date })}
-                  placeholder="Selecciona una fecha"
-                />
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <Label htmlFor="description">Descripción</Label>
-                <Input
-                  id="description"
-                  placeholder="Describe la transacción"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
-              {/* Referencia */}
-              <div>
-                <Label htmlFor="reference">Referencia / Número de Factura</Label>
-                <Input
-                  id="reference"
-                  placeholder="Ej: FAC-001, REC-123"
-                  value={formData.reference}
-                  onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                />
-              </div>
-
-              {/* Notas */}
-              <div>
-                <Label htmlFor="notes">Notas adicionales</Label>
-                <textarea
-                  id="notes"
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Información adicional..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              {/* Botones */}
-              <div className="flex gap-4 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => router.back()}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
                   disabled={loading}
                   className={`flex-1 ${formData.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
                 >
