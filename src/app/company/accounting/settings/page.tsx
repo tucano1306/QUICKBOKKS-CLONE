@@ -207,10 +207,10 @@ export default function AccountingSettingsPage() {
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
-                <Brain className="w-8 h-8 text-purple-600" />
+                <Activity className="w-8 h-8 text-purple-600" />
               </div>
               <div className="text-3xl font-bold text-purple-900">{activeRules}</div>
-              <div className="text-sm text-purple-700">Reglas IA Activas</div>
+              <div className="text-sm text-purple-700">Reglas Activas</div>
             </CardContent>
           </Card>
 
