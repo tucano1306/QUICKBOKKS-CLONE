@@ -40,21 +40,26 @@ export async function PATCH(
 
     const data = await request.json()
 
+    const updateData: Record<string, unknown> = {
+      name: data.name,
+      legalName: data.legalName,
+      taxId: data.taxId,
+      industry: data.industry,
+      website: data.website,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      zipCode: data.zipCode,
+      phone: data.phone,
+      email: data.email,
+    }
+    if (data.taxEntityType !== undefined) {
+      updateData.taxEntityType = data.taxEntityType
+    }
+
     const company = await prisma.company.update({
       where: { id: params.id },
-      data: {
-        name: data.name,
-        legalName: data.legalName,
-        taxId: data.taxId,
-        industry: data.industry,
-        website: data.website,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        zipCode: data.zipCode,
-        phone: data.phone,
-        email: data.email
-      }
+      data: updateData
     })
 
     return NextResponse.json(company)

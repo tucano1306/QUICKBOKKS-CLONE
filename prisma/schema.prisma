@@ -789,12 +789,12 @@ model Asset {
   disposalMethod          String?
   notes                   String?
   // Campos para vehículos - depreciación por millas
-  currentMileage          Int?                // Millas actuales del odómetro
-  purchaseMileage         Int?                // Millas al momento de compra
-  estimatedLifetimeMiles  Int?                // Millas estimadas de vida útil (ej: 150,000)
-  lastMileageUpdate       DateTime?           // Última actualización del odómetro
-  yearModel               Int?                // Año del modelo del vehículo
-  vin                     String?             // VIN del vehículo
+  currentMileage          Int? // Millas actuales del odómetro
+  purchaseMileage         Int? // Millas al momento de compra
+  estimatedLifetimeMiles  Int? // Millas estimadas de vida útil (ej: 150,000)
+  lastMileageUpdate       DateTime? // Última actualización del odómetro
+  yearModel               Int? // Año del modelo del vehículo
+  vin                     String? // VIN del vehículo
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
   companyId               String?
@@ -1565,10 +1565,10 @@ model TaxForm1099 {
   recipientEmail   String?
   formType         Form1099Type
   taxYear          Int
-  box1Amount       Float         @default(0)  // Nonemployee compensation (NEC)
+  box1Amount       Float         @default(0) // Nonemployee compensation (NEC)
   box2Amount       Float         @default(0)
   box3Amount       Float         @default(0)
-  box4Amount       Float         @default(0)  // Federal income tax withheld
+  box4Amount       Float         @default(0) // Federal income tax withheld
   box5Amount       Float         @default(0)
   box6Amount       Float         @default(0)
   box7Amount       Float         @default(0)
@@ -1630,13 +1630,13 @@ model W9Information {
 }
 
 model TaxForm1096 {
-  id                 String         @id @default(cuid())
+  id                 String        @id @default(cuid())
   userId             String
   companyId          String?
   taxYear            Int
-  formType           String         @default("1099-NEC")  // Type of 1099s being transmitted
-  totalForms         Int            @default(0)
-  totalAmount        Float          @default(0)
+  formType           String        @default("1099-NEC") // Type of 1099s being transmitted
+  totalForms         Int           @default(0)
+  totalAmount        Float         @default(0)
   payerName          String
   payerEIN           String
   payerAddress       String
@@ -1647,12 +1647,12 @@ model TaxForm1096 {
   contactPhone       String
   contactEmail       String
   filedDate          DateTime?
-  filedWithIRS       Boolean        @default(false)
+  filedWithIRS       Boolean       @default(false)
   confirmationNumber String?
   form1099Ids        String[]
-  status             TaxFormStatus  @default(DRAFT)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  status             TaxFormStatus @default(DRAFT)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@unique([companyId, taxYear, formType])
   @@index([userId])
@@ -1664,33 +1664,33 @@ model TaxForm1096 {
 
 // ============== TAX FORM 941 - QUARTERLY FEDERAL TAX RETURN ==============
 model TaxForm941 {
-  id                      String         @id @default(cuid())
-  companyId               String
-  company                 Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  quarter                 Int            // 1, 2, 3, 4
-  year                    Int
-  ein                     String
-  companyName             String
-  companyAddress          String
-  numberOfEmployees       Int            @default(0)
-  wagesAndTips            Float          @default(0)
+  id                       String        @id @default(cuid())
+  companyId                String
+  company                  Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quarter                  Int // 1, 2, 3, 4
+  year                     Int
+  ein                      String
+  companyName              String
+  companyAddress           String
+  numberOfEmployees        Int           @default(0)
+  wagesAndTips             Float         @default(0)
   federalIncomeTaxWithheld Float         @default(0)
-  socialSecurityWages     Float          @default(0)
-  socialSecurityTax       Float          @default(0)
-  medicareWages           Float          @default(0)
-  medicareTax             Float          @default(0)
-  additionalMedicareTax   Float          @default(0)
-  totalTaxes              Float          @default(0)
-  totalDeposits           Float          @default(0)
-  balanceDue              Float          @default(0)
-  overpayment             Float          @default(0)
-  status                  TaxFormStatus  @default(DRAFT)
-  filedDate               DateTime?
-  paidDate                DateTime?
-  confirmationNumber      String?
-  notes                   String?
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
+  socialSecurityWages      Float         @default(0)
+  socialSecurityTax        Float         @default(0)
+  medicareWages            Float         @default(0)
+  medicareTax              Float         @default(0)
+  additionalMedicareTax    Float         @default(0)
+  totalTaxes               Float         @default(0)
+  totalDeposits            Float         @default(0)
+  balanceDue               Float         @default(0)
+  overpayment              Float         @default(0)
+  status                   TaxFormStatus @default(DRAFT)
+  filedDate                DateTime?
+  paidDate                 DateTime?
+  confirmationNumber       String?
+  notes                    String?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
 
   @@unique([companyId, quarter, year])
   @@index([companyId])
@@ -1701,31 +1701,31 @@ model TaxForm941 {
 
 // ============== TAX FORM 940 - ANNUAL FUTA TAX RETURN ==============
 model TaxForm940 {
-  id                      String         @id @default(cuid())
-  companyId               String
-  company                 Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  year                    Int
-  ein                     String
-  companyName             String
-  companyAddress          String
-  stateQualification      String         @default("FL")
-  totalPayments           Float          @default(0)
-  exemptPayments          Float          @default(0)
-  paymentsExcludingFUTA   Float          @default(0)
-  totalFUTAWages          Float          @default(0)
-  futaTaxBeforeAdjustments Float         @default(0)
-  stateUnemploymentTaxCredit Float       @default(0)
-  totalFUTATax            Float          @default(0)
-  totalDeposits           Float          @default(0)
-  balanceDue              Float          @default(0)
-  overpayment             Float          @default(0)
-  status                  TaxFormStatus  @default(DRAFT)
-  filedDate               DateTime?
-  paidDate                DateTime?
-  confirmationNumber      String?
-  notes                   String?
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
+  id                         String        @id @default(cuid())
+  companyId                  String
+  company                    Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  year                       Int
+  ein                        String
+  companyName                String
+  companyAddress             String
+  stateQualification         String        @default("FL")
+  totalPayments              Float         @default(0)
+  exemptPayments             Float         @default(0)
+  paymentsExcludingFUTA      Float         @default(0)
+  totalFUTAWages             Float         @default(0)
+  futaTaxBeforeAdjustments   Float         @default(0)
+  stateUnemploymentTaxCredit Float         @default(0)
+  totalFUTATax               Float         @default(0)
+  totalDeposits              Float         @default(0)
+  balanceDue                 Float         @default(0)
+  overpayment                Float         @default(0)
+  status                     TaxFormStatus @default(DRAFT)
+  filedDate                  DateTime?
+  paidDate                   DateTime?
+  confirmationNumber         String?
+  notes                      String?
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
 
   @@unique([companyId, year])
   @@index([companyId])
@@ -1736,30 +1736,30 @@ model TaxForm940 {
 
 // ============== FLORIDA RT-6 - QUARTERLY REEMPLOYMENT TAX ==============
 model FloridaRT6 {
-  id                      String         @id @default(cuid())
-  companyId               String
-  company                 Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  quarter                 Int            // 1, 2, 3, 4
-  year                    Int
-  employerAccountNumber   String?
-  companyName             String
-  companyAddress          String
-  totalWages              Float          @default(0)
-  excessWages             Float          @default(0)
-  taxableWages            Float          @default(0)
-  taxRate                 Float          @default(0.027) // Florida SUI default rate 2.7%
-  taxDue                  Float          @default(0)
-  adjustments             Float          @default(0)
-  totalDue                Float          @default(0)
-  employeeCount           Int            @default(0)
-  employeeDetails         Json?          // Array of {ssn, name, wages}
-  status                  TaxFormStatus  @default(DRAFT)
-  filedDate               DateTime?
-  paidDate                DateTime?
-  confirmationNumber      String?
-  notes                   String?
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
+  id                    String        @id @default(cuid())
+  companyId             String
+  company               Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quarter               Int // 1, 2, 3, 4
+  year                  Int
+  employerAccountNumber String?
+  companyName           String
+  companyAddress        String
+  totalWages            Float         @default(0)
+  excessWages           Float         @default(0)
+  taxableWages          Float         @default(0)
+  taxRate               Float         @default(0.027) // Florida SUI default rate 2.7%
+  taxDue                Float         @default(0)
+  adjustments           Float         @default(0)
+  totalDue              Float         @default(0)
+  employeeCount         Int           @default(0)
+  employeeDetails       Json? // Array of {ssn, name, wages}
+  status                TaxFormStatus @default(DRAFT)
+  filedDate             DateTime?
+  paidDate              DateTime?
+  confirmationNumber    String?
+  notes                 String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   @@unique([companyId, quarter, year])
   @@index([companyId])
@@ -1770,37 +1770,37 @@ model FloridaRT6 {
 
 // ============== W-2 WAGE AND TAX STATEMENT ==============
 model TaxFormW2 {
-  id                        String         @id @default(cuid())
+  id                        String        @id @default(cuid())
   companyId                 String
-  company                   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company                   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   employeeId                String
-  employee                  Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee                  Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   year                      Int
   ein                       String
   employeeSSN               String
   employeeName              String
   employeeAddress           String
-  wages                     Float          @default(0)
-  federalIncomeTaxWithheld  Float          @default(0)
-  socialSecurityWages       Float          @default(0)
-  socialSecurityTaxWithheld Float          @default(0)
-  medicareWages             Float          @default(0)
-  medicareTaxWithheld       Float          @default(0)
-  stateWages                Float          @default(0)
-  stateIncomeTaxWithheld    Float          @default(0)
-  stateName                 String         @default("FL")
+  wages                     Float         @default(0)
+  federalIncomeTaxWithheld  Float         @default(0)
+  socialSecurityWages       Float         @default(0)
+  socialSecurityTaxWithheld Float         @default(0)
+  medicareWages             Float         @default(0)
+  medicareTaxWithheld       Float         @default(0)
+  stateWages                Float         @default(0)
+  stateIncomeTaxWithheld    Float         @default(0)
+  stateName                 String        @default("FL")
   stateEIN                  String?
-  localWages                Float          @default(0)
-  localIncomeTaxWithheld    Float          @default(0)
+  localWages                Float         @default(0)
+  localIncomeTaxWithheld    Float         @default(0)
   localityName              String?
-  status                    TaxFormStatus  @default(DRAFT)
-  sentToEmployee            Boolean        @default(false)
+  status                    TaxFormStatus @default(DRAFT)
+  sentToEmployee            Boolean       @default(false)
   sentDate                  DateTime?
-  filedWithSSA              Boolean        @default(false)
+  filedWithSSA              Boolean       @default(false)
   ssaFiledDate              DateTime?
   confirmationNumber        String?
-  createdAt                 DateTime       @default(now())
-  updatedAt                 DateTime       @updatedAt
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
 
   @@unique([companyId, employeeId, year])
   @@index([companyId])
@@ -1812,31 +1812,31 @@ model TaxFormW2 {
 
 // ============== W-3 TRANSMITTAL OF W-2 ==============
 model TaxFormW3 {
-  id                        String         @id @default(cuid())
-  companyId                 String
-  company                   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  year                      Int
-  ein                       String
-  companyName               String
-  companyAddress            String
-  establishmentNumber       String?
-  employerType              String?
-  totalW2Forms              Int            @default(0)
-  totalWages                Float          @default(0)
-  totalFederalTaxWithheld   Float          @default(0)
-  totalSocialSecurityWages  Float          @default(0)
-  totalSocialSecurityTax    Float          @default(0)
-  totalMedicareWages        Float          @default(0)
-  totalMedicareTax          Float          @default(0)
-  totalStateWages           Float          @default(0)
-  totalStateTaxWithheld     Float          @default(0)
-  w2FormIds                 String[]
-  status                    TaxFormStatus  @default(DRAFT)
-  filedWithSSA              Boolean        @default(false)
-  ssaFiledDate              DateTime?
-  confirmationNumber        String?
-  createdAt                 DateTime       @default(now())
-  updatedAt                 DateTime       @updatedAt
+  id                       String        @id @default(cuid())
+  companyId                String
+  company                  Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  year                     Int
+  ein                      String
+  companyName              String
+  companyAddress           String
+  establishmentNumber      String?
+  employerType             String?
+  totalW2Forms             Int           @default(0)
+  totalWages               Float         @default(0)
+  totalFederalTaxWithheld  Float         @default(0)
+  totalSocialSecurityWages Float         @default(0)
+  totalSocialSecurityTax   Float         @default(0)
+  totalMedicareWages       Float         @default(0)
+  totalMedicareTax         Float         @default(0)
+  totalStateWages          Float         @default(0)
+  totalStateTaxWithheld    Float         @default(0)
+  w2FormIds                String[]
+  status                   TaxFormStatus @default(DRAFT)
+  filedWithSSA             Boolean       @default(false)
+  ssaFiledDate             DateTime?
+  confirmationNumber       String?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
 
   @@unique([companyId, year])
   @@index([companyId])
@@ -1847,175 +1847,175 @@ model TaxFormW3 {
 
 // ============== IRS FORM 1040 - U.S. INDIVIDUAL INCOME TAX RETURN ==============
 model TaxForm1040 {
-  id                          String         @id @default(cuid())
-  userId                      String
-  companyId                   String?
-  taxYear                     Int
-  
+  id        String  @id @default(cuid())
+  userId    String
+  companyId String?
+  taxYear   Int
+
   // Filing Status (Line 1-5)
-  filingStatus                FilingStatus1040 @default(SINGLE)
-  
+  filingStatus FilingStatus1040 @default(SINGLE)
+
   // Personal Information
-  firstName                   String
-  middleInitial               String?
-  lastName                    String
-  ssn                         String
-  spouseFirstName             String?
-  spouseMiddleInitial         String?
-  spouseLastName              String?
-  spouseSsn                   String?
-  homeAddress                 String
-  aptNo                       String?
-  city                        String
-  state                       String
-  zipCode                     String
-  foreignCountry              String?
-  foreignProvince             String?
-  foreignPostalCode           String?
-  
+  firstName           String
+  middleInitial       String?
+  lastName            String
+  ssn                 String
+  spouseFirstName     String?
+  spouseMiddleInitial String?
+  spouseLastName      String?
+  spouseSsn           String?
+  homeAddress         String
+  aptNo               String?
+  city                String
+  state               String
+  zipCode             String
+  foreignCountry      String?
+  foreignProvince     String?
+  foreignPostalCode   String?
+
   // Presidential Election Campaign
-  youCampaignFund             Boolean        @default(false)
-  spouseCampaignFund          Boolean        @default(false)
-  
+  youCampaignFund    Boolean @default(false)
+  spouseCampaignFund Boolean @default(false)
+
   // Digital Assets Question
-  digitalAssetsQuestion       Boolean        @default(false)
-  
+  digitalAssetsQuestion Boolean @default(false)
+
   // Standard Deduction Checkboxes
-  youAsDependent              Boolean        @default(false)
-  spouseAsDependent           Boolean        @default(false)
-  spouseItemizesSeparately    Boolean        @default(false)
-  youBornBefore1960           Boolean        @default(false)
-  youBlind                    Boolean        @default(false)
-  spouseBornBefore1960        Boolean        @default(false)
-  spouseBlind                 Boolean        @default(false)
-  
+  youAsDependent           Boolean @default(false)
+  spouseAsDependent        Boolean @default(false)
+  spouseItemizesSeparately Boolean @default(false)
+  youBornBefore1960        Boolean @default(false)
+  youBlind                 Boolean @default(false)
+  spouseBornBefore1960     Boolean @default(false)
+  spouseBlind              Boolean @default(false)
+
   // Dependents (stored as JSON array)
-  dependents                  Json?          // Array of {firstName, lastName, ssn, relationship, childTaxCredit, creditOtherDependents}
-  
+  dependents Json? // Array of {firstName, lastName, ssn, relationship, childTaxCredit, creditOtherDependents}
+
   // Income Section
-  line1a_w2Wages              Float          @default(0)  // Wages, salaries, tips (W-2 Box 1)
-  line1b_householdWages       Float          @default(0)  // Household employee wages
-  line1c_tipIncome            Float          @default(0)  // Tip income not reported
-  line1d_medicaidWaiver       Float          @default(0)  // Medicaid waiver payments
-  line1e_dependentCareBenefits Float         @default(0)  // Dependent care benefits
-  line1f_employerAdoption     Float          @default(0)  // Employer-provided adoption benefits
-  line1g_form8919Wages        Float          @default(0)  // Wages from Form 8919
-  line1h_otherEarnedIncome    Float          @default(0)  // Other earned income
-  line1i_nontaxableCombatPay  Float          @default(0)  // Nontaxable combat pay
-  line1z_totalIncome          Float          @default(0)  // Add lines 1a-1h
-  
-  line2a_taxExemptInterest    Float          @default(0)  // Tax-exempt interest
-  line2b_taxableInterest      Float          @default(0)  // Taxable interest
-  line3a_qualifiedDividends   Float          @default(0)  // Qualified dividends
-  line3b_ordinaryDividends    Float          @default(0)  // Ordinary dividends
-  line4a_iraDistributions     Float          @default(0)  // IRA distributions
-  line4b_taxableIRA           Float          @default(0)  // Taxable amount
-  line5a_pensionsAnnuities    Float          @default(0)  // Pensions and annuities
-  line5b_taxablePensions      Float          @default(0)  // Taxable amount
-  line6a_socialSecurity       Float          @default(0)  // Social security benefits
-  line6b_taxableSocialSecurity Float         @default(0)  // Taxable amount
-  line6c_lumpSumElection      Boolean        @default(false)
-  line7_capitalGainLoss       Float          @default(0)  // Capital gain or loss (Schedule D)
-  line8_otherIncome           Float          @default(0)  // Other income from Schedule 1
-  line9_totalIncome           Float          @default(0)  // Add lines 1z, 2b, 3b, 4b, 5b, 6b, 7, 8
-  
+  line1a_w2Wages               Float @default(0) // Wages, salaries, tips (W-2 Box 1)
+  line1b_householdWages        Float @default(0) // Household employee wages
+  line1c_tipIncome             Float @default(0) // Tip income not reported
+  line1d_medicaidWaiver        Float @default(0) // Medicaid waiver payments
+  line1e_dependentCareBenefits Float @default(0) // Dependent care benefits
+  line1f_employerAdoption      Float @default(0) // Employer-provided adoption benefits
+  line1g_form8919Wages         Float @default(0) // Wages from Form 8919
+  line1h_otherEarnedIncome     Float @default(0) // Other earned income
+  line1i_nontaxableCombatPay   Float @default(0) // Nontaxable combat pay
+  line1z_totalIncome           Float @default(0) // Add lines 1a-1h
+
+  line2a_taxExemptInterest     Float   @default(0) // Tax-exempt interest
+  line2b_taxableInterest       Float   @default(0) // Taxable interest
+  line3a_qualifiedDividends    Float   @default(0) // Qualified dividends
+  line3b_ordinaryDividends     Float   @default(0) // Ordinary dividends
+  line4a_iraDistributions      Float   @default(0) // IRA distributions
+  line4b_taxableIRA            Float   @default(0) // Taxable amount
+  line5a_pensionsAnnuities     Float   @default(0) // Pensions and annuities
+  line5b_taxablePensions       Float   @default(0) // Taxable amount
+  line6a_socialSecurity        Float   @default(0) // Social security benefits
+  line6b_taxableSocialSecurity Float   @default(0) // Taxable amount
+  line6c_lumpSumElection       Boolean @default(false)
+  line7_capitalGainLoss        Float   @default(0) // Capital gain or loss (Schedule D)
+  line8_otherIncome            Float   @default(0) // Other income from Schedule 1
+  line9_totalIncome            Float   @default(0) // Add lines 1z, 2b, 3b, 4b, 5b, 6b, 7, 8
+
   // Adjustments to Income
-  line10_adjustments          Float          @default(0)  // Adjustments from Schedule 1
-  line11_adjustedGrossIncome  Float          @default(0)  // AGI (Line 9 - Line 10)
-  
+  line10_adjustments         Float @default(0) // Adjustments from Schedule 1
+  line11_adjustedGrossIncome Float @default(0) // AGI (Line 9 - Line 10)
+
   // Deductions
-  line12_standardOrItemized   Float          @default(0)  // Standard deduction or itemized
-  line13_qbiDeduction         Float          @default(0)  // Qualified business income deduction
-  line14_totalDeductions      Float          @default(0)  // Add lines 12 and 13
-  line15_taxableIncome        Float          @default(0)  // Line 11 - Line 14
-  
+  line12_standardOrItemized Float @default(0) // Standard deduction or itemized
+  line13_qbiDeduction       Float @default(0) // Qualified business income deduction
+  line14_totalDeductions    Float @default(0) // Add lines 12 and 13
+  line15_taxableIncome      Float @default(0) // Line 11 - Line 14
+
   // Tax and Credits
-  line16_tax                  Float          @default(0)  // Tax from tables or Schedule D
-  line17_schedule2Tax         Float          @default(0)  // Amount from Schedule 2
-  line18_totalTax             Float          @default(0)  // Add lines 16 and 17
-  line19_childTaxCredit       Float          @default(0)  // Child tax credit
-  line20_schedule3Credits     Float          @default(0)  // Amount from Schedule 3
-  line21_totalCredits         Float          @default(0)  // Add lines 19 and 20
-  line22_netTax               Float          @default(0)  // Line 18 - Line 21
-  line23_otherTaxes           Float          @default(0)  // Other taxes from Schedule 2
-  line24_totalTax             Float          @default(0)  // Add lines 22 and 23
-  
+  line16_tax              Float @default(0) // Tax from tables or Schedule D
+  line17_schedule2Tax     Float @default(0) // Amount from Schedule 2
+  line18_totalTax         Float @default(0) // Add lines 16 and 17
+  line19_childTaxCredit   Float @default(0) // Child tax credit
+  line20_schedule3Credits Float @default(0) // Amount from Schedule 3
+  line21_totalCredits     Float @default(0) // Add lines 19 and 20
+  line22_netTax           Float @default(0) // Line 18 - Line 21
+  line23_otherTaxes       Float @default(0) // Other taxes from Schedule 2
+  line24_totalTax         Float @default(0) // Add lines 22 and 23
+
   // Payments
-  line25a_w2Withholding       Float          @default(0)  // Federal tax withheld from W-2
-  line25b_1099Withholding     Float          @default(0)  // Federal tax withheld from 1099
-  line25c_otherWithholding    Float          @default(0)  // Other withholding
-  line25d_totalWithholding    Float          @default(0)  // Add lines 25a-25c
-  line26_estimatedPayments    Float          @default(0)  // Estimated tax payments
-  line27_earnedIncomeCredit   Float          @default(0)  // Earned income credit (EIC)
-  line28_additionalChildCredit Float         @default(0)  // Additional child tax credit
-  line29_americanOpportunity  Float          @default(0)  // American opportunity credit
-  line30_schedule3Payments    Float          @default(0)  // Amount from Schedule 3
-  line31_totalOtherPayments   Float          @default(0)  // Add lines 27-30
-  line32_totalPayments        Float          @default(0)  // Add lines 25d, 26, and 31
-  
+  line25a_w2Withholding        Float @default(0) // Federal tax withheld from W-2
+  line25b_1099Withholding      Float @default(0) // Federal tax withheld from 1099
+  line25c_otherWithholding     Float @default(0) // Other withholding
+  line25d_totalWithholding     Float @default(0) // Add lines 25a-25c
+  line26_estimatedPayments     Float @default(0) // Estimated tax payments
+  line27_earnedIncomeCredit    Float @default(0) // Earned income credit (EIC)
+  line28_additionalChildCredit Float @default(0) // Additional child tax credit
+  line29_americanOpportunity   Float @default(0) // American opportunity credit
+  line30_schedule3Payments     Float @default(0) // Amount from Schedule 3
+  line31_totalOtherPayments    Float @default(0) // Add lines 27-30
+  line32_totalPayments         Float @default(0) // Add lines 25d, 26, and 31
+
   // Refund or Amount Owed
-  line33_overpayment          Float          @default(0)  // If line 32 > line 24
-  line34a_refundAmount        Float          @default(0)  // Amount to be refunded
-  line34b_routingNumber       String?
-  line34c_accountType         String?        // "Checking" or "Savings"
-  line34d_accountNumber       String?
-  line35_appliedToNext        Float          @default(0)  // Applied to estimated tax
-  line36_amountYouOwe         Float          @default(0)  // If line 24 > line 32
-  line37_estimatedPenalty     Float          @default(0)  // Estimated tax penalty
-  
+  line33_overpayment      Float   @default(0) // If line 32 > line 24
+  line34a_refundAmount    Float   @default(0) // Amount to be refunded
+  line34b_routingNumber   String?
+  line34c_accountType     String? // "Checking" or "Savings"
+  line34d_accountNumber   String?
+  line35_appliedToNext    Float   @default(0) // Applied to estimated tax
+  line36_amountYouOwe     Float   @default(0) // If line 24 > line 32
+  line37_estimatedPenalty Float   @default(0) // Estimated tax penalty
+
   // Third Party Designee
-  thirdPartyDesignee          Boolean        @default(false)
-  designeeName                String?
-  designeePhone               String?
-  designeePIN                 String?
-  
+  thirdPartyDesignee Boolean @default(false)
+  designeeName       String?
+  designeePhone      String?
+  designeePIN        String?
+
   // Signature Information
   occupation                  String?
   spouseOccupation            String?
   identityProtectionPIN       String?
   spouseIdentityProtectionPIN String?
-  
+
   // Preparer Information
-  preparerName                String?
-  preparerPTIN                String?
-  preparerFirmName            String?
-  preparerFirmEIN             String?
-  preparerFirmAddress         String?
-  preparerFirmPhone           String?
-  selfPrepared                Boolean        @default(true)
-  
+  preparerName        String?
+  preparerPTIN        String?
+  preparerFirmName    String?
+  preparerFirmEIN     String?
+  preparerFirmAddress String?
+  preparerFirmPhone   String?
+  selfPrepared        Boolean @default(true)
+
   // Attached Schedules
-  hasSchedule1                Boolean        @default(false)
-  hasSchedule2                Boolean        @default(false)
-  hasSchedule3                Boolean        @default(false)
-  hasScheduleA                Boolean        @default(false)
-  hasScheduleB                Boolean        @default(false)
-  hasScheduleC                Boolean        @default(false)
-  hasScheduleD                Boolean        @default(false)
-  hasScheduleE                Boolean        @default(false)
-  hasScheduleSE               Boolean        @default(false)
-  
+  hasSchedule1  Boolean @default(false)
+  hasSchedule2  Boolean @default(false)
+  hasSchedule3  Boolean @default(false)
+  hasScheduleA  Boolean @default(false)
+  hasScheduleB  Boolean @default(false)
+  hasScheduleC  Boolean @default(false)
+  hasScheduleD  Boolean @default(false)
+  hasScheduleE  Boolean @default(false)
+  hasScheduleSE Boolean @default(false)
+
   // Schedule C Data (Self-Employment)
-  scheduleC_grossReceipts     Float          @default(0)
-  scheduleC_returns           Float          @default(0)
-  scheduleC_otherIncome       Float          @default(0)
-  scheduleC_grossIncome       Float          @default(0)
-  scheduleC_expenses          Float          @default(0)
-  scheduleC_netProfit         Float          @default(0)
-  
+  scheduleC_grossReceipts Float @default(0)
+  scheduleC_returns       Float @default(0)
+  scheduleC_otherIncome   Float @default(0)
+  scheduleC_grossIncome   Float @default(0)
+  scheduleC_expenses      Float @default(0)
+  scheduleC_netProfit     Float @default(0)
+
   // AI Assistant Data
-  aiSuggestions               Json?          // AI-generated suggestions for optimization
-  aiAnalysis                  Json?          // AI analysis of the tax situation
-  
+  aiSuggestions Json? // AI-generated suggestions for optimization
+  aiAnalysis    Json? // AI analysis of the tax situation
+
   // Status and Metadata
-  status                      TaxFormStatus  @default(DRAFT)
-  filedDate                   DateTime?
-  acceptedDate                DateTime?
-  rejectedReason              String?
-  confirmationNumber          String?
-  pdfUrl                      String?
-  createdAt                   DateTime       @default(now())
-  updatedAt                   DateTime       @updatedAt
+  status             TaxFormStatus @default(DRAFT)
+  filedDate          DateTime?
+  acceptedDate       DateTime?
+  rejectedReason     String?
+  confirmationNumber String?
+  pdfUrl             String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@unique([userId, taxYear])
   @@index([userId])
@@ -2027,11 +2027,11 @@ model TaxForm1040 {
 
 // Filing Status for Form 1040
 enum FilingStatus1040 {
-  SINGLE                          // Single
-  MARRIED_FILING_JOINTLY          // Married filing jointly
-  MARRIED_FILING_SEPARATELY       // Married filing separately
-  HEAD_OF_HOUSEHOLD               // Head of household
-  QUALIFYING_SURVIVING_SPOUSE     // Qualifying surviving spouse
+  SINGLE // Single
+  MARRIED_FILING_JOINTLY // Married filing jointly
+  MARRIED_FILING_SEPARATELY // Married filing separately
+  HEAD_OF_HOUSEHOLD // Head of household
+  QUALIFYING_SURVIVING_SPOUSE // Qualifying surviving spouse
 }
 
 model SalesTaxFiling {
@@ -2152,6 +2152,7 @@ model Company {
   country                String                  @default("US")
   phone                  String?
   email                  String?
+  taxEntityType          String?                 @default("SOLE_PROPRIETOR")
   settings               Json?
   subscription           SubscriptionTier        @default(FREE)
   isActive               Boolean                 @default(true)

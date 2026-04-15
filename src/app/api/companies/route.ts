@@ -27,6 +27,7 @@ export async function GET() {
         logo: true,
         industry: true,
         subscription: true,
+        taxEntityType: true,
       },
       orderBy: {
         name: 'asc',
@@ -88,6 +89,7 @@ export async function GET() {
           logo: newCompany.logo,
           industry: newCompany.industry,
           subscription: newCompany.subscription,
+          taxEntityType: newCompany.taxEntityType,
         }]
       }
     }

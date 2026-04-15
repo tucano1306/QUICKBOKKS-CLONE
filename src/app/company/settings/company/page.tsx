@@ -33,6 +33,7 @@ interface CompanyInfo {
   dbaName: string
   ein: string
   businessType: string
+  taxEntityType: string
   incorporationDate: string
   fiscalYearEnd: string
   address1: string
@@ -72,7 +73,8 @@ export default function CompanySettingsPage() {
     dbaName: '',
     ein: '',
     businessType: 'LLC',
-    incorporationDate: '',
+    taxEntityType: 'SOLE_PROPRIETOR',
+    incorporationDate: ''
     fiscalYearEnd: '12-31',
     address1: '',
     address2: '',
@@ -103,12 +105,23 @@ export default function CompanySettingsPage() {
     setLoading(true)
     try {
       // Load company data from activeCompany context
+      // Fetch full company data from API to get taxEntityType
+      const res = await fetch(`/api/companies/${activeCompany.id}`)
+      const companyData = res.ok ? await res.json() : {}
       setCompanyInfo(prev => ({
         ...prev,
-        legalName: activeCompany.legalName || activeCompany.name || '',
-        dbaName: activeCompany.name || '',
-        ein: activeCompany.taxId || '',
-        industry: activeCompany.industry || 'Professional Services',
+        legalName: companyData.legalName || activeCompany.legalName || activeCompany.name || '',
+        dbaName: companyData.name || activeCompany.name || '',
+        ein: companyData.taxId || activeCompany.taxId || '',
+        industry: companyData.industry || activeCompany.industry || 'Professional Services',
+        taxEntityType: companyData.taxEntityType || 'SOLE_PROPRIETOR',
+        address1: companyData.address || '',
+        city: companyData.city || '',
+        state: companyData.state || '',
+        zipCode: companyData.zipCode || '',
+        phone: companyData.phone || '',
+        email: companyData.email || '',
+        website: companyData.website || '',
       }))
       setTaxSettings(prev => ({
         ...prev,
@@ -142,7 +155,8 @@ export default function CompanySettingsPage() {
           state: companyInfo.state,
           zipCode: companyInfo.zipCode,
           phone: companyInfo.phone,
-          email: companyInfo.email
+          email: companyInfo.email,
+          taxEntityType: companyInfo.taxEntityType,
         })
       })
       if (res.ok) {
@@ -372,6 +386,26 @@ export default function CompanySettingsPage() {
                     <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tax Entity Type (IRS) *
+                </label>
+                <select
+                  value={companyInfo.taxEntityType}
+                  onChange={(e) => setCompanyInfo({...companyInfo, taxEntityType: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="SOLE_PROPRIETOR">Sole Proprietor (Schedule C — Form 1040)</option>
+                  <option value="LLC">LLC (Schedule C or Form 1065/1120-S)</option>
+                  <option value="S_CORP">S Corporation (Form 1120-S)</option>
+                  <option value="C_CORP">C Corporation (Form 1120)</option>
+                  <option value="PARTNERSHIP">Partnership (Form 1065)</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Determines which IRS tax forms apply to this company.
+                </p>
               </div>
 
               <div>

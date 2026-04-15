@@ -652,6 +652,52 @@ export default function IrsFormsPage() {
           </div>
         </div>
 
+        {/* Entity Type Banner */}
+        {activeCompany && (
+          <Card className={(() => {
+            const t = activeCompany.taxEntityType
+            if (t === 'SOLE_PROPRIETOR') return 'border-green-300 bg-green-50'
+            if (t === 'LLC') return 'border-blue-300 bg-blue-50'
+            if (t === 'S_CORP') return 'border-purple-300 bg-purple-50'
+            if (t === 'C_CORP') return 'border-orange-300 bg-orange-50'
+            return 'border-gray-200 bg-gray-50'
+          })()}>
+            <CardContent className="py-3 px-4">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-semibold">{activeCompany.name}</span>
+                <span className="text-muted-foreground">—</span>
+                {(() => {
+                  const t = activeCompany.taxEntityType || 'SOLE_PROPRIETOR'
+                  const labels: Record<string, string> = {
+                    SOLE_PROPRIETOR: 'Sole Proprietor → Form 1040 + Schedule C + Schedule SE',
+                    LLC: 'LLC → Form 1040 + Schedule C + Schedule SE (single-member)',
+                    S_CORP: 'S Corporation → Form 1120-S (shareholders file K-1)',
+                    C_CORP: 'C Corporation → Form 1120',
+                    PARTNERSHIP: 'Partnership → Form 1065',
+                  }
+                  const colors: Record<string, string> = {
+                    SOLE_PROPRIETOR: 'bg-green-100 text-green-800',
+                    LLC: 'bg-blue-100 text-blue-800',
+                    S_CORP: 'bg-purple-100 text-purple-800',
+                    C_CORP: 'bg-orange-100 text-orange-800',
+                    PARTNERSHIP: 'bg-gray-100 text-gray-800',
+                  }
+                  return (
+                    <Badge className={colors[t] ?? 'bg-gray-100 text-gray-800'}>
+                      {labels[t] ?? t}
+                    </Badge>
+                  )
+                })()}
+                {(activeCompany.taxEntityType === 'S_CORP' || activeCompany.taxEntityType === 'C_CORP' || activeCompany.taxEntityType === 'PARTNERSHIP') && (
+                  <span className="text-amber-600 text-xs font-medium">
+                    ⚠ Este tipo de entidad no usa Form 1040 individual. Los formularios a continuación son de referencia.
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Info Banner */}
         {!bundle && !loading && (
           <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950">

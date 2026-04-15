@@ -11,6 +11,7 @@ interface Company {
   industry?: string
   subscription?: string
   status?: string
+  taxEntityType?: string
 }
 
 interface CompanyContextType {
