@@ -96,11 +96,108 @@ const calculateExpenseStats = (data: Expense[]) => ({
   deductibleAmount: data.filter(e => e.taxDeductible).reduce((sum, e) => sum + e.amount, 0)
 })
 
+const buildExpensePdfFilterText = (
+  statusFilter: string,
+  categoryFilter: string,
+  categories: Array<{ id: string; name: string }>,
+  dateFrom: string,
+  dateTo: string
+): string => {
+  const filters: string[] = []
+  if (statusFilter !== 'all') {
+    const statusNames: Record<string, string> = { PENDING: 'Pendientes', APPROVED: 'Aprobados', REJECTED: 'Rechazados', PAID: 'Pagados' }
+    filters.push(statusNames[statusFilter] || statusFilter)
+  }
+  if (categoryFilter !== 'all') {
+    const cat = categories.find(c => c.id === categoryFilter)
+    if (cat) filters.push(`Categoría: ${cat.name}`)
+  }
+  if (dateFrom) filters.push(`Desde: ${dateFrom}`)
+  if (dateTo) filters.push(`Hasta: ${dateTo}`)
+  return filters.length > 0 ? filters.join(' | ') : 'Todos los gastos'
+}
+
 async function fetchExpensesData(companyId: string): Promise<Expense[]> {
   const res = await fetch(`/api/expenses?limit=5000&companyId=${companyId}`)
   if (!res.ok) return []
   const data = await res.json()
   return Array.isArray(data) ? data : (data.data ?? [])
+}
+
+interface ExpenseFilterParams {
+  searchTerm: string
+  statusFilter: string
+  categoryFilter: string
+  dateFrom: string
+  dateTo: string
+  filterMonth: string
+  filterYear: string
+}
+
+const filterExpenses = (expenses: Expense[], p: ExpenseFilterParams): Expense[] => {
+  let filtered = expenses
+  if (p.searchTerm?.trim()) {
+    const term = p.searchTerm.toLowerCase().trim()
+    filtered = filtered.filter(e => matchesExpenseSearch(e, term))
+  }
+  if (p.statusFilter !== 'ALL') filtered = filtered.filter(e => e.status === p.statusFilter)
+  if (p.categoryFilter !== 'ALL') filtered = filtered.filter(e => e.category?.id === p.categoryFilter)
+  if (p.dateFrom) {
+    const from = new Date(p.dateFrom)
+    from.setHours(0, 0, 0, 0)
+    filtered = filtered.filter(e => new Date(e.date) >= from)
+  }
+  if (p.dateTo) {
+    const to = new Date(p.dateTo)
+    to.setHours(23, 59, 59, 999)
+    filtered = filtered.filter(e => new Date(e.date) <= to)
+  }
+  return filtered.filter(e => matchesExpenseMonthYear(e, p.filterMonth, p.filterYear))
+}
+
+type ExpenseActionResult = { ok: boolean; msg: { type: 'success' | 'error'; text: string } }
+
+async function deleteExpense(id: string): Promise<ExpenseActionResult> {
+  try {
+    const res = await fetch(`/api/expenses?id=${id}`, { method: 'DELETE' })
+    return res.ok
+      ? { ok: true, msg: { type: 'success', text: 'Gasto eliminado correctamente' } }
+      : { ok: false, msg: { type: 'error', text: 'Error al eliminar el gasto' } }
+  } catch {
+    return { ok: false, msg: { type: 'error', text: 'Error al eliminar el gasto' } }
+  }
+}
+
+async function deleteExpensesMultiple(ids: string[]): Promise<ExpenseActionResult> {
+  try {
+    const res = await fetch('/api/expenses', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids })
+    })
+    const data = await res.json()
+    return res.ok
+      ? { ok: true, msg: { type: 'success', text: data.message || `${ids.length} gasto(s) eliminado(s)` } }
+      : { ok: false, msg: { type: 'error', text: data.error || 'Error al eliminar gastos' } }
+  } catch {
+    return { ok: false, msg: { type: 'error', text: 'Error al eliminar gastos' } }
+  }
+}
+
+async function updateExpensesStatus(ids: string[], status: string): Promise<ExpenseActionResult> {
+  try {
+    const res = await fetch('/api/expenses/bulk-update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, status })
+    })
+    const data = await res.json()
+    return res.ok
+      ? { ok: true, msg: { type: 'success', text: '' } }
+      : { ok: false, msg: { type: 'error', text: data.error || 'Error al actualizar gastos' } }
+  } catch {
+    return { ok: false, msg: { type: 'error', text: 'Error al actualizar gastos' } }
+  }
 }
 
 async function fetchExpenseCategories(companyId: string): Promise<any[]> {
@@ -188,29 +285,7 @@ export default function ExpensesListPage() {
 
   // Filter expenses
   useEffect(() => {
-    let filtered = expenses
-
-    if (searchTerm?.trim()) {
-      const term = searchTerm.toLowerCase().trim()
-      filtered = filtered.filter(e => matchesExpenseSearch(e, term))
-    }
-
-    if (statusFilter !== 'ALL') filtered = filtered.filter(e => e.status === statusFilter)
-    if (categoryFilter !== 'ALL') filtered = filtered.filter(e => e.category?.id === categoryFilter)
-
-    if (dateFrom) {
-      const from = new Date(dateFrom)
-      from.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(e => new Date(e.date) >= from)
-    }
-    if (dateTo) {
-      const to = new Date(dateTo)
-      to.setHours(23, 59, 59, 999)
-      filtered = filtered.filter(e => new Date(e.date) <= to)
-    }
-
-    filtered = filtered.filter(e => matchesExpenseMonthYear(e, filterMonth, filterYear))
-
+    const filtered = filterExpenses(expenses, { searchTerm, statusFilter, categoryFilter, dateFrom, dateTo, filterMonth, filterYear })
     setFilteredExpenses(filtered)
     setStats(calculateExpenseStats(filtered))
     setCurrentPage(1)
@@ -226,105 +301,40 @@ export default function ExpensesListPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar este gasto?')) return
-
-    try {
-      const response = await fetch(`/api/expenses?id=${id}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        setExpenses(expenses.filter(e => e.id !== id))
-        setMessage({ type: 'success', text: 'Gasto eliminado correctamente' })
-        setTimeout(() => setMessage(null), 3000)
-      } else {
-        setMessage({ type: 'error', text: 'Error al eliminar el gasto' })
-        setTimeout(() => setMessage(null), 3000)
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      setMessage({ type: 'error', text: 'Error al eliminar el gasto' })
-      setTimeout(() => setMessage(null), 3000)
-    }
+    const result = await deleteExpense(id)
+    if (result.ok) setExpenses(expenses.filter(e => e.id !== id))
+    setMessage(result.msg)
+    setTimeout(() => setMessage(null), 3000)
   }
 
   // Eliminar múltiples gastos
   const handleDeleteMultiple = async () => {
     if (selectedExpenses.size === 0) return
-
-    if (!confirm(`¿Estás seguro de eliminar ${selectedExpenses.size} gasto(s)? Esta acción no se puede deshacer.`)) {
-      return
+    if (!confirm(`¿Estás seguro de eliminar ${selectedExpenses.size} gasto(s)? Esta acción no se puede deshacer.`)) return
+    const result = await deleteExpensesMultiple(Array.from(selectedExpenses))
+    if (result.ok) {
+      setExpenses(expenses.filter(e => !selectedExpenses.has(e.id)))
+      setSelectedExpenses(new Set())
+      setSelectMode(false)
     }
-
-    try {
-      const response = await fetch('/api/expenses', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: Array.from(selectedExpenses) })
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setExpenses(expenses.filter(e => !selectedExpenses.has(e.id)))
-        setMessage({ type: 'success', text: data.message || `${selectedExpenses.size} gasto(s) eliminado(s)` })
-        setSelectedExpenses(new Set())
-        setSelectMode(false)
-        setTimeout(() => setMessage(null), 3000)
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Error al eliminar gastos' })
-        setTimeout(() => setMessage(null), 3000)
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      setMessage({ type: 'error', text: 'Error al eliminar gastos' })
-      setTimeout(() => setMessage(null), 3000)
-    }
+    setMessage(result.msg)
+    setTimeout(() => setMessage(null), 3000)
   }
 
   // Cambiar estado de múltiples gastos
   const handleBulkStatusChange = async (newStatus: string) => {
     if (selectedExpenses.size === 0) return
-
-    const statusLabels: Record<string, string> = {
-      PENDING: 'Pendiente',
-      APPROVED: 'Aprobado',
-      REJECTED: 'Rechazado',
-      PAID: 'Pagado'
+    const statusLabels: Record<string, string> = { PENDING: 'Pendiente', APPROVED: 'Aprobado', REJECTED: 'Rechazado', PAID: 'Pagado' }
+    const result = await updateExpensesStatus(Array.from(selectedExpenses), newStatus)
+    if (result.ok) {
+      setExpenses(expenses.map(e => selectedExpenses.has(e.id) ? { ...e, status: newStatus } : e))
+      setMessage({ type: 'success', text: `${selectedExpenses.size} gasto(s) cambiado(s) a "${statusLabels[newStatus]}"` })
+      setSelectedExpenses(new Set())
+      setSelectMode(false)
+    } else {
+      setMessage(result.msg)
     }
-
-    try {
-      const response = await fetch('/api/expenses/bulk-update', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ids: Array.from(selectedExpenses),
-          status: newStatus
-        })
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        // Actualizar estado local
-        setExpenses(expenses.map(e =>
-          selectedExpenses.has(e.id) ? { ...e, status: newStatus } : e
-        ))
-        setMessage({
-          type: 'success',
-          text: `${selectedExpenses.size} gasto(s) cambiado(s) a "${statusLabels[newStatus]}"`
-        })
-        setSelectedExpenses(new Set())
-        setSelectMode(false)
-        setTimeout(() => setMessage(null), 3000)
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Error al actualizar gastos' })
-        setTimeout(() => setMessage(null), 3000)
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      setMessage({ type: 'error', text: 'Error al actualizar gastos' })
-      setTimeout(() => setMessage(null), 3000)
-    }
+    setTimeout(() => setMessage(null), 3000)
   }
 
   // Toggle selección de gasto
@@ -428,24 +438,7 @@ export default function ExpensesListPage() {
     doc.text(`Generado: ${today}`, pageWidth / 2, 30, { align: 'center' })
 
     // Filtros aplicados
-    let filterText = 'Todos los gastos'
-    const filters: string[] = []
-    if (statusFilter !== 'all') {
-      const statusNames: Record<string, string> = {
-        'PENDING': 'Pendientes',
-        'APPROVED': 'Aprobados',
-        'REJECTED': 'Rechazados',
-        'PAID': 'Pagados'
-      }
-      filters.push(statusNames[statusFilter] || statusFilter)
-    }
-    if (categoryFilter !== 'all') {
-      const cat = categories.find(c => c.id === categoryFilter)
-      if (cat) filters.push(`Categoría: ${cat.name}`)
-    }
-    if (dateFrom) filters.push(`Desde: ${dateFrom}`)
-    if (dateTo) filters.push(`Hasta: ${dateTo}`)
-    if (filters.length > 0) filterText = filters.join(' | ')
+    const filterText = buildExpensePdfFilterText(statusFilter, categoryFilter, categories, dateFrom, dateTo)
 
     doc.setFontSize(9)
     doc.text(filterText, pageWidth / 2, 38, { align: 'center' })
@@ -591,22 +584,58 @@ export default function ExpensesListPage() {
     )
   }
 
+  const getNoExpensesMessage = (suffix = '') =>
+    searchTerm || statusFilter !== 'ALL' || categoryFilter !== 'ALL'
+      ? `No se encontraron gastos${suffix}`
+      : 'No hay gastos registrados'
+
+  const renderFilterSummaryRow = () => (
+    <div className="mt-3 flex justify-between items-center">
+      <div className="text-sm text-gray-500">
+        {filteredExpenses.length} de {expenses.length} gastos
+        {(dateFrom || dateTo) && <span className="ml-2 text-blue-600">• Filtrando por fecha</span>}
+        {(filterMonth || filterYear) && <span className="ml-2 text-green-600">• Filtrando por mes/año</span>}
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          setSearchTerm('')
+          setStatusFilter('ALL')
+          setCategoryFilter('ALL')
+          setDateFrom('')
+          setDateTo('')
+          setFilterMonth('')
+          setFilterYear('')
+        }}
+      >
+        <Filter className="h-4 w-4 mr-2" />
+        Limpiar Filtros
+      </Button>
+    </div>
+  )
+
+  const renderMessageBanner = () => {
+    if (!message) return null
+    return (
+      <div className={`p-4 rounded-xl flex items-center gap-2 shadow-sm ${
+        message.type === 'success'
+          ? 'bg-green-50 text-[#108000] border border-green-200'
+          : 'bg-red-50 text-red-800 border border-red-200'
+      }`}>
+        {message.type === 'success'
+          ? <CheckCircle className="h-5 w-5" />
+          : <AlertCircle className="h-5 w-5" />}
+        <span className="font-medium">{message.text}</span>
+      </div>
+    )
+  }
+
   return (
     <CompanyTabsLayout>
       <div className="space-y-6">
         {/* Message Feedback */}
-        {message && (
-          <div className={`p-4 rounded-xl flex items-center gap-2 shadow-sm ${
-            message.type === 'success'
-              ? 'bg-green-50 text-[#108000] border border-green-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}>
-            {message.type === 'success'
-              ? <CheckCircle className="h-5 w-5" />
-              : <AlertCircle className="h-5 w-5" />}
-            <span className="font-medium">{message.text}</span>
-          </div>
-        )}
+        {renderMessageBanner()}
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -935,38 +964,7 @@ export default function ExpensesListPage() {
           </div>
 
           {/* Tercera fila con botón de limpiar */}
-          <div className="mt-3 flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              {filteredExpenses.length} de {expenses.length} gastos
-              {(dateFrom || dateTo) && (
-                <span className="ml-2 text-blue-600">
-                  • Filtrando por fecha
-                </span>
-              )}
-              {(filterMonth || filterYear) && (
-                <span className="ml-2 text-green-600">
-                  • Filtrando por mes/año
-                </span>
-              )}
-            </div>
-            {/* Clear Filters */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSearchTerm('')
-                setStatusFilter('ALL')
-                setCategoryFilter('ALL')
-                setDateFrom('')
-                setDateTo('')
-                setFilterMonth('')
-                setFilterYear('')
-              }}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Limpiar Filtros
-            </Button>
-          </div>
+          {renderFilterSummaryRow()}
         </Card>
 
         {/* Expenses List */}
@@ -977,9 +975,7 @@ export default function ExpensesListPage() {
               <div className="p-6 text-center">
                 <Receipt className="h-12 w-12 mx-auto mb-3 text-gray-400" />
                 <p className="text-gray-600 mb-4">
-                  {searchTerm || statusFilter !== 'ALL' || categoryFilter !== 'ALL'
-                    ? 'No se encontraron gastos'
-                    : 'No hay gastos registrados'}
+                  {getNoExpensesMessage()}
                 </p>
                 <Button size="sm" onClick={() => router.push('/company/expenses/new')}>
                   <Plus className="h-4 w-4 mr-2" />
@@ -1099,9 +1095,7 @@ export default function ExpensesListPage() {
                     <td colSpan={selectMode ? 8 : 7} className="px-6 py-12 text-center">
                       <Receipt className="h-16 w-16 mx-auto mb-3 text-gray-400" />
                       <p className="text-gray-600 mb-4">
-                        {searchTerm || statusFilter !== 'ALL' || categoryFilter !== 'ALL'
-                          ? 'No se encontraron gastos con los filtros aplicados'
-                          : 'No hay gastos registrados'}
+                        {getNoExpensesMessage(' con los filtros aplicados')}
                       </p>
                       <Button onClick={() => router.push('/company/expenses/new')}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -1156,11 +1150,7 @@ export default function ExpensesListPage() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-center">
                         {!selectMode && (
-                          <div
-                            className="flex justify-center gap-1"
-                            onClick={e => e.stopPropagation()}
-                            onKeyDown={e => e.stopPropagation()}
-                          >
+                          <div className="flex justify-center gap-1">
                             <button
                               onClick={() => router.push(`/company/expenses/${expense.id}`)}
                               className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50"
