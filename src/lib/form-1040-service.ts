@@ -303,8 +303,6 @@ export async function autoPopulateForm1040FromCompany(
     }
   });
 
-  const invoiceIncome = invoices.reduce((sum, inv) => sum + inv.total, 0);
-
   // Secondary: income transactions (used when invoices are not the primary record)
   const allTransactions = await prisma.transaction.findMany({
     where: {
@@ -317,15 +315,22 @@ export async function autoPopulateForm1040FromCompany(
   });
 
   const incomeTransactions = allTransactions.filter(t => t.type === 'INCOME');
-  const transactionIncome = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+  // Remove interest and dividend transactions from business income (they have their own lines)
+  const businessIncomeTransactions = incomeTransactions.filter(
+    t => !t.category?.includes('Interest') && !t.category?.includes('Dividend')
+  );
+  const transactionIncome = businessIncomeTransactions.reduce((sum, t) => sum + t.amount, 0);
 
   // Use whichever source has data (prefer invoices if both exist)
-  const totalBusinessIncome = invoiceIncome > 0 ? invoiceIncome : transactionIncome;
+  // Use subtotal (pre-tax) not total, so collected sales tax is not counted as income
+  const invoiceSubtotalIncome = invoices.reduce((sum, inv) => sum + (inv.subtotal ?? inv.total), 0);
+  const totalBusinessIncome = invoiceSubtotalIncome > 0 ? invoiceSubtotalIncome : transactionIncome;
 
-  // Get business expenses — include all statuses since some may not be APPROVED
+  // Get business expenses — only tax-deductible ones
   const expenses = await prisma.expense.findMany({
     where: {
       companyId,
+      taxDeductible: true,
       date: {
         gte: yearStart,
         lte: yearEnd
@@ -355,8 +360,8 @@ export async function autoPopulateForm1040FromCompany(
     netProfit: totalBusinessIncome - totalExpenses
   };
 
-  // Self-employment tax (15.3% on 92.35% of net profit)
-  const selfEmploymentTaxableIncome = scheduleC.netProfit * 0.9235;
+  // Self-employment tax (15.3% on 92.35% of net profit) — only if profitable
+  const selfEmploymentTaxableIncome = Math.max(0, scheduleC.netProfit) * 0.9235;
   const selfEmploymentTax = selfEmploymentTaxableIncome * 0.153;
   const deductibleSelfEmploymentTax = selfEmploymentTax / 2;
 

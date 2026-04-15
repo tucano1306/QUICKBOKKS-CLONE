@@ -6,42 +6,43 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCompany } from '@/contexts/CompanyContext'
 import { downloadTaxPDF } from '@/lib/tax-pdf'
 import {
-  AlertCircle,
-  Building2,
-  Calculator,
-  CheckCircle2,
-  Copy,
-  Download,
-  DollarSign,
-  Eye,
-  FileText,
-  Lightbulb,
-  Plus,
-  Save,
-  Sparkles,
-  Trash2,
-  TrendingUp,
-  User,
-  Users
+    AlertCircle,
+    Building2,
+    Calculator,
+    CheckCircle2,
+    Copy,
+    DollarSign,
+    Download,
+    Eye,
+    FileText,
+    Lightbulb,
+    Plus,
+    RefreshCw,
+    Save,
+    Sparkles,
+    Trash2,
+    TrendingUp,
+    User,
+    Users
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -470,6 +471,33 @@ export default function Form1040Page() {
     }
   }
 
+  const handleSyncAndSave = async () => {
+    if (!activeCompany?.id) {
+      toast.error('Seleccione una empresa primero')
+      return
+    }
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${activeCompany.id}&action=auto-populate-and-save`)
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Error al sincronizar')
+      }
+      const result = await response.json()
+      applyAutoData(result.data)
+      const s = result.summary
+      toast.success(
+        `Datos sincronizados y guardados — Ingresos: $${s.grossReceipts.toFixed(0)} | Gastos: $${s.expenses.toFixed(0)} | Ganancia neta: $${s.netProfit.toFixed(0)}`,
+        { duration: 6000 }
+      )
+    } catch (error: any) {
+      console.error('Error syncing:', error)
+      toast.error(error.message || 'Error al sincronizar datos')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSave = async () => {
     if (!firstName || !lastName || !ssn) {
       toast.error('Complete la información personal requerida')
@@ -771,6 +799,14 @@ export default function Form1040Page() {
               <Button onClick={handleAutoPopulate} disabled={loading || !activeCompany}>
                 <Building2 className="w-4 h-4 mr-2" />
                 Auto-Llenar desde Empresa
+              </Button>
+              <Button
+                onClick={handleSyncAndSave}
+                disabled={loading || !activeCompany}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Sincronizar y Guardar Datos
               </Button>
               <Button onClick={handleSave} disabled={loading}>
                 <Save className="w-4 h-4 mr-2" />

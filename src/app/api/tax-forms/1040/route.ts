@@ -13,10 +13,94 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+async function handleAutoPopulateAndSave(
+  userId: string,
+  companyId: string,
+  year: number
+): Promise<NextResponse> {
+  const autoData = await autoPopulateForm1040FromCompany(companyId, userId, year);
+  const existing = await prisma.taxForm1040.findUnique({
+    where: { userId_taxYear: { userId, taxYear: year } }
+  });
+  if (!existing) {
+    return NextResponse.json({ error: 'No existe un borrador para este año. Primero cree el formulario con su información personal.' }, { status: 404 });
+  }
+  const hasScheduleC = (autoData.scheduleC?.netProfit ?? 0) !== 0 || (autoData.scheduleC?.grossReceipts ?? 0) !== 0;
+  const netProfit = (autoData.scheduleC?.grossReceipts ?? 0) - (autoData.scheduleC?.expenses ?? 0);
+  const selfEmployTaxable = Math.max(0, netProfit) * 0.9235;
+  const selfEmployTax = selfEmployTaxable * 0.153;
+  const deductSeTax = selfEmployTax / 2;
+  const totalIncome = (autoData.income?.wages ?? 0)
+    + (autoData.income?.taxableInterest ?? 0)
+    + (autoData.income?.ordinaryDividends ?? 0)
+    + (autoData.income?.otherIncome ?? 0);
+
+  await prisma.taxForm1040.update({
+    where: { userId_taxYear: { userId, taxYear: year } },
+    data: {
+      companyId,
+      line1a_w2Wages: autoData.income?.wages ?? 0,
+      line2b_taxableInterest: autoData.income?.taxableInterest ?? 0,
+      line2a_taxExemptInterest: 0,
+      line3a_qualifiedDividends: autoData.income?.qualifiedDividends ?? 0,
+      line3b_ordinaryDividends: autoData.income?.ordinaryDividends ?? 0,
+      line8_otherIncome: autoData.income?.otherIncome ?? 0,
+      line9_totalIncome: totalIncome,
+      line10_adjustments: deductSeTax,
+      line11_adjustedGrossIncome: totalIncome - deductSeTax,
+      line25a_w2Withholding: autoData.payments?.withholding ?? 0,
+      line26_estimatedPayments: autoData.payments?.estimatedPayments ?? 0,
+      scheduleC_grossReceipts: autoData.scheduleC?.grossReceipts ?? 0,
+      scheduleC_expenses: autoData.scheduleC?.expenses ?? 0,
+      scheduleC_netProfit: netProfit,
+      hasScheduleC,
+      hasScheduleSE: hasScheduleC,
+    }
+  });
+
+  return NextResponse.json({
+    message: 'Datos financieros guardados automáticamente',
+    data: autoData,
+    saved: true,
+    summary: {
+      grossReceipts: autoData.scheduleC?.grossReceipts ?? 0,
+      expenses: autoData.scheduleC?.expenses ?? 0,
+      netProfit,
+      selfEmploymentTax: selfEmployTax,
+      deductibleSeTax: deductSeTax,
+      totalIncome,
+      withholding: autoData.payments?.withholding ?? 0,
+    }
+  });
+}
+
 /**
  * GET /api/tax-forms/1040?year=2024&companyId=xxx
  * Obtiene el Form 1040 o auto-genera uno basado en datos de la empresa
  */
+async function handleCopyFromPreviousYear(userId: string, year: number): Promise<NextResponse> {
+  const previousYear = year - 1;
+  const previousForm = await getForm1040(userId, previousYear);
+  if (!previousForm) {
+    return NextResponse.json({
+      error: `No se encontró un formulario guardado para el año ${previousYear}. Primero debe guardar un Form 1040 del año anterior.`
+    }, { status: 404 });
+  }
+  const copiedFields = {
+    personalInfo: !!(previousForm.firstName && previousForm.lastName && previousForm.ssn),
+    filingStatus: previousForm.filingStatus,
+    dependents: Array.isArray(previousForm.dependents) ? (previousForm.dependents as any[]).length : 0,
+    income: {
+      wages: previousForm.line1a_w2Wages,
+      scheduleC_gross: previousForm.scheduleC_grossReceipts,
+      scheduleC_expenses: previousForm.scheduleC_expenses,
+      withholding: previousForm.line25a_w2Withholding,
+      estimatedPayments: previousForm.line26_estimatedPayments,
+    }
+  };
+  return NextResponse.json({ previousForm, previousYear, copiedFields });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -37,6 +121,11 @@ export async function GET(request: NextRequest) {
         message: 'Datos generados automáticamente desde la empresa',
         data: autoData
       });
+    }
+
+    // Auto-populate Y guardar campos financieros en el draft existente
+    if (action === 'auto-populate-and-save' && companyId) {
+      return handleAutoPopulateAndSave(session.user.id, companyId, year);
     }
 
     // Si se solicita sugerencias de AI
@@ -61,27 +150,7 @@ export async function GET(request: NextRequest) {
 
     // Copiar datos del año anterior para llenar el formulario actual
     if (action === 'copy-from-previous-year') {
-      const previousYear = year - 1;
-      const previousForm = await getForm1040(session.user.id, previousYear);
-      if (!previousForm) {
-        return NextResponse.json({
-          error: `No se encontró un formulario guardado para el año ${previousYear}. Primero debe guardar un Form 1040 del año anterior.`
-        }, { status: 404 });
-      }
-      // Build a summary of what was copied to show the user
-      const copiedFields = {
-        personalInfo: !!(previousForm.firstName && previousForm.lastName && previousForm.ssn),
-        filingStatus: previousForm.filingStatus,
-        dependents: Array.isArray(previousForm.dependents) ? (previousForm.dependents as any[]).length : 0,
-        income: {
-          wages: previousForm.line1a_w2Wages,
-          scheduleC_gross: previousForm.scheduleC_grossReceipts,
-          scheduleC_expenses: previousForm.scheduleC_expenses,
-          withholding: previousForm.line25a_w2Withholding,
-          estimatedPayments: previousForm.line26_estimatedPayments,
-        }
-      };
-      return NextResponse.json({ previousForm, previousYear, copiedFields });
+      return handleCopyFromPreviousYear(session.user.id, year);
     }
 
     // Obtener Form 1040 existente
