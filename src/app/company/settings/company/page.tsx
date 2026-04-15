@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { 
+import {
   Building2,
   MapPin,
   Phone,
@@ -74,7 +74,7 @@ export default function CompanySettingsPage() {
     fiscalYearEnd: '12-31',
     address1: '',
     address2: '',
-    city: '',,
+    city: '',
     state: '',
     zipCode: '',
     country: 'United States',
@@ -182,7 +182,7 @@ export default function CompanySettingsPage() {
     }
 
     setUploadingLogo(true)
-    
+
     // Crear preview
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -307,9 +307,9 @@ export default function CompanySettingsPage() {
               <div className="w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                 {logoPreview || companyInfo.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img 
-                    src={logoPreview || companyInfo.logoUrl} 
-                    alt="Company Logo" 
+                  <img
+                    src={logoPreview || companyInfo.logoUrl}
+                    alt="Company Logo"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -327,8 +327,8 @@ export default function CompanySettingsPage() {
                   accept="image/*"
                   className="hidden"
                 />
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => logoInputRef.current?.click()}
                   disabled={uploadingLogo}
