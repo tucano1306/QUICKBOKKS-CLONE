@@ -50,6 +50,13 @@ function saveCategories(type: 'INCOME' | 'EXPENSE', cats: string[]) {
   globalThis.localStorage?.setItem(key, JSON.stringify(cats))
 }
 
+function localDateString(d = new Date()): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export default function NewTransactionPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -62,7 +69,7 @@ export default function NewTransactionPage() {
     type: typeParam as 'INCOME' | 'EXPENSE',
     category: '',
     amount: '',
-    date: new Date().toISOString().split('T')[0],
+    date: localDateString(),
     description: '',
     notes: '',
     reference: ''

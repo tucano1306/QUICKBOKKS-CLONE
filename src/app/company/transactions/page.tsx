@@ -370,7 +370,8 @@ export default function TransactionsPage() {
     const url = globalThis.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `transacciones_${new Date().toISOString().split('T')[0]}.csv`
+    const localDate = (d = new Date()) => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}` }
+    a.download = `transacciones_${localDate()}.csv`
     a.click()
   }
 
@@ -493,7 +494,8 @@ export default function TransactionsPage() {
 
     // Guardar PDF
     const typeLabel = getTypeLabel(filter)
-    const fileName = `reporte_${typeLabel}_${new Date().toISOString().split('T')[0]}.pdf`
+    const localDate2 = (d = new Date()) => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}` }
+    const fileName = `reporte_${typeLabel}_${localDate2()}.pdf`
     doc.save(fileName)
   }
 
