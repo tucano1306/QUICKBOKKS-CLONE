@@ -15,11 +15,7 @@ import {
   Phone,
   Mail,
   Globe,
-  Calendar,
   FileText,
-  Hash,
-  DollarSign,
-  Users,
   Save,
   CheckCircle,
   Info,
@@ -53,7 +49,7 @@ interface CompanyInfo {
 
 export default function CompanySettingsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -74,11 +70,11 @@ export default function CompanySettingsPage() {
     ein: '',
     businessType: 'LLC',
     taxEntityType: 'SOLE_PROPRIETOR',
-    incorporationDate: ''
+    incorporationDate: '',
     fiscalYearEnd: '12-31',
     address1: '',
     address2: '',
-    city: '',
+    city: '',,
     state: '',
     zipCode: '',
     country: 'United States',
@@ -241,6 +237,36 @@ export default function CompanySettingsPage() {
     )
   }
 
+  const savingContent = (
+    <>
+      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+      Saving...
+    </>
+  )
+  const headerIdleContent = saved ? (
+    <>
+      <CheckCircle className="w-4 h-4 mr-2" />
+      Saved!
+    </>
+  ) : (
+    <>
+      <Save className="w-4 h-4 sm:mr-2" />
+      <span className="hidden sm:inline">Save Changes</span>
+      <span className="sm:hidden">Save</span>
+    </>
+  )
+  const footerIdleContent = saved ? (
+    <>
+      <CheckCircle className="w-4 h-4 mr-2" />
+      Saved!
+    </>
+  ) : (
+    <>
+      <Save className="w-4 h-4 mr-2" />
+      Save Changes
+    </>
+  )
+
   return (
     <CompanyTabsLayout>
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
@@ -256,23 +282,7 @@ export default function CompanySettingsPage() {
             </p>
           </div>
           <Button onClick={handleSave} disabled={saving} size="sm" className="w-full sm:w-auto">
-            {saving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
-              </>
-            ) : saved ? (
-              <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Saved!
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Save Changes</span>
-                <span className="sm:hidden">Save</span>
-              </>
-            )}
+            {saving ? savingContent : headerIdleContent}
           </Button>
         </div>
 
@@ -352,10 +362,11 @@ export default function CompanySettingsPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-legal-name" className="block text-sm font-medium text-gray-700 mb-2">
                   Legal Name *
                 </label>
                 <Input
+                  id="company-legal-name"
                   value={companyInfo.legalName}
                   onChange={(e) => setCompanyInfo({...companyInfo, legalName: e.target.value})}
                   placeholder="Full legal business name"
@@ -363,10 +374,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-dba-name" className="block text-sm font-medium text-gray-700 mb-2">
                   DBA Name (Doing Business As)
                 </label>
                 <Input
+                  id="company-dba-name"
                   value={companyInfo.dbaName}
                   onChange={(e) => setCompanyInfo({...companyInfo, dbaName: e.target.value})}
                   placeholder="Trade name or brand name"
@@ -374,10 +386,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-business-type" className="block text-sm font-medium text-gray-700 mb-2">
                   Business Type *
                 </label>
                 <select
+                  id="company-business-type"
                   value={companyInfo.businessType}
                   onChange={(e) => setCompanyInfo({...companyInfo, businessType: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -389,10 +402,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-tax-entity-type" className="block text-sm font-medium text-gray-700 mb-2">
                   Tax Entity Type (IRS) *
                 </label>
                 <select
+                  id="company-tax-entity-type"
                   value={companyInfo.taxEntityType}
                   onChange={(e) => setCompanyInfo({...companyInfo, taxEntityType: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -409,10 +423,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-industry" className="block text-sm font-medium text-gray-700 mb-2">
                   Industry *
                 </label>
                 <select
+                  id="company-industry"
                   value={companyInfo.industry}
                   onChange={(e) => setCompanyInfo({...companyInfo, industry: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -424,10 +439,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-incorporation-date" className="block text-sm font-medium text-gray-700 mb-2">
                   Incorporation Date *
                 </label>
                 <Input
+                  id="company-incorporation-date"
                   type="date"
                   value={companyInfo.incorporationDate}
                   onChange={(e) => setCompanyInfo({...companyInfo, incorporationDate: e.target.value})}
@@ -435,10 +451,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-fiscal-year-end" className="block text-sm font-medium text-gray-700 mb-2">
                   Fiscal Year End * (MM-DD)
                 </label>
                 <Input
+                  id="company-fiscal-year-end"
                   value={companyInfo.fiscalYearEnd}
                   onChange={(e) => setCompanyInfo({...companyInfo, fiscalYearEnd: e.target.value})}
                   placeholder="12-31"
@@ -446,10 +463,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-employees" className="block text-sm font-medium text-gray-700 mb-2">
                   Number of Employees
                 </label>
                 <select
+                  id="company-employees"
                   value={companyInfo.employees}
                   onChange={(e) => setCompanyInfo({...companyInfo, employees: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -464,10 +482,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-annual-revenue" className="block text-sm font-medium text-gray-700 mb-2">
                   Annual Revenue
                 </label>
                 <select
+                  id="company-annual-revenue"
                   value={companyInfo.annualRevenue}
                   onChange={(e) => setCompanyInfo({...companyInfo, annualRevenue: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -495,10 +514,11 @@ export default function CompanySettingsPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="tax-federal-id" className="block text-sm font-medium text-gray-700 mb-2">
                   Federal Tax ID (EIN) *
                 </label>
                 <Input
+                  id="tax-federal-id"
                   value={taxSettings.federalTaxId}
                   onChange={(e) => setTaxSettings({...taxSettings, federalTaxId: e.target.value})}
                   placeholder="12-3456789"
@@ -506,10 +526,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="tax-state-id" className="block text-sm font-medium text-gray-700 mb-2">
                   State Tax ID
                 </label>
                 <Input
+                  id="tax-state-id"
                   value={taxSettings.stateTaxId}
                   onChange={(e) => setTaxSettings({...taxSettings, stateTaxId: e.target.value})}
                   placeholder="FL-987654321"
@@ -517,10 +538,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="tax-sales-number" className="block text-sm font-medium text-gray-700 mb-2">
                   Sales Tax Number
                 </label>
                 <Input
+                  id="tax-sales-number"
                   value={taxSettings.salesTaxNumber}
                   onChange={(e) => setTaxSettings({...taxSettings, salesTaxNumber: e.target.value})}
                   placeholder="FL-ST-2024-12345"
@@ -528,10 +550,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="tax-sales-rate" className="block text-sm font-medium text-gray-700 mb-2">
                   Default Sales Tax Rate (%)
                 </label>
                 <Input
+                  id="tax-sales-rate"
                   type="text"
                   className="amount-input"
                   value={taxSettings.salesTaxRate}
@@ -541,10 +564,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="tax-accounting-method" className="block text-sm font-medium text-gray-700 mb-2">
                   Accounting Method *
                 </label>
                 <select
+                  id="tax-accounting-method"
                   value={taxSettings.useAccrualBasis ? 'Accrual' : 'Cash'}
                   onChange={(e) => setTaxSettings({...taxSettings, useAccrualBasis: e.target.value === 'Accrual'})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -555,10 +579,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="tax-filing-frequency" className="block text-sm font-medium text-gray-700 mb-2">
                   Tax Filing Frequency
                 </label>
                 <select
+                  id="tax-filing-frequency"
                   value={taxSettings.taxFilingFrequency}
                   onChange={(e) => setTaxSettings({...taxSettings, taxFilingFrequency: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -571,12 +596,12 @@ export default function CompanySettingsPage() {
             </div>
 
             <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <p className="block text-sm font-medium text-gray-700 mb-2">
                 Sales Tax Nexus States
-              </label>
+              </p>
               <div className="flex flex-wrap gap-2">
-                {taxSettings.nexusStates.map((state, idx) => (
-                  <Badge key={idx} className="bg-blue-100 text-blue-700">{state}</Badge>
+                {taxSettings.nexusStates.map((state) => (
+                  <Badge key={state} className="bg-blue-100 text-blue-700">{state}</Badge>
                 ))}
                 <Button size="sm" variant="outline">+ Add State</Button>
               </div>
@@ -595,11 +620,12 @@ export default function CompanySettingsPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-phone" className="block text-sm font-medium text-gray-700 mb-2">
                   <Phone className="w-4 h-4 inline mr-1" />
                   Phone Number *
                 </label>
                 <Input
+                  id="company-phone"
                   value={companyInfo.phone}
                   onChange={(e) => setCompanyInfo({...companyInfo, phone: e.target.value})}
                   placeholder="+1 (555) 123-4567"
@@ -607,11 +633,12 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-email" className="block text-sm font-medium text-gray-700 mb-2">
                   <Mail className="w-4 h-4 inline mr-1" />
                   Email Address *
                 </label>
                 <Input
+                  id="company-email"
                   type="email"
                   value={companyInfo.email}
                   onChange={(e) => setCompanyInfo({...companyInfo, email: e.target.value})}
@@ -620,11 +647,12 @@ export default function CompanySettingsPage() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-website" className="block text-sm font-medium text-gray-700 mb-2">
                   <Globe className="w-4 h-4 inline mr-1" />
                   Website
                 </label>
                 <Input
+                  id="company-website"
                   value={companyInfo.website}
                   onChange={(e) => setCompanyInfo({...companyInfo, website: e.target.value})}
                   placeholder="https://www.company.com"
@@ -645,10 +673,11 @@ export default function CompanySettingsPage() {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-address1" className="block text-sm font-medium text-gray-700 mb-2">
                   Street Address *
                 </label>
                 <Input
+                  id="company-address1"
                   value={companyInfo.address1}
                   onChange={(e) => setCompanyInfo({...companyInfo, address1: e.target.value})}
                   placeholder="1234 Main Street"
@@ -656,10 +685,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-address2" className="block text-sm font-medium text-gray-700 mb-2">
                   Address Line 2
                 </label>
                 <Input
+                  id="company-address2"
                   value={companyInfo.address2}
                   onChange={(e) => setCompanyInfo({...companyInfo, address2: e.target.value})}
                   placeholder="Suite, Unit, Building, Floor"
@@ -668,10 +698,11 @@ export default function CompanySettingsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="company-city" className="block text-sm font-medium text-gray-700 mb-2">
                     City *
                   </label>
                   <Input
+                    id="company-city"
                     value={companyInfo.city}
                     onChange={(e) => setCompanyInfo({...companyInfo, city: e.target.value})}
                     placeholder="City"
@@ -679,10 +710,11 @@ export default function CompanySettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="company-state" className="block text-sm font-medium text-gray-700 mb-2">
                     State *
                   </label>
                   <select
+                    id="company-state"
                     value={companyInfo.state}
                     onChange={(e) => setCompanyInfo({...companyInfo, state: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -694,10 +726,11 @@ export default function CompanySettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="company-zip-code" className="block text-sm font-medium text-gray-700 mb-2">
                     ZIP Code *
                   </label>
                   <Input
+                    id="company-zip-code"
                     value={companyInfo.zipCode}
                     onChange={(e) => setCompanyInfo({...companyInfo, zipCode: e.target.value})}
                     placeholder="12345"
@@ -706,10 +739,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="company-country" className="block text-sm font-medium text-gray-700 mb-2">
                   Country *
                 </label>
                 <Input
+                  id="company-country"
                   value={companyInfo.country}
                   onChange={(e) => setCompanyInfo({...companyInfo, country: e.target.value})}
                   placeholder="United States"
@@ -772,22 +806,7 @@ export default function CompanySettingsPage() {
         {/* Save Button - Bottom */}
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={saving} size="lg">
-            {saving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
-              </>
-            ) : saved ? (
-              <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Saved!
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
-              </>
-            )}
+            {saving ? savingContent : footerIdleContent}
           </Button>
         </div>
       </div>
