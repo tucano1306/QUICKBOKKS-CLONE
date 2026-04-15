@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode, useRef } from 'react'
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 interface Company {
   id: string
@@ -35,21 +35,21 @@ const companiesCache = {
 function selectInitialCompany(companies: Company[]): Company | null {
   if (companies.length === 0) return null
   const savedCompanyId = localStorage.getItem('activeCompanyId')
-  return savedCompanyId 
+  return savedCompanyId
     ? companies.find((c: Company) => c.id === savedCompanyId) || companies[0]
     : companies[0]
 }
 
 export function CompanyProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [activeCompany, setActiveCompany] = useState<Company | null>(null)
-  const [companies, setCompanies] = useState<Company[]>([])  
+  const [companies, setCompanies] = useState<Company[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const fetchInProgress = useRef(false)
 
   const refreshCompanies = useCallback(async (forceRefresh = false) => {
     // Evitar llamadas duplicadas
     if (fetchInProgress.current) return
-    
+
     // Verificar cache
     const cacheValid = !forceRefresh && companiesCache.data && Date.now() - companiesCache.timestamp < companiesCache.TTL
     if (cacheValid && companiesCache.data) {
@@ -60,9 +60,9 @@ export function CompanyProvider({ children }: Readonly<{ children: ReactNode }>)
       setIsLoading(false)
       return
     }
-    
+
     fetchInProgress.current = true
-    
+
     try {
       const response = await fetch('/api/companies')
       if (response.ok) {
@@ -70,7 +70,7 @@ export function CompanyProvider({ children }: Readonly<{ children: ReactNode }>)
         companiesCache.data = data
         companiesCache.timestamp = Date.now()
         setCompanies(data)
-        
+
         if (!activeCompany && data.length > 0) {
           setActiveCompany(selectInitialCompany(data))
         }

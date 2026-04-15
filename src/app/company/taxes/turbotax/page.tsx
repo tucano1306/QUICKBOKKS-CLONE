@@ -7,19 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useCompany } from '@/contexts/CompanyContext'
 import {
-    AlertCircle,
-    AlertTriangle,
-    Check,
-    CheckCircle,
-    Clock,
-    Database,
-    FileText,
-    Info,
-    Link as LinkIcon,
-    RefreshCw,
-    Shield,
-    X,
-    Zap
+  AlertCircle,
+  AlertTriangle,
+  Check,
+  CheckCircle,
+  Clock,
+  Database,
+  FileText,
+  Info,
+  Link as LinkIcon,
+  RefreshCw,
+  Shield,
+  X,
+  Zap
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -374,7 +374,7 @@ export default function TurboTaxPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Import History — Tax Year {selectedYear}</CardTitle>
-                {!importHistory.some(h => h.turboTaxYear === selectedYear) && (
+                {importHistory.some(h => h.turboTaxYear === selectedYear) ? null : (
                   <span className="text-sm text-gray-500">No imports for {selectedYear} yet</span>
                 )}
               </div>
@@ -394,9 +394,7 @@ export default function TurboTaxPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {!importHistory.some(h => h.turboTaxYear === selectedYear) ? (
-                      <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No import history for {selectedYear}. Click &quot;Start Import&quot; to begin.</td></tr>
-                    ) : (
+                    {importHistory.some(h => h.turboTaxYear === selectedYear) ? (
                       importHistory
                         .filter(h => h.turboTaxYear === selectedYear)
                         .map((importItem) => (
@@ -410,6 +408,8 @@ export default function TurboTaxPage() {
                             <td className="px-4 py-3"><Button size="sm" variant="outline" onClick={() => setSelectedImportDetail(importItem)}>View Details</Button></td>
                           </tr>
                         ))
+                    ) : (
+                      <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No import history for {selectedYear}. Click &quot;Start Import&quot; to begin.</td></tr>
                     )}
                   </tbody>
                 </table>

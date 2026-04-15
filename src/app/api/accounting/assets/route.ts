@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     if (status) where.status = status;
     if (category) where.category = category;
-    if (companyId) where.companyId = companyId;
+    if (companyId) where.OR = [{ companyId }, { companyId: null }];
 
     const assets = await prisma.asset.findMany({
       where,

@@ -1,44 +1,44 @@
 'use client'
 
-import { useEffect, useState, useCallback, type ReactNode } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select'
-import { 
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Globe,
-  Calendar,
-  RefreshCw,
-  Save,
-  CheckCircle,
-  Info,
-  AlertCircle,
-  Plus,
-  Edit
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    AlertCircle,
+    Calendar,
+    CheckCircle,
+    DollarSign,
+    Edit,
+    Globe,
+    Info,
+    Plus,
+    RefreshCw,
+    Save,
+    TrendingDown,
+    TrendingUp
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import toast from 'react-hot-toast'
 
 interface Currency {
@@ -161,7 +161,7 @@ export default function CurrencySettingsPage() {
       toast.error('Please select a currency')
       return
     }
-    
+
     // Check if already exists
     if (currencies.some(c => c.code === newCurrency.code)) {
       toast.error('Currency already added')
@@ -187,7 +187,7 @@ export default function CurrencySettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currencies: updatedCurrencies, baseCurrency })
       })
-      
+
       if (res.ok) {
         setCurrencies(updatedCurrencies)
         toast.success(`${currencyToAdd.name} added successfully`)
@@ -205,7 +205,7 @@ export default function CurrencySettingsPage() {
   // Edit exchange rate
   const handleEditRate = async () => {
     if (!activeCompany?.id || !selectedCurrency) return
-    
+
     const rate = Number.parseFloat(editingRate)
     if (Number.isNaN(rate) || rate <= 0) {
       toast.error('Please enter a valid exchange rate')
@@ -213,18 +213,18 @@ export default function CurrencySettingsPage() {
     }
 
     try {
-      const updatedCurrencies = currencies.map(c => 
-        c.code === selectedCurrency.code 
+      const updatedCurrencies = currencies.map(c =>
+        c.code === selectedCurrency.code
           ? { ...c, exchangeRate: rate, lastUpdated: new Date().toISOString().split('T')[0] }
           : c
       )
-      
+
       const res = await fetch(`/api/settings/currencies?companyId=${activeCompany.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currencies: updatedCurrencies, baseCurrency })
       })
-      
+
       if (res.ok) {
         setCurrencies(updatedCurrencies)
         toast.success(`Exchange rate updated for ${selectedCurrency.code}`)
@@ -245,18 +245,18 @@ export default function CurrencySettingsPage() {
     if (!activeCompany?.id) return
 
     try {
-      const updatedCurrencies = currencies.map(c => 
-        c.code === currency.code 
+      const updatedCurrencies = currencies.map(c =>
+        c.code === currency.code
           ? { ...c, enabled: !c.enabled }
           : c
       )
-      
+
       const res = await fetch(`/api/settings/currencies?companyId=${activeCompany.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currencies: updatedCurrencies, baseCurrency })
       })
-      
+
       if (res.ok) {
         setCurrencies(updatedCurrencies)
         toast.success(`${currency.code} ${currency.enabled ? 'disabled' : 'enabled'}`)
@@ -534,7 +534,7 @@ export default function CurrencySettingsPage() {
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                         <span className="text-white font-bold text-lg">{currency.symbol}</span>
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-gray-900">{currency.name}</h3>
@@ -544,7 +544,7 @@ export default function CurrencySettingsPage() {
                             <Badge className="bg-blue-100 text-blue-700">Base Currency</Badge>
                           )}
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
                             <DollarSign className="w-4 h-4" />
@@ -688,8 +688,8 @@ export default function CurrencySettingsPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="currency-select">Currency</Label>
-              <Select 
-                value={newCurrency.code} 
+              <Select
+                value={newCurrency.code}
                 onValueChange={(value) => setNewCurrency({ ...newCurrency, code: value })}
               >
                 <SelectTrigger>

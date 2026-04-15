@@ -524,7 +524,10 @@
     "Mostrando",
     "coincidan",
     "Icono",
-    "existen"
+    "existen",
+    "QuickBooks", "quickbooks",
+    "Sincronización", "sincronización", "sincronizados", "sincronizado",
+    "completada", "completado"
   ],
   "ignorePaths": [
     "node_modules/**",

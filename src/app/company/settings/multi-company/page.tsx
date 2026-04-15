@@ -1,28 +1,28 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import {
+    AlertCircle,
+    ArrowRightLeft,
+    Building2,
+    CheckCircle,
+    Crown,
+    Database,
+    DollarSign,
+    Eye,
+    Plus,
+    Settings,
+    Users,
+    XCircle,
+    Zap
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Building2,
-  Plus,
-  Eye,
-  Settings,
-  Users,
-  DollarSign,
-  CheckCircle,
-  XCircle,
-  Crown,
-  Zap,
-  Database,
-  ArrowRightLeft,
-  AlertCircle
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface Company {
   id: string
@@ -281,8 +281,8 @@ export default function MultiCompanyPage() {
         {/* Companies Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {companies.map((company) => (
-            <Card 
-              key={company.id} 
+            <Card
+              key={company.id}
               className={`hover:shadow-lg transition-shadow ${
                 company.id === activeCompanyId ? 'border-2 border-blue-500 bg-blue-50' : ''
               }`}
@@ -336,8 +336,8 @@ export default function MultiCompanyPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className="flex-1"
                     onClick={() => switchCompany(company.id)}
                     disabled={company.id === activeCompanyId}

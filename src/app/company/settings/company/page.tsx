@@ -1,28 +1,28 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    AlertCircle,
+    Building2,
+    CheckCircle,
+    FileText,
+    Globe,
+    Image as ImageIcon,
+    Info,
+    Mail,
+    MapPin,
+    Phone,
+    Save,
+    Upload
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  Building2,
-  MapPin,
-  Phone,
-  Mail,
-  Globe,
-  FileText,
-  Save,
-  CheckCircle,
-  Info,
-  AlertCircle,
-  Upload,
-  Image as ImageIcon
-} from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface CompanyInfo {
   legalName: string
