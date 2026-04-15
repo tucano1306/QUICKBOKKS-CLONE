@@ -244,7 +244,7 @@ interface AccountingMenuProps {
   onItemClick?: (() => void) | (() => Promise<void>)
 }
 
-export default function AccountingMenu({ onItemClick }: AccountingMenuProps) {
+export default function AccountingMenu({ onItemClick }: Readonly<AccountingMenuProps>) {
   const pathname = usePathname()
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
 

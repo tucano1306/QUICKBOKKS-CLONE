@@ -49,7 +49,7 @@ interface MobileBreadcrumbsProps {
   className?: string
 }
 
-export default function MobileBreadcrumbs({ sections = mainSections, className = '' }: MobileBreadcrumbsProps) {
+export default function MobileBreadcrumbs({ sections = mainSections, className = '' }: Readonly<MobileBreadcrumbsProps>) {
   const pathname = usePathname()
   const router = useRouter()
 

@@ -39,9 +39,15 @@ interface ClassificationRule {
   isActive: boolean
 }
 
+const getMessageClass = (type: 'success' | 'error' | 'info'): string => {
+  if (type === 'success') return 'bg-green-50 text-green-800 border border-green-200'
+  if (type === 'error') return 'bg-red-50 text-red-800 border border-red-200'
+  return 'bg-blue-50 text-blue-800 border border-blue-200'
+}
+
 export default function AccountingSettingsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
@@ -159,11 +165,7 @@ export default function AccountingSettingsPage() {
 
         {/* Message Display */}
         {message && (
-          <div className={`p-3 rounded-lg flex items-center gap-2 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-            message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-            'bg-blue-50 text-blue-800 border border-blue-200'
-          }`}>
+          <div className={`p-3 rounded-lg flex items-center gap-2 ${getMessageClass(message.type)}`}>
             {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
             {message.text}
           </div>

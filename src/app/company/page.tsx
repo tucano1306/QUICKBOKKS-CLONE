@@ -39,7 +39,7 @@ interface QuickAccessCard {
 
 export default function CompanyHomePage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
 
   useEffect(() => {

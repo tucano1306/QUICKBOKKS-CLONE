@@ -30,6 +30,82 @@ interface Transaction {
   notes: string | null
 }
 
+// ─── Module-level helpers (reduce cognitive complexity) ───────────────────────
+
+const matchesVendor = (t: Transaction, vendor: string): boolean => {
+  const s = vendor.toLowerCase()
+  return (t.description?.toLowerCase().includes(s) ?? false) ||
+         (t.notes?.toLowerCase().includes(s) ?? false)
+}
+
+const matchesDateRange = (trans: Transaction, dateFrom: string, dateTo: string): boolean => {
+  if (dateFrom) {
+    const transDate = new Date(trans.date)
+    const [y, m, d] = dateFrom.split('-').map(Number)
+    const fromDate = new Date(y, m - 1, d, 0, 0, 0)
+    const transLocal = new Date(transDate.getFullYear(), transDate.getMonth(), transDate.getDate(), 0, 0, 0)
+    if (transLocal < fromDate) return false
+  }
+  if (dateTo) {
+    const transDate = new Date(trans.date)
+    const [y, m, d] = dateTo.split('-').map(Number)
+    const toDate = new Date(y, m - 1, d, 23, 59, 59)
+    const transLocal = new Date(transDate.getFullYear(), transDate.getMonth(), transDate.getDate(), 23, 59, 59)
+    if (transLocal > toDate) return false
+  }
+  return true
+}
+
+const matchesMonthYear = (trans: Transaction, filterMonth: string, filterYear: string): boolean => {
+  if (!filterMonth && !filterYear) return true
+  const transDate = new Date(trans.date)
+  const transMonth = transDate.getUTCMonth() + 1
+  const transYear = transDate.getUTCFullYear()
+  if (filterMonth && filterYear) {
+    return transMonth === Number.parseInt(filterMonth) && transYear === Number.parseInt(filterYear)
+  }
+  if (filterMonth) return transMonth === Number.parseInt(filterMonth)
+  if (filterYear) return transYear === Number.parseInt(filterYear)
+  return true
+}
+
+const getTransactionLabel = (type: string): string => {
+  if (type === 'INCOME') return 'Ingreso'
+  if (type === 'EXPENSE') return 'Gasto'
+  return 'Transferencia'
+}
+
+const getTransactionArrowLabel = (type: string): string => {
+  if (type === 'INCOME') return '↑ Ingreso'
+  if (type === 'EXPENSE') return '↓ Gasto'
+  return '⇄ Transfer'
+}
+
+const getTypeLabel = (filter: string): string => {
+  if (filter === 'INCOME') return 'ingresos'
+  if (filter === 'EXPENSE') return 'gastos'
+  return 'transacciones'
+}
+
+const buildPdfFilterText = (
+  filter: string, filterCategory: string, filterVendor: string,
+  filterDescription: string, dateFrom: string, dateTo: string,
+  minAmount: string, maxAmount: string
+): string => {
+  const filters: string[] = []
+  if (filter !== 'ALL') filters.push(filter === 'INCOME' ? 'Solo Ingresos' : 'Solo Gastos')
+  if (filterCategory) filters.push(`Categoría: ${filterCategory}`)
+  if (filterVendor) filters.push(`Proveedor: ${filterVendor}`)
+  if (filterDescription) filters.push(`Descripción: ${filterDescription}`)
+  if (dateFrom) filters.push(`Desde: ${dateFrom}`)
+  if (dateTo) filters.push(`Hasta: ${dateTo}`)
+  if (minAmount) filters.push(`Mín: $${minAmount}`)
+  if (maxAmount) filters.push(`Máx: $${maxAmount}`)
+  return filters.length > 0 ? filters.join(' | ') : 'Todas las transacciones'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function TransactionsPage() {
   const router = useRouter()
   const { activeCompany } = useCompany()
@@ -95,75 +171,14 @@ export default function TransactionsPage() {
   // Filtrar transacciones
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
-      // Filtro por tipo
       if (filter !== 'ALL' && t.type !== filter) return false
-      
-      // Filtro por categoría
       if (filterCategory && t.category !== filterCategory) return false
-
-      // Filtro por proveedor (busca en descripción y notas)
-      if (filterVendor) {
-        const search = filterVendor.toLowerCase()
-        const matchVendor =
-          (t.description?.toLowerCase().includes(search)) ||
-          (t.notes?.toLowerCase().includes(search))
-        if (!matchVendor) return false
-      }
-
-      // Filtro por descripción
-      if (filterDescription) {
-        const search = filterDescription.toLowerCase()
-        if (!t.description?.toLowerCase().includes(search)) return false
-      }
-      
-      // Filtro por fecha desde (comparar solo fecha, ignorando hora)
-      if (dateFrom) {
-        const transDate = new Date(t.date)
-        // Parsear dateFrom como fecha local (no UTC) para evitar desfase de timezone
-        const [yearFrom, monthFrom, dayFrom] = dateFrom.split('-').map(Number)
-        const fromDate = new Date(yearFrom, monthFrom - 1, dayFrom, 0, 0, 0)
-        // Comparar usando fechas locales normalizadas al inicio del día
-        const transDateLocal = new Date(transDate.getFullYear(), transDate.getMonth(), transDate.getDate(), 0, 0, 0)
-        if (transDateLocal < fromDate) return false
-      }
-      
-      // Filtro por fecha hasta (comparar solo fecha, ignorando hora)
-      if (dateTo) {
-        const transDate = new Date(t.date)
-        // Parsear dateTo como fecha local (no UTC) para evitar desfase de timezone
-        const [yearTo, monthTo, dayTo] = dateTo.split('-').map(Number)
-        const toDate = new Date(yearTo, monthTo - 1, dayTo, 23, 59, 59)
-        // Comparar usando fechas locales normalizadas al final del día
-        const transDateLocal = new Date(transDate.getFullYear(), transDate.getMonth(), transDate.getDate(), 23, 59, 59)
-        if (transDateLocal > toDate) return false
-      }
-      
-      // Filtro por monto mínimo
+      if (filterVendor && !matchesVendor(t, filterVendor)) return false
+      if (filterDescription && !t.description?.toLowerCase().includes(filterDescription.toLowerCase())) return false
+      if (!matchesDateRange(t, dateFrom, dateTo)) return false
+      if (!matchesMonthYear(t, filterMonth, filterYear)) return false
       if (minAmount && t.amount < Number.parseFloat(minAmount)) return false
-      
-      // Filtro por monto máximo
       if (maxAmount && t.amount > Number.parseFloat(maxAmount)) return false
-
-      // Filtro por mes y año específico (usar UTC para evitar problemas de timezone)
-      if (filterMonth || filterYear) {
-        const transDate = new Date(t.date)
-        // Usar métodos UTC para evitar conversión a zona horaria local
-        const transMonth = transDate.getUTCMonth() + 1
-        const transYear = transDate.getUTCFullYear()
-        
-        if (filterMonth && filterYear) {
-          const month = Number.parseInt(filterMonth)
-          const year = Number.parseInt(filterYear)
-          if (transMonth !== month || transYear !== year) return false
-        } else if (filterMonth) {
-          const month = Number.parseInt(filterMonth)
-          if (transMonth !== month) return false
-        } else if (filterYear) {
-          const year = Number.parseInt(filterYear)
-          if (transYear !== year) return false
-        }
-      }
-      
       return true
     })
   }, [transactions, filter, filterCategory, filterVendor, filterDescription, dateFrom, dateTo, minAmount, maxAmount, filterMonth, filterYear])
@@ -290,8 +305,8 @@ export default function TransactionsPage() {
     const headers = ['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Estado']
     const rows = filteredTransactions.map(t => [
       new Date(t.date).toLocaleDateString('es-MX'),
-      t.type === 'INCOME' ? 'Ingreso' : t.type === 'EXPENSE' ? 'Gasto' : 'Transferencia',
-      t.category || '',
+      getTransactionLabel(t.type),
+      t.category || ''
       t.description || '',
       t.amount.toFixed(2),
       t.status
@@ -337,17 +352,7 @@ export default function TransactionsPage() {
     doc.text(`Generado: ${today}`, pageWidth / 2, 30, { align: 'center' })
     
     // Filtros aplicados
-    let filterText = 'Todas las transacciones'
-    const filters: string[] = []
-    if (filter !== 'ALL') filters.push(filter === 'INCOME' ? 'Solo Ingresos' : 'Solo Gastos')
-    if (filterCategory) filters.push(`Categoría: ${filterCategory}`)
-    if (filterVendor) filters.push(`Proveedor: ${filterVendor}`)
-    if (filterDescription) filters.push(`Descripción: ${filterDescription}`)
-    if (dateFrom) filters.push(`Desde: ${dateFrom}`)
-    if (dateTo) filters.push(`Hasta: ${dateTo}`)
-    if (minAmount) filters.push(`Mín: $${minAmount}`)
-    if (maxAmount) filters.push(`Máx: $${maxAmount}`)
-    if (filters.length > 0) filterText = filters.join(' | ')
+    const filterText = buildPdfFilterText(filter, filterCategory, filterVendor, filterDescription, dateFrom, dateTo, minAmount, maxAmount)
     
     doc.setFontSize(9)
     doc.text(filterText, pageWidth / 2, 38, { align: 'center' })
@@ -380,7 +385,7 @@ export default function TransactionsPage() {
     // Tabla de transacciones
     const tableData = filteredTransactions.map(t => [
       new Date(t.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }),
-      t.type === 'INCOME' ? '↑ Ingreso' : t.type === 'EXPENSE' ? '↓ Gasto' : '⇄ Transfer',
+      getTransactionArrowLabel(t.type),
       t.category || '-',
       (t.description || '-').length > 30 ? (t.description || '').substring(0, 30) + '...' : (t.description || '-'),
       `$${t.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
@@ -434,7 +439,7 @@ export default function TransactionsPage() {
     })
     
     // Guardar PDF
-    const typeLabel = filter === 'INCOME' ? 'ingresos' : filter === 'EXPENSE' ? 'gastos' : 'transacciones'
+    const typeLabel = getTypeLabel(filter)
     const fileName = `reporte_${typeLabel}_${new Date().toISOString().split('T')[0]}.pdf`
     doc.save(fileName)
   }
