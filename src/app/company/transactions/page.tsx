@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Pagination } from "@/components/ui/pagination"
-import { 
-  DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw, 
+import {
+  DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw,
   Trash2, Search, X, Filter, CheckSquare, Square, Eye, Edit, Plus,
   Download, FileText
 } from 'lucide-react'
@@ -113,10 +113,10 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
-  
+
   // Selección múltiple
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  
+
   // Filtros de búsqueda
   const [filterCategory, setFilterCategory] = useState('')
   const [filterVendor, setFilterVendor] = useState('')
@@ -143,7 +143,7 @@ export default function TransactionsPage() {
 
   const loadTransactions = useCallback(async () => {
     if (!activeCompany?.id) return
-    
+
     // Limpiar transacciones anteriores al cambiar de empresa
     setTransactions([])
     setLoading(true)
@@ -231,13 +231,13 @@ export default function TransactionsPage() {
   // Eliminar seleccionados
   const deleteSelected = async () => {
     if (selectedIds.size === 0) return
-    
+
     const confirmDelete = globalThis.confirm(
       `¿Estás seguro de eliminar ${selectedIds.size} transacción(es)?\n\nEsta acción no se puede deshacer.`
     )
-    
+
     if (!confirmDelete) return
-    
+
     setDeleting(true)
     try {
       const res = await fetch('/api/transactions', {
@@ -245,7 +245,7 @@ export default function TransactionsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: Array.from(selectedIds) })
       })
-      
+
       if (res.ok) {
         globalThis.alert(`${selectedIds.size} transacción(es) eliminada(s)`)
         setSelectedIds(new Set())
@@ -264,10 +264,10 @@ export default function TransactionsPage() {
   // Eliminar individual
   const deleteTransaction = async (id: string) => {
     if (!activeCompany?.id) return
-    
+
     const confirmDelete = globalThis.confirm('¿Eliminar esta transacción?')
     if (!confirmDelete) return
-    
+
     try {
       const res = await fetch(`/api/transactions/${id}?companyId=${activeCompany.id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -330,49 +330,49 @@ export default function TransactionsPage() {
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
-    
+
     // Header con color corporativo
     doc.setFillColor(0, 119, 197)
     doc.rect(0, 0, pageWidth, 45, 'F')
-    
+
     // Título
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(24)
     doc.setFont('helvetica', 'bold')
     doc.text('Reporte de Transacciones', pageWidth / 2, 20, { align: 'center' })
-    
+
     // Subtítulo con fecha
     doc.setFontSize(11)
     doc.setFont('helvetica', 'normal')
-    const today = new Date().toLocaleDateString('es-MX', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const today = new Date().toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     })
     doc.text(`Generado: ${today}`, pageWidth / 2, 30, { align: 'center' })
-    
+
     // Filtros aplicados
     const filterText = buildPdfFilterText(filter, filterCategory, filterVendor, filterDescription, dateFrom, dateTo, minAmount, maxAmount)
-    
+
     doc.setFontSize(9)
     doc.text(filterText, pageWidth / 2, 38, { align: 'center' })
-    
+
     // Resumen estadístico
     doc.setTextColor(51, 51, 51)
     doc.setFillColor(248, 250, 252)
     doc.roundedRect(14, 52, pageWidth - 28, 28, 3, 3, 'F')
-    
+
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.text('RESUMEN FINANCIERO', 20, 62)
-    
+
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
-    
+
     const incomeTotal = filteredTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0)
     const expenseTotal = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0)
     const netBalance = incomeTotal - expenseTotal
-    
+
     doc.setTextColor(16, 128, 0)
     doc.text(`Ingresos: $${incomeTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 20, 72)
     doc.setTextColor(220, 38, 38)
@@ -381,7 +381,7 @@ export default function TransactionsPage() {
     doc.text(`Balance: $${netBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 130, 72)
     doc.setTextColor(51, 51, 51)
     doc.text(`Total: ${filteredTransactions.length} transacciones`, 175, 72)
-    
+
     // Tabla de transacciones
     const tableData = filteredTransactions.map(t => [
       new Date(t.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -391,7 +391,7 @@ export default function TransactionsPage() {
       `$${t.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
       t.status
     ])
-    
+
     autoTable(doc, {
       startY: 88,
       head: [['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Estado']],
@@ -437,7 +437,7 @@ export default function TransactionsPage() {
         )
       }
     })
-    
+
     // Guardar PDF
     const typeLabel = getTypeLabel(filter)
     const fileName = `reporte_${typeLabel}_${new Date().toISOString().split('T')[0]}.pdf`
@@ -459,17 +459,17 @@ export default function TransactionsPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <Button 
+            <Button
               size="sm"
-              onClick={() => router.push('/company/transactions/new?type=INCOME')} 
+              onClick={() => router.push('/company/transactions/new?type=INCOME')}
               className="flex-1 sm:flex-none bg-[#2CA01C] hover:bg-[#108000] shadow-lg shadow-green-500/25"
             >
               <Plus className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Nuevo</span> Ingreso
             </Button>
-            <Button 
+            <Button
               size="sm"
-              onClick={() => router.push('/company/transactions/new?type=EXPENSE')} 
+              onClick={() => router.push('/company/transactions/new?type=EXPENSE')}
               className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/25"
             >
               <Plus className="h-4 w-4 sm:mr-2" />
@@ -483,10 +483,10 @@ export default function TransactionsPage() {
               <Download className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">CSV</span>
             </Button>
-            <Button 
-              size="sm" 
-              onClick={exportToPDF} 
-              variant="outline" 
+            <Button
+              size="sm"
+              onClick={exportToPDF}
+              variant="outline"
               className="flex-1 sm:flex-none text-[#0077C5] border-[#0077C5] hover:bg-[#0077C5] hover:text-white"
             >
               <FileText className="h-4 w-4 sm:mr-2" />
@@ -562,7 +562,7 @@ export default function TransactionsPage() {
                   placeholder="Fecha inicio"
                 />
               </div>
-              
+
               {/* Fecha hasta */}
               <div>
                 <span className="text-sm font-medium mb-1 block">Hasta</span>
@@ -572,7 +572,7 @@ export default function TransactionsPage() {
                   placeholder="Fecha fin"
                 />
               </div>
-              
+
               {/* Monto mínimo y máximo */}
               <div className="flex gap-2">
                 <div className="flex-1">
@@ -651,7 +651,7 @@ export default function TransactionsPage() {
                 {(filterMonth || filterYear) && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg text-sm text-green-700">
                     <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][Number.parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
-                    <button 
+                    <button
                       onClick={() => { setFilterMonth(''); setFilterYear(''); }}
                       className="text-green-500 hover:text-green-700 font-medium"
                     >
@@ -661,7 +661,7 @@ export default function TransactionsPage() {
                 )}
               </div>
             </div>
-            
+
             {hasActiveFilters && (
               <div className="mt-4 flex justify-end">
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -732,7 +732,7 @@ export default function TransactionsPage() {
       {/* Barra de acciones y filtros por tipo */}
       <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div className="flex flex-wrap gap-2">
-          <Button 
+          <Button
             variant={filter === 'ALL' ? 'default' : 'outline'}
             onClick={() => setFilter('ALL')}
             size="sm"
@@ -740,7 +740,7 @@ export default function TransactionsPage() {
           >
             Todas <span className="hidden sm:inline">({transactions.length})</span>
           </Button>
-          <Button 
+          <Button
             variant={filter === 'INCOME' ? 'default' : 'outline'}
             onClick={() => setFilter('INCOME')}
             size="sm"
@@ -748,7 +748,7 @@ export default function TransactionsPage() {
           >
             💵 <span className="hidden sm:inline">Ingresos ({transactions.filter(t => t.type === 'INCOME').length})</span>
           </Button>
-          <Button 
+          <Button
             variant={filter === 'EXPENSE' ? 'default' : 'outline'}
             onClick={() => setFilter('EXPENSE')}
             size="sm"
@@ -764,8 +764,8 @@ export default function TransactionsPage() {
             <span className="text-sm font-medium text-blue-700">
               {selectedIds.size} seleccionado(s)
             </span>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               size="sm"
               onClick={deleteSelected}
               disabled={deleting}
@@ -813,7 +813,7 @@ export default function TransactionsPage() {
           )}
           {!loading && filteredTransactions.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              {hasActiveFilters 
+              {hasActiveFilters
                 ? 'No hay transacciones que coincidan con los filtros'
                 : 'No hay transacciones registradas'
               }
@@ -822,8 +822,8 @@ export default function TransactionsPage() {
           {!loading && filteredTransactions.length > 0 && (
             <div className="space-y-3">
               {paginatedTransactions.map((t) => (
-                <div 
-                  key={t.id} 
+                <div
+                  key={t.id}
                   className={`p-3 sm:p-4 rounded-lg border transition-all ${
                     t.type === 'INCOME' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                   } ${selectedIds.has(t.id) ? 'ring-2 ring-blue-500' : ''}`}
@@ -836,7 +836,7 @@ export default function TransactionsPage() {
                       onCheckedChange={() => toggleSelect(t.id)}
                       className="h-5 w-5 mt-0.5 flex-shrink-0"
                     />
-                    
+
                     {/* Icono */}
                     <div className={`p-1.5 rounded-full flex-shrink-0 ${
                       t.type === 'INCOME' ? 'bg-green-100' : 'bg-red-100'
@@ -847,7 +847,7 @@ export default function TransactionsPage() {
                         <TrendingDown className="h-4 w-4 text-red-600" />
                       )}
                     </div>
-                    
+
                     {/* Contenido principal mobile */}
                     <div className="flex-1 min-w-0">
                       {/* Descripción y monto */}
@@ -861,7 +861,7 @@ export default function TransactionsPage() {
                           {t.type === 'INCOME' ? '+' : '-'}${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </div>
                       </div>
-                      
+
                       {/* Fecha y categoría */}
                       <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
                         <span className="flex items-center gap-1">
@@ -870,7 +870,7 @@ export default function TransactionsPage() {
                             const dateStr = t.date.split('T')[0];
                             const [year, month, day] = dateStr.split('-').map(Number);
                             const localDate = new Date(year, month - 1, day);
-                            return localDate.toLocaleDateString('es-ES', { 
+                            return localDate.toLocaleDateString('es-ES', {
                               day: '2-digit',
                               month: 'short'
                             });
@@ -879,12 +879,12 @@ export default function TransactionsPage() {
                         <span className="text-gray-400">•</span>
                         <Badge variant="outline" className="text-xs py-0 h-5">{t.category}</Badge>
                       </div>
-                      
+
                       {/* Notas si existen */}
                       {t.notes && (
                         <p className="text-xs text-gray-500 mb-2 line-clamp-1">{t.notes}</p>
                       )}
-                      
+
                       {/* Botones de acción mobile */}
                       <div className="flex items-center gap-1 pt-2 border-t border-gray-200">
                         <Button
@@ -926,7 +926,7 @@ export default function TransactionsPage() {
                       onCheckedChange={() => toggleSelect(t.id)}
                       className="h-5 w-5"
                     />
-                    
+
                     {/* Icono */}
                     <div className={`p-2 rounded-full flex-shrink-0 ${
                       t.type === 'INCOME' ? 'bg-green-100' : 'bg-red-100'
@@ -937,7 +937,7 @@ export default function TransactionsPage() {
                         <TrendingDown className="h-5 w-5 text-red-600" />
                       )}
                     </div>
-                    
+
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{t.description || t.category}</p>
@@ -948,10 +948,10 @@ export default function TransactionsPage() {
                             const dateStr = t.date.split('T')[0];
                             const [year, month, day] = dateStr.split('-').map(Number);
                             const localDate = new Date(year, month - 1, day);
-                            return localDate.toLocaleDateString('es-ES', { 
-                              year: 'numeric', 
-                              month: 'short', 
-                              day: 'numeric' 
+                            return localDate.toLocaleDateString('es-ES', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
                             });
                           })()}
                         </span>
@@ -959,14 +959,14 @@ export default function TransactionsPage() {
                       </div>
                       {t.notes && <p className="text-xs text-gray-400 mt-1 truncate">{t.notes}</p>}
                     </div>
-                    
+
                     {/* Monto */}
                     <div className={`text-lg font-bold whitespace-nowrap ${
                       t.type === 'INCOME' ? 'text-green-600' : 'text-red-600'
                     }`}>
                       {t.type === 'INCOME' ? '+' : '-'}${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </div>
-                    
+
                     {/* Botones de acción */}
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <Button
