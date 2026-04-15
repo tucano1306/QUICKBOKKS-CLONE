@@ -151,6 +151,7 @@ export default function Form1040Page() {
       }
       setDraftLoaded(true)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taxYear, draftLoaded])
 
   // Guardar borrador en localStorage cuando cambien los datos importantes
