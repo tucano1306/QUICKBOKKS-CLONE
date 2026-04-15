@@ -77,7 +77,7 @@ export default async function middleware(request: NextRequest) {
   )
 
   // Rate limiting simple (en producción usar Redis)
-  const ip = request.ip || 'unknown'
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown'
   const rateLimit = await checkRateLimit(ip, path)
 
   if (!rateLimit.allowed) {
