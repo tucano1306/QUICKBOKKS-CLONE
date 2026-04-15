@@ -15,14 +15,10 @@ import {
   Settings,
   Users,
   DollarSign,
-  TrendingUp,
-  Calendar,
   CheckCircle,
   XCircle,
   Crown,
   Zap,
-  Globe,
-  Shield,
   Database,
   ArrowRightLeft,
   AlertCircle
@@ -46,7 +42,7 @@ interface Company {
 
 export default function MultiCompanyPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [loading, setLoading] = useState(true)
   const [activeCompanyId, setActiveCompanyId] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -218,16 +214,16 @@ export default function MultiCompanyPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="new-company-name" className="block text-sm font-medium text-gray-700 mb-2">
                     Nombre de la Empresa
                   </label>
-                  <Input placeholder="Mi Nueva Empresa S.A." />
+                  <Input id="new-company-name" placeholder="Mi Nueva Empresa S.A." />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="new-company-industry" className="block text-sm font-medium text-gray-700 mb-2">
                     Industria / Giro
                   </label>
-                  <select className="w-full px-4 py-2 border rounded-lg">
+                  <select id="new-company-industry" className="w-full px-4 py-2 border rounded-lg">
                     <option>Technology / Software</option>
                     <option>Retail / E-Commerce</option>
                     <option>Professional Services</option>
@@ -238,32 +234,32 @@ export default function MultiCompanyPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="new-company-taxid" className="block text-sm font-medium text-gray-700 mb-2">
                     RFC / Tax ID
                   </label>
-                  <Input placeholder="RFC-XXXX123456" />
+                  <Input id="new-company-taxid" placeholder="RFC-XXXX123456" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="new-company-currency" className="block text-sm font-medium text-gray-700 mb-2">
                     Moneda Base
                   </label>
-                  <select className="w-full px-4 py-2 border rounded-lg">
+                  <select id="new-company-currency" className="w-full px-4 py-2 border rounded-lg">
                     <option>USD - Dólares</option>
                     <option>MXN - Pesos Mexicanos</option>
                     <option>EUR - Euros</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="new-company-fiscal" className="block text-sm font-medium text-gray-700 mb-2">
                     Cierre de Ejercicio Fiscal
                   </label>
-                  <Input type="date" defaultValue="2025-12-31" />
+                  <Input id="new-company-fiscal" type="date" defaultValue="2025-12-31" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="new-company-status" className="block text-sm font-medium text-gray-700 mb-2">
                     Estado Inicial
                   </label>
-                  <select className="w-full px-4 py-2 border rounded-lg">
+                  <select id="new-company-status" className="w-full px-4 py-2 border rounded-lg">
                     <option>Activa</option>
                     <option>Inactiva</option>
                   </select>
