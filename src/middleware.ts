@@ -129,6 +129,8 @@ setInterval(() => {
 
 export const config = {
   matcher: [
+    // NOSONAR: String.raw cannot be used here — Next.js config.matcher requires a plain string literal
+    // (tagged template literals cause "Unsupported node type TaggedTemplateExpression" at build time)
     '/((?!_next/static|_next/image|favicon.ico|.*\\..*|public).*)',
   ],
 }
