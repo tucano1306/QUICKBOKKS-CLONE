@@ -1,33 +1,33 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Pagination } from '@/components/ui/pagination'
-import {
-  Plus,
-  Download,
-  Filter,
-  Search,
-  Edit,
-  Trash2,
-  Eye,
-  CheckCircle,
-  XCircle,
-  Clock,
-  DollarSign,
-  Receipt,
-  AlertCircle,
-  Square,
-  CheckSquare,
-  FileText
-} from 'lucide-react'
+import { useCompany } from '@/contexts/CompanyContext'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import {
+    AlertCircle,
+    CheckCircle,
+    CheckSquare,
+    Clock,
+    DollarSign,
+    Download,
+    Edit,
+    Eye,
+    FileText,
+    Filter,
+    Plus,
+    Receipt,
+    Search,
+    Square,
+    Trash2,
+    XCircle
+} from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 
 interface Expense {
   id: string
@@ -51,6 +51,66 @@ interface Expense {
   } | null
   createdAt: string
 }
+
+// ── Module-level filter helpers ──────────────────────────────────────────────
+
+const matchesExpenseSearch = (e: Expense, term: string): boolean => {
+  const desc = e.description?.toLowerCase().includes(term) ?? false
+  const vendor = e.vendor?.toLowerCase().includes(term) ?? false
+  const category = e.category?.name?.toLowerCase().includes(term) ?? false
+  const employee = e.employee
+    ? `${e.employee.firstName} ${e.employee.lastName}`.toLowerCase().includes(term)
+    : false
+  const ref = e.reference?.toLowerCase().includes(term) ?? false
+  const payment = e.paymentMethod?.toLowerCase().includes(term) ?? false
+  const amount = e.amount.toString().includes(term)
+  return desc || vendor || category || employee || ref || payment || amount
+}
+
+const matchesExpenseMonthYear = (e: Expense, filterMonth: string, filterYear: string): boolean => {
+  if (!filterMonth && !filterYear) return true
+  const d = new Date(e.date)
+  const month = d.getMonth() + 1
+  const year = d.getFullYear()
+  if (filterMonth && filterYear) {
+    return month === Number.parseInt(filterMonth) && year === Number.parseInt(filterYear)
+  }
+  if (filterMonth) return month === Number.parseInt(filterMonth)
+  return year === Number.parseInt(filterYear)
+}
+
+const getStatusLabel = (status: string): string => {
+  if (status === 'PENDING') return 'Pendiente'
+  if (status === 'APPROVED') return 'Aprobado'
+  if (status === 'REJECTED') return 'Rechazado'
+  if (status === 'PAID') return 'Pagado'
+  return status
+}
+
+const calculateExpenseStats = (data: Expense[]) => ({
+  total: data.length,
+  pending: data.filter(e => e.status === 'PENDING').length,
+  approved: data.filter(e => e.status === 'APPROVED').length,
+  rejected: data.filter(e => e.status === 'REJECTED').length,
+  totalAmount: data.reduce((sum, e) => sum + e.amount, 0),
+  deductibleAmount: data.filter(e => e.taxDeductible).reduce((sum, e) => sum + e.amount, 0)
+})
+
+async function fetchExpensesData(companyId: string): Promise<Expense[]> {
+  const res = await fetch(`/api/expenses?limit=5000&companyId=${companyId}`)
+  if (!res.ok) return []
+  const data = await res.json()
+  return Array.isArray(data) ? data : (data.data ?? [])
+}
+
+async function fetchExpenseCategories(companyId: string): Promise<any[]> {
+  const res = await fetch(`/api/expenses/categories?companyId=${companyId}`)
+  if (!res.ok) return []
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ExpensesListPage() {
   const router = useRouter()
@@ -106,40 +166,18 @@ export default function ExpensesListPage() {
 
   const loadData = async () => {
     if (!activeCompany) return
-    
     setLoading(true)
     try {
-      // Load expenses - usar limit=5000 para cargar todos los gastos
-      // CRÍTICO: pasar companyId para evitar cruce de datos entre empresas
-      const expensesRes = await fetch(`/api/expenses?limit=5000&companyId=${activeCompany.id}`)
-      if (expensesRes.ok) {
-        const expensesData = await expensesRes.json()
-        // La API puede devolver { data: [...] } o un array directo
-        const expensesArray = Array.isArray(expensesData) 
-          ? expensesData 
-          : (expensesData.data || [])
-        console.log(`📊 Total gastos cargados: ${expensesArray.length}`)
-        setExpenses(expensesArray)
-        setFilteredExpenses(expensesArray)
-        calculateStats(expensesArray)
-      } else {
-        // Si hay error, inicializar con arrays vacíos
-        console.error('Error al cargar gastos:', expensesRes.status)
-        setExpenses([])
-        setFilteredExpenses([])
-      }
-
-      // Load categories - filtrar por empresa activa
-      const categoriesRes = await fetch(`/api/expenses/categories?companyId=${activeCompany.id}`)
-      if (categoriesRes.ok) {
-        const categoriesData = await categoriesRes.json()
-        setCategories(Array.isArray(categoriesData) ? categoriesData : [])
-      } else {
-        setCategories([])
-      }
+      const [expensesArray, categoriesData] = await Promise.all([
+        fetchExpensesData(activeCompany.id),
+        fetchExpenseCategories(activeCompany.id)
+      ])
+      setExpenses(expensesArray)
+      setFilteredExpenses(expensesArray)
+      setStats(calculateExpenseStats(expensesArray))
+      setCategories(categoriesData)
     } catch (error) {
       console.error('Error loading data:', error)
-      // Asegurar que los estados siempre sean arrays
       setExpenses([])
       setFilteredExpenses([])
       setCategories([])
@@ -148,127 +186,34 @@ export default function ExpensesListPage() {
     }
   }
 
-  const calculateStats = (data: Expense[]) => {
-    const stats = {
-      total: data.length,
-      pending: data.filter(e => e.status === 'PENDING').length,
-      approved: data.filter(e => e.status === 'APPROVED').length,
-      rejected: data.filter(e => e.status === 'REJECTED').length,
-      totalAmount: data.reduce((sum, e) => sum + e.amount, 0),
-      deductibleAmount: data.filter(e => e.taxDeductible).reduce((sum, e) => sum + e.amount, 0)
-    }
-    setStats(stats)
-  }
-
   // Filter expenses
   useEffect(() => {
     let filtered = expenses
-    
-    console.log(`📊 Total gastos cargados: ${expenses.length}`)
 
-    // Search filter - búsqueda inteligente en múltiples campos
-    if (searchTerm && searchTerm.trim()) {
+    if (searchTerm?.trim()) {
       const term = searchTerm.toLowerCase().trim()
-      
-      // Debug: mostrar gastos que coinciden con "salario" en cualquier campo
-      if (term.includes('salario')) {
-        const salarioMatches = expenses.filter(e => {
-          const categoryName = e.category?.name?.toLowerCase() || ''
-          return categoryName.includes('salario')
-        })
-        console.log(`💼 Gastos con categoría "Salario": ${salarioMatches.length}`)
-        console.log('📋 Categorías únicas:', [...new Set(salarioMatches.map(e => e.category?.name))].join(', '))
-        
-        // Buscar el gasto del 31/12/2025 por $1,819.16
-        const dec31Expense = expenses.find(e => {
-          const date = new Date(e.date)
-          return date.getDate() === 31 && 
-                 date.getMonth() === 11 && 
-                 date.getFullYear() === 2025 &&
-                 Math.abs(e.amount - 1819.16) < 0.01
-        })
-        
-        if (dec31Expense) {
-          console.log('🎯 Gasto del 31/12/2025 encontrado:', {
-            fecha: new Date(dec31Expense.date).toLocaleDateString('es-MX'),
-            monto: dec31Expense.amount,
-            categoria: dec31Expense.category?.name,
-            descripcion: dec31Expense.description,
-            vendor: dec31Expense.vendor
-          })
-        } else {
-          console.log('❌ Gasto del 31/12/2025 por $1,819.16 NO encontrado en expenses')
-        }
-      }
-      
-      filtered = filtered.filter(e => {
-        // Verificar cada campo de forma segura
-        const descMatch = e.description?.toLowerCase()?.includes(term) || false
-        const vendorMatch = e.vendor?.toLowerCase()?.includes(term) || false
-        const categoryMatch = e.category?.name?.toLowerCase()?.includes(term) || false
-        // Buscar en nombre completo del empleado (firstName + lastName)
-        const employeeFullName = e.employee 
-          ? `${e.employee.firstName} ${e.employee.lastName}`.toLowerCase()
-          : ''
-        const employeeMatch = employeeFullName.includes(term)
-        const refMatch = e.reference?.toLowerCase()?.includes(term) || false
-        const paymentMatch = e.paymentMethod?.toLowerCase()?.includes(term) || false
-        const amountMatch = e.amount?.toString()?.includes(term) || false
-        
-        return descMatch || vendorMatch || categoryMatch || employeeMatch || refMatch || paymentMatch || amountMatch
-      })
-      console.log(`🔍 Filtro "${term}": ${filtered.length} resultados de ${expenses.length} gastos`)
+      filtered = filtered.filter(e => matchesExpenseSearch(e, term))
     }
 
-    // Status filter
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter(e => e.status === statusFilter)
-    }
+    if (statusFilter !== 'ALL') filtered = filtered.filter(e => e.status === statusFilter)
+    if (categoryFilter !== 'ALL') filtered = filtered.filter(e => e.category?.id === categoryFilter)
 
-    // Category filter
-    if (categoryFilter !== 'ALL') {
-      filtered = filtered.filter(e => e.category?.id === categoryFilter)
-    }
-
-    // Date from filter
     if (dateFrom) {
-      const fromDate = new Date(dateFrom)
-      fromDate.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(e => new Date(e.date) >= fromDate)
+      const from = new Date(dateFrom)
+      from.setHours(0, 0, 0, 0)
+      filtered = filtered.filter(e => new Date(e.date) >= from)
     }
-
-    // Date to filter
     if (dateTo) {
-      const toDate = new Date(dateTo)
-      toDate.setHours(23, 59, 59, 999)
-      filtered = filtered.filter(e => new Date(e.date) <= toDate)
+      const to = new Date(dateTo)
+      to.setHours(23, 59, 59, 999)
+      filtered = filtered.filter(e => new Date(e.date) <= to)
     }
 
-    // Filtro por mes y año específico
-    if (filterMonth && filterYear) {
-      const month = Number.parseInt(filterMonth)
-      const year = Number.parseInt(filterYear)
-      filtered = filtered.filter(e => {
-        const expenseDate = new Date(e.date)
-        return expenseDate.getMonth() + 1 === month && expenseDate.getFullYear() === year
-      })
-    } else if (filterMonth) {
-      const month = Number.parseInt(filterMonth)
-      filtered = filtered.filter(e => {
-        const expenseDate = new Date(e.date)
-        return expenseDate.getMonth() + 1 === month
-      })
-    } else if (filterYear) {
-      const year = Number.parseInt(filterYear)
-      filtered = filtered.filter(e => {
-        const expenseDate = new Date(e.date)
-        return expenseDate.getFullYear() === year
-      })
-    }
+    filtered = filtered.filter(e => matchesExpenseMonthYear(e, filterMonth, filterYear))
 
     setFilteredExpenses(filtered)
-    calculateStats(filtered) // Actualizar estadísticas con datos filtrados
-    setCurrentPage(1) // Reset a página 1 cuando cambian los filtros
+    setStats(calculateExpenseStats(filtered))
+    setCurrentPage(1)
   }, [searchTerm, statusFilter, categoryFilter, dateFrom, dateTo, filterMonth, filterYear, expenses])
 
   // Calcular datos paginados
@@ -305,7 +250,7 @@ export default function ExpensesListPage() {
   // Eliminar múltiples gastos
   const handleDeleteMultiple = async () => {
     if (selectedExpenses.size === 0) return
-    
+
     if (!confirm(`¿Estás seguro de eliminar ${selectedExpenses.size} gasto(s)? Esta acción no se puede deshacer.`)) {
       return
     }
@@ -339,7 +284,7 @@ export default function ExpensesListPage() {
   // Cambiar estado de múltiples gastos
   const handleBulkStatusChange = async (newStatus: string) => {
     if (selectedExpenses.size === 0) return
-    
+
     const statusLabels: Record<string, string> = {
       PENDING: 'Pendiente',
       APPROVED: 'Aprobado',
@@ -351,9 +296,9 @@ export default function ExpensesListPage() {
       const response = await fetch('/api/expenses/bulk-update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           ids: Array.from(selectedExpenses),
-          status: newStatus 
+          status: newStatus
         })
       })
 
@@ -361,12 +306,12 @@ export default function ExpensesListPage() {
 
       if (response.ok) {
         // Actualizar estado local
-        setExpenses(expenses.map(e => 
+        setExpenses(expenses.map(e =>
           selectedExpenses.has(e.id) ? { ...e, status: newStatus } : e
         ))
-        setMessage({ 
-          type: 'success', 
-          text: `${selectedExpenses.size} gasto(s) cambiado(s) a "${statusLabels[newStatus]}"` 
+        setMessage({
+          type: 'success',
+          text: `${selectedExpenses.size} gasto(s) cambiado(s) a "${statusLabels[newStatus]}"`
         })
         setSelectedExpenses(new Set())
         setSelectMode(false)
@@ -461,34 +406,34 @@ export default function ExpensesListPage() {
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
-    
+
     // Header con gradiente simulado
     doc.setFillColor(0, 119, 197) // QuickBooks blue
     doc.rect(0, 0, pageWidth, 45, 'F')
-    
+
     // Título principal
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(24)
     doc.setFont('helvetica', 'bold')
     doc.text('Reporte de Gastos', pageWidth / 2, 20, { align: 'center' })
-    
+
     // Subtítulo con fecha
     doc.setFontSize(11)
     doc.setFont('helvetica', 'normal')
-    const today = new Date().toLocaleDateString('es-MX', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const today = new Date().toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     })
     doc.text(`Generado: ${today}`, pageWidth / 2, 30, { align: 'center' })
-    
+
     // Filtros aplicados
     let filterText = 'Todos los gastos'
     const filters: string[] = []
     if (statusFilter !== 'all') {
       const statusNames: Record<string, string> = {
         'PENDING': 'Pendientes',
-        'APPROVED': 'Aprobados', 
+        'APPROVED': 'Aprobados',
         'REJECTED': 'Rechazados',
         'PAID': 'Pagados'
       }
@@ -501,37 +446,37 @@ export default function ExpensesListPage() {
     if (dateFrom) filters.push(`Desde: ${dateFrom}`)
     if (dateTo) filters.push(`Hasta: ${dateTo}`)
     if (filters.length > 0) filterText = filters.join(' | ')
-    
+
     doc.setFontSize(9)
     doc.text(filterText, pageWidth / 2, 38, { align: 'center' })
-    
+
     // Resumen estadístico
     doc.setTextColor(51, 51, 51)
     doc.setFillColor(248, 250, 252)
     doc.roundedRect(14, 52, pageWidth - 28, 28, 3, 3, 'F')
-    
+
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.text('RESUMEN', 20, 62)
-    
+
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
-    
+
     const totalAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
     const deductibleAmount = filteredExpenses.filter(e => e.taxDeductible).reduce((sum, e) => sum + e.amount, 0)
     const pendingCount = filteredExpenses.filter(e => e.status === 'PENDING').length
     const approvedCount = filteredExpenses.filter(e => e.status === 'APPROVED').length
-    
+
     const col1 = 20
     const col2 = 65
     const col3 = 115
     const col4 = 160
-    
+
     doc.text(`Total Gastos: ${filteredExpenses.length}`, col1, 72)
     doc.text(`Monto Total: $${totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, col2, 72)
     doc.text(`Deducibles: $${deductibleAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, col3, 72)
     doc.text(`Pendientes: ${pendingCount} | Aprobados: ${approvedCount}`, col4, 72)
-    
+
     // Tabla de gastos
     const tableData = filteredExpenses.map(expense => [
       new Date(expense.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -539,13 +484,10 @@ export default function ExpensesListPage() {
       expense.category.name,
       expense.vendor || '-',
       `$${expense.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
-      expense.status === 'PENDING' ? 'Pendiente' : 
-        expense.status === 'APPROVED' ? 'Aprobado' : 
-        expense.status === 'REJECTED' ? 'Rechazado' : 
-        expense.status === 'PAID' ? 'Pagado' : expense.status,
+      getStatusLabel(expense.status),
       expense.taxDeductible ? '✓' : '-'
     ])
-    
+
     autoTable(doc, {
       startY: 88,
       head: [['Fecha', 'Descripción', 'Categoría', 'Proveedor', 'Monto', 'Estado', 'Ded.']],
@@ -593,11 +535,11 @@ export default function ExpensesListPage() {
         )
       }
     })
-    
+
     // Guardar PDF
     const fileName = `reporte_gastos_${new Date().toISOString().split('T')[0]}.pdf`
     doc.save(fileName)
-    
+
     setMessage({ type: 'success', text: 'Reporte PDF generado exitosamente' })
     setTimeout(() => setMessage(null), 3000)
   }
@@ -655,12 +597,12 @@ export default function ExpensesListPage() {
         {/* Message Feedback */}
         {message && (
           <div className={`p-4 rounded-xl flex items-center gap-2 shadow-sm ${
-            message.type === 'success' 
-              ? 'bg-green-50 text-[#108000] border border-green-200' 
+            message.type === 'success'
+              ? 'bg-green-50 text-[#108000] border border-green-200'
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}>
-            {message.type === 'success' 
-              ? <CheckCircle className="h-5 w-5" /> 
+            {message.type === 'success'
+              ? <CheckCircle className="h-5 w-5" />
               : <AlertCircle className="h-5 w-5" />}
             <span className="font-medium">{message.text}</span>
           </div>
@@ -682,10 +624,10 @@ export default function ExpensesListPage() {
                   <CheckSquare className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{selectedExpenses.size === filteredExpenses.length ? 'Deseleccionar' : 'Seleccionar Todo'}</span>
                 </Button>
-                
+
                 {/* Acciones de estado - Solo visible en desktop */}
                 <div className="hidden md:flex gap-1 border-l pl-2 ml-1">
-                  <Button 
+                  <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleBulkStatusChange('APPROVED')}
@@ -695,7 +637,7 @@ export default function ExpensesListPage() {
                     <CheckCircle className="h-4 w-4 mr-1" />
                     Aprobar
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleBulkStatusChange('REJECTED')}
@@ -705,7 +647,7 @@ export default function ExpensesListPage() {
                     <XCircle className="h-4 w-4 mr-1" />
                     Rechazar
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleBulkStatusChange('PENDING')}
@@ -715,7 +657,7 @@ export default function ExpensesListPage() {
                     <Clock className="h-4 w-4 mr-1" />
                     Pendiente
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleBulkStatusChange('PAID')}
@@ -728,8 +670,8 @@ export default function ExpensesListPage() {
                 </div>
 
                 <div className="flex gap-1 border-l pl-2 ml-1">
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     size="sm"
                     onClick={handleDeleteMultiple}
                     disabled={selectedExpenses.size === 0}
@@ -752,8 +694,8 @@ export default function ExpensesListPage() {
                   <Download className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">CSV</span>
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={exportToPDF}
                   className="flex-shrink-0 text-[#0077C5] border-[#0077C5] hover:bg-[#0077C5] hover:text-white"
                 >
@@ -981,7 +923,7 @@ export default function ExpensesListPage() {
               {(filterMonth || filterYear) && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg text-sm text-blue-700">
                   <span>🔍 Filtrando: {filterMonth ? ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][Number.parseInt(filterMonth)] : 'Todos los meses'} {filterYear || 'Todos los años'}</span>
-                  <button 
+                  <button
                     onClick={() => { setFilterMonth(''); setFilterYear(''); }}
                     className="text-blue-500 hover:text-blue-700 font-medium"
                   >
@@ -991,7 +933,7 @@ export default function ExpensesListPage() {
               )}
             </div>
           </div>
-          
+
           {/* Tercera fila con botón de limpiar */}
           <div className="mt-3 flex justify-between items-center">
             <div className="text-sm text-gray-500">
@@ -1048,8 +990,8 @@ export default function ExpensesListPage() {
               <div className="divide-y divide-gray-100">
                 {/* Mostrar TODOS los gastos filtrados en móvil, sin paginación para evitar confusión */}
                 {filteredExpenses.map(expense => (
-                  <div 
-                    key={expense.id} 
+                  <div
+                    key={expense.id}
                     className={`p-4 ${selectedExpenses.has(expense.id) ? 'bg-blue-50' : ''}`}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -1169,9 +1111,10 @@ export default function ExpensesListPage() {
                   </tr>
                 ) : (
                   paginatedExpenses.map(expense => (
-                    <tr 
-                      key={expense.id} 
-                      className={`hover:bg-gray-50 ${selectedExpenses.has(expense.id) ? 'bg-blue-50' : ''}`}
+                    <tr
+                      key={expense.id}
+                      className={`hover:bg-gray-50 ${selectedExpenses.has(expense.id) ? 'bg-blue-50' : ''} ${selectMode ? 'cursor-pointer' : ''}`}
+                      onClick={selectMode ? () => toggleSelectExpense(expense.id) : undefined}
                     >
                       {selectMode && (
                         <td className="px-4 py-4 whitespace-nowrap">
@@ -1213,7 +1156,11 @@ export default function ExpensesListPage() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-center">
                         {!selectMode && (
-                          <div className="flex justify-center gap-1">
+                          <div
+                            className="flex justify-center gap-1"
+                            onClick={e => e.stopPropagation()}
+                            onKeyDown={e => e.stopPropagation()}
+                          >
                             <button
                               onClick={() => router.push(`/company/expenses/${expense.id}`)}
                               className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50"
@@ -1276,6 +1223,60 @@ export default function ExpensesListPage() {
           )}
         </Card>
       </div>
+
+      {/* Barra de acciones flotante – visible cuando hay ítems seleccionados */}
+      {selectMode && selectedExpenses.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-2xl">
+            <span className="text-sm font-semibold text-gray-700 pr-2 border-r border-gray-200">
+              {selectedExpenses.size} seleccionado{selectedExpenses.size === 1 ? '' : 's'}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkStatusChange('APPROVED')}
+              className="text-green-700 border-green-300 hover:bg-green-50 hover:border-green-400 gap-1.5"
+            >
+              <CheckCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Aprobar</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkStatusChange('REJECTED')}
+              className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400 gap-1.5"
+            >
+              <XCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Rechazar</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkStatusChange('PAID')}
+              className="text-blue-600 border-blue-300 hover:bg-blue-50 hover:border-blue-400 gap-1.5"
+            >
+              <DollarSign className="h-4 w-4" />
+              <span className="hidden sm:inline">Pagado</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleDeleteMultiple}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Eliminar</span>
+            </Button>
+            <button
+              onClick={cancelSelectMode}
+              className="ml-1 p-1 text-gray-400 hover:text-gray-600 rounded"
+              title="Cancelar selección"
+            >
+              <XCircle className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
     </CompanyTabsLayout>
   )
 }
