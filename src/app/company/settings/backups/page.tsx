@@ -71,9 +71,57 @@ interface BackupConfig {
   }
 }
 
+// ─── Module-level helpers (reduce cognitive complexity) ─────────────────────
+
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
+}
+
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'COMPLETED':
+      return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" /> Completado</Badge>
+    case 'FAILED':
+      return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" /> Fallido</Badge>
+    case 'IN_PROGRESS':
+      return <Badge className="bg-blue-100 text-blue-800"><RefreshCw className="w-3 h-3 mr-1 animate-spin" /> En progreso</Badge>
+    default:
+      return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>
+  }
+}
+
+const getHealthBadge = (status: string) => {
+  switch (status) {
+    case 'healthy':
+      return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-4 h-4 mr-1" /> Saludable</Badge>
+    case 'warning':
+      return <Badge className="bg-yellow-100 text-yellow-800"><AlertTriangle className="w-4 h-4 mr-1" /> Advertencia</Badge>
+    case 'critical':
+      return <Badge className="bg-red-100 text-red-800"><XCircle className="w-4 h-4 mr-1" /> Crítico</Badge>
+    default:
+      return null
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function BackupsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
 
   const [loading, setLoading] = useState(true)
   const [backups, setBackups] = useState<Backup[]>([])
@@ -148,6 +196,7 @@ export default function BackupsPage() {
         setMessage({ type: 'error', text: data.error || 'Error al crear backup' })
       }
     } catch (error) {
+      console.error('Error creating backup:', error)
       setMessage({ type: 'error', text: 'Error de conexión' })
     } finally {
       setActionLoading(null)
@@ -175,6 +224,7 @@ export default function BackupsPage() {
         setMessage({ type: 'error', text: data.error || 'Error al restaurar backup' })
       }
     } catch (error) {
+      console.error('Error restoring backup:', error)
       setMessage({ type: 'error', text: 'Error de conexión' })
     } finally {
       setActionLoading(null)
@@ -201,6 +251,7 @@ export default function BackupsPage() {
         setMessage({ type: 'error', text: data.error || 'Error al verificar backup' })
       }
     } catch (error) {
+      console.error('Error verifying backup:', error)
       setMessage({ type: 'error', text: 'Error de conexión' })
     } finally {
       setActionLoading(null)
@@ -227,6 +278,7 @@ export default function BackupsPage() {
         setMessage({ type: 'error', text: data.error || 'Error al eliminar backup' })
       }
     } catch (error) {
+      console.error('Error deleting backup:', error)
       setMessage({ type: 'error', text: 'Error de conexión' })
     } finally {
       setActionLoading(null)
@@ -251,53 +303,10 @@ export default function BackupsPage() {
         setMessage({ type: 'error', text: data.error || 'Error en limpieza' })
       }
     } catch (error) {
+      console.error('Error running cleanup:', error)
       setMessage({ type: 'error', text: 'Error de conexión' })
     } finally {
       setActionLoading(null)
-    }
-  }
-
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
-  }
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" /> Completado</Badge>
-      case 'FAILED':
-        return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" /> Fallido</Badge>
-      case 'IN_PROGRESS':
-        return <Badge className="bg-blue-100 text-blue-800"><RefreshCw className="w-3 h-3 mr-1 animate-spin" /> En progreso</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>
-    }
-  }
-
-  const getHealthBadge = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-4 h-4 mr-1" /> Saludable</Badge>
-      case 'warning':
-        return <Badge className="bg-yellow-100 text-yellow-800"><AlertTriangle className="w-4 h-4 mr-1" /> Advertencia</Badge>
-      case 'critical':
-        return <Badge className="bg-red-100 text-red-800"><XCircle className="w-4 h-4 mr-1" /> Crítico</Badge>
-      default:
-        return null
     }
   }
 
@@ -355,22 +364,29 @@ export default function BackupsPage() {
         {/* Health & Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Health Status */}
-          <Card className={`${health?.status === 'healthy' ? 'border-green-200 bg-green-50' : health?.status === 'warning' ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50'}`}>
+          {(() => {
+            let healthCardClass = 'border-red-200 bg-red-50'
+            if (health?.status === 'healthy') healthCardClass = 'border-green-200 bg-green-50'
+            else if (health?.status === 'warning') healthCardClass = 'border-yellow-200 bg-yellow-50'
+            return (
+          <Card className={healthCardClass}>
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs sm:text-sm font-medium">Estado del Sistema</span>
                 <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               {health && getHealthBadge(health.status)}
-              {health?.issues && health.issues.length > 0 && (
+              {(health?.issues?.length ?? 0) > 0 && (
                 <ul className="mt-2 text-xs text-gray-600 hidden sm:block">
-                  {health.issues.map((issue, i) => (
-                    <li key={i}>• {issue}</li>
+                  {health?.issues?.map((issue) => (
+                    <li key={issue}>• {issue}</li>
                   ))}
                 </ul>
               )}
             </CardContent>
           </Card>
+            )
+          })()}
 
           {/* Total Backups */}
           <Card>
@@ -410,7 +426,7 @@ export default function BackupsPage() {
               <div className="text-lg font-bold">
                 {health?.lastBackup ? formatDate(health.lastBackup) : 'Nunca'}
               </div>
-              {health?.lastBackupAgeHours && (
+              {(health?.lastBackupAgeHours ?? 0) > 0 && (
                 <div className="text-xs text-gray-500">
                   Hace {health.lastBackupAgeHours} horas
                 </div>

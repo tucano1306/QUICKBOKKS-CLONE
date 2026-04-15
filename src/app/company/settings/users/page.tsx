@@ -38,8 +38,7 @@ import {
     Shield,
     Trash2,
     UserPlus,
-    Users,
-    XCircle
+    Users
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -73,7 +72,7 @@ interface Role {
 
 export default function UsersSettingsPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [selectedTab, setSelectedTab] = useState<'users' | 'roles'>('users')
@@ -211,19 +210,6 @@ export default function UsersSettingsPage() {
         return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return <CheckCircle className="w-5 h-5 text-green-600" />
-      case 'Inactive':
-        return <XCircle className="w-5 h-5 text-gray-600" />
-      case 'Pending':
-        return <Clock className="w-5 h-5 text-yellow-600" />
-      default:
-        return null
     }
   }
 
@@ -538,8 +524,8 @@ export default function UsersSettingsPage() {
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {(user.permissions?.length || 0) > 0 ? (
-                          (user.permissions || []).map((perm, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs">
+                          (user.permissions || []).map((perm) => (
+                            <Badge key={perm} variant="outline" className="text-xs">
                               {perm}
                             </Badge>
                           ))
@@ -585,12 +571,12 @@ export default function UsersSettingsPage() {
                   <CardContent>
                     <div className="space-y-3">
                       <div className="font-semibold text-sm text-gray-700 mb-2">Permissions:</div>
-                      {role.permissions.map((perm, idx) => (
-                        <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                      {role.permissions.map((perm) => (
+                        <div key={perm.category} className="p-3 bg-gray-50 rounded-lg">
                           <div className="font-medium text-sm text-gray-900 mb-2">{perm.category}</div>
                           <div className="flex flex-wrap gap-1">
-                            {perm.actions.map((action, aidx) => (
-                              <Badge key={aidx} variant="outline" className="text-xs">
+                            {perm.actions.map((action) => (
+                              <Badge key={action} variant="outline" className="text-xs">
                                 {action}
                               </Badge>
                             ))}
