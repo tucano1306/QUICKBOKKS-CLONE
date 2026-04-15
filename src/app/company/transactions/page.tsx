@@ -1,23 +1,36 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DatePicker } from "@/components/ui/date-picker"
+import { Input } from "@/components/ui/input"
 import { Pagination } from "@/components/ui/pagination"
-import {
-  DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw,
-  Trash2, Search, X, Filter, CheckSquare, Square, Eye, Edit, Plus,
-  Download, FileText
-} from 'lucide-react'
 import { useCompany } from "@/contexts/CompanyContext"
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import {
+  Calendar,
+  CheckSquare,
+  DollarSign,
+  Download,
+  Edit,
+  Eye,
+  FileText,
+  Filter,
+  Plus,
+  RefreshCw,
+  Search,
+  Square,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  X
+} from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 interface Transaction {
   id: string
@@ -139,11 +152,22 @@ export default function TransactionsPage() {
   const [filterMonth, setFilterMonth] = useState('')
   const [filterYear, setFilterYear] = useState('')
 
-  // Categorías únicas para el dropdown (derivadas de los datos)
+  // Categorías personalizadas guardadas en localStorage
+  const [customCategories, setCustomCategories] = useState<string[]>([])
+  useEffect(() => {
+    const income: string[] = JSON.parse(globalThis.localStorage?.getItem('custom_income_categories') ?? 'null') ?? []
+    const expense: string[] = JSON.parse(globalThis.localStorage?.getItem('custom_expense_categories') ?? 'null') ?? []
+    setCustomCategories([...income, ...expense])
+  }, [])
+
+  // Categorías únicas para el dropdown (derivadas de los datos + personalizadas)
   const uniqueCategories = useMemo(() => {
-    const cats = new Set(transactions.map(t => t.category).filter(Boolean))
+    const cats = new Set([
+      ...transactions.map(t => t.category).filter(Boolean),
+      ...customCategories
+    ])
     return Array.from(cats).sort((a, b) => a.localeCompare(b))
-  }, [transactions])
+  }, [transactions, customCategories])
 
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1)
