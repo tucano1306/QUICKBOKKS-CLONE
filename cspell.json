@@ -527,7 +527,12 @@
     "existen",
     "QuickBooks", "quickbooks",
     "Sincronización", "sincronización", "sincronizados", "sincronizado",
-    "completada", "completado"
+    "Sincronizar", "sincronizar",
+    "completada", "completado",
+    "dividida", "complejidad", "cognitiva",
+    "llenado", "copiados", "ajuste",
+    "guardados",
+    "Descartar"
   ],
   "ignorePaths": [
     "node_modules/**",
