@@ -49,6 +49,23 @@ async function generateEntryNumber(tx: any, companyId: string): Promise<string> 
 }
 
 /**
+ * Normalizar método de pago al enum válido de Prisma
+ */
+function normalizePaymentMethod(method: string | null | undefined): 'CASH' | 'TRANSFER' | 'CARD' | 'CHECK' | 'OTHER' {
+  const map: Record<string, 'CASH' | 'TRANSFER' | 'CARD' | 'CHECK' | 'OTHER'> = {
+    CASH: 'CASH',
+    TRANSFER: 'TRANSFER',
+    CARD: 'CARD',
+    CHECK: 'CHECK',
+    OTHER: 'OTHER',
+    CREDIT_CARD: 'CARD',
+    DEBIT_CARD: 'CARD',
+    MULTIPLE: 'OTHER',
+  }
+  return map[(method ?? '').toUpperCase()] ?? 'OTHER'
+}
+
+/**
  * Parsear fecha correctamente desde diferentes formatos
  * YYYY-MM-DD (input type="date") o MM/DD/YYYY (formato americano)
  */
@@ -221,7 +238,7 @@ export async function POST(request: NextRequest) {
           date: parseDate(date),
           description,
           vendor,
-          paymentMethod: paymentMethod || 'CASH',
+          paymentMethod: normalizePaymentMethod(paymentMethod),
           reference,
           taxDeductible: taxDeductible !== false,
           taxAmount: taxAmount ? Number.parseFloat(taxAmount) : 0,
