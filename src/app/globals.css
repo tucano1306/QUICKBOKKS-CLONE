@@ -25,14 +25,14 @@
     --input: 220 13% 91%;
     --ring: 113 75% 37%;
     --radius: 0.75rem;
-    
+
     /* QuickBooks specific */
     --qb-green: #2CA01C;
     --qb-green-dark: #108000;
     --qb-blue: #0077C5;
     --qb-blue-dark: #0D2942;
     --qb-gray-bg: #F4F5F8;
-    
+
     /* Chart colors */
     --chart-1: 113 75% 37%;
     --chart-2: 200 80% 40%;
@@ -255,7 +255,7 @@ input[type="number"] {
 
 /* QuickBooks Card Style */
 .qb-card {
-  @apply bg-white rounded-xl shadow-sm border border-gray-100 
+  @apply bg-white rounded-xl shadow-sm border border-gray-100
          transition-all duration-300 ease-out
          hover:shadow-lg hover:shadow-green-500/5 hover:-translate-y-0.5;
 }
@@ -267,14 +267,14 @@ input[type="number"] {
 
 /* QuickBooks Button Styles */
 .qb-btn {
-  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
          font-semibold rounded-lg transition-all duration-200 ease-out
          focus:outline-none focus:ring-2 focus:ring-offset-2
          active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .qb-btn-primary {
-  @apply qb-btn bg-[#2CA01C] text-white 
+  @apply qb-btn bg-[#2CA01C] text-white
          hover:bg-[#108000] hover:shadow-lg hover:shadow-green-500/25
          focus:ring-green-500;
 }
@@ -293,10 +293,10 @@ input[type="number"] {
 
 /* QuickBooks Input Styles */
 .qb-input {
-  @apply w-full px-4 py-2.5 rounded-lg border border-gray-300 
+  @apply w-full px-4 py-2.5 rounded-lg border border-gray-300
          bg-white text-gray-900 placeholder-gray-400
          transition-all duration-200 ease-out
-         focus:outline-none focus:ring-2 focus:ring-green-500/20 
+         focus:outline-none focus:ring-2 focus:ring-green-500/20
          focus:border-green-500 focus:shadow-sm
          hover:border-gray-400;
 }
@@ -522,7 +522,7 @@ input[type="number"] {
 
 /* QuickBooks Tooltip */
 .qb-tooltip {
-  @apply absolute z-50 px-3 py-2 text-sm font-medium text-white 
+  @apply absolute z-50 px-3 py-2 text-sm font-medium text-white
          bg-gray-900 rounded-lg shadow-lg
          opacity-0 invisible transition-all duration-200
          group-hover:opacity-100 group-hover:visible;
@@ -559,7 +559,7 @@ input[type="number"] {
 }
 
 .qb-modal-close {
-  @apply text-white/70 hover:text-white hover:bg-white/10 rounded-full p-1.5 
+  @apply text-white/70 hover:text-white hover:bg-white/10 rounded-full p-1.5
          transition-all duration-200 cursor-pointer;
 }
 
@@ -583,10 +583,10 @@ input[type="number"] {
 
 /* QuickBooks Select Dropdown */
 .qb-select {
-  @apply w-full px-4 py-2.5 rounded-xl border border-gray-300 
+  @apply w-full px-4 py-2.5 rounded-xl border border-gray-300
          bg-white text-gray-900 cursor-pointer
          transition-all duration-200 ease-out
-         focus:outline-none focus:ring-2 focus:ring-green-500/20 
+         focus:outline-none focus:ring-2 focus:ring-green-500/20
          focus:border-green-500 focus:shadow-sm
          hover:border-gray-400;
   appearance: none;
@@ -599,7 +599,7 @@ input[type="number"] {
 
 /* QuickBooks Checkbox */
 .qb-checkbox {
-  @apply w-5 h-5 rounded border-2 border-gray-300 text-[#2CA01C] 
+  @apply w-5 h-5 rounded border-2 border-gray-300 text-[#2CA01C]
          focus:ring-2 focus:ring-green-500/20 focus:ring-offset-0
          transition-all duration-200 cursor-pointer;
 }
@@ -621,7 +621,7 @@ input[type="number"] {
 
 /* QuickBooks Icon Button */
 .qb-icon-btn {
-  @apply p-2 rounded-lg text-gray-500 
+  @apply p-2 rounded-lg text-gray-500
          hover:bg-gray-100 hover:text-gray-700
          transition-all duration-200;
 }
@@ -707,31 +707,31 @@ input[type="number"] {
   .qb-card {
     @apply p-3;
   }
-  
+
   /* Smaller text on mobile */
   .qb-page-title {
     @apply text-xl;
   }
-  
+
   /* Stack buttons on mobile */
   .qb-btn {
     @apply w-full justify-center;
   }
-  
+
   /* Full-width modals on mobile */
   .modal-mobile-full {
     @apply w-full max-w-full m-0 rounded-none min-h-screen;
   }
-  
+
   /* Smaller empty state on mobile */
   .qb-empty-state {
     @apply py-8;
   }
-  
+
   .qb-empty-state-icon {
     @apply w-12 h-12;
   }
-  
+
   .qb-empty-state-title {
     @apply text-lg;
   }
@@ -777,7 +777,7 @@ input[type="number"] {
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
-  
+
   .safe-area-top {
     padding-top: env(safe-area-inset-top);
   }
