@@ -48,30 +48,62 @@ export async function GET(request: NextRequest) {
       ? { companyId }
       : { userId: session.user.id }
 
-    // Run all queries in parallel
+    const baseTransactionFilter = companyId
+      ? { companyId }
+      : {}
+
+    // Run all queries in parallel (3 sources: Invoice, Expense, Transaction)
     const [
       yearInvoices,
       yearExpenses,
-      prevYearRevenueAgg,
+      yearTxIncome,
+      yearTxExpenses,
+      prevYearInvoicesAgg,
       prevYearExpensesAgg,
+      prevYearTxIncomeAgg,
+      prevYearTxExpensesAgg,
       totalCustomers,
       pendingInvoices,
       overdueInvoices
     ] = await Promise.all([
+      // Invoices (ingresos por facturación)
       prisma.invoice.findMany({
         where: { ...baseInvoiceFilter, issueDate: { gte: firstDayOfYear, lte: lastDayOfYear } },
         select: { issueDate: true, total: true }
       }),
+      // Expenses (gastos directos)
       prisma.expense.findMany({
         where: { ...baseExpenseFilter, date: { gte: firstDayOfYear, lte: lastDayOfYear } },
         select: { date: true, amount: true }
       }),
+      // Transactions tipo INCOME
+      prisma.transaction.findMany({
+        where: { ...baseTransactionFilter, type: 'INCOME', date: { gte: firstDayOfYear, lte: lastDayOfYear } },
+        select: { date: true, amount: true }
+      }),
+      // Transactions tipo EXPENSE
+      prisma.transaction.findMany({
+        where: { ...baseTransactionFilter, type: 'EXPENSE', date: { gte: firstDayOfYear, lte: lastDayOfYear } },
+        select: { date: true, amount: true }
+      }),
+      // Año anterior: invoices
       prisma.invoice.aggregate({
         where: { ...baseInvoiceFilter, issueDate: { gte: firstDayOfLastYear, lte: lastDayOfLastYear } },
         _sum: { total: true }
       }),
+      // Año anterior: expenses
       prisma.expense.aggregate({
         where: { ...baseExpenseFilter, date: { gte: firstDayOfLastYear, lte: lastDayOfLastYear } },
+        _sum: { amount: true }
+      }),
+      // Año anterior: transactions INCOME
+      prisma.transaction.aggregate({
+        where: { ...baseTransactionFilter, type: 'INCOME', date: { gte: firstDayOfLastYear, lte: lastDayOfLastYear } },
+        _sum: { amount: true }
+      }),
+      // Año anterior: transactions EXPENSE
+      prisma.transaction.aggregate({
+        where: { ...baseTransactionFilter, type: 'EXPENSE', date: { gte: firstDayOfLastYear, lte: lastDayOfLastYear } },
         _sum: { amount: true }
       }),
       prisma.customer.count({ where: { companyId: companyId || undefined, status: 'ACTIVE' } }),
@@ -79,30 +111,41 @@ export async function GET(request: NextRequest) {
       prisma.invoice.count({ where: { ...baseInvoiceFilter, status: 'OVERDUE' } })
     ])
 
-    // Build monthly breakdown for current year
+    // Build monthly breakdown combining all sources
     const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     const monthlyData = Array.from({ length: 12 }, (_, i) => {
-      const monthRevenue = yearInvoices
+      const invoiceRev = yearInvoices
         .filter(inv => inv.issueDate && new Date(inv.issueDate).getMonth() === i)
         .reduce((sum, inv) => sum + Number(inv.total || 0), 0)
-      const monthExpenses = yearExpenses
+      const txRev = yearTxIncome
+        .filter(tx => tx.date && new Date(tx.date).getMonth() === i)
+        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+      const directExp = yearExpenses
         .filter(exp => exp.date && new Date(exp.date).getMonth() === i)
         .reduce((sum, exp) => sum + Number(exp.amount || 0), 0)
+      const txExp = yearTxExpenses
+        .filter(tx => tx.date && new Date(tx.date).getMonth() === i)
+        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
       return {
         month: MONTH_NAMES[i],
         monthIndex: i,
-        revenue: monthRevenue,
-        expenses: monthExpenses
+        revenue: invoiceRev + txRev,
+        expenses: directExp + txExp
       }
     })
 
-    // Annual totals
-    const totalRevenue = yearInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0)
-    const totalExpenses = yearExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0)
+    // Annual totals (combined from all sources)
+    const invoiceRevenue = yearInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0)
+    const txRevenue = yearTxIncome.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+    const totalRevenue = invoiceRevenue + txRevenue
 
-    // Year-over-year change
-    const lastYearRevenue = Number(prevYearRevenueAgg._sum.total || 0)
-    const lastYearExpenses = Number(prevYearExpensesAgg._sum.amount || 0)
+    const directExpenses = yearExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0)
+    const txExpenses = yearTxExpenses.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+    const totalExpenses = directExpenses + txExpenses
+
+    // Year-over-year comparison (combined)
+    const lastYearRevenue = Number(prevYearInvoicesAgg._sum.total || 0) + Number(prevYearTxIncomeAgg._sum.amount || 0)
+    const lastYearExpenses = Number(prevYearExpensesAgg._sum.amount || 0) + Number(prevYearTxExpensesAgg._sum.amount || 0)
 
     let revenueChange = 0
     if (lastYearRevenue > 0) {

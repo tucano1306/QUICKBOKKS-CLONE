@@ -1,30 +1,28 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useCompany } from '@/contexts/CompanyContext'
+import {
+    Calendar,
+    CreditCard,
+    DollarSign,
+    Download,
+    Eye,
+    FileText,
+    History,
+    Package,
+    Search,
+    ShoppingBag,
+    TrendingDown,
+    TrendingUp
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCompany } from '@/contexts/CompanyContext'
-import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { 
-  History,
-  Search,
-  Filter,
-  Download,
-  Eye,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  ShoppingBag,
-  CreditCard,
-  FileText,
-  Package,
-  RefreshCw
-} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface VendorTransaction {
   id: string
@@ -40,9 +38,16 @@ interface VendorTransaction {
   reference?: string
 }
 
+function statusLabel(s: string): string {
+  if (s === 'PAID') return 'Pagado'
+  if (s === 'PARTIAL') return 'Pago Parcial'
+  if (s === 'OVERDUE') return 'Vencido'
+  return 'Por Pagar'
+}
+
 export default function VendorHistoryPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { activeCompany } = useCompany()
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -50,7 +55,6 @@ export default function VendorHistoryPage() {
   const [filterType, setFilterType] = useState<string>('all')
   const [dateRange, setDateRange] = useState<string>('all')
   const [transactions, setTransactions] = useState<VendorTransaction[]>([])
-  const [vendors, setVendors] = useState<{id: string, name: string}[]>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -60,18 +64,13 @@ export default function VendorHistoryPage() {
 
   const loadData = useCallback(async () => {
     if (!activeCompany) return
-    
+
     setLoading(true)
     try {
       // Load vendors
       const vendorsRes = await fetch(`/api/vendors?companyId=${activeCompany.id}`)
       if (vendorsRes.ok) {
-        const vendorsData = await vendorsRes.json()
-        const vendorsList = (vendorsData.vendors || vendorsData || []).map((v: any) => ({
-          id: v.id,
-          name: v.name
-        }))
-        setVendors(vendorsList)
+        await vendorsRes.json()
       }
 
       // Load vendor payables as transactions
@@ -79,7 +78,7 @@ export default function VendorHistoryPage() {
       if (payablesRes.ok) {
         const payablesData = await payablesRes.json()
         const payables = payablesData.payables || []
-        
+
         const txns: VendorTransaction[] = payables.map((p: any) => ({
           id: p.id,
           transactionId: p.billNumber || p.id,
@@ -89,12 +88,10 @@ export default function VendorHistoryPage() {
           date: p.issueDate,
           amount: p.total,
           balance: p.balance,
-          status: p.status === 'PAID' ? 'Pagado' : 
-                  p.status === 'PARTIAL' ? 'Pago Parcial' : 
-                  p.status === 'OVERDUE' ? 'Vencido' : 'Por Pagar',
+          status: statusLabel(p.status),
           description: p.description || 'Factura de proveedor'
         }))
-        
+
         setTransactions(txns)
       }
     } catch (error) {
@@ -133,28 +130,33 @@ export default function VendorHistoryPage() {
     }
   }
 
+  function matchesDateRange(trx: VendorTransaction): boolean {
+    if (dateRange === 'all') return true
+    const daysDiff = Math.floor((Date.now() - new Date(trx.date).getTime()) / (1000 * 60 * 60 * 24))
+    if (dateRange === 'week') return daysDiff <= 7
+    if (dateRange === 'month') return daysDiff <= 30
+    if (dateRange === 'quarter') return daysDiff <= 90
+    return true
+  }
+
+  function matchesSearch(trx: VendorTransaction): boolean {
+    if (!searchTerm) return true
+    const term = searchTerm.toLowerCase()
+    return (trx.transactionId?.toLowerCase() || '').includes(term)
+      || (trx.vendor?.toLowerCase() || '').includes(term)
+      || (trx.description?.toLowerCase() || '').includes(term)
+  }
+
   const filteredTransactions = transactions.filter(trx => {
     if (filterVendor !== 'all' && trx.vendorId !== filterVendor) return false
     if (filterType !== 'all' && trx.type !== filterType) return false
-    if (searchTerm && !(trx.transactionId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
-        !(trx.vendor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) &&
-        !(trx.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())) return false
-    
-    if (dateRange !== 'all') {
-      const trxDate = new Date(trx.date)
-      const now = new Date()
-      const daysDiff = Math.floor((now.getTime() - trxDate.getTime()) / (1000 * 60 * 60 * 24))
-      
-      if (dateRange === 'week' && daysDiff > 7) return false
-      if (dateRange === 'month' && daysDiff > 30) return false
-      if (dateRange === 'quarter' && daysDiff > 90) return false
-    }
-    
-    return true
+    if (!matchesSearch(trx)) return false
+    return matchesDateRange(trx)
   })
 
   const uniqueVendors = Array.from(new Set(transactions.map(t => t.vendor)))
-    .map(name => transactions.find(t => t.vendor === name)!)
+    .map(name => transactions.find(t => t.vendor === name))
+    .filter((v): v is VendorTransaction => v !== undefined)
 
   const totalPurchases = transactions
     .filter(t => (t.type === 'purchase-order' || t.type === 'bill') && t.amount > 0)
@@ -193,8 +195,8 @@ export default function VendorHistoryPage() {
             </p>
           </div>
           <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => {
-            const csv = 'ID,Proveedor,Tipo,Fecha,Monto,Balance,Estado\n' + 
-              filteredTransactions.map(t => 
+            const csv = 'ID,Proveedor,Tipo,Fecha,Monto,Balance,Estado\n' +
+              filteredTransactions.map(t =>
                 `${t.transactionId},"${t.vendor}",${t.type},${t.date},$${t.amount},$${t.balance},${t.status}`
               ).join('\n')
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -273,7 +275,7 @@ export default function VendorHistoryPage() {
                   className="pl-10 text-sm"
                 />
               </div>
-              <select 
+              <select
                 className="px-3 py-2 border rounded-lg text-sm"
                 value={filterVendor}
                 onChange={(e) => setFilterVendor(e.target.value)}
@@ -285,7 +287,7 @@ export default function VendorHistoryPage() {
                   </option>
                 ))}
               </select>
-              <select 
+              <select
                 className="px-3 py-2 border rounded-lg text-sm"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
@@ -296,7 +298,7 @@ export default function VendorHistoryPage() {
                 <option value="payment">Pagos</option>
                 <option value="return">Devoluciones</option>
               </select>
-              <select 
+              <select
                 className="px-3 py-2 border rounded-lg text-sm"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
@@ -378,8 +380,8 @@ export default function VendorHistoryPage() {
                       <td className="px-4 py-3 text-sm text-gray-700">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-gray-400" />
-                          {new Date(transaction.date).toLocaleDateString('es-MX', { 
-                            day: '2-digit', 
+                          {new Date(transaction.date).toLocaleDateString('es-MX', {
+                            day: '2-digit',
                             month: 'short',
                             year: 'numeric'
                           })}

@@ -532,7 +532,22 @@
     "dividida", "complejidad", "cognitiva",
     "llenado", "copiados", "ajuste",
     "guardados",
-    "Descartar"
+    "Descartar",
+    "Pagado", "pagado",
+    "Parcial", "parcial",
+    "txns",
+    "Orden", "orden",
+    "Devolución", "devolución", "Devoluciones", "devoluciones",
+    "Compras", "compras", "Comprado",
+    "Trimestre", "trimestre",
+    "Visualiza",
+    "lugar",
+    "unificada",
+    "Identifica",
+    "detallados",
+    "Exporta",
+    "Auditoría", "auditoría",
+    "Rastrea"
   ],
   "ignorePaths": [
     "node_modules/**",
