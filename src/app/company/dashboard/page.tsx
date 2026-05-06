@@ -7,15 +7,10 @@ import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkline, AnimatedCounter, AnimatedProgress } from '@/components/ui/animated-charts'
+import { Sparkline, AnimatedCounter } from '@/components/ui/animated-charts'
 import {
-  TrendingUp,
-  TrendingDown,
   DollarSign,
-  Users,
   FileText,
-  Activity,
-  Calendar,
   ArrowUpRight,
   ArrowDownRight,
   Calculator,
@@ -26,10 +21,7 @@ import {
   ArrowRight,
   Sparkles,
   RefreshCw,
-  Zap,
-  Target,
   BarChart3,
-  Wallet
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -289,69 +281,6 @@ export default function CompanyDashboardPage() {
     fetchDashboardStats()
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(amount)
-  }
-
-  const formatPercentage = (value: number) => {
-    const sign = value >= 0 ? '+' : ''
-    return `${sign}${value.toFixed(1)}%`
-  }
-
-  const formatTimeAgo = (dateStr: string) => {
-    const date = new Date(dateStr)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffDays > 0) return `Hace ${diffDays} día${diffDays > 1 ? 's' : ''}`
-    if (diffHours > 0) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`
-    return 'Hace unos minutos'
-  }
-
-  const buildStatCards = useCallback((statsData: DashboardStats): StatCard[] => {
-    return [
-      {
-        name: 'Ingresos del Mes',
-        value: formatCurrency(statsData.revenue.current),
-        change: formatPercentage(statsData.revenue.change),
-        trend: statsData.revenue.change >= 0 ? 'up' : 'down',
-        icon: DollarSign,
-        color: 'green'
-      },
-      {
-        name: 'Gastos del Mes',
-        value: formatCurrency(statsData.expenses.current),
-        change: formatPercentage(statsData.expenses.change),
-        trend: statsData.expenses.change <= 0 ? 'up' : 'down',
-        icon: TrendingDown,
-        color: 'red'
-      },
-      {
-        name: 'Clientes Activos',
-        value: statsData.customers.total.toString(),
-        change: `+${statsData.customers.new}`,
-        trend: 'up',
-        icon: Users,
-        color: 'blue'
-      },
-      {
-        name: 'Facturas Pendientes',
-        value: statsData.invoices.pending.toString(),
-        change: statsData.invoices.overdue > 0 ? `${statsData.invoices.overdue} vencidas` : 'Al día',
-        trend: statsData.invoices.overdue > 0 ? 'down' : 'up',
-        icon: FileText,
-        color: 'orange'
-      }
-    ]
-  }, [])
-
-  const statCards = stats ? buildStatCards(stats) : []
-
   if (status === 'loading' || isLoading || !activeCompany) {
     return (
       <CompanyTabsLayout>
@@ -446,17 +375,10 @@ export default function CompanyDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Estadísticas principales con animaciones */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
-          {statCards.map((stat, index) => (
-            <StatCardComponent key={stat.name} stat={stat} index={index} />
-          ))}
-        </div>
-
         {/* Gráficos principales mejorados */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {/* Gráfico de barras animado */}
-          <Card className="lg:col-span-2 overflow-hidden shadow-md">
+          <Card className="overflow-hidden shadow-md">
             <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-white p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base text-[#0D2942]">
@@ -531,303 +453,11 @@ export default function CompanyDashboardPage() {
               )}
             </CardContent>
           </Card>
-
-          {/* Resumen de cuentas */}
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-3 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                Resumen de Cuentas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-6">
-              {stats && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">Cuentas por Cobrar</p>
-                        <p className="text-xs text-gray-500">{stats.invoices.pending} facturas pendientes</p>
-                      </div>
-                    </div>
-                    <p className="text-lg font-bold text-blue-600">${stats.receivables.toLocaleString()}</p>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <TrendingDown className="w-5 h-5 text-red-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">Cuentas por Pagar</p>
-                        <p className="text-xs text-gray-500">Total de gastos registrados</p>
-                      </div>
-                    </div>
-                    <p className="text-lg font-bold text-red-600">${stats.payables.toLocaleString()}</p>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <Wallet className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">Balance de Caja</p>
-                        <p className="text-xs text-gray-500">Ingresos - Gastos</p>
-                      </div>
-                    </div>
-                    <p className={`text-lg font-bold ${stats.cashBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ${stats.cashBalance.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Acciones rápidas */}
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20">
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-600" />
-              Acciones Rápidas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-              <Button
-                onClick={() => router.push('/company/invoicing/invoices')}
-                variant="outline"
-                className="h-auto py-3 sm:py-4 flex-col gap-1 sm:gap-2 hover:bg-blue-50 hover:border-blue-300"
-              >
-                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                <span className="text-xs sm:text-sm font-medium">Nueva Factura</span>
-              </Button>
-              <Button
-                onClick={() => router.push('/company/expenses/list')}
-                variant="outline"
-                className="h-auto py-3 sm:py-4 flex-col gap-1 sm:gap-2 hover:bg-red-50 hover:border-red-300"
-              >
-                <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-                <span className="text-xs sm:text-sm font-medium">Nuevo Gasto</span>
-              </Button>
-              <Button
-                onClick={() => router.push('/company/customers')}
-                variant="outline"
-                className="h-auto py-3 sm:py-4 flex-col gap-1 sm:gap-2 hover:bg-green-50 hover:border-green-300"
-              >
-                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                <span className="text-xs sm:text-sm font-medium">Nuevo Cliente</span>
-              </Button>
-              <Button
-                onClick={() => router.push('/company/reports/profit-loss')}
-                variant="outline"
-                className="h-auto py-3 sm:py-4 flex-col gap-1 sm:gap-2 hover:bg-purple-50 hover:border-purple-300"
-              >
-                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
-                <span className="text-xs sm:text-sm font-medium">Ver Reportes</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Actividad reciente mejorada */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Actividad reciente */}
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-800 dark:to-gray-800 p-3 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
-                Actividad Reciente
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y dark:divide-gray-700">
-                {stats?.recentActivity && stats.recentActivity.length > 0 ? (
-                  stats.recentActivity.slice(0, 5).map((activity) => (
-                    <ActivityItem 
-                      key={`${activity.type}-${activity.date}-${activity.entityName}`}
-                      activity={activity}
-                      formatCurrency={formatCurrency}
-                      formatTimeAgo={formatTimeAgo}
-                    />
-                  ))
-                ) : (
-                  <div className="p-8 text-center">
-                    <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">No hay actividad reciente</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Calendario de vencimientos - Datos reales */}
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 p-3 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600" />
-                Próximos Vencimientos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4">
-              {stats && (stats.invoices.pending > 0 || stats.invoices.overdue > 0) ? (
-                <div className="space-y-3">
-                  {stats.invoices.overdue > 0 && (
-                    <div className="flex items-center justify-between p-3 rounded-lg border-l-4 bg-red-50 border-red-500">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Facturas Vencidas</p>
-                        <p className="text-xs text-gray-500">{stats.invoices.overdue} facturas requieren atención</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-red-600">{stats.invoices.overdue}</p>
-                        <p className="text-xs font-medium text-red-600">Vencidas</p>
-                      </div>
-                    </div>
-                  )}
-                  {stats.invoices.pending > 0 && (
-                    <div className="flex items-center justify-between p-3 rounded-lg border-l-4 bg-amber-50 border-amber-500">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Facturas Pendientes</p>
-                        <p className="text-xs text-gray-500">{stats.invoices.pending} facturas por cobrar</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-amber-600">{stats.invoices.pending}</p>
-                        <p className="text-xs font-medium text-amber-600">Pendientes</p>
-                      </div>
-                    </div>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-2"
-                    onClick={() => router.push('/company/invoicing/invoices')}
-                  >
-                    Ver todas las facturas
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-500">
-                  <Calendar className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No hay vencimientos próximos</p>
-                  <p className="text-xs mt-1">¡Todo está al día!</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Resumen de cuentas mejorado */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          {/* Cuentas por Cobrar */}
-          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="h-1 sm:h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 animate-shimmer" />
-            <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm sm:text-base">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-                  </div>
-                  <span className="hidden sm:inline">Cuentas por Cobrar</span>
-                  <span className="sm:hidden">Por Cobrar</span>
-                </span>
-                <ArrowUpRight className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
-              <div className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 truncate">
-                {stats ? (
-                  <AnimatedCounter value={stats.receivables} prefix="$" duration={1500} />
-                ) : '$0'}
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  <span className="font-semibold text-blue-600">{stats?.invoices.pending || 0}</span> facturas pendientes
-                </p>
-                <Sparkline 
-                  data={[20, 35, 30, 45, 40, 55, 50, 60]} 
-                  color="#3b82f6"
-                  height={25}
-                  width={50}
-                />
-              </div>
-              <AnimatedProgress value={65} color="blue" height={4} showValue={false} className="mt-3" />
-            </CardContent>
-          </Card>
-
-          {/* Cuentas por Pagar */}
-          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="h-1.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-600 animate-shimmer" />
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-base">
-                  <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <TrendingDown className="w-4 h-4 text-red-600" />
-                  </div>
-                  Cuentas por Pagar
-                </span>
-                <ArrowUpRight className="w-4 h-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                {stats ? (
-                  <AnimatedCounter value={stats.payables} prefix="$" duration={1500} />
-                ) : '$0'}
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Facturas de proveedores
-                </p>
-                <Sparkline 
-                  data={[40, 35, 45, 30, 35, 25, 30, 20]} 
-                  color="#ef4444"
-                  height={25}
-                  width={50}
-                />
-              </div>
-              <AnimatedProgress value={45} color="red" height={4} showValue={false} className="mt-3" />
-            </CardContent>
-          </Card>
-
-          {/* Balance de Caja */}
-          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="h-1.5 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 animate-shimmer" />
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-base">
-                  <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Wallet className="w-4 h-4 text-green-600" />
-                  </div>
-                  Balance de Caja
-                </span>
-                <ArrowUpRight className="w-4 h-4 text-green-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                {stats ? (
-                  <AnimatedCounter value={stats.cashBalance} prefix="$" duration={1500} />
-                ) : '$0'}
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  En todas las cuentas
-                </p>
-                <Sparkline 
-                  data={[30, 40, 35, 50, 45, 55, 60, 70]} 
-                  color="#22c55e"
-                  height={25}
-                  width={50}
-                />
-              </div>
-              <AnimatedProgress value={80} color="green" height={4} showValue={false} className="mt-3" />
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </CompanyTabsLayout>
   )
