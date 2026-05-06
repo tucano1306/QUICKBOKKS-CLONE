@@ -13,6 +13,7 @@ import {
     X,
 } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -73,12 +74,9 @@ export default function Sidebar() {
             className="flex items-center justify-center h-16 bg-[#0D2942] border-b border-white/10 hover:bg-white/5 transition-all duration-200 cursor-pointer"
           >
             {isCollapsed ? (
-              <span className="text-2xl font-extrabold text-[#2CA01C]">CP</span>
+              <span className="text-2xl font-extrabold text-[#2CA01C]">C+</span>
             ) : (
-              <h1 className="text-lg sm:text-xl font-extrabold tracking-wide">
-                <span className="text-white">COMPUTO</span>
-                <span className="text-[#2CA01C]">PLUS</span>
-              </h1>
+              <Image src="/images/logo.png" alt="Cómputo Plus" width={160} height={44} className="h-10 w-auto brightness-0 invert" priority />
             )}
           </Link>
 

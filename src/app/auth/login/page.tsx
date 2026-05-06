@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { signIn } from 'next-auth/react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
@@ -50,11 +51,8 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-md relative z-10 shadow-2xl border-0 qb-animate-scale-in">
         <CardHeader className="space-y-1 text-center pb-8">
-          <div className="mb-4">
-            <h1 className="text-3xl font-extrabold">
-              <span className="text-[#0D2942]">Computo</span>
-              <span className="text-[#2CA01C]">Plus</span>
-            </h1>
+          <div className="mb-4 flex justify-center">
+            <Image src="/images/logo.png" alt="Cómputo Plus" width={220} height={60} className="h-14 w-auto" priority />
           </div>
           <CardTitle className="text-xl font-semibold text-gray-900">
             Welcome back
