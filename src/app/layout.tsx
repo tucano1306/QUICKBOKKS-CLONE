@@ -1,8 +1,8 @@
-import { Inter } from 'next/font/google'
-import './globals.css'
 import { Providers } from '@/components/providers'
-import { Toaster } from 'react-hot-toast'
 import type { Metadata, Viewport } from 'next'
+import { Inter } from 'next/font/google'
+import { Toaster } from 'react-hot-toast'
+import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -14,17 +14,6 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'default',
     title: 'ComputoPlus',
-  },
-  icons: {
-    icon: [
-      { url: '/favicon.ico', type: 'image/x-icon' },
-      { url: '/favicon.png', type: 'image/png' },
-      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
   },
 }
 
@@ -46,7 +35,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           {children}
-          <Toaster 
+          <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
