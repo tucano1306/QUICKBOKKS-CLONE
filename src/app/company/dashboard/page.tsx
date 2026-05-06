@@ -1,28 +1,28 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AnimatedCounter, Sparkline } from '@/components/ui/animated-charts'
 import { Button } from '@/components/ui/button'
-import { Sparkline, AnimatedCounter } from '@/components/ui/animated-charts'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useCompany } from '@/contexts/CompanyContext'
 import {
-  DollarSign,
-  FileText,
-  ArrowUpRight,
-  ArrowDownRight,
-  Calculator,
-  PieChart,
-  Receipt,
-  Building2,
-  Home,
-  ArrowRight,
-  Sparkles,
-  RefreshCw,
-  BarChart3,
+    ArrowDownRight,
+    ArrowRight,
+    ArrowUpRight,
+    BarChart3,
+    Building2,
+    Calculator,
+    DollarSign,
+    FileText,
+    Home,
+    PieChart,
+    Receipt,
+    RefreshCw,
+    Sparkles,
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 interface DashboardStats {
   revenue: { current: number; previous: number; change: number }
@@ -32,6 +32,9 @@ interface DashboardStats {
   receivables: number
   payables: number
   cashBalance: number
+  currentYear: number
+  currentMonth: number
+  monthlyData: { month: string; monthIndex: number; revenue: number; expenses: number }[]
   recentActivity: {
     type: string
     description: string
@@ -136,10 +139,10 @@ function StatCardComponent({ stat, index }: StatCardProps) {
   const bgColor = getBackgroundColor(stat.color)
   const textColor = getTextColor(stat.color)
   const sparklineColor = getSparklineColor(stat.color)
-  
+
   return (
-    <Card 
-      key={stat.name} 
+    <Card
+      key={stat.name}
       className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden"
       style={{ animationDelay: `${index * 100}ms` }}
     >
@@ -167,8 +170,8 @@ function StatCardComponent({ stat, index }: StatCardProps) {
           {stat.name}
         </div>
         <div className="absolute bottom-2 right-2 opacity-30">
-          <Sparkline 
-            data={[30, 45, 35, 50, 40, 60, 55]} 
+          <Sparkline
+            data={[30, 45, 35, 50, 40, 60, 55]}
             color={sparklineColor}
             height={30}
             width={60}
@@ -180,18 +183,18 @@ function StatCardComponent({ stat, index }: StatCardProps) {
 }
 
 // Componente para item de actividad reciente
-function ActivityItem({ 
-  activity, 
-  formatCurrency, 
-  formatTimeAgo 
+function ActivityItem({
+  activity,
+  formatCurrency,
+  formatTimeAgo
 }: ActivityItemProps) {
   const activityBgColor = getActivityBgColor(activity.type)
   const activityIcon = getActivityIcon(activity.type)
   const activityTextColor = getActivityTextColor(activity.type)
   const activitySign = getActivitySign(activity.type)
-  
+
   return (
-    <div 
+    <div
       key={`${activity.type}-${activity.date}-${activity.entityName}`}
       className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
     >
@@ -231,27 +234,30 @@ export default function CompanyDashboardPage() {
         const data = await response.json()
         // Map API response to expected structure
         const mappedStats: DashboardStats = {
-          revenue: { 
-            current: data.totalRevenue || 0, 
-            previous: 0, 
-            change: data.revenueChange || 0 
+          revenue: {
+            current: data.totalRevenue || 0,
+            previous: 0,
+            change: data.revenueChange || 0
           },
-          expenses: { 
-            current: data.totalExpenses || 0, 
-            previous: 0, 
-            change: data.expensesChange || 0 
+          expenses: {
+            current: data.totalExpenses || 0,
+            previous: 0,
+            change: data.expensesChange || 0
           },
-          customers: { 
-            total: data.totalCustomers || 0, 
-            new: 0 
+          customers: {
+            total: data.totalCustomers || 0,
+            new: 0
           },
-          invoices: { 
-            pending: data.pendingInvoices || 0, 
-            overdue: data.overdueInvoices || 0 
+          invoices: {
+            pending: data.pendingInvoices || 0,
+            overdue: data.overdueInvoices || 0
           },
           receivables: data.totalRevenue || 0,
           payables: data.totalExpenses || 0,
           cashBalance: (data.totalRevenue || 0) - (data.totalExpenses || 0),
+          currentYear: data.currentYear || new Date().getFullYear(),
+          currentMonth: data.currentMonth ?? new Date().getMonth(),
+          monthlyData: data.monthlyData || [],
           recentActivity: []
         }
         setStats(mappedStats)
@@ -377,13 +383,13 @@ export default function CompanyDashboardPage() {
 
         {/* Gráficos principales mejorados */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
-          {/* Gráfico de barras animado */}
+          {/* Rendimiento Anual */}
           <Card className="overflow-hidden shadow-md">
             <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-white p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base text-[#0D2942]">
                   <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-[#2CA01C]" />
-                  Rendimiento Mensual
+                  Rendimiento Anual {stats?.currentYear}
                 </CardTitle>
                 <div className="flex gap-2 sm:gap-4 text-xs sm:text-sm">
                   <div className="flex items-center gap-2">
@@ -400,55 +406,72 @@ export default function CompanyDashboardPage() {
             <CardContent className="p-3 sm:p-6">
               {stats && (
                 <div className="space-y-4 sm:space-y-6">
-                  {/* Resumen financiero real */}
+                  {/* Totales anuales */}
                   <div className="grid grid-cols-3 gap-2 sm:gap-4">
                     <div className="text-center p-2 sm:p-4 bg-green-50 rounded-lg sm:rounded-xl">
                       <div className="text-sm sm:text-2xl font-bold text-[#2CA01C] truncate">
                         <AnimatedCounter value={stats.revenue.current} prefix="$" decimals={0} />
                       </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Ingresos</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Ingresos {stats.currentYear}</div>
                     </div>
                     <div className="text-center p-2 sm:p-4 bg-red-50 rounded-lg sm:rounded-xl">
                       <div className="text-sm sm:text-2xl font-bold text-red-600 truncate">
                         <AnimatedCounter value={stats.expenses.current} prefix="$" decimals={0} />
                       </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Gastos</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Gastos {stats.currentYear}</div>
                     </div>
                     <div className={`text-center p-2 sm:p-4 rounded-lg sm:rounded-xl ${stats.revenue.current - stats.expenses.current >= 0 ? 'bg-blue-50' : 'bg-red-50'}`}>
                       <div className={`text-sm sm:text-2xl font-bold truncate ${stats.revenue.current - stats.expenses.current >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                         <AnimatedCounter value={stats.revenue.current - stats.expenses.current} prefix="$" decimals={0} />
                       </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Utilidad</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Utilidad {stats.currentYear}</div>
                     </div>
                   </div>
-                  
-                  {/* Barra de comparación visual */}
-                  <div className="space-y-3 pt-4 border-t">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">Ingresos</span>
-                        <span className="font-medium text-[#2CA01C]">${stats.revenue.current.toLocaleString()}</span>
+
+                  {/* Gráfico de barras mensual */}
+                  {stats.monthlyData.length > 0 && (() => {
+                    const maxVal = Math.max(...stats.monthlyData.flatMap(m => [m.revenue, m.expenses]), 1)
+                    return (
+                      <div className="pt-4 border-t">
+                        <div className="flex items-end gap-1 sm:gap-2 h-32 sm:h-48">
+                          {stats.monthlyData.map((m) => {
+                            const isCurrent = m.monthIndex === stats.currentMonth
+                            const isFuture = m.monthIndex > stats.currentMonth
+                            const revHeight = Math.round((m.revenue / maxVal) * 100)
+                            const expHeight = Math.round((m.expenses / maxVal) * 100)
+                            return (
+                              <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
+                                <div className="w-full flex gap-0.5 items-end h-28 sm:h-44">
+                                  {/* Barra ingresos */}
+                                  <div className="flex-1 flex items-end h-full">
+                                    <div
+                                      className={`w-full rounded-t transition-all duration-700 ${isFuture ? 'opacity-20' : ''} ${isCurrent ? 'bg-[#1a7a0f]' : 'bg-[#2CA01C]'}`}
+                                      style={{ height: `${revHeight}%`, minHeight: m.revenue > 0 ? '2px' : '0' }}
+                                      title={`Ingresos ${m.month}: $${m.revenue.toLocaleString()}`}
+                                    />
+                                  </div>
+                                  {/* Barra gastos */}
+                                  <div className="flex-1 flex items-end h-full">
+                                    <div
+                                      className={`w-full rounded-t transition-all duration-700 ${isFuture ? 'opacity-20' : ''} ${isCurrent ? 'bg-rose-700' : 'bg-red-500'}`}
+                                      style={{ height: `${expHeight}%`, minHeight: m.expenses > 0 ? '2px' : '0' }}
+                                      title={`Gastos ${m.month}: $${m.expenses.toLocaleString()}`}
+                                    />
+                                  </div>
+                                </div>
+                                <span className={`text-[9px] sm:text-xs font-medium ${isCurrent ? 'text-[#2CA01C]' : 'text-gray-400'}`}>
+                                  {m.month}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-2 text-right">
+                          Meses futuros en gris · Mes actual resaltado
+                        </p>
                       </div>
-                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-[#2CA01C] to-[#108000] rounded-full transition-all duration-1000"
-                          style={{ width: stats.revenue.current > 0 ? '100%' : '0%' }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">Gastos</span>
-                        <span className="font-medium text-red-600">${stats.expenses.current.toLocaleString()}</span>
-                      </div>
-                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full transition-all duration-1000"
-                          style={{ width: stats.revenue.current > 0 ? `${Math.min((stats.expenses.current / stats.revenue.current) * 100, 100)}%` : '0%' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                    )
+                  })()}
                 </div>
               )}
             </CardContent>

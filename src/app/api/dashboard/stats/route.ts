@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Obtener companyId de la URL o del usuario
     const { searchParams } = new URL(request.url)
     const companyIdParam = searchParams.get('companyId')
-    
+
     // Si no viene companyId, buscar la compañía del usuario
     let companyId = companyIdParam
     if (!companyId) {
@@ -27,90 +27,111 @@ export async function GET(request: NextRequest) {
       companyId = userCompany?.companyId || null
     }
 
-    // Get current month dates
     const now = new Date()
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth()
 
-    // Get previous month dates
-    const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+    // Current year date range
+    const firstDayOfYear = new Date(currentYear, 0, 1)
+    const lastDayOfYear = new Date(currentYear, 11, 31, 23, 59, 59)
+
+    // Previous year for comparison
+    const firstDayOfLastYear = new Date(currentYear - 1, 0, 1)
+    const lastDayOfLastYear = new Date(currentYear - 1, 11, 31, 23, 59, 59)
 
     // Construir filtro base
-    const baseInvoiceFilter = companyId 
-      ? { companyId } 
+    const baseInvoiceFilter = companyId
+      ? { companyId }
       : { userId: session.user.id }
-    
+
     const baseExpenseFilter = companyId
       ? { companyId }
       : { userId: session.user.id }
 
-    // Run all aggregations in parallel
+    // Run all queries in parallel
     const [
-      revenueThisMonth,
-      invoicesThisMonth,
-      revenueLastMonth,
-      expensesThisMonth,
-      expensesLastMonth,
+      yearInvoices,
+      yearExpenses,
+      prevYearRevenueAgg,
+      prevYearExpensesAgg,
       totalCustomers,
-      totalInvoices,
       pendingInvoices,
       overdueInvoices
     ] = await Promise.all([
-      prisma.invoice.aggregate({
-        where: { ...baseInvoiceFilter, status: 'PAID', paidDate: { gte: firstDayOfMonth, lte: lastDayOfMonth } },
-        _sum: { total: true }
+      prisma.invoice.findMany({
+        where: { ...baseInvoiceFilter, issueDate: { gte: firstDayOfYear, lte: lastDayOfYear } },
+        select: { issueDate: true, total: true }
+      }),
+      prisma.expense.findMany({
+        where: { ...baseExpenseFilter, date: { gte: firstDayOfYear, lte: lastDayOfYear } },
+        select: { date: true, amount: true }
       }),
       prisma.invoice.aggregate({
-        where: { ...baseInvoiceFilter, issueDate: { gte: firstDayOfMonth, lte: lastDayOfMonth } },
-        _sum: { total: true }
-      }),
-      prisma.invoice.aggregate({
-        where: { ...baseInvoiceFilter, issueDate: { gte: firstDayOfLastMonth, lte: lastDayOfLastMonth } },
+        where: { ...baseInvoiceFilter, issueDate: { gte: firstDayOfLastYear, lte: lastDayOfLastYear } },
         _sum: { total: true }
       }),
       prisma.expense.aggregate({
-        where: { ...baseExpenseFilter, date: { gte: firstDayOfMonth, lte: lastDayOfMonth } },
-        _sum: { amount: true }
-      }),
-      prisma.expense.aggregate({
-        where: { ...baseExpenseFilter, date: { gte: firstDayOfLastMonth, lte: lastDayOfLastMonth } },
+        where: { ...baseExpenseFilter, date: { gte: firstDayOfLastYear, lte: lastDayOfLastYear } },
         _sum: { amount: true }
       }),
       prisma.customer.count({ where: { companyId: companyId || undefined, status: 'ACTIVE' } }),
-      prisma.invoice.count({ where: { ...baseInvoiceFilter, createdAt: { gte: firstDayOfMonth, lte: lastDayOfMonth } } }),
       prisma.invoice.count({ where: { ...baseInvoiceFilter, status: { in: ['DRAFT', 'SENT', 'VIEWED', 'PARTIAL'] } } }),
       prisma.invoice.count({ where: { ...baseInvoiceFilter, status: 'OVERDUE' } })
     ])
 
-    // Calculate totals - usar ingresos de facturas emitidas (no solo pagadas)
-    const totalRevenue = Number(invoicesThisMonth._sum.total || 0)
-    const lastMonthRevenue = Number(revenueLastMonth._sum.total || 0)
-    const revenueChange = lastMonthRevenue > 0
-      ? Math.round(((totalRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
-      : totalRevenue > 0 ? 100 : 0
+    // Build monthly breakdown for current year
+    const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    const monthlyData = Array.from({ length: 12 }, (_, i) => {
+      const monthRevenue = yearInvoices
+        .filter(inv => inv.issueDate && new Date(inv.issueDate).getMonth() === i)
+        .reduce((sum, inv) => sum + Number(inv.total || 0), 0)
+      const monthExpenses = yearExpenses
+        .filter(exp => exp.date && new Date(exp.date).getMonth() === i)
+        .reduce((sum, exp) => sum + Number(exp.amount || 0), 0)
+      return {
+        month: MONTH_NAMES[i],
+        monthIndex: i,
+        revenue: monthRevenue,
+        expenses: monthExpenses
+      }
+    })
 
-    const totalExpenses = Number(expensesThisMonth._sum.amount || 0)
-    const lastMonthExpenses = Number(expensesLastMonth._sum.amount || 0)
-    const expensesChange = lastMonthExpenses > 0
-      ? Math.round(((totalExpenses - lastMonthExpenses) / lastMonthExpenses) * 100)
-      : totalExpenses > 0 ? 100 : 0
+    // Annual totals
+    const totalRevenue = yearInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0)
+    const totalExpenses = yearExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0)
 
-    // Calcular balance
-    const paidRevenue = Number(revenueThisMonth._sum.total || 0)
+    // Year-over-year change
+    const lastYearRevenue = Number(prevYearRevenueAgg._sum.total || 0)
+    const lastYearExpenses = Number(prevYearExpensesAgg._sum.amount || 0)
+
+    let revenueChange = 0
+    if (lastYearRevenue > 0) {
+      revenueChange = Math.round(((totalRevenue - lastYearRevenue) / lastYearRevenue) * 100)
+    } else if (totalRevenue > 0) {
+      revenueChange = 100
+    }
+
+    let expensesChange = 0
+    if (lastYearExpenses > 0) {
+      expensesChange = Math.round(((totalExpenses - lastYearExpenses) / lastYearExpenses) * 100)
+    } else if (totalExpenses > 0) {
+      expensesChange = 100
+    }
+
     const netProfit = totalRevenue - totalExpenses
 
     return NextResponse.json({
       totalRevenue,
       totalExpenses,
       totalCustomers,
-      totalInvoices,
       pendingInvoices,
       overdueInvoices,
       revenueChange,
       expensesChange,
-      paidRevenue,
       netProfit,
+      currentYear,
+      currentMonth,
+      monthlyData,
       companyId
     })
   } catch (error) {
