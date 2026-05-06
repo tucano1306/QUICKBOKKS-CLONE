@@ -15,7 +15,6 @@ import {
     LayoutDashboard,
     Receipt,
     Settings,
-    ShoppingCart,
     Target,
     TrendingUp,
     Users,
@@ -126,18 +125,6 @@ const tabSections: TabSection[] = [
       { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir documentos' },
       { name: 'Historial de Transacciones', href: '/company/customers/transactions', description: 'Facturas y pagos' },
       { name: 'Notas y Seguimiento', href: '/company/customers/notes', description: 'CRM básico' }
-    ]
-  },
-  {
-    id: 'vendors',
-    name: 'Proveedores',
-    icon: ShoppingCart,
-    color: 'indigo',
-    submenus: [
-      { name: 'Lista de Proveedores', href: '/company/vendors/list', description: 'Directorio de proveedores' },
-      { name: 'Cuentas por Pagar', href: '/company/vendors/payables', description: 'Facturas pendientes' },
-      { name: 'Órdenes de Compra', href: '/company/vendors/purchase-orders', description: 'Órdenes a proveedores' },
-      { name: 'Historial de Compras', href: '/company/vendors/history', description: 'Registro de compras' }
     ]
   },
   {
