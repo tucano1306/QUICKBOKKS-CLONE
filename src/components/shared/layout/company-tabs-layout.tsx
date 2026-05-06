@@ -10,7 +10,6 @@ import {
     DollarSign,
     FileCheck,
     FileText,
-    FolderKanban,
     Home,
     LayoutDashboard,
     Receipt,
@@ -18,7 +17,6 @@ import {
     Target,
     TrendingUp,
     Users,
-    Zap
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -157,18 +155,6 @@ const tabSections: TabSection[] = [
     ]
   },
   {
-    id: 'projects',
-    name: 'Proyectos',
-    icon: FolderKanban,
-    color: 'violet',
-    submenus: [
-      { name: 'Lista de Proyectos', href: '/company/projects/list', description: 'Gestión de proyectos' },
-      { name: 'Job Costing', href: '/company/projects/costing', description: 'Costos por proyecto' },
-      { name: 'Tiempo Facturable', href: '/company/projects/billable-time', description: 'Horas a cobrar' },
-      { name: 'Rentabilidad', href: '/company/projects/profitability', description: 'Análisis por proyecto' }
-    ]
-  },
-  {
     id: 'budgets',
     name: 'Presupuestos',
     icon: Target,
@@ -210,18 +196,6 @@ const tabSections: TabSection[] = [
       { name: 'Estimación de Impuestos', href: '/company/taxes/estimates', description: 'Calcular impuestos' },
       { name: 'Exportar para Contador', href: '/company/taxes/export', description: 'Datos para declaración' },
       { name: 'Integración TurboTax', href: '/company/taxes/turbotax', description: 'Conectar con TurboTax' }
-    ]
-  },
-  {
-    id: 'automation',
-    name: 'Automatización',
-    icon: Zap,
-    color: 'amber',
-    submenus: [
-      { name: 'Workflows', href: '/company/automation/workflows', description: 'Flujos automatizados' },
-      { name: 'Reglas Contables', href: '/company/automation/rules', description: 'Clasificación automática' },
-      { name: 'Recordatorios', href: '/company/automation/reminders', description: 'Notificaciones automáticas' },
-      { name: 'Tareas Programadas', href: '/company/automation/scheduled', description: 'Ejecución periódica' }
     ]
   },
   {
