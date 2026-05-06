@@ -43,7 +43,7 @@ jobs:
         with:
           name: db-backup-${{ github.run_id }}
           path: ${{ env.BACKUP_FILE }}
-          retention-days: 90
+          retention-days: 400
           if-no-files-found: error
 
       - name: Backup summary
