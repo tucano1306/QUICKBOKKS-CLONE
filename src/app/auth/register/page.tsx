@@ -191,8 +191,8 @@ export default function RegisterPage() {
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <span className="qb-spinner"></span>
-                  Creating account...
+                  <span className="qb-spinner" />
+                  {' Creating account...'}
                 </span>
               ) : (
                 'Create Account'
