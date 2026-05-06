@@ -1,0 +1,54 @@
+name: Database Backup
+
+on:
+  schedule:
+    # Runs every day at 2:00 AM UTC (10:00 PM ET)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y postgresql-client
+
+      - name: Run pg_dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          # Extract connection details from DATABASE_URL
+          # Format: postgresql://user:password@host/dbname?params
+          TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+          BACKUP_FILE="backup_${TIMESTAMP}.sql.gz"
+
+          pg_dump "$DATABASE_URL" \
+            --no-password \
+            --verbose \
+            --format=plain \
+            --no-owner \
+            --no-acl \
+          | gzip > "$BACKUP_FILE"
+
+          echo "BACKUP_FILE=$BACKUP_FILE" >> $GITHUB_ENV
+          echo "Backup created: $BACKUP_FILE"
+          ls -lh "$BACKUP_FILE"
+
+      - name: Upload backup as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Backup summary
+        run: |
+          echo "✅ Backup completed successfully"
+          echo "File: $BACKUP_FILE"
+          echo "Retained for: 90 days"
+          echo "Download from: GitHub → Actions → This workflow run → Artifacts"
