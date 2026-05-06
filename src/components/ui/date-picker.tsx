@@ -51,7 +51,7 @@ export function DatePicker({
   // Sincronizar inputText cuando el popover se abre
   React.useEffect(() => {
     if (open) {
-      setInputText(dateValue ? format(dateValue, 'dd/MM/yyyy') : '')
+      setInputText(dateValue ? format(dateValue, 'MM/dd/yyyy') : '')
       setInputError(false)
     }
   }, [open, dateValue])
@@ -59,7 +59,7 @@ export function DatePicker({
   const handleSelect = (date: Date | undefined) => {
     if (date) {
       onChange?.(format(date, dateFormat))
-      setInputText(format(date, 'dd/MM/yyyy'))
+      setInputText(format(date, 'MM/dd/yyyy'))
     }
     setOpen(false)
   }
@@ -73,18 +73,19 @@ export function DatePicker({
     const raw = e.target.value
     setInputText(raw)
     setInputError(false)
-    // Intentar parsear en formato dd/MM/yyyy o dd-MM-yyyy o MM/dd/yyyy
-    const formats = ['dd/MM/yyyy', 'dd-MM-yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd']
+    // Only parse when the user has typed a complete date (exactly 10 chars: MM/dd/yyyy)
+    if (raw.length < 10) return
+    const formats = ['MM/dd/yyyy', 'MM-dd-yyyy', 'dd/MM/yyyy', 'yyyy-MM-dd']
     for (const fmt of formats) {
       const parsed = parse(raw, fmt, new Date())
-      if (isValid(parsed) && raw.length >= 8) {
+      if (isValid(parsed)) {
         if (minDate && parsed < minDate) { setInputError(true); return }
         if (maxDate && parsed > maxDate) { setInputError(true); return }
         onChange?.(format(parsed, dateFormat))
         return
       }
     }
-    if (raw.length >= 8) setInputError(true)
+    setInputError(true)
   }
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -129,13 +130,13 @@ export function DatePicker({
       >
         {/* Manual date input */}
         <div className="p-3 border-b bg-gray-50 dark:bg-gray-900">
-          <p className="text-xs text-gray-500 mb-1 font-medium">Escribir fecha (dd/mm/aaaa)</p>
+          <p className="text-xs text-gray-500 mb-1 font-medium">Escribir fecha (mm/dd/aaaa)</p>
           <input
             type="text"
             value={inputText}
             onChange={handleManualInput}
             onKeyDown={handleInputKeyDown}
-            placeholder="dd/mm/aaaa"
+            placeholder="mm/dd/aaaa"
             maxLength={10}
             className={cn(
               'w-full px-3 py-1.5 text-sm rounded-md border outline-none transition-colors',
@@ -248,18 +249,20 @@ export function DateRangePicker({
   // Sync inputs when popover opens
   React.useEffect(() => {
     if (open) {
-      setStartInput(startDateValue ? format(startDateValue, 'dd/MM/yyyy') : '')
-      setEndInput(endDateValue ? format(endDateValue, 'dd/MM/yyyy') : '')
+      setStartInput(startDateValue ? format(startDateValue, 'MM/dd/yyyy') : '')
+      setEndInput(endDateValue ? format(endDateValue, 'MM/dd/yyyy') : '')
       setStartError(false)
       setEndError(false)
     }
   }, [open, startDateValue, endDateValue])
 
   const parseManualDate = (raw: string): Date | null => {
-    const formats = ['dd/MM/yyyy', 'dd-MM-yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd']
+    // Only parse when the user has typed a complete date (exactly 10 chars: MM/dd/yyyy)
+    if (raw.length < 10) return null
+    const formats = ['MM/dd/yyyy', 'MM-dd-yyyy', 'dd/MM/yyyy', 'yyyy-MM-dd']
     for (const fmt of formats) {
       const parsed = parse(raw, fmt, new Date())
-      if (isValid(parsed) && raw.length >= 8) return parsed
+      if (isValid(parsed)) return parsed
     }
     return null
   }
@@ -273,7 +276,7 @@ export function DateRangePicker({
       const formatted = format(parsed, 'yyyy-MM-dd')
       onStartDateChange?.(formatted)
       if (endDate) onRangeChange?.(formatted, endDate)
-    } else if (raw.length >= 8) {
+    } else if (raw.length >= 10) {
       setStartError(true)
     }
   }
@@ -287,7 +290,7 @@ export function DateRangePicker({
       const formatted = format(parsed, 'yyyy-MM-dd')
       onEndDateChange?.(formatted)
       if (startDate) onRangeChange?.(startDate, formatted)
-    } else if (raw.length >= 8) {
+    } else if (raw.length >= 10) {
       setEndError(true)
     }
   }
@@ -296,7 +299,7 @@ export function DateRangePicker({
     if (date) {
       const formatted = format(date, 'yyyy-MM-dd')
       onStartDateChange?.(formatted)
-      setStartInput(format(date, 'dd/MM/yyyy'))
+      setStartInput(format(date, 'MM/dd/yyyy'))
       if (endDate) {
         onRangeChange?.(formatted, endDate)
       }
@@ -307,7 +310,7 @@ export function DateRangePicker({
     if (date) {
       const formatted = format(date, 'yyyy-MM-dd')
       onEndDateChange?.(formatted)
-      setEndInput(format(date, 'dd/MM/yyyy'))
+      setEndInput(format(date, 'MM/dd/yyyy'))
       if (startDate) {
         onRangeChange?.(startDate, formatted)
       }
@@ -473,13 +476,13 @@ export function DateRangePicker({
             {/* Manual date inputs */}
             <div className="flex gap-3 mb-3 px-1">
               <div className="flex-1">
-                <p className="text-xs text-gray-500 mb-1 font-medium">Inicio (dd/mm/aaaa)</p>
+                <p className="text-xs text-gray-500 mb-1 font-medium">Inicio (mm/dd/aaaa)</p>
                 <input
                   type="text"
                   value={startInput}
                   onChange={handleStartInput}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setOpen(false) }}
-                  placeholder="dd/mm/aaaa"
+                  placeholder="mm/dd/aaaa"
                   maxLength={10}
                   className={cn(
                     'w-full px-2 py-1 text-xs rounded-md border outline-none transition-colors',
@@ -491,13 +494,13 @@ export function DateRangePicker({
                 {startError && <p className="text-xs text-red-500 mt-0.5">Fecha inválida</p>}
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-500 mb-1 font-medium">Fin (dd/mm/aaaa)</p>
+                <p className="text-xs text-gray-500 mb-1 font-medium">Fin (mm/dd/aaaa)</p>
                 <input
                   type="text"
                   value={endInput}
                   onChange={handleEndInput}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setOpen(false) }}
-                  placeholder="dd/mm/aaaa"
+                  placeholder="mm/dd/aaaa"
                   maxLength={10}
                   className={cn(
                     'w-full px-2 py-1 text-xs rounded-md border outline-none transition-colors',
