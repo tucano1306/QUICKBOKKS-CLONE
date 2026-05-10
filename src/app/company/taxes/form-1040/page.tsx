@@ -2,6 +2,7 @@
 
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import Form1040Help from '@/components/taxes/form-1040-help'
+import MonthlyStatsBars from '@/components/taxes/monthly-stats-bars'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -784,6 +785,29 @@ export default function Form1040Page() {
             </CardContent>
           </Card>
         )}
+
+        {/* Monthly Stats Bars */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  Distribución Mensual {taxYear}
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  Meses futuros en gris · Mes actual resaltado
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                Total: ${totalIncome.toLocaleString()}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="pb-5">
+            <MonthlyStatsBars taxYear={taxYear} totalIncome={totalIncome} />
+          </CardContent>
+        </Card>
 
         {/* Quick Actions */}
         <Card>
