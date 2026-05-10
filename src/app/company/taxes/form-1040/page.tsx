@@ -7,43 +7,43 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCompany } from '@/contexts/CompanyContext'
 import { downloadTaxPDF } from '@/lib/tax-pdf'
 import {
-    AlertCircle,
-    Building2,
-    Calculator,
-    CheckCircle2,
-    Copy,
-    DollarSign,
-    Download,
-    Eye,
-    FileText,
-    Lightbulb,
-    Plus,
-    RefreshCw,
-    Save,
-    Sparkles,
-    Trash2,
-    TrendingUp,
-    User,
-    Users
+  AlertCircle,
+  Building2,
+  Calculator,
+  CheckCircle2,
+  Copy,
+  DollarSign,
+  Download,
+  Eye,
+  FileText,
+  Lightbulb,
+  Plus,
+  RefreshCw,
+  Save,
+  Sparkles,
+  Trash2,
+  TrendingUp,
+  User,
+  Users
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
