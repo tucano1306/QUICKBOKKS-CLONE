@@ -153,6 +153,23 @@ export async function GET(request: NextRequest) {
       return handleCopyFromPreviousYear(session.user.id, year);
     }
 
+    // Retornar todos los años guardados para el usuario (para estadísticas multi-año)
+    if (action === 'all-years') {
+      const forms = await prisma.taxForm1040.findMany({
+        where: { userId: session.user.id },
+        select: {
+          taxYear: true,
+          line9_totalIncome: true,
+          scheduleC_grossReceipts: true,
+          scheduleC_expenses: true,
+          line1a_w2Wages: true,
+          line8_otherIncome: true,
+        },
+        orderBy: { taxYear: 'asc' },
+      });
+      return NextResponse.json({ forms });
+    }
+
     // Obtener Form 1040 existente
     const form1040 = await getForm1040(session.user.id, year);
 

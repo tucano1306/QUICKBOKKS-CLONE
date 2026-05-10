@@ -17,8 +17,9 @@ const MONTHS = [
   { short: 'Dic', index: 11 },
 ]
 
-// Small variation multipliers so bars look natural, not robotic
+// Natural variation so bars don't look robotic
 const VARIATION = [1.0, 0.88, 1.05, 0.92, 1.1, 0.97, 1.03, 0.85, 1.08, 0.95, 1.02, 0.9]
+const MAX_BAR_PX = 180
 
 interface MonthlyStatsBarsProps {
   taxYear: number
@@ -30,161 +31,159 @@ export default function MonthlyStatsBars({ taxYear, totalIncome }: MonthlyStatsB
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth() // 0-based
 
-  // Determine the "view mode" relative to today
   const isCurrentYear = taxYear === currentYear
   const isPastYear = taxYear < currentYear
   const isFutureYear = taxYear > currentYear
 
-  // Monthly average (used as bar reference)
-  const monthlyAvg = totalIncome > 0 ? totalIncome / 12 : 5000
-  const maxBarValue = monthlyAvg * Math.max(...VARIATION)
+  const monthlyAvg = totalIncome > 0 ? totalIncome / 12 : 8000
+  const maxVal = monthlyAvg * Math.max(...VARIATION)
 
-  function getBarHeight(monthIndex: number): number {
-    // Future year: all flat placeholder
-    if (isFutureYear) return 24
-    // Past year: all months filled, use variation
-    if (isPastYear) {
-      const val = monthlyAvg * VARIATION[monthIndex]
-      return Math.round((val / maxBarValue) * 140) + 24
+  function barHeight(idx: number): number {
+    if (isFutureYear) return 28
+    if (isPastYear || idx < currentMonth) {
+      return Math.round((monthlyAvg * VARIATION[idx] / maxVal) * MAX_BAR_PX) + 28
     }
-    // Current year
-    if (monthIndex < currentMonth) {
-      // Past months
-      const val = monthlyAvg * VARIATION[monthIndex]
-      return Math.round((val / maxBarValue) * 140) + 24
+    if (idx === currentMonth) {
+      return Math.round((monthlyAvg * VARIATION[idx] * 1.06 / maxVal) * MAX_BAR_PX) + 28
     }
-    if (monthIndex === currentMonth) {
-      // Current month — slightly taller to stand out
-      const val = monthlyAvg * VARIATION[monthIndex] * 1.05
-      return Math.round((val / maxBarValue) * 140) + 24
-    }
-    // Future months
-    return 24
+    return 28 // future months
   }
 
-  function getBarStyle(monthIndex: number): React.CSSProperties {
-    if (isFutureYear) {
+  function barGradient(idx: number): React.CSSProperties {
+    if (isFutureYear || (isCurrentYear && idx > currentMonth)) {
+      return { background: 'rgba(100,116,139,0.25)', border: '1px solid rgba(100,116,139,0.2)' }
+    }
+    if (isCurrentYear && idx === currentMonth) {
       return {
-        background: 'var(--color-future)',
-        opacity: 0.35,
+        background: 'linear-gradient(180deg,#c4b5fd 0%,#8b5cf6 45%,#6d28d9 100%)',
+        boxShadow: '0 0 20px 6px rgba(139,92,246,0.5), 0 4px 16px rgba(109,40,217,0.4)',
       }
     }
-    if (isPastYear || monthIndex < currentMonth) {
-      // Past — gradient indigo → cyan
-      return {
-        background: `linear-gradient(180deg, #818cf8 0%, #6366f1 60%, #4f46e5 100%)`,
-      }
-    }
-    if (monthIndex === currentMonth) {
-      // Current month — glowing brand gradient
-      return {
-        background: `linear-gradient(180deg, #a78bfa 0%, #7c3aed 55%, #6d28d9 100%)`,
-        boxShadow: '0 0 14px 4px rgba(124, 58, 237, 0.45)',
-      }
-    }
-    // Future months — flat gray
+    // past months — indigo gradient
     return {
-      background: 'rgb(148 163 184)',
-      opacity: 0.35,
+      background: 'linear-gradient(180deg,#a5b4fc 0%,#6366f1 55%,#4338ca 100%)',
+      boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
     }
   }
 
-  function getValueLabel(monthIndex: number): string | null {
-    if (isFutureYear) return null
-    if (isPastYear || monthIndex < currentMonth) {
-      const val = monthlyAvg * VARIATION[monthIndex]
-      return `$${Math.round(val / 1000)}k`
-    }
-    if (monthIndex === currentMonth && !isFutureYear) {
-      const val = monthlyAvg * VARIATION[monthIndex]
-      return `$${Math.round(val / 1000)}k`
-    }
-    return null
-  }
-
-  function getLabelStyle(monthIndex: number): string {
-    if (isFutureYear) return 'text-slate-400 text-xs mt-2'
-    if (monthIndex === currentMonth && isCurrentYear) return 'text-violet-600 font-bold text-xs mt-2'
-    if (monthIndex > currentMonth && isCurrentYear) return 'text-slate-400 text-xs mt-2'
-    return 'text-slate-500 text-xs mt-2'
+  function valueLabel(idx: number): string {
+    if (isFutureYear || (isCurrentYear && idx > currentMonth)) return ''
+    const val = monthlyAvg * VARIATION[idx]
+    if (val >= 1000) return `$${(val / 1000).toFixed(1)}k`
+    return `$${Math.round(val)}`
   }
 
   return (
-    <div className="w-full">
+    <div
+      className="rounded-2xl shadow-2xl overflow-hidden"
+      style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%)' }}
+    >
+      {/* Header */}
+      <div className="px-6 pt-6 pb-2 flex items-center justify-between">
+        <div>
+          <h2 className="text-white text-xl font-bold tracking-tight">
+            Ingresos Mensuales
+          </h2>
+          <p className="text-slate-400 text-xs mt-0.5">
+            Año fiscal {taxYear} · Estimación mensual
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-slate-400 text-[10px] uppercase tracking-widest">Total anual</p>
+          <p className="text-white font-bold text-lg">
+            ${totalIncome > 0 ? totalIncome.toLocaleString() : '—'}
+          </p>
+        </div>
+      </div>
+
       {/* Legend */}
-      <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground">
+      <div className="px-6 pt-2 pb-4 flex items-center gap-4 text-[10px] text-slate-400">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm bg-indigo-500" />
-          Mes completado
+          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#818cf8,#4338ca)' }} />
+          Completado
         </span>
         {isCurrentYear && (
           <span className="flex items-center gap-1.5">
-            <span className="inline-block w-3 h-3 rounded-sm bg-violet-500" />
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#c4b5fd,#7c3aed)' }} />
             Mes actual
           </span>
         )}
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm bg-slate-300 opacity-60" />
-          Mes futuro
+          <span className="w-2.5 h-2.5 rounded-sm bg-slate-600 opacity-50" />
+          Futuro
         </span>
       </div>
 
       {/* Bars */}
-      <div className="flex items-end gap-2 sm:gap-3 w-full">
-        {MONTHS.map(({ short, index }) => {
-          const height = getBarHeight(index)
-          const label = getValueLabel(index)
-          const barStyle = getBarStyle(index)
-          const isActive = isCurrentYear && index === currentMonth
+      <div className="px-6 pb-6">
+        <div className="flex items-end gap-1.5 w-full" style={{ height: `${MAX_BAR_PX + 80}px` }}>
+          {MONTHS.map(({ short, index }) => {
+            const h = barHeight(index)
+            const gradient = barGradient(index)
+            const label = valueLabel(index)
+            const isActive = isCurrentYear && index === currentMonth
+            const isFuture = isFutureYear || (isCurrentYear && index > currentMonth)
 
-          return (
-            <div key={index} className="flex flex-col items-center flex-1 min-w-0 group">
-              {/* Value label above bar */}
-              <span
-                className={`text-[10px] font-semibold mb-1 transition-opacity duration-200 ${
-                  label ? 'opacity-100' : 'opacity-0'
-                } ${isActive ? 'text-violet-600' : 'text-slate-500'}`}
-              >
-                {label ?? '·'}
-              </span>
-
-              {/* Bar */}
+            return (
               <div
-                className="w-full rounded-t-md transition-all duration-700 ease-out relative"
-                style={{ height: `${height}px`, ...barStyle }}
+                key={index}
+                className="flex flex-col items-center justify-end flex-1 min-w-0 h-full group cursor-default"
               >
-                {/* Shine overlay on past/current */}
-                {!isFutureYear && (isPastYear || index <= currentMonth) && (
-                  <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-md bg-white/10 pointer-events-none" />
-                )}
+                {/* Value label */}
+                <span
+                  className={`text-[9px] font-bold mb-1.5 transition-all duration-200 ${
+                    label ? 'opacity-100' : 'opacity-0'
+                  } ${isActive ? 'text-violet-300' : 'text-slate-400'}`}
+                >
+                  {label || '·'}
+                </span>
 
-                {/* "Today" pulse dot */}
-                {isActive && (
-                  <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-600" />
-                  </span>
-                )}
+                {/* Bar */}
+                <div
+                  className="w-full rounded-t-lg transition-all duration-700 ease-out relative group-hover:brightness-110 group-hover:scale-y-105 origin-bottom"
+                  style={{ height: `${h}px`, ...gradient }}
+                >
+                  {/* Top shine */}
+                  {!isFuture && (
+                    <div className="absolute inset-x-0 top-0 h-1/4 rounded-t-lg bg-white/15 pointer-events-none" />
+                  )}
+
+                  {/* Pulse dot on current month */}
+                  {isActive && (
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-300 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-violet-400" />
+                    </span>
+                  )}
+                </div>
+
+                {/* Month label */}
+                <p
+                  className={`text-[10px] mt-2 font-medium ${
+                    isActive
+                      ? 'text-violet-300 font-bold'
+                      : isFuture
+                      ? 'text-slate-600'
+                      : 'text-slate-400'
+                  }`}
+                >
+                  {short}
+                </p>
               </div>
+            )
+          })}
+        </div>
 
-              {/* Month label */}
-              <p className={getLabelStyle(index)}>{short}</p>
-            </div>
-          )
-        })}
+        {/* Axis line */}
+        <div className="h-px w-full mt-1" style={{ background: 'rgba(148,163,184,0.15)' }} />
+
+        {/* Footer */}
+        <p className="mt-3 text-[10px] text-slate-500 text-right">
+          {isFutureYear
+            ? 'Sin datos — año futuro'
+            : `Basado en distribución uniforme de $${monthlyAvg > 0 ? Math.round(monthlyAvg).toLocaleString() : '0'}/mes`}
+        </p>
       </div>
-
-      {/* Bottom axis line */}
-      <div className="mt-1 h-px w-full bg-border" />
-
-      {/* Footer note */}
-      <p className="mt-2 text-[11px] text-muted-foreground text-right">
-        {isCurrentYear
-          ? `Basado en ingreso total anual estimado de $${totalIncome.toLocaleString()}`
-          : isPastYear
-          ? `Año fiscal ${taxYear} — ingreso total $${totalIncome.toLocaleString()}`
-          : `Año fiscal ${taxYear} — sin datos disponibles`}
-      </p>
     </div>
   )
 }
