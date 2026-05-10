@@ -1,8 +1,8 @@
 'use client'
 
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import { AnimatedCounter, Sparkline } from '@/components/ui/animated-charts'
 import IncomeAnalytics from '@/components/taxes/income-analytics'
+import { AnimatedCounter, Sparkline } from '@/components/ui/animated-charts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -384,99 +384,157 @@ export default function CompanyDashboardPage() {
 
         {/* Gráficos principales mejorados */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
-          {/* Rendimiento Anual */}
-          <Card className="overflow-hidden shadow-md">
-            <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-white p-3 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <CardTitle className="flex items-center gap-2 text-sm sm:text-base text-[#0D2942]">
-                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-[#2CA01C]" />
-                  Rendimiento Anual {stats?.currentYear}
-                </CardTitle>
-                <div className="flex gap-2 sm:gap-4 text-xs sm:text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#2CA01C]" />
-                    <span className="text-gray-600">Ingresos</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <span className="text-gray-600">Gastos</span>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-6">
-              {stats && (
-                <div className="space-y-4 sm:space-y-6">
-                  {/* Totales anuales */}
-                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                    <div className="text-center p-2 sm:p-4 bg-green-50 rounded-lg sm:rounded-xl">
-                      <div className="text-sm sm:text-2xl font-bold text-[#2CA01C] truncate">
-                        <AnimatedCounter value={stats.revenue.current} prefix="$" decimals={0} />
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Ingresos {stats.currentYear}</div>
+          {/* Rendimiento Anual — dark card */}
+          {stats && (() => {
+            const maxVal = Math.max(...stats.monthlyData.flatMap(m => [m.revenue, m.expenses]), 1)
+            const profit = stats.revenue.current - stats.expenses.current
+            const profitPct = stats.revenue.current > 0
+              ? Math.round((profit / stats.revenue.current) * 100)
+              : 0
+
+            return (
+              <div
+                className="rounded-2xl shadow-2xl overflow-hidden"
+                style={{ background: 'linear-gradient(135deg,#0f172a 0%,#0d2542 100%)' }}
+              >
+                {/* Header */}
+                <div className="px-6 pt-6 pb-4 border-b border-slate-800/70">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-white text-lg font-bold tracking-tight flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-emerald-400" />
+                        Rendimiento Anual {stats.currentYear}
+                      </h2>
+                      <p className="text-slate-400 text-xs mt-0.5">
+                        Ingresos vs Gastos · Meses futuros en gris · Mes actual resaltado
+                      </p>
                     </div>
-                    <div className="text-center p-2 sm:p-4 bg-red-50 rounded-lg sm:rounded-xl">
-                      <div className="text-sm sm:text-2xl font-bold text-red-600 truncate">
-                        <AnimatedCounter value={stats.expenses.current} prefix="$" decimals={0} />
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Gastos {stats.currentYear}</div>
-                    </div>
-                    <div className={`text-center p-2 sm:p-4 rounded-lg sm:rounded-xl ${stats.revenue.current - stats.expenses.current >= 0 ? 'bg-blue-50' : 'bg-red-50'}`}>
-                      <div className={`text-sm sm:text-2xl font-bold truncate ${stats.revenue.current - stats.expenses.current >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                        <AnimatedCounter value={stats.revenue.current - stats.expenses.current} prefix="$" decimals={0} />
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Utilidad {stats.currentYear}</div>
+                    <div className="flex gap-3 text-[10px] text-slate-400">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#34d399,#059669)' }} />
+                        Ingresos
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#f87171,#dc2626)' }} />
+                        Gastos
+                      </span>
                     </div>
                   </div>
 
-                  {/* Gráfico de barras mensual */}
-                  {stats.monthlyData.length > 0 && (() => {
-                    const maxVal = Math.max(...stats.monthlyData.flatMap(m => [m.revenue, m.expenses]), 1)
-                    return (
-                      <div className="pt-4 border-t">
-                        <div className="flex items-end gap-1 sm:gap-2 h-32 sm:h-48">
-                          {stats.monthlyData.map((m) => {
-                            const isCurrent = m.monthIndex === stats.currentMonth
-                            const isFuture = m.monthIndex > stats.currentMonth
-                            const revHeight = Math.round((m.revenue / maxVal) * 100)
-                            const expHeight = Math.round((m.expenses / maxVal) * 100)
-                            return (
-                              <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
-                                <div className="w-full flex gap-0.5 items-end h-28 sm:h-44">
-                                  {/* Barra ingresos */}
-                                  <div className="flex-1 flex items-end h-full">
-                                    <div
-                                      className={`w-full rounded-t transition-all duration-700 ${isFuture ? 'opacity-20' : ''} ${isCurrent ? 'bg-[#1a7a0f]' : 'bg-[#2CA01C]'}`}
-                                      style={{ height: `${revHeight}%`, minHeight: m.revenue > 0 ? '2px' : '0' }}
-                                      title={`Ingresos ${m.month}: $${m.revenue.toLocaleString()}`}
-                                    />
-                                  </div>
-                                  {/* Barra gastos */}
-                                  <div className="flex-1 flex items-end h-full">
-                                    <div
-                                      className={`w-full rounded-t transition-all duration-700 ${isFuture ? 'opacity-20' : ''} ${isCurrent ? 'bg-rose-700' : 'bg-red-500'}`}
-                                      style={{ height: `${expHeight}%`, minHeight: m.expenses > 0 ? '2px' : '0' }}
-                                      title={`Gastos ${m.month}: $${m.expenses.toLocaleString()}`}
-                                    />
+                  {/* KPI pills */}
+                  <div className="grid grid-cols-3 gap-3 mt-4">
+                    <div className="bg-emerald-950/60 border border-emerald-800/40 rounded-xl p-3 text-center">
+                      <p className="text-[10px] text-emerald-400/70 uppercase tracking-widest">Ingresos</p>
+                      <p className="text-emerald-300 font-bold text-base mt-0.5">
+                        <AnimatedCounter value={stats.revenue.current} prefix="$" decimals={0} />
+                      </p>
+                    </div>
+                    <div className="bg-red-950/60 border border-red-800/40 rounded-xl p-3 text-center">
+                      <p className="text-[10px] text-red-400/70 uppercase tracking-widest">Gastos</p>
+                      <p className="text-red-300 font-bold text-base mt-0.5">
+                        <AnimatedCounter value={stats.expenses.current} prefix="$" decimals={0} />
+                      </p>
+                    </div>
+                    <div className={`rounded-xl p-3 text-center border ${profit >= 0 ? 'bg-indigo-950/60 border-indigo-800/40' : 'bg-red-950/60 border-red-800/40'}`}>
+                      <p className={`text-[10px] uppercase tracking-widest ${profit >= 0 ? 'text-indigo-400/70' : 'text-red-400/70'}`}>
+                        Utilidad {profitPct >= 0 ? `+${profitPct}%` : `${profitPct}%`}
+                      </p>
+                      <p className={`font-bold text-base mt-0.5 ${profit >= 0 ? 'text-indigo-300' : 'text-red-300'}`}>
+                        <AnimatedCounter value={profit} prefix="$" decimals={0} />
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bar chart */}
+                <div className="px-6 py-6">
+                  {stats.monthlyData.length > 0 ? (
+                    <>
+                      <div className="flex items-end gap-1.5 sm:gap-2 w-full" style={{ height: '180px' }}>
+                        {stats.monthlyData.map((m) => {
+                          const isCurrent = m.monthIndex === stats.currentMonth
+                          const isFuture = m.monthIndex > stats.currentMonth
+                          const revH = Math.max(isFuture ? 6 : 4, Math.round((m.revenue / maxVal) * 140))
+                          const expH = Math.max(isFuture ? 6 : 4, Math.round((m.expenses / maxVal) * 140))
+
+                          return (
+                            <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full group">
+                              {/* Value tooltip on hover */}
+                              {!isFuture && (
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[8px] text-slate-400 text-center mb-1 leading-tight">
+                                  <span className="text-emerald-400">${Math.round(m.revenue / 1000)}k</span>
+                                  {' / '}
+                                  <span className="text-red-400">${Math.round(m.expenses / 1000)}k</span>
+                                </div>
+                              )}
+
+                              <div className="w-full flex gap-0.5 items-end" style={{ height: '155px' }}>
+                                {/* Revenue bar */}
+                                <div className="flex-1 flex items-end h-full">
+                                  <div
+                                    className="w-full rounded-t-md transition-all duration-700 ease-out relative group-hover:brightness-110"
+                                    style={{
+                                      height: `${revH}px`,
+                                      background: isFuture
+                                        ? 'rgba(52,211,153,0.12)'
+                                        : isCurrent
+                                        ? 'linear-gradient(180deg,#6ee7b7 0%,#10b981 55%,#047857 100%)'
+                                        : 'linear-gradient(180deg,#34d399 0%,#10b981 60%,#059669 100%)',
+                                      boxShadow: isCurrent && !isFuture ? '0 0 14px 4px rgba(16,185,129,0.4)' : undefined,
+                                    }}
+                                  >
+                                    {!isFuture && <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-md bg-white/10 pointer-events-none" />}
+                                    {isCurrent && (
+                                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex h-2.5 w-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
-                                <span className={`text-[9px] sm:text-xs font-medium ${isCurrent ? 'text-[#2CA01C]' : 'text-gray-400'}`}>
-                                  {m.month}
-                                </span>
+                                {/* Expense bar */}
+                                <div className="flex-1 flex items-end h-full">
+                                  <div
+                                    className="w-full rounded-t-md transition-all duration-700 ease-out relative group-hover:brightness-110"
+                                    style={{
+                                      height: `${expH}px`,
+                                      background: isFuture
+                                        ? 'rgba(248,113,113,0.12)'
+                                        : isCurrent
+                                        ? 'linear-gradient(180deg,#fca5a5 0%,#ef4444 55%,#b91c1c 100%)'
+                                        : 'linear-gradient(180deg,#f87171 0%,#ef4444 60%,#dc2626 100%)',
+                                      boxShadow: isCurrent && !isFuture ? '0 0 14px 4px rgba(239,68,68,0.35)' : undefined,
+                                    }}
+                                  >
+                                    {!isFuture && <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-md bg-white/10 pointer-events-none" />}
+                                  </div>
+                                </div>
                               </div>
-                            )
-                          })}
-                        </div>
-                        <p className="text-[10px] text-gray-400 mt-2 text-right">
-                          Meses futuros en gris · Mes actual resaltado
-                        </p>
+
+                              {/* Month label */}
+                              <p className={`text-[9px] sm:text-[10px] mt-2 font-medium ${
+                                isCurrent ? 'text-emerald-400 font-bold' : isFuture ? 'text-slate-700' : 'text-slate-500'
+                              }`}>
+                                {m.month}
+                              </p>
+                            </div>
+                          )
+                        })}
                       </div>
-                    )
-                  })()}
+
+                      {/* Axis */}
+                      <div className="h-px w-full mt-1" style={{ background: 'rgba(148,163,184,0.12)' }} />
+                      <p className="text-[10px] text-slate-600 mt-2 text-right">
+                        Hover sobre cada mes para ver detalle
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-slate-600 text-sm text-center py-10">Sin datos mensuales</p>
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Income Analytics */}
