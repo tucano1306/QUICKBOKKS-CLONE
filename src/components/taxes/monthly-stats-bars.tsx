@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 const MONTHS = [
   { short: 'Ene', index: 0 },
@@ -21,6 +21,15 @@ const MONTHS = [
 const VARIATION = [1.0, 0.88, 1.05, 0.92, 1.1, 0.97, 1.03, 0.85, 1.08, 0.95, 1.02, 0.9]
 const MAX_BAR_PX = 180
 
+interface YearRecord {
+  taxYear: number
+  line9_totalIncome: number
+  scheduleC_grossReceipts: number
+  scheduleC_expenses: number
+  line1a_w2Wages: number
+  line8_otherIncome: number
+}
+
 interface MonthlyStatsBarsProps {
   taxYear: number
   totalIncome: number
@@ -31,11 +40,47 @@ export default function MonthlyStatsBars({ taxYear, totalIncome }: MonthlyStatsB
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth() // 0-based
 
-  const isCurrentYear = taxYear === currentYear
-  const isPastYear = taxYear < currentYear
-  const isFutureYear = taxYear > currentYear
+  const [selectedYear, setSelectedYear] = useState(taxYear)
+  const [yearRecords, setYearRecords] = useState<YearRecord[]>([])
 
-  const monthlyAvg = totalIncome > 0 ? totalIncome / 12 : 8000
+  const fetchYears = useCallback(async () => {
+    try {
+      const res = await fetch('/api/tax-forms/1040?action=all-years')
+      if (res.ok) {
+        const data = await res.json()
+        setYearRecords(data.forms ?? [])
+      }
+    } catch { /* ignore */ }
+  }, [])
+
+  useEffect(() => { fetchYears() }, [fetchYears])
+  useEffect(() => { setSelectedYear(taxYear) }, [taxYear])
+
+  // Build year list + income map
+  const { availableYears, incomeByYear } = useMemo(() => {
+    const map = new Map<number, number>()
+    for (const r of yearRecords) {
+      const inc =
+        r.line9_totalIncome ||
+        (r.line1a_w2Wages ?? 0) + (r.scheduleC_grossReceipts ?? 0) - (r.scheduleC_expenses ?? 0)
+      map.set(r.taxYear, inc)
+    }
+    if (totalIncome > 0) map.set(taxYear, totalIncome)
+    const years = Array.from(map.keys()).sort((a, b) => a - b)
+    return { availableYears: years, incomeByYear: map }
+  }, [yearRecords, taxYear, totalIncome])
+
+  // Income for the selected year
+  const selectedIncome = useMemo(() => {
+    if (selectedYear === taxYear && totalIncome > 0) return totalIncome
+    return incomeByYear.get(selectedYear) ?? 0
+  }, [selectedYear, taxYear, totalIncome, incomeByYear])
+
+  const isCurrentYear = selectedYear === currentYear
+  const isPastYear = selectedYear < currentYear
+  const isFutureYear = selectedYear > currentYear
+
+  const monthlyAvg = selectedIncome > 0 ? selectedIncome / 12 : 8000
   const maxVal = monthlyAvg * Math.max(...VARIATION)
 
   function barHeight(idx: number): number {
@@ -79,21 +124,42 @@ export default function MonthlyStatsBars({ taxYear, totalIncome }: MonthlyStatsB
       style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%)' }}
     >
       {/* Header */}
-      <div className="px-6 pt-6 pb-2 flex items-center justify-between">
-        <div>
-          <h2 className="text-white text-xl font-bold tracking-tight">
-            Ingresos Mensuales
-          </h2>
-          <p className="text-slate-400 text-xs mt-0.5">
-            Año fiscal {taxYear} · Estimación mensual
-          </p>
+      <div className="px-6 pt-6 pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-white text-xl font-bold tracking-tight">
+              Ingresos Mensuales
+            </h2>
+            <p className="text-slate-400 text-xs mt-0.5">
+              Año {selectedYear} · Estimación mensual
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-slate-400 text-[10px] uppercase tracking-widest">Total anual</p>
+            <p className="text-white font-bold text-lg">
+              ${selectedIncome > 0 ? selectedIncome.toLocaleString() : '—'}
+            </p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="text-slate-400 text-[10px] uppercase tracking-widest">Total anual</p>
-          <p className="text-white font-bold text-lg">
-            ${totalIncome > 0 ? totalIncome.toLocaleString() : '—'}
-          </p>
-        </div>
+
+        {/* Year selector pills */}
+        {availableYears.length > 1 && (
+          <div className="flex gap-1.5 flex-wrap mt-3">
+            {availableYears.map((y) => (
+              <button
+                key={y}
+                onClick={() => setSelectedYear(y)}
+                className={`text-[11px] font-semibold px-3 py-1 rounded-lg transition-all duration-200 ${
+                  y === selectedYear
+                    ? 'bg-violet-600 text-white shadow'
+                    : 'bg-slate-800/70 text-slate-400 hover:text-slate-200 hover:bg-slate-700/70'
+                }`}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Legend */}

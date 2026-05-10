@@ -46,9 +46,12 @@ function monthlyValues(annual: number): number[] {
 
 // ─── Section 1: Monthly Ranking ───────────────────────────────────────────────
 
-function MonthRanking({ totalIncome }: { totalIncome: number }) {
+function MonthRanking({ totalIncome, taxYear }: { totalIncome: number; taxYear: number }) {
   const now = new Date()
+  const currentYear = now.getFullYear()
   const currentMonth = now.getMonth()
+  const isCurrentYear = taxYear === currentYear
+  const isPastYear = taxYear < currentYear
   const values = useMemo(() => monthlyValues(totalIncome > 0 ? totalIncome : 60_000), [totalIncome])
   const max = Math.max(...values)
 
@@ -85,7 +88,7 @@ function MonthRanking({ totalIncome }: { totalIncome: number }) {
       </p>
       <div className="space-y-2">
         {ranked.map(({ month, value, index }, rank) => {
-          const isFuture = index > currentMonth
+          const isFuture = isCurrentYear ? index > currentMonth : isPastYear ? false : true
           const barW = (value / max) * 100
 
           return (
@@ -271,55 +274,7 @@ function MonthlyTrend({ taxYear, totalIncome }: { taxYear: number; totalIncome: 
 
 // ─── Section 3: Annual Comparison ─────────────────────────────────────────────
 
-function AnnualComparison({ taxYear, currentIncome }: { taxYear: number; currentIncome: number }) {
-  const [records, setRecords] = useState<AnnualRecord[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch('/api/tax-forms/1040?action=all-years')
-      if (!res.ok) return
-      const data = await res.json()
-      setRecords(data.forms ?? [])
-    } catch {
-      // silently fail — component won't show if no data
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { load() }, [load])
-
-  // Merge DB data with current unsaved income for the selected year
-  const merged = useMemo<{ year: number; income: number }[]>(() => {
-    const map = new Map<number, number>()
-    for (const r of records) {
-      const inc = r.line9_totalIncome ||
-        (r.line1a_w2Wages ?? 0) + (r.scheduleC_grossReceipts ?? 0) - (r.scheduleC_expenses ?? 0) + (r.line8_otherIncome ?? 0)
-      map.set(r.taxYear, inc)
-    }
-    // Overlay current in-memory income (form may not be saved yet)
-    if (currentIncome > 0) map.set(taxYear, currentIncome)
-    return Array.from(map.entries())
-      .map(([year, income]) => ({ year, income }))
-      .sort((a, b) => a.year - b.year)
-  }, [records, taxYear, currentIncome])
-
-  if (loading) {
-    return (
-      <div>
-        <p className="text-slate-300 text-xs font-semibold uppercase tracking-widest mb-3">
-          Comparación anual
-        </p>
-        <div className="flex items-end gap-3 h-32 mt-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex-1 bg-slate-800 rounded-t-lg animate-pulse" style={{ height: `${40 + i * 20}px` }} />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
+function AnnualComparison({ merged, selectedYear }: { merged: { year: number; income: number }[]; selectedYear: number }) {
   if (merged.length === 0) {
     return (
       <div>
@@ -342,7 +297,7 @@ function AnnualComparison({ taxYear, currentIncome }: { taxYear: number; current
       return { background: 'linear-gradient(180deg,#fbbf24,#f59e0b)', boxShadow: '0 0 16px 4px rgba(251,191,36,0.35)' }
     if (income === Math.min(...merged.map((r) => r.income)) && merged.length > 1)
       return { background: 'linear-gradient(180deg,#f87171,#dc2626)' }
-    if (year === taxYear)
+    if (year === selectedYear)
       return { background: 'linear-gradient(180deg,#a78bfa,#7c3aed)', boxShadow: '0 0 14px 4px rgba(139,92,246,0.4)' }
     return { background: 'linear-gradient(180deg,#818cf8,#4338ca)' }
   }
@@ -361,7 +316,7 @@ function AnnualComparison({ taxYear, currentIncome }: { taxYear: number; current
       <div className="flex items-end gap-3">
         {merged.map(({ year, income }) => {
           const h = Math.max(24, Math.round((income / maxIncome) * MAX_BAR))
-          const isSelected = year === taxYear
+          const isSelected = year === selectedYear
           const yoy = merged.findIndex((r) => r.year === year) > 0
             ? ((income - merged[merged.findIndex((r) => r.year === year) - 1].income) /
               Math.abs(merged[merged.findIndex((r) => r.year === year) - 1].income || 1)) * 100
@@ -440,6 +395,45 @@ function AnnualComparison({ taxYear, currentIncome }: { taxYear: number; current
 
 export default function IncomeAnalytics({ taxYear, totalIncome }: IncomeAnalyticsProps) {
   const [active, setActive] = useState<'ranking' | 'trend' | 'annual'>('trend')
+  const [records, setRecords] = useState<AnnualRecord[]>([])
+  const [selectedYear, setSelectedYear] = useState(taxYear)
+
+  // Keep in sync when taxYear prop changes (e.g. form year selector)
+  useEffect(() => { setSelectedYear(taxYear) }, [taxYear])
+
+  // Fetch all years once
+  useEffect(() => {
+    fetch('/api/tax-forms/1040?action=all-years')
+      .then((r) => (r.ok ? r.json() : { forms: [] }))
+      .then((d) => setRecords(d.forms ?? []))
+      .catch(() => {})
+  }, [])
+
+  // Build merged year→income map (DB data + current unsaved form)
+  const merged = useMemo<{ year: number; income: number }[]>(() => {
+    const map = new Map<number, number>()
+    for (const r of records) {
+      const inc =
+        r.line9_totalIncome ||
+        (r.line1a_w2Wages ?? 0) +
+          (r.scheduleC_grossReceipts ?? 0) -
+          (r.scheduleC_expenses ?? 0) +
+          (r.line8_otherIncome ?? 0)
+      map.set(r.taxYear, inc)
+    }
+    if (totalIncome > 0) map.set(taxYear, totalIncome)
+    return Array.from(map.entries())
+      .map(([year, income]) => ({ year, income }))
+      .sort((a, b) => a.year - b.year)
+  }, [records, taxYear, totalIncome])
+
+  // Income for the selected year
+  const selectedIncome = useMemo(() => {
+    if (selectedYear === taxYear && totalIncome > 0) return totalIncome
+    return merged.find((r) => r.year === selectedYear)?.income ?? 0
+  }, [selectedYear, taxYear, totalIncome, merged])
+
+  const availableYears = useMemo(() => merged.map((r) => r.year), [merged])
 
   const tabs: { id: typeof active; label: string; icon: string }[] = [
     { id: 'trend', label: 'Tendencia anual', icon: '📈' },
@@ -454,22 +448,41 @@ export default function IncomeAnalytics({ taxYear, totalIncome }: IncomeAnalytic
     >
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-slate-800/70">
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-3">
           <div>
             <h2 className="text-white text-lg font-bold tracking-tight">
               Análisis de Ingresos
             </h2>
             <p className="text-slate-400 text-xs mt-0.5">
-              Año fiscal {taxYear} · Datos estimados basados en ingresos registrados
+              Año {selectedYear} · Datos estimados basados en ingresos registrados
             </p>
           </div>
-          {totalIncome > 0 && (
+          {selectedIncome > 0 && (
             <div className="text-right">
               <p className="text-slate-500 text-[10px] uppercase tracking-widest">Total anual</p>
-              <p className="text-white font-bold text-base">${totalIncome.toLocaleString()}</p>
+              <p className="text-white font-bold text-base">${selectedIncome.toLocaleString()}</p>
             </div>
           )}
         </div>
+
+        {/* Year selector pills */}
+        {availableYears.length > 1 && (
+          <div className="flex gap-1.5 flex-wrap mb-3">
+            {availableYears.map((y) => (
+              <button
+                key={y}
+                onClick={() => setSelectedYear(y)}
+                className={`text-[11px] font-semibold px-3 py-1 rounded-lg transition-all duration-200 ${
+                  y === selectedYear
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'bg-slate-800/70 text-slate-400 hover:text-slate-200 hover:bg-slate-700/70'
+                }`}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 bg-slate-900/60 rounded-xl p-1">
@@ -492,9 +505,9 @@ export default function IncomeAnalytics({ taxYear, totalIncome }: IncomeAnalytic
 
       {/* Content */}
       <div className="px-6 py-6">
-        {active === 'ranking' && <MonthRanking totalIncome={totalIncome} />}
-        {active === 'trend' && <MonthlyTrend taxYear={taxYear} totalIncome={totalIncome} />}
-        {active === 'annual' && <AnnualComparison taxYear={taxYear} currentIncome={totalIncome} />}
+        {active === 'ranking' && <MonthRanking totalIncome={selectedIncome} taxYear={selectedYear} />}
+        {active === 'trend' && <MonthlyTrend taxYear={selectedYear} totalIncome={selectedIncome} />}
+        {active === 'annual' && <AnnualComparison merged={merged} selectedYear={selectedYear} />}
       </div>
     </div>
   )
