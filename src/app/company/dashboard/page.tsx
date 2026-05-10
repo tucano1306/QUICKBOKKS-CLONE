@@ -2,6 +2,7 @@
 
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { AnimatedCounter, Sparkline } from '@/components/ui/animated-charts'
+import IncomeAnalytics from '@/components/taxes/income-analytics'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -478,8 +479,13 @@ export default function CompanyDashboardPage() {
           </Card>
         </div>
 
-
-
+        {/* Income Analytics */}
+        {stats && (
+          <IncomeAnalytics
+            taxYear={stats.currentYear}
+            totalIncome={stats.revenue.current}
+          />
+        )}
 
       </div>
     </CompanyTabsLayout>
