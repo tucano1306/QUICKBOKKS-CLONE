@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCompany } from '@/contexts/CompanyContext'
 import {
+    ArrowLeftRight,
     ArrowRight,
     BarChart3,
     Building2,
@@ -146,6 +147,15 @@ export default function CompanyHomePage() {
       href: '/company/taxes/info',
       color: 'teal',
       gradient: 'from-teal-500 to-cyan-600'
+    },
+    {
+      title: 'Transacciones',
+      description: 'Registro del libro mayor y movimientos contables de la empresa',
+      icon: ArrowLeftRight,
+      href: '/company/transactions',
+      color: 'slate',
+      gradient: 'from-slate-500 to-gray-600',
+      featured: true
     }
   ]
 
