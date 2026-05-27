@@ -4,7 +4,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import IncomeAnalytics from '@/components/taxes/income-analytics'
 import { AnimatedCounter, Sparkline } from '@/components/ui/animated-charts'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { useCompany } from '@/contexts/CompanyContext'
 import {
     ArrowDownRight,
