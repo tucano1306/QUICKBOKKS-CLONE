@@ -8,10 +8,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useCompany } from '@/contexts/CompanyContext'
 import {
     ArrowDownRight,
+    ArrowLeftRight,
     ArrowRight,
     ArrowUpRight,
     BarChart3,
-    Building2,
     Calculator,
     DollarSign,
     FileText,
@@ -371,12 +371,12 @@ export default function CompanyDashboardPage() {
                 <span className="text-xs font-semibold">Gastos</span>
               </Button>
               <Button
-                onClick={() => router.push('/company/banking/accounts')}
+                onClick={() => router.push('/company/transactions')}
                 variant="outline"
-                className="h-auto py-3 px-4 flex-col gap-2 hover:bg-white dark:hover:bg-gray-800 hover:border-blue-400 hover:shadow-md transition-all"
+                className="h-auto py-3 px-4 flex-col gap-2 hover:bg-white dark:hover:bg-gray-800 hover:border-indigo-400 hover:shadow-md transition-all"
               >
-                <Building2 className="w-5 h-5 text-blue-600" />
-                <span className="text-xs font-semibold">Banca</span>
+                <ArrowLeftRight className="w-5 h-5 text-indigo-600" />
+                <span className="text-xs font-semibold">Transacciones</span>
               </Button>
             </div>
           </CardContent>
@@ -411,12 +411,12 @@ export default function CompanyDashboardPage() {
                     </div>
                     <div className="flex gap-3 text-[10px] text-slate-400">
                       <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#34d399,#059669)' }} />
-                        Ingresos
+                        <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#34d399,#059669)' }}></span>
+                        {' '}Ingresos
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#f87171,#dc2626)' }} />
-                        Gastos
+                        <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#f87171,#dc2626)' }}></span>
+                        {' '}Gastos
                       </span>
                     </div>
                   </div>
@@ -456,6 +456,18 @@ export default function CompanyDashboardPage() {
                           const isFuture = m.monthIndex > stats.currentMonth
                           const revH = Math.max(isFuture ? 6 : 4, Math.round((m.revenue / maxVal) * 140))
                           const expH = Math.max(isFuture ? 6 : 4, Math.round((m.expenses / maxVal) * 140))
+                          let revBg: string
+                          if (isFuture) { revBg = 'rgba(52,211,153,0.12)' }
+                          else if (isCurrent) { revBg = 'linear-gradient(180deg,#6ee7b7 0%,#10b981 55%,#047857 100%)' }
+                          else { revBg = 'linear-gradient(180deg,#34d399 0%,#10b981 60%,#059669 100%)' }
+                          let expBg: string
+                          if (isFuture) { expBg = 'rgba(248,113,113,0.12)' }
+                          else if (isCurrent) { expBg = 'linear-gradient(180deg,#fca5a5 0%,#ef4444 55%,#b91c1c 100%)' }
+                          else { expBg = 'linear-gradient(180deg,#f87171 0%,#ef4444 60%,#dc2626 100%)' }
+                          let monthLabelClass: string
+                          if (isCurrent) { monthLabelClass = 'text-emerald-400 font-bold' }
+                          else if (isFuture) { monthLabelClass = 'text-slate-700' }
+                          else { monthLabelClass = 'text-slate-500' }
 
                           return (
                             <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full group">
@@ -475,11 +487,7 @@ export default function CompanyDashboardPage() {
                                     className="w-full rounded-t-md transition-all duration-700 ease-out relative group-hover:brightness-110"
                                     style={{
                                       height: `${revH}px`,
-                                      background: isFuture
-                                        ? 'rgba(52,211,153,0.12)'
-                                        : isCurrent
-                                        ? 'linear-gradient(180deg,#6ee7b7 0%,#10b981 55%,#047857 100%)'
-                                        : 'linear-gradient(180deg,#34d399 0%,#10b981 60%,#059669 100%)',
+                                      background: revBg,
                                       boxShadow: isCurrent && !isFuture ? '0 0 14px 4px rgba(16,185,129,0.4)' : undefined,
                                     }}
                                   >
@@ -498,11 +506,7 @@ export default function CompanyDashboardPage() {
                                     className="w-full rounded-t-md transition-all duration-700 ease-out relative group-hover:brightness-110"
                                     style={{
                                       height: `${expH}px`,
-                                      background: isFuture
-                                        ? 'rgba(248,113,113,0.12)'
-                                        : isCurrent
-                                        ? 'linear-gradient(180deg,#fca5a5 0%,#ef4444 55%,#b91c1c 100%)'
-                                        : 'linear-gradient(180deg,#f87171 0%,#ef4444 60%,#dc2626 100%)',
+                                      background: expBg,
                                       boxShadow: isCurrent && !isFuture ? '0 0 14px 4px rgba(239,68,68,0.35)' : undefined,
                                     }}
                                   >
@@ -512,9 +516,7 @@ export default function CompanyDashboardPage() {
                               </div>
 
                               {/* Month label */}
-                              <p className={`text-[9px] sm:text-[10px] mt-2 font-medium ${
-                                isCurrent ? 'text-emerald-400 font-bold' : isFuture ? 'text-slate-700' : 'text-slate-500'
-                              }`}>
+                              <p className={`text-[9px] sm:text-[10px] mt-2 font-medium ${monthLabelClass}`}>
                                 {m.month}
                               </p>
                             </div>
