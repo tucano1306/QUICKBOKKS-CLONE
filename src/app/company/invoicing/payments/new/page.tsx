@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/contexts/CompanyContext'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import ActionButtonsGroup from '@/components/ui/action-buttons-group'
+import DuplicateWarning, { type DuplicateRecord } from '@/components/ui/duplicate-warning'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -48,12 +49,53 @@ export default function NewPaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card' | 'check' | 'paypal'>('transfer')
   const [reference, setReference] = useState('')
   const [notes, setNotes] = useState('')
+  // Duplicate detection
+  const [duplicates, setDuplicates] = useState<DuplicateRecord[]>([])
+  const dupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
   }, [status, router])
+
+  // Verificar duplicados con debounce cuando cambian monto, fecha, factura o referencia
+  useEffect(() => {
+    if (dupDebounceRef.current) clearTimeout(dupDebounceRef.current)
+
+    if (!activeCompany?.id || !paymentDate || !amount || amount <= 0) {
+      setDuplicates([])
+      return
+    }
+
+    dupDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/check-duplicate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'payment',
+            companyId: activeCompany.id,
+            amount,
+            date: paymentDate,
+            invoiceId: selectedInvoice || undefined,
+            reference: reference || undefined
+          })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setDuplicates(data.duplicates ?? [])
+        }
+      } catch {
+        // silencioso
+      }
+    }, 700)
+
+    return () => {
+      if (dupDebounceRef.current) clearTimeout(dupDebounceRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [amount, paymentDate, selectedInvoice, reference, activeCompany?.id])
 
   useEffect(() => {
     if (activeCompany?.id) {
@@ -244,6 +286,9 @@ export default function NewPaymentPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Alerta de posibles duplicados */}
+            <DuplicateWarning duplicates={duplicates} type="payment" />
+
             <div>
               <label htmlFor="payment-amount" className="block text-sm font-medium text-gray-700 mb-2">
                 Monto Recibido *

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useCompany } from '@/contexts/CompanyContext'
+import DuplicateWarning, { type DuplicateRecord } from '@/components/ui/duplicate-warning'
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -87,6 +88,9 @@ export default function NewExpensePage() {
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([
     { id: '1', method: 'CASH', amount: '', reference: '' }
   ])
+  // Duplicate detection
+  const [duplicates, setDuplicates] = useState<DuplicateRecord[]>([])
+  const dupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -118,6 +122,45 @@ export default function NewExpensePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, activeCompany?.id])
+
+  // Verificar duplicados con debounce cuando cambian monto, fecha o proveedor/referencia
+  useEffect(() => {
+    if (dupDebounceRef.current) clearTimeout(dupDebounceRef.current)
+
+    const amount = Number.parseFloat(formData.amount)
+    if (!activeCompany?.id || !formData.date || !amount || amount <= 0) {
+      setDuplicates([])
+      return
+    }
+
+    dupDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/check-duplicate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'expense',
+            companyId: activeCompany.id,
+            amount,
+            date: formData.date,
+            vendor: formData.vendor || undefined,
+            reference: formData.reference || undefined
+          })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setDuplicates(data.duplicates ?? [])
+        }
+      } catch {
+        // silencioso — no interrumpir el flujo del usuario
+      }
+    }, 700)
+
+    return () => {
+      if (dupDebounceRef.current) clearTimeout(dupDebounceRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.amount, formData.date, formData.vendor, formData.reference, activeCompany?.id])
 
   const loadData = async () => {
     if (!activeCompany?.id) return
@@ -399,6 +442,9 @@ export default function NewExpensePage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Alerta de posibles duplicados */}
+              <DuplicateWarning duplicates={duplicates} type="expense" />
+
               {/* Descripción */}
               <div className="space-y-2">
                 <Label htmlFor="description">
