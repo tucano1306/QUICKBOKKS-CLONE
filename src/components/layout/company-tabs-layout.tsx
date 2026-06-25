@@ -20,6 +20,7 @@ import {
     Home,
     Info,
     LayoutDashboard,
+    LineChart,
     Menu,
     Plus,
     Receipt,
@@ -130,17 +131,12 @@ const tabSections: TabSection[] = [
   //   ]
   // },
   {
-    id: 'customers',
-    name: 'Clientes',
-    icon: Users,
+    id: 'profitability',
+    name: 'Rentabilidad',
+    icon: LineChart,
     color: 'cyan',
     submenus: [
-      { name: 'Lista de Clientes', href: '/company/customers', description: 'Directorio completo' },
-      { name: 'Portal del Cliente', href: '/company/customers/portal', description: 'Acceso para clientes' },
-      { name: '📧 Bandeja de Email', href: '/company/documents/inbox', description: 'Recibir docs por email' },
-      { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir documentos' },
-      { name: 'Historial de Transacciones', href: '/company/customers/transactions', description: 'Facturas y pagos' },
-      { name: 'Notas y Seguimiento', href: '/company/customers/notes', description: 'CRM básico' }
+      { name: 'Ganancias por Año', href: '/company/profitability', description: 'Ganancia real y escenario sin salarios' },
     ]
   },
   {
@@ -226,7 +222,9 @@ const tabSections: TabSection[] = [
     submenus: [
       { name: '📊 Gestor de Excel', href: '/company/tools/excel-manager', description: 'Cargar, analizar y gestionar archivos Excel' },
       { name: 'Importar Datos', href: '/company/tools/import', description: 'Importar desde otros sistemas' },
-      { name: 'Exportar Datos', href: '/company/tools/export', description: 'Exportar información' }
+      { name: 'Exportar Datos', href: '/company/tools/export', description: 'Exportar información' },
+      { name: '📧 Bandeja de Email', href: '/company/documents/inbox', description: 'Recibir docs por email' },
+      { name: 'Upload Documentos', href: '/company/documents/upload', description: 'Subir documentos' }
     ]
   },
   {
@@ -284,7 +282,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
   // Mapa de rutas especiales que no coinciden con el patrón /company/{tabId}
   // pero pertenecen a un tab específico
   const specialRouteMappings: { [key: string]: string } = {
-    '/company/documents': 'customers'  // Bandeja email, docs, etc. pertenecen a Clientes
+    '/company/documents': 'tools'  // Bandeja email, docs, etc. ahora en Herramientas
   }
 
   // Detectar la pestaña activa según la URL (ANTES del return condicional)
@@ -317,7 +315,6 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
   const quickCreateItems = [
     { name: 'Invoice', href: '/company/invoicing/invoices/new', icon: FileText, color: 'text-blue-600' },
     { name: 'Expense', href: '/company/expenses/new', icon: Receipt, color: 'text-red-600' },
-    { name: 'Customer', href: '/company/customers/new', icon: Users, color: 'text-green-600' },
     { name: 'Journal Entry', href: '/company/accounting/journal-entries/new', icon: Calculator, color: 'text-indigo-600' },
   ]
 

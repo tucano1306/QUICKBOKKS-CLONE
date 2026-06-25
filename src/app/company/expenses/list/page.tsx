@@ -69,9 +69,11 @@ const matchesExpenseSearch = (e: Expense, term: string): boolean => {
 
 const matchesExpenseMonthYear = (e: Expense, filterMonth: string, filterYear: string): boolean => {
   if (!filterMonth && !filterYear) return true
+  // Usar componentes UTC para que coincida con cómo se almacenan/agrupan las fechas
+  // y evitar que un gasto fechado a medianoche cambie de año por la zona horaria local.
   const d = new Date(e.date)
-  const month = d.getMonth() + 1
-  const year = d.getFullYear()
+  const month = d.getUTCMonth() + 1
+  const year = d.getUTCFullYear()
   if (filterMonth && filterYear) {
     return month === Number.parseInt(filterMonth) && year === Number.parseInt(filterYear)
   }
