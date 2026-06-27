@@ -129,9 +129,13 @@ async function handleComputeFull(userId: string, companyId: string, year: number
     netProfit: autoData.scheduleC?.netProfit ?? 0,
   }
 
+  // Self-employment tax: 12.4% Seguro Social (hasta el límite salarial del año)
+  // + 2.9% Medicare (sin límite). Para ingresos bajos equivale a 15.3%.
+  const SS_WAGE_BASE: Record<number, number> = { 2024: 168600, 2025: 176100 }
+  const wageBase = SS_WAGE_BASE[year] ?? 176100
   const net = scheduleC.netProfit
   const seBase = r2(Math.max(0, net) * 0.9235)
-  const seTax = r2(seBase * 0.153)
+  const seTax = r2(Math.min(seBase, wageBase) * 0.124 + seBase * 0.029)
   const seDeductible = r2(seTax / 2)
 
   const totalIncome = r2(income.wages + income.taxableInterest + income.ordinaryDividends + income.otherIncome)

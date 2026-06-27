@@ -57,22 +57,72 @@ const TAX_BRACKETS: { [year: number]: any } = {
       { min: 731200, max: Infinity, rate: 0.37 },
     ],
   },
-  // 2025-2027 will use 2024 brackets until IRS publishes official amounts
-  // These will be updated with inflation adjustments when available
+  2025: {
+    SINGLE: [
+      { min: 0, max: 11925, rate: 0.1 },
+      { min: 11925, max: 48475, rate: 0.12 },
+      { min: 48475, max: 103350, rate: 0.22 },
+      { min: 103350, max: 197300, rate: 0.24 },
+      { min: 197300, max: 250525, rate: 0.32 },
+      { min: 250525, max: 626350, rate: 0.35 },
+      { min: 626350, max: Infinity, rate: 0.37 },
+    ],
+    MARRIED_FILING_JOINTLY: [
+      { min: 0, max: 23850, rate: 0.1 },
+      { min: 23850, max: 96950, rate: 0.12 },
+      { min: 96950, max: 206700, rate: 0.22 },
+      { min: 206700, max: 394600, rate: 0.24 },
+      { min: 394600, max: 501050, rate: 0.32 },
+      { min: 501050, max: 751600, rate: 0.35 },
+      { min: 751600, max: Infinity, rate: 0.37 },
+    ],
+    MARRIED_FILING_SEPARATELY: [
+      { min: 0, max: 11925, rate: 0.1 },
+      { min: 11925, max: 48475, rate: 0.12 },
+      { min: 48475, max: 103350, rate: 0.22 },
+      { min: 103350, max: 197300, rate: 0.24 },
+      { min: 197300, max: 250525, rate: 0.32 },
+      { min: 250525, max: 375800, rate: 0.35 },
+      { min: 375800, max: Infinity, rate: 0.37 },
+    ],
+    HEAD_OF_HOUSEHOLD: [
+      { min: 0, max: 17000, rate: 0.1 },
+      { min: 17000, max: 64850, rate: 0.12 },
+      { min: 64850, max: 103350, rate: 0.22 },
+      { min: 103350, max: 197300, rate: 0.24 },
+      { min: 197300, max: 250500, rate: 0.32 },
+      { min: 250500, max: 626350, rate: 0.35 },
+      { min: 626350, max: Infinity, rate: 0.37 },
+    ],
+    QUALIFYING_SURVIVING_SPOUSE: [
+      { min: 0, max: 23850, rate: 0.1 },
+      { min: 23850, max: 96950, rate: 0.12 },
+      { min: 96950, max: 206700, rate: 0.22 },
+      { min: 206700, max: 394600, rate: 0.24 },
+      { min: 394600, max: 501050, rate: 0.32 },
+      { min: 501050, max: 751600, rate: 0.35 },
+      { min: 751600, max: Infinity, rate: 0.37 },
+    ],
+  },
+  // Para años más recientes que el último publicado se usa la tabla más
+  // reciente disponible (ver getTaxBracketsForYear). Actualizar cuando el
+  // IRS publique los montos oficiales del año.
 };
+
+// Devuelve el valor del año exacto; si no existe, usa el año disponible más
+// reciente que sea <= al solicitado (p. ej. 2026 usa la tabla de 2025); y si el
+// año es anterior a todos los disponibles, usa el más antiguo.
+function pickForYear<T>(table: { [year: number]: T }, year: number): T {
+  if (table[year]) return table[year];
+  const years = Object.keys(table).map(Number).sort((a, b) => a - b);
+  const atOrBefore = years.filter(y => y <= year);
+  const useYear = atOrBefore.length > 0 ? Math.max(...atOrBefore) : years[0];
+  return table[useYear];
+}
 
 // Get tax brackets for a specific year (fallback to most recent if not available)
 function getTaxBracketsForYear(year: number) {
-  // If year exists, return it
-  if (TAX_BRACKETS[year]) {
-    return TAX_BRACKETS[year];
-  }
-  // For future years, use 2024 brackets (will be updated annually)
-  if (year >= 2024) {
-    return TAX_BRACKETS[2024];
-  }
-  // For older years, also use 2024 as baseline
-  return TAX_BRACKETS[2024];
+  return pickForYear(TAX_BRACKETS, year);
 }
 
 // Standard Deduction amounts by year
@@ -84,15 +134,18 @@ const STANDARD_DEDUCTIONS: { [year: number]: any } = {
     HEAD_OF_HOUSEHOLD: 21900,
     QUALIFYING_SURVIVING_SPOUSE: 29200,
   },
+  2025: {
+    SINGLE: 15000,
+    MARRIED_FILING_JOINTLY: 30000,
+    MARRIED_FILING_SEPARATELY: 15000,
+    HEAD_OF_HOUSEHOLD: 22500,
+    QUALIFYING_SURVIVING_SPOUSE: 30000,
+  },
 };
 
-// Get standard deductions for a specific year
+// Get standard deductions for a specific year (usa el año más reciente disponible)
 function getStandardDeductionForYear(year: number) {
-  if (STANDARD_DEDUCTIONS[year]) {
-    return STANDARD_DEDUCTIONS[year];
-  }
-  // Use 2024 as default for future/past years
-  return STANDARD_DEDUCTIONS[2024];
+  return pickForYear(STANDARD_DEDUCTIONS, year);
 }
 
 // Additional deduction for age 65+ or blind (per person) by year
@@ -101,14 +154,15 @@ const ADDITIONAL_DEDUCTIONS: { [year: number]: any } = {
     SINGLE: 1950,
     MARRIED: 1550,
   },
+  2025: {
+    SINGLE: 2000,
+    MARRIED: 1600,
+  },
 };
 
-// Get additional deductions for a specific year
+// Get additional deductions for a specific year (usa el año más reciente disponible)
 function getAdditionalDeductionForYear(year: number) {
-  if (ADDITIONAL_DEDUCTIONS[year]) {
-    return ADDITIONAL_DEDUCTIONS[year];
-  }
-  return ADDITIONAL_DEDUCTIONS[2024];
+  return pickForYear(ADDITIONAL_DEDUCTIONS, year);
 }
 
 export interface Form1040Input {
