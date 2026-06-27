@@ -543,7 +543,7 @@ export default function VehicleDepreciationPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-xl sm:text-3xl font-bold text-gray-900 truncate">
-                  ${stats.currentValue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  ${stats.currentValue.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
@@ -567,14 +567,14 @@ export default function VehicleDepreciationPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-xl sm:text-3xl font-bold text-gray-900 truncate">
-                  ${stats.monthlyDepreciation.toLocaleString('es-MX', { minimumFractionDigits: 2 })}<span className="text-sm font-normal text-gray-500">/mes</span>
+                  ${stats.monthlyDepreciation.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span className="text-sm font-normal text-gray-500">/mes</span>
                 </p>
                 <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-gray-600">
                   <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium">
-                    ${stats.weeklyDepreciation.toFixed(2)}/sem
+                    ${stats.weeklyDepreciation.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/sem
                   </span>
                   <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
-                    Total: ${stats.totalDepreciation.toFixed(2)}
+                    Total: ${stats.totalDepreciation.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -671,9 +671,14 @@ export default function VehicleDepreciationPage() {
                           />
                         </div>
                         <div className="flex justify-between text-xs text-gray-600">
-                          <span>Depreciación Acumulada: ${asset.accumulatedDepreciation.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                          <span>Valor en Libros: ${asset.bookValue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                          <span>Depreciación acumulada: ${calculateRealAccumulatedDepreciation(asset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span>Valor actual: ${calculateRealBookValue(asset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
+                        <p className="text-[11px] text-gray-400">
+                          {hasMileageData(asset)
+                            ? '📊 Calculado por millas recorridas (uso real)'
+                            : '📊 Calculado por línea recta (tiempo)'}
+                        </p>
                       </div>
                     </div>
 
@@ -707,13 +712,13 @@ export default function VehicleDepreciationPage() {
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-center gap-2 mb-1">
                           <Calculator className="w-4 h-4 text-blue-600" />
-                          <span className="text-xs font-semibold text-blue-900">DEPRECIACIÓN</span>
+                          <span className="text-xs font-semibold text-blue-900">DEPRECIACIÓN PROMEDIO</span>
                         </div>
                         <p className="text-xl font-bold text-blue-900">
-                          ${calculateMonthlyDepreciation(asset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}<span className="text-xs font-normal">/mes</span>
+                          ${calculateMonthlyDepreciation(asset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span className="text-xs font-normal">/mes</span>
                         </p>
                         <p className="text-sm font-semibold text-orange-600">
-                          ${calculateWeeklyDepreciation(asset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}<span className="text-xs font-normal">/semana</span>
+                          ${calculateWeeklyDepreciation(asset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span className="text-xs font-normal">/semana</span>
                         </p>
                       </div>
 
@@ -723,7 +728,10 @@ export default function VehicleDepreciationPage() {
                           <span className="text-xs font-semibold text-emerald-900">VALOR ACTUAL</span>
                         </div>
                         <p className="text-xl font-bold text-emerald-900">
-                          ${calculateRemainingValue(asset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${calculateRemainingValue(asset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-[11px] text-emerald-700 mt-1">
+                          ${asset.purchasePrice.toLocaleString('es-MX')} − ${calculateRealAccumulatedDepreciation(asset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} dep.
                         </p>
                       </div>
 
@@ -1066,25 +1074,25 @@ export default function VehicleDepreciationPage() {
                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <span className="text-xs text-blue-600 font-medium">PRECIO DE COMPRA</span>
                       <p className="text-xl font-bold text-blue-900">
-                        ${selectedAsset.purchasePrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${selectedAsset.purchasePrice.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                       <span className="text-xs text-amber-600 font-medium">DEPRECIACIÓN ACUM.</span>
                       <p className="text-xl font-bold text-amber-900">
-                        ${calculateRealAccumulatedDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${calculateRealAccumulatedDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                       <span className="text-xs text-emerald-600 font-medium">VALOR ACTUAL</span>
                       <p className="text-xl font-bold text-emerald-900">
-                        ${calculateRealBookValue(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${calculateRealBookValue(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                       <span className="text-xs text-gray-600 font-medium">VALOR RESIDUAL</span>
                       <p className="text-xl font-bold text-gray-900">
-                        ${selectedAsset.salvageValue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${selectedAsset.salvageValue.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>
@@ -1106,19 +1114,19 @@ export default function VehicleDepreciationPage() {
                     <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg text-center">
                       <span className="text-xs text-orange-600 font-medium block mb-1">MENSUAL</span>
                       <p className="text-lg font-bold text-orange-700">
-                        ${calculateMonthlyDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${calculateMonthlyDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
                       <span className="text-xs text-yellow-700 font-medium block mb-1">SEMANAL</span>
                       <p className="text-lg font-bold text-yellow-700">
-                        ${calculateWeeklyDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${calculateWeeklyDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div className="p-4 bg-lime-50 border border-lime-200 rounded-lg text-center">
                       <span className="text-xs text-lime-700 font-medium block mb-1">DIARIA</span>
                       <p className="text-lg font-bold text-lime-700">
-                        ${calculateDailyDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        ${calculateDailyDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>
@@ -1147,13 +1155,13 @@ export default function VehicleDepreciationPage() {
                       <div className="p-4 bg-fuchsia-50 border border-fuchsia-200 rounded-lg">
                         <span className="text-xs text-fuchsia-600 font-medium">DEP. POR MILLAS</span>
                         <p className="text-lg font-bold text-fuchsia-900">
-                          ${calculateMileageBasedDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${calculateMileageBasedDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
                       <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg">
                         <span className="text-xs text-pink-600 font-medium">VALOR (MILLAS)</span>
                         <p className="text-lg font-bold text-pink-900">
-                          ${calculateCurrentValueByMileage(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${calculateCurrentValueByMileage(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>
@@ -1178,13 +1186,13 @@ export default function VehicleDepreciationPage() {
                       <div>
                         <span className="text-xs text-indigo-600 font-medium">DEP. ACUM. MACRS</span>
                         <p className="text-xl font-bold text-indigo-900">
-                          ${calculateMACRSDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${calculateMACRSDepreciation(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
                       <div>
                         <span className="text-xs text-indigo-600 font-medium">VALOR MACRS</span>
                         <p className="text-xl font-bold text-indigo-900">
-                          ${calculateMACRSBookValue(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${calculateMACRSBookValue(selectedAsset).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>
