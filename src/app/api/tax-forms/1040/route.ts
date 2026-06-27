@@ -2,6 +2,7 @@ import { authOptions } from '@/lib/auth';
 import {
     autoPopulateForm1040FromCompany,
     calculateStandardDeduction,
+    calculateTaxFromBrackets,
     generateForm1040Summary,
     getAITaxSuggestions,
     getForm1040,
@@ -101,6 +102,75 @@ async function handleCopyFromPreviousYear(userId: string, year: number): Promise
   return NextResponse.json({ previousForm, previousYear, copiedFields });
 }
 
+const r2 = (n: number) => Math.round(n * 100) / 100
+
+/**
+ * Computa un Form 1040 COMPLETO automáticamente a partir de los datos reales
+ * de la empresa para el año indicado. No requiere un formulario guardado:
+ * usa la información personal guardada (si existe) y calcula deducción estándar,
+ * QBI, ingreso gravable e impuesto con las tablas del año correspondiente.
+ */
+async function handleComputeFull(userId: string, companyId: string, year: number): Promise<NextResponse> {
+  const autoData = await autoPopulateForm1040FromCompany(companyId, userId, year)
+  const saved = await getForm1040(userId, year)
+
+  const filingStatus = saved?.filingStatus || 'SINGLE'
+
+  const income = {
+    wages: autoData.income?.wages ?? 0,
+    taxableInterest: autoData.income?.taxableInterest ?? 0,
+    ordinaryDividends: autoData.income?.ordinaryDividends ?? 0,
+    qualifiedDividends: autoData.income?.qualifiedDividends ?? 0,
+    otherIncome: autoData.income?.otherIncome ?? 0,
+  }
+  const scheduleC = {
+    grossReceipts: autoData.scheduleC?.grossReceipts ?? 0,
+    expenses: autoData.scheduleC?.expenses ?? 0,
+    netProfit: autoData.scheduleC?.netProfit ?? 0,
+  }
+
+  const net = scheduleC.netProfit
+  const seBase = r2(Math.max(0, net) * 0.9235)
+  const seTax = r2(seBase * 0.153)
+  const seDeductible = r2(seTax / 2)
+
+  const totalIncome = r2(income.wages + income.taxableInterest + income.ordinaryDividends + income.otherIncome)
+  const agi = r2(totalIncome - seDeductible)
+  const standardDeduction = calculateStandardDeduction(filingStatus, undefined, year)
+  const qbiDeduction = net > 0 ? r2(Math.min(net * 0.2, Math.max(0, agi - standardDeduction) * 0.2)) : 0
+  const taxableIncome = Math.max(0, r2(agi - standardDeduction - qbiDeduction))
+  const tax = calculateTaxFromBrackets(taxableIncome, filingStatus, year)
+  const additionalTaxes = seTax
+  const totalTax = r2(tax + additionalTaxes)
+
+  const w2Withholding = autoData.payments?.withholding ?? 0
+  const estimatedPayments = autoData.payments?.estimatedPayments ?? 0
+  const totalPayments = r2(w2Withholding + estimatedPayments)
+  const refund = Math.max(0, r2(totalPayments - totalTax))
+  const amountOwed = Math.max(0, r2(totalTax - totalPayments))
+
+  return NextResponse.json({
+    computed: true,
+    hasSavedForm: !!saved,
+    taxYear: year,
+    filing: {
+      status: filingStatus,
+      firstName: saved?.firstName || '',
+      lastName: saved?.lastName || '',
+      ssn: saved?.ssn || '',
+    },
+    income,
+    scheduleC,
+    scheduleSE: { netEarnings: seBase, selfEmploymentTax: seTax, deductiblePortion: seDeductible },
+    totals: {
+      totalIncome, adjustments: seDeductible, agi, standardDeduction, qbiDeduction,
+      totalDeductions: r2(standardDeduction + qbiDeduction), taxableIncome,
+      tax, additionalTaxes, totalTax, childTaxCredit: 0, netTax: totalTax,
+      w2Withholding, estimatedPayments, totalPayments, refund, amountOwed,
+    },
+  })
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -121,6 +191,11 @@ export async function GET(request: NextRequest) {
         message: 'Datos generados automáticamente desde la empresa',
         data: autoData
       });
+    }
+
+    // Computar Form 1040 COMPLETO automáticamente desde datos reales (no requiere guardar)
+    if (action === 'compute' && companyId) {
+      return handleComputeFull(session.user.id, companyId, year);
     }
 
     // Auto-populate Y guardar campos financieros en el draft existente

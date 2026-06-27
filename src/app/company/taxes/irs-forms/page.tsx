@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -147,25 +147,72 @@ function fmt(n: number) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+// Año fiscal compartido para las cabeceras de los formularios
+const IrsFormYearContext = createContext<number>(new Date().getFullYear())
+
+// Números OMB reales por formulario (la mayoría comparten 1545-0074)
+const IRS_OMB: Record<string, string> = {
+  '8995': '1545-2294',
+  '4562': '1545-0172',
+  '5329': '1545-0074',
+}
+
+function ombFor(formNumber: string): string {
+  const m = formNumber.match(/(\d{3,4})/)
+  return (m && IRS_OMB[m[1]]) || '1545-0074'
+}
+
+// Divide "Form 8879 — IRS e-file..." en {badgeTop, badgeBig, name}
+function parseFormTitle(title: string): { badgeTop: string; badgeBig: string; name: string } {
+  const [numberPart, ...rest] = title.split('—')
+  const number = numberPart.trim()
+  const name = rest.join('—').trim() || number
+  const sched = /^Schedule\s+(.+)$/i.exec(number)
+  if (sched) return { badgeTop: 'SCHEDULE', badgeBig: sched[1], name }
+  const form = /^Form\s+(.+)$/i.exec(number)
+  if (form) return { badgeTop: 'FORM', badgeBig: form[1], name }
+  return { badgeTop: 'FORM', badgeBig: number || '1040', name }
+}
+
+// Encabezado y contenedor con el aspecto oficial de un formulario del IRS
 function PrintSection({ id, title, children }: Readonly<{ id: string; title: string; children: React.ReactNode }>) {
+  const year = useContext(IrsFormYearContext)
+  const { badgeTop, badgeBig, name } = parseFormTitle(title)
   return (
-    <Card id={id} className="border-2">
-      <CardHeader className="bg-muted/50 pb-3">
-        <CardTitle className="text-base font-bold tracking-wide uppercase text-primary">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-4">{children}</CardContent>
-    </Card>
+    <div id={id} className="bg-white text-black border-2 border-black rounded-sm shadow-sm overflow-hidden print:shadow-none">
+      {/* Cabecera estilo IRS */}
+      <div className="flex items-stretch border-b-2 border-black">
+        <div className="px-3 py-2 border-r-2 border-black flex flex-col justify-center items-center min-w-[96px]">
+          <span className="text-[9px] uppercase tracking-widest text-gray-600 leading-none">{badgeTop}</span>
+          <span className="text-2xl font-extrabold leading-tight">{badgeBig}</span>
+        </div>
+        <div className="flex-1 px-3 py-2 text-center flex flex-col justify-center">
+          <h3 className="text-sm sm:text-base font-bold leading-tight">{name}</h3>
+          <p className="text-[10px] text-gray-600 leading-tight">Department of the Treasury — Internal Revenue Service</p>
+        </div>
+        <div className="px-3 py-2 border-l-2 border-black flex flex-col justify-center items-end min-w-[110px]">
+          <span className="text-[9px] text-gray-600 leading-none">OMB No. {ombFor(badgeBig)}</span>
+          <span className="text-xl font-extrabold leading-tight">{year}</span>
+          <span className="text-[8px] text-gray-500 leading-none uppercase">Auto-generado</span>
+        </div>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
   )
 }
 
+// Línea de formulario IRS: descripción a la izquierda, monto en casilla a la derecha
 function LineRow({ label, value, sub = false, bold = false, indent = false }: Readonly<{
   label: string; value: number | string; sub?: boolean; bold?: boolean; indent?: boolean
 }>) {
-  const val = typeof value === 'number' ? `$${fmt(value)}` : value
+  const isMoney = typeof value === 'number'
+  const val = isMoney ? fmt(value as number) : value
   return (
-    <div className={`flex justify-between items-center py-1 ${sub ? 'border-b border-dashed border-muted-foreground/30' : 'border-b'} ${indent ? 'pl-4' : ''}`}>
-      <span className={`text-sm ${bold ? 'font-semibold' : ''}`}>{label}</span>
-      <span className={`font-mono text-sm ${bold ? 'font-bold' : ''}`}>{val}</span>
+    <div className={`flex items-stretch border-b border-gray-300 ${bold ? 'bg-gray-100' : ''} ${sub ? '' : ''}`}>
+      <span className={`flex-1 text-sm py-1.5 pr-2 ${indent ? 'pl-4' : ''} ${bold ? 'font-bold' : ''}`}>{label}</span>
+      <span className={`w-32 sm:w-36 shrink-0 text-right font-mono text-sm py-1.5 px-2 border-l border-gray-400 ${bold ? 'font-bold' : ''}`}>
+        {isMoney ? `$ ${val}` : val}
+      </span>
     </div>
   )
 }
@@ -180,64 +227,25 @@ function resolveExpenseBreakdown(taxInfo: any): Record<string, number> {
   return taxInfo.expensesByCategory || {}
 }
 
-function computeScheduleCAndSE(companyAutoData: any, form1040Data: any, companyData: { totalRevenue: number; totalExpenses: number }, savedFormBelongsToCompany: boolean) {
-  const gross = companyAutoData.scheduleC?.grossReceipts
-    || (savedFormBelongsToCompany ? form1040Data.scheduleC_grossReceipts : 0)
-    || companyData.totalRevenue
-  const expenses = companyAutoData.scheduleC?.expenses
-    || (savedFormBelongsToCompany ? form1040Data.scheduleC_expenses : 0)
-    || companyData.totalExpenses
-  const net = Math.round((gross - expenses) * 100) / 100
-  const seBase = Math.max(0, net) * 0.9235
-  const seTax = Math.round(seBase * 0.153 * 100) / 100
-  const seDeductible = Math.round(seTax / 2 * 100) / 100
-  return { gross, expenses, net, seBase, seTax, seDeductible }
-}
-
-function resolveIncomeLines(form1040Data: any, companyAutoData: any, savedFormBelongsToCompany: boolean) {
-  const saved = (val: any) => savedFormBelongsToCompany ? val : 0
-  return {
-    wages:             saved(form1040Data.line1a_w2Wages)          || companyAutoData.income?.wages             || 0,
-    taxableInterest:   saved(form1040Data.line2b_taxableInterest)   || companyAutoData.income?.taxableInterest   || 0,
-    ordinaryDividends: saved(form1040Data.line3b_ordinaryDividends) || companyAutoData.income?.ordinaryDividends || 0,
-    qualifiedDividends:saved(form1040Data.line3a_qualifiedDividends)|| companyAutoData.income?.qualifiedDividends|| 0,
-    otherIncome:       saved(form1040Data.line8_otherIncome)        || companyAutoData.income?.otherIncome       || 0,
-    w2Withholding:     saved(form1040Data.line25a_w2Withholding)    || companyAutoData.payments?.withholding     || 0,
-    estimatedPayments: saved(form1040Data.line26_estimatedPayments) || companyAutoData.payments?.estimatedPayments || 0,
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-
 async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFormBundle> {
-  const [form1040Res, taxInfoRes, vehiclesRes] = await Promise.all([
-    fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${companyId}`),
+  const [computeRes, taxInfoRes, vehiclesRes] = await Promise.all([
+    fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${companyId}&action=compute`),
     fetch(`/api/taxes?companyId=${companyId}&year=${taxYear}`),
     fetch(`/api/accounting/assets?companyId=${companyId}&category=VEHICLE&status=ACTIVE`),
   ])
 
-  if (!form1040Res.ok) {
-    throw new Error('No se encontró el Form 1040 para este año. Por favor complete y guarde el Form 1040 primero.')
+  if (!computeRes.ok) {
+    throw new Error('No se pudieron calcular los formularios. Verifique que la empresa tenga datos del año seleccionado.')
   }
 
-  const form1040Data = await form1040Res.json()
+  const c = await computeRes.json()
   const taxInfo = taxInfoRes.ok ? await taxInfoRes.json() : {}
   const vehiclesData: VehicleAsset[] = vehiclesRes.ok ? await vehiclesRes.json() : []
-
-  if (!form1040Data.exists) {
-    throw new Error('No se encontró el Form 1040 guardado para este año. Por favor complete y guarde el Form 1040 primero.')
-  }
-
-  const autoRes = await fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${companyId}&action=auto-populate`)
-  const companyAutoData: any = autoRes.ok ? ((await autoRes.json()).data || {}) : {}
-
-  // The TaxForm1040 is unique per user+year (not per company). Only use saved financial
-  // data if it was saved for THIS company; otherwise always use live auto-populate data.
-  const savedFormBelongsToCompany = form1040Data.companyId === companyId
+  const t = c.totals
 
   const companyData = {
-    totalRevenue:     companyAutoData.scheduleC?.grossReceipts || taxInfo.totalRevenue || 0,
-    totalExpenses:    companyAutoData.scheduleC?.expenses      || taxInfo.totalExpenses || 0,
+    totalRevenue:     c.scheduleC.grossReceipts || taxInfo.totalRevenue || 0,
+    totalExpenses:    c.scheduleC.expenses || taxInfo.totalExpenses || 0,
     payroll:          taxInfo.totalPayroll || 0,
     mortgageInterest: taxInfo.expensesByCategory?.['Mortgage Interest'] || 0,
     businessAssets:   taxInfo.totalAssets || 0,
@@ -246,68 +254,59 @@ async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFo
     vehicles:         Array.isArray(vehiclesData) ? vehiclesData : [],
   }
 
-  const sc = computeScheduleCAndSE(companyAutoData, form1040Data, companyData, savedFormBelongsToCompany)
-  const inc = resolveIncomeLines(form1040Data, companyAutoData, savedFormBelongsToCompany)
-
-  const computedTotalIncome = Math.round((inc.wages + inc.taxableInterest + inc.ordinaryDividends + inc.otherIncome + sc.net) * 100) / 100
-  const totalIncome = (savedFormBelongsToCompany && form1040Data.line9_totalIncome) || computedTotalIncome
-  const agi = (savedFormBelongsToCompany && form1040Data.line11_adjustedGrossIncome) || Math.round((totalIncome - sc.seDeductible) * 100) / 100
-  const standardDed = form1040Data.line12_standardOrItemized || 0
-  const qbiDeduction = form1040Data.line13_qbiDeduction || (sc.net > 0 ? Math.min(sc.net * 0.2, Math.max(0, agi - standardDed) * 0.2) : 0)
-
   return {
     taxYear,
     filing: {
-      status: form1040Data.filingStatus || 'SINGLE',
-      firstName: form1040Data.firstName || '',
-      lastName: form1040Data.lastName || '',
-      ssn: form1040Data.ssn || '',
+      status: c.filing?.status || 'SINGLE',
+      firstName: c.filing?.firstName || '',
+      lastName: c.filing?.lastName || '',
+      ssn: c.filing?.ssn || '',
     },
     form1040: {
-      wages:                inc.wages,
-      taxableInterest:      inc.taxableInterest,
-      ordinaryDividends:    inc.ordinaryDividends,
-      qualifiedDividends:   inc.qualifiedDividends,
-      iraDistributions:     form1040Data.line4a_iraDistributions || 0,
-      taxableIRA:           form1040Data.line4b_taxableIRA || 0,
-      pensionsAnnuities:    form1040Data.line5a_pensionsAnnuities || 0,
-      taxablePensions:      form1040Data.line5b_taxablePensions || 0,
-      socialSecurity:       form1040Data.line6a_socialSecurity || 0,
-      taxableSocialSecurity:form1040Data.line6b_taxableSocialSecurity || 0,
-      capitalGainLoss:      form1040Data.line7_capitalGainLoss || 0,
-      otherIncome:          inc.otherIncome,
-      totalIncome,
-      adjustments:          sc.seDeductible,
-      agi,
-      standardDeduction:    standardDed,
-      qbiDeduction,
-      totalDeductions:      form1040Data.line14_totalDeductions || (standardDed + qbiDeduction),
-      taxableIncome:        form1040Data.line15_taxableIncome || 0,
-      tax:                  form1040Data.line16_tax || 0,
-      additionalTaxes:      form1040Data.line17_schedule2Tax || 0,
-      totalTax:             form1040Data.line18_totalTax || 0,
-      childTaxCredit:       form1040Data.line19_childTaxCredit || 0,
-      netTax:               form1040Data.line24_totalTax || 0,
-      w2Withholding:        inc.w2Withholding,
-      estimatedPayments:    inc.estimatedPayments,
-      totalPayments:        form1040Data.line32_totalPayments || 0,
-      refund:               form1040Data.line34a_refundAmount || 0,
-      amountOwed:           form1040Data.line36_amountYouOwe || 0,
+      wages:                c.income.wages,
+      taxableInterest:      c.income.taxableInterest,
+      ordinaryDividends:    c.income.ordinaryDividends,
+      qualifiedDividends:   c.income.qualifiedDividends,
+      iraDistributions:     0,
+      taxableIRA:           0,
+      pensionsAnnuities:    0,
+      taxablePensions:      0,
+      socialSecurity:       0,
+      taxableSocialSecurity:0,
+      capitalGainLoss:      0,
+      otherIncome:          c.income.otherIncome,
+      totalIncome:          t.totalIncome,
+      adjustments:          t.adjustments,
+      agi:                  t.agi,
+      standardDeduction:    t.standardDeduction,
+      qbiDeduction:         t.qbiDeduction,
+      totalDeductions:      t.totalDeductions,
+      taxableIncome:        t.taxableIncome,
+      tax:                  t.tax,
+      additionalTaxes:      t.additionalTaxes,
+      totalTax:             t.totalTax,
+      childTaxCredit:       t.childTaxCredit,
+      netTax:               t.netTax,
+      w2Withholding:        t.w2Withholding,
+      estimatedPayments:    t.estimatedPayments,
+      totalPayments:        t.totalPayments,
+      refund:               t.refund,
+      amountOwed:           t.amountOwed,
     },
     scheduleC: {
-      grossReceipts:    sc.gross,
-      expenses:         sc.expenses,
-      netProfit:        sc.net,
-      selfEmploymentTax:sc.seTax,
-      deductibleSETax:  sc.seDeductible,
+      grossReceipts:    c.scheduleC.grossReceipts,
+      expenses:         c.scheduleC.expenses,
+      netProfit:        c.scheduleC.netProfit,
+      selfEmploymentTax:c.scheduleSE.selfEmploymentTax,
+      deductibleSETax:  c.scheduleSE.deductiblePortion,
     },
     scheduleSE: {
-      netEarnings:      sc.seBase,
-      selfEmploymentTax:sc.seTax,
-      deductiblePortion:sc.seDeductible,
+      netEarnings:      c.scheduleSE.netEarnings,
+      selfEmploymentTax:c.scheduleSE.selfEmploymentTax,
+      deductiblePortion:c.scheduleSE.deductiblePortion,
     },
     companyData,
-    priorYearTax: form1040Data.line24_totalTax || 0,
+    priorYearTax: t.totalTax,
   }
 }
 
@@ -536,7 +535,7 @@ export default function IrsFormsPage() {
     forms: null,
     loading: false,
     error: null,
-    taxYear: currentYear - 1,
+    taxYear: currentYear,
   })
 
   useEffect(() => {
@@ -559,6 +558,14 @@ export default function IrsFormsPage() {
       toast.error(err.message || 'Error al cargar datos')
     }
   }, [activeCompany?.id, activeCompany?.name, state.taxYear])
+
+  // Cargar automáticamente al abrir y cuando cambie la empresa o el año
+  useEffect(() => {
+    if (status === 'authenticated' && activeCompany?.id) {
+      loadBundle()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, activeCompany?.id, state.taxYear])
 
   const handleDownloadPDF = () => {
     if (!bundle) return
@@ -666,7 +673,7 @@ export default function IrsFormsPage() {
             </Select>
             <Button onClick={loadBundle} disabled={loading || !activeCompany} variant="outline">
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? 'Cargando...' : 'Cargar desde DB'}
+              {loading ? 'Calculando...' : 'Actualizar'}
             </Button>
             {bundle && (
               <>
@@ -736,10 +743,12 @@ export default function IrsFormsPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-semibold text-blue-800 dark:text-blue-200">Instrucciones</p>
+                  <p className="font-semibold text-blue-800 dark:text-blue-200">Llenado automático</p>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    Complete y guarde primero el <strong>Form 1040</strong> en la sección &quot;Form 1040 (Individual)&quot;,
-                    luego presione <strong>&quot;Cargar desde DB&quot;</strong>.
+                    Los formularios se generan y llenan <strong>automáticamente</strong> con los datos reales
+                    del año seleccionado. Cada vez que cambien tus ingresos o gastos, presiona
+                    <strong> &quot;Actualizar&quot;</strong> para recalcular. Para la información personal (nombre, SSN,
+                    estado civil) completa el <strong>Form 1040 (Individual)</strong>.
                   </p>
                 </div>
               </div>
@@ -761,6 +770,7 @@ export default function IrsFormsPage() {
 
         {/* Forms */}
         {bundle && (
+          <IrsFormYearContext.Provider value={taxYear}>
           <Tabs defaultValue="8879" className="space-y-4">
             <TabsList className="flex flex-wrap gap-1 h-auto">
               <TabsTrigger value="8879">Form 8879</TabsTrigger>
@@ -1280,6 +1290,7 @@ export default function IrsFormsPage() {
               </PrintSection>
             </TabsContent>
           </Tabs>
+          </IrsFormYearContext.Provider>
         )}
 
         {/* Summary Footer when bundle loaded */}
