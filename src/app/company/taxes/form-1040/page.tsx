@@ -2,8 +2,6 @@
 
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import Form1040Help from '@/components/taxes/form-1040-help'
-import IncomeAnalytics from '@/components/taxes/income-analytics'
-import MonthlyStatsBars from '@/components/taxes/monthly-stats-bars'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -786,12 +784,6 @@ export default function Form1040Page() {
             </CardContent>
           </Card>
         )}
-
-        {/* Monthly Stats Bars */}
-        <MonthlyStatsBars taxYear={taxYear} totalIncome={totalIncome} />
-
-        {/* Income Analytics */}
-        <IncomeAnalytics taxYear={taxYear} totalIncome={totalIncome} />
 
         {/* Quick Actions */}
         <Card>

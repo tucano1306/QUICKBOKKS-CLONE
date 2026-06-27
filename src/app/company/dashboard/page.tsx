@@ -1,8 +1,8 @@
 'use client'
 
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
-import IncomeAnalytics from '@/components/taxes/income-analytics'
-import { AnimatedCounter, Sparkline } from '@/components/ui/animated-charts'
+import AnnualRealStats from '@/components/dashboard/annual-real-stats'
+import { Sparkline } from '@/components/ui/animated-charts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -11,7 +11,6 @@ import {
     ArrowLeftRight,
     ArrowRight,
     ArrowUpRight,
-    BarChart3,
     Calculator,
     DollarSign,
     FileText,
@@ -382,167 +381,8 @@ export default function CompanyDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Gráficos principales mejorados */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-6">
-          {/* Rendimiento Anual — dark card */}
-          {stats && (() => {
-            const maxVal = Math.max(...stats.monthlyData.flatMap(m => [m.revenue, m.expenses]), 1)
-            const profit = stats.revenue.current - stats.expenses.current
-            const profitPct = stats.revenue.current > 0
-              ? Math.round((profit / stats.revenue.current) * 100)
-              : 0
-
-            return (
-              <div className="rounded-2xl shadow-lg overflow-hidden bg-white border border-gray-200">
-                {/* Header */}
-                <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h2 className="text-[#0D2942] text-lg font-bold tracking-tight flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-emerald-600" />
-                        Rendimiento Anual {stats.currentYear}
-                      </h2>
-                      <p className="text-gray-500 text-xs mt-0.5">
-                        Ingresos vs Gastos · Meses futuros en gris · Mes actual resaltado
-                      </p>
-                    </div>
-                    <div className="flex gap-3 text-[10px] text-gray-500">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#34d399,#059669)' }}></span>
-                        {' '}Ingresos
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#f87171,#dc2626)' }}></span>
-                        {' '}Gastos
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* KPI pills */}
-                  <div className="grid grid-cols-3 gap-3 mt-4">
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-                      <p className="text-[10px] text-emerald-600 uppercase tracking-widest">Ingresos</p>
-                      <p className="text-emerald-700 font-bold text-base mt-0.5">
-                        <AnimatedCounter value={stats.revenue.current} prefix="$" decimals={0} />
-                      </p>
-                    </div>
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
-                      <p className="text-[10px] text-red-500 uppercase tracking-widest">Gastos</p>
-                      <p className="text-red-600 font-bold text-base mt-0.5">
-                        <AnimatedCounter value={stats.expenses.current} prefix="$" decimals={0} />
-                      </p>
-                    </div>
-                    <div className={`rounded-xl p-3 text-center border ${profit >= 0 ? 'bg-indigo-50 border-indigo-200' : 'bg-red-50 border-red-200'}`}>
-                      <p className={`text-[10px] uppercase tracking-widest ${profit >= 0 ? 'text-indigo-500' : 'text-red-500'}`}>
-                        Utilidad {profitPct >= 0 ? `+${profitPct}%` : `${profitPct}%`}
-                      </p>
-                      <p className={`font-bold text-base mt-0.5 ${profit >= 0 ? 'text-indigo-700' : 'text-red-600'}`}>
-                        <AnimatedCounter value={profit} prefix="$" decimals={0} />
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bar chart */}
-                <div className="px-6 py-6">
-                  {stats.monthlyData.length > 0 ? (
-                    <>
-                      <div className="flex items-end gap-1.5 sm:gap-2 w-full" style={{ height: '180px' }}>
-                        {stats.monthlyData.map((m) => {
-                          const isCurrent = m.monthIndex === stats.currentMonth
-                          const isFuture = m.monthIndex > stats.currentMonth
-                          const revH = Math.max(isFuture ? 6 : 4, Math.round((m.revenue / maxVal) * 140))
-                          const expH = Math.max(isFuture ? 6 : 4, Math.round((m.expenses / maxVal) * 140))
-                          let revBg: string
-                          if (isFuture) { revBg = 'rgba(148,163,184,0.30)' }
-                          else if (isCurrent) { revBg = 'linear-gradient(180deg,#6ee7b7 0%,#10b981 55%,#047857 100%)' }
-                          else { revBg = 'linear-gradient(180deg,#34d399 0%,#10b981 60%,#059669 100%)' }
-                          let expBg: string
-                          if (isFuture) { expBg = 'rgba(148,163,184,0.18)' }
-                          else if (isCurrent) { expBg = 'linear-gradient(180deg,#fca5a5 0%,#ef4444 55%,#b91c1c 100%)' }
-                          else { expBg = 'linear-gradient(180deg,#f87171 0%,#ef4444 60%,#dc2626 100%)' }
-                          let monthLabelClass: string
-                          if (isCurrent) { monthLabelClass = 'text-emerald-600 font-bold' }
-                          else if (isFuture) { monthLabelClass = 'text-gray-300' }
-                          else { monthLabelClass = 'text-gray-500' }
-
-                          return (
-                            <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full group">
-                              {/* Value tooltip on hover */}
-                              {!isFuture && (
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[8px] text-gray-500 text-center mb-1 leading-tight">
-                                  <span className="text-emerald-600">${Math.round(m.revenue / 1000)}k</span>
-                                  {' / '}
-                                  <span className="text-red-500">${Math.round(m.expenses / 1000)}k</span>
-                                </div>
-                              )}
-
-                              <div className="w-full flex gap-0.5 items-end" style={{ height: '155px' }}>
-                                {/* Revenue bar */}
-                                <div className="flex-1 flex items-end h-full">
-                                  <div
-                                    className="w-full rounded-t-md transition-all duration-700 ease-out relative group-hover:brightness-110"
-                                    style={{
-                                      height: `${revH}px`,
-                                      background: revBg,
-                                      boxShadow: isCurrent && !isFuture ? '0 0 14px 4px rgba(16,185,129,0.4)' : undefined,
-                                    }}
-                                  >
-                                    {!isFuture && <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-md bg-white/10 pointer-events-none" />}
-                                    {isCurrent && (
-                                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex h-2.5 w-2.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
-                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                {/* Expense bar */}
-                                <div className="flex-1 flex items-end h-full">
-                                  <div
-                                    className="w-full rounded-t-md transition-all duration-700 ease-out relative group-hover:brightness-110"
-                                    style={{
-                                      height: `${expH}px`,
-                                      background: expBg,
-                                      boxShadow: isCurrent && !isFuture ? '0 0 14px 4px rgba(239,68,68,0.35)' : undefined,
-                                    }}
-                                  >
-                                    {!isFuture && <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-md bg-white/10 pointer-events-none" />}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Month label */}
-                              <p className={`text-[9px] sm:text-[10px] mt-2 font-medium ${monthLabelClass}`}>
-                                {m.month}
-                              </p>
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      {/* Axis */}
-                      <div className="h-px w-full mt-1" style={{ background: 'rgba(0,0,0,0.08)' }} />
-                      <p className="text-[10px] text-gray-400 mt-2 text-right">
-                        Pasa el mouse sobre cada mes para ver detalle
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-gray-400 text-sm text-center py-10">Sin datos mensuales</p>
-                  )}
-                </div>
-              </div>
-            )
-          })()}
-        </div>
-
-        {/* Income Analytics */}
-        {stats && (
-          <IncomeAnalytics
-            taxYear={stats.currentYear}
-            totalIncome={stats.revenue.current}
-          />
-        )}
+        {/* Estadística anual con datos reales */}
+        {stats && <AnnualRealStats stats={stats} />}
 
       </div>
     </CompanyTabsLayout>
