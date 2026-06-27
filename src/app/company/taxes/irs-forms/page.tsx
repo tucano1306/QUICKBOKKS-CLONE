@@ -542,9 +542,9 @@ export default function IrsFormsPage() {
     if (status === 'unauthenticated') router.push('/auth/login')
   }, [status, router])
 
-  const loadBundle = useCallback(async () => {
+  const loadBundle = useCallback(async (silent = false) => {
     if (!activeCompany?.id) {
-      toast.error('Seleccione una empresa primero')
+      if (!silent) toast.error('Seleccione una empresa primero')
       return
     }
     setState(s => ({ ...s, loading: true, error: null }))
@@ -552,10 +552,10 @@ export default function IrsFormsPage() {
       const bundle = await fetchIrsBundle(state.taxYear, activeCompany.id)
       const forms = computeIrsForms(bundle, activeCompany.name || undefined)
       setState(s => ({ ...s, bundle, forms, loading: false }))
-      toast.success('Paquete de formularios cargado correctamente')
+      if (!silent) toast.success('Paquete de formularios cargado correctamente')
     } catch (err: any) {
       setState(s => ({ ...s, loading: false, error: err.message || 'Error al cargar datos' }))
-      toast.error(err.message || 'Error al cargar datos')
+      if (!silent) toast.error(err.message || 'Error al cargar datos')
     }
   }, [activeCompany?.id, activeCompany?.name, state.taxYear])
 
@@ -566,6 +566,22 @@ export default function IrsFormsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, activeCompany?.id, state.taxYear])
+
+  // Auto-refrescar (silencioso) al volver a la pestaña o ventana: así los
+  // formularios reflejan los últimos datos sin tener que presionar "Actualizar".
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible' && status === 'authenticated' && activeCompany?.id) {
+        loadBundle(true)
+      }
+    }
+    document.addEventListener('visibilitychange', refresh)
+    globalThis.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      globalThis.removeEventListener('focus', refresh)
+    }
+  }, [status, activeCompany?.id, loadBundle])
 
   const handleDownloadPDF = () => {
     if (!bundle) return
@@ -671,7 +687,7 @@ export default function IrsFormsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={loadBundle} disabled={loading || !activeCompany} variant="outline">
+            <Button onClick={() => loadBundle()} disabled={loading || !activeCompany} variant="outline">
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Calculando...' : 'Actualizar'}
             </Button>
@@ -746,9 +762,9 @@ export default function IrsFormsPage() {
                   <p className="font-semibold text-blue-800 dark:text-blue-200">Llenado automático</p>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                     Los formularios se generan y llenan <strong>automáticamente</strong> con los datos reales
-                    del año seleccionado. Cada vez que cambien tus ingresos o gastos, presiona
-                    <strong> &quot;Actualizar&quot;</strong> para recalcular. Para la información personal (nombre, SSN,
-                    estado civil) completa el <strong>Form 1040 (Individual)</strong>.
+                    del año seleccionado, y <strong>se actualizan solos</strong> cada vez que regresas a esta
+                    pestaña (o presiona <strong>&quot;Actualizar&quot;</strong>). Para la información personal
+                    (nombre, SSN, estado civil) completa el <strong>Form 1040 (Individual)</strong>.
                   </p>
                 </div>
               </div>
