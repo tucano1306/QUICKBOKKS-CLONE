@@ -28,16 +28,6 @@ const createPresets = (): DateRange[] => {
   
   return [
     {
-      label: 'Hoy',
-      startDate: formatDate(today),
-      endDate: formatDate(today)
-    },
-    {
-      label: 'Ayer',
-      startDate: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)),
-      endDate: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1))
-    },
-    {
       label: 'Esta Semana',
       startDate: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay())),
       endDate: formatDate(today)
@@ -66,16 +56,6 @@ const createPresets = (): DateRange[] => {
       label: 'Año Pasado',
       startDate: formatDate(new Date(today.getFullYear() - 1, 0, 1)),
       endDate: formatDate(new Date(today.getFullYear() - 1, 11, 31))
-    },
-    {
-      label: 'Últimos 7 Días',
-      startDate: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7)),
-      endDate: formatDate(today)
-    },
-    {
-      label: 'Últimos 90 Días',
-      startDate: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 90)),
-      endDate: formatDate(today)
     }
   ]
 }
