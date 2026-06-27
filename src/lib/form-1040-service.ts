@@ -347,7 +347,20 @@ export async function autoPopulateForm1040FromCompany(
     .filter(t => t.type === 'EXPENSE')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpenses = Math.round((expenseTableTotal + expenseTransactionsTotal) * 100) / 100;
+  // Depreciación anual de vehículos (Form 4562 -> Schedule C, línea 13).
+  // Línea recta = (precio - valor residual) / vida útil, solo si el activo está
+  // en servicio y dentro de su vida útil en el año fiscal. Es una deducción real.
+  const vehicleAssets = await prisma.asset.findMany({
+    where: { companyId, category: 'VEHICLE', status: 'ACTIVE' }
+  });
+  const vehicleDepreciation = vehicleAssets.reduce((sum, a) => {
+    const purchaseYear = new Date(a.purchaseDate).getUTCFullYear();
+    if (taxYear < purchaseYear || taxYear >= purchaseYear + a.usefulLife) return sum;
+    const annual = a.usefulLife > 0 ? (a.purchasePrice - a.salvageValue) / a.usefulLife : 0;
+    return sum + Math.max(0, annual);
+  }, 0);
+
+  const totalExpenses = Math.round((expenseTableTotal + expenseTransactionsTotal + vehicleDepreciation) * 100) / 100;
 
   // Interest/dividend income from transactions
   const interestIncome = allTransactions
