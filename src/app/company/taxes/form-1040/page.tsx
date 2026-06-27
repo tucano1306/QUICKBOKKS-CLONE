@@ -211,6 +211,27 @@ export default function Form1040Page() {
     }
   }
 
+  // Auto-refrescar (silencioso) SOLO los datos financieros al volver a la pestaña.
+  // No toca la información personal (nombre, SSN, etc.) que estés editando.
+  useEffect(() => {
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible' || !activeCompany?.id) return
+      try {
+        const res = await fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${activeCompany.id}&action=auto-populate`)
+        if (!res.ok) return
+        const result = await res.json()
+        applyAutoData(result.data || result.autoData)
+      } catch { /* silencioso */ }
+    }
+    document.addEventListener('visibilitychange', refresh)
+    globalThis.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      globalThis.removeEventListener('focus', refresh)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCompany?.id, taxYear])
+
   const loadExistingForm = async () => {
     try {
       const companyParam = activeCompany?.id ? `&companyId=${activeCompany.id}` : ''

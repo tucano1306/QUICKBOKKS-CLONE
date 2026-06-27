@@ -282,6 +282,21 @@ export default function CompanyDashboardPage() {
     }
   }, [activeCompany, fetchDashboardStats])
 
+  // Auto-refrescar al volver a la pestaña o ventana, para reflejar los últimos datos
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible' && activeCompany) {
+        fetchDashboardStats()
+      }
+    }
+    document.addEventListener('visibilitychange', refresh)
+    globalThis.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      globalThis.removeEventListener('focus', refresh)
+    }
+  }, [activeCompany, fetchDashboardStats])
+
   const handleRefresh = () => {
     setIsRefreshing(true)
     fetchDashboardStats()
