@@ -393,23 +393,20 @@ export default function CompanyDashboardPage() {
               : 0
 
             return (
-              <div
-                className="rounded-2xl shadow-2xl overflow-hidden"
-                style={{ background: 'linear-gradient(135deg,#0f172a 0%,#0d2542 100%)' }}
-              >
+              <div className="rounded-2xl shadow-lg overflow-hidden bg-white border border-gray-200">
                 {/* Header */}
-                <div className="px-6 pt-6 pb-4 border-b border-slate-800/70">
+                <div className="px-6 pt-6 pb-4 border-b border-gray-100">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h2 className="text-white text-lg font-bold tracking-tight flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-emerald-400" />
+                      <h2 className="text-[#0D2942] text-lg font-bold tracking-tight flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-emerald-600" />
                         Rendimiento Anual {stats.currentYear}
                       </h2>
-                      <p className="text-slate-400 text-xs mt-0.5">
+                      <p className="text-gray-500 text-xs mt-0.5">
                         Ingresos vs Gastos · Meses futuros en gris · Mes actual resaltado
                       </p>
                     </div>
-                    <div className="flex gap-3 text-[10px] text-slate-400">
+                    <div className="flex gap-3 text-[10px] text-gray-500">
                       <span className="flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg,#34d399,#059669)' }}></span>
                         {' '}Ingresos
@@ -423,23 +420,23 @@ export default function CompanyDashboardPage() {
 
                   {/* KPI pills */}
                   <div className="grid grid-cols-3 gap-3 mt-4">
-                    <div className="bg-emerald-950/60 border border-emerald-800/40 rounded-xl p-3 text-center">
-                      <p className="text-[10px] text-emerald-400/70 uppercase tracking-widest">Ingresos</p>
-                      <p className="text-emerald-300 font-bold text-base mt-0.5">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
+                      <p className="text-[10px] text-emerald-600 uppercase tracking-widest">Ingresos</p>
+                      <p className="text-emerald-700 font-bold text-base mt-0.5">
                         <AnimatedCounter value={stats.revenue.current} prefix="$" decimals={0} />
                       </p>
                     </div>
-                    <div className="bg-red-950/60 border border-red-800/40 rounded-xl p-3 text-center">
-                      <p className="text-[10px] text-red-400/70 uppercase tracking-widest">Gastos</p>
-                      <p className="text-red-300 font-bold text-base mt-0.5">
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+                      <p className="text-[10px] text-red-500 uppercase tracking-widest">Gastos</p>
+                      <p className="text-red-600 font-bold text-base mt-0.5">
                         <AnimatedCounter value={stats.expenses.current} prefix="$" decimals={0} />
                       </p>
                     </div>
-                    <div className={`rounded-xl p-3 text-center border ${profit >= 0 ? 'bg-indigo-950/60 border-indigo-800/40' : 'bg-red-950/60 border-red-800/40'}`}>
-                      <p className={`text-[10px] uppercase tracking-widest ${profit >= 0 ? 'text-indigo-400/70' : 'text-red-400/70'}`}>
+                    <div className={`rounded-xl p-3 text-center border ${profit >= 0 ? 'bg-indigo-50 border-indigo-200' : 'bg-red-50 border-red-200'}`}>
+                      <p className={`text-[10px] uppercase tracking-widest ${profit >= 0 ? 'text-indigo-500' : 'text-red-500'}`}>
                         Utilidad {profitPct >= 0 ? `+${profitPct}%` : `${profitPct}%`}
                       </p>
-                      <p className={`font-bold text-base mt-0.5 ${profit >= 0 ? 'text-indigo-300' : 'text-red-300'}`}>
+                      <p className={`font-bold text-base mt-0.5 ${profit >= 0 ? 'text-indigo-700' : 'text-red-600'}`}>
                         <AnimatedCounter value={profit} prefix="$" decimals={0} />
                       </p>
                     </div>
@@ -457,26 +454,26 @@ export default function CompanyDashboardPage() {
                           const revH = Math.max(isFuture ? 6 : 4, Math.round((m.revenue / maxVal) * 140))
                           const expH = Math.max(isFuture ? 6 : 4, Math.round((m.expenses / maxVal) * 140))
                           let revBg: string
-                          if (isFuture) { revBg = 'rgba(52,211,153,0.12)' }
+                          if (isFuture) { revBg = 'rgba(148,163,184,0.30)' }
                           else if (isCurrent) { revBg = 'linear-gradient(180deg,#6ee7b7 0%,#10b981 55%,#047857 100%)' }
                           else { revBg = 'linear-gradient(180deg,#34d399 0%,#10b981 60%,#059669 100%)' }
                           let expBg: string
-                          if (isFuture) { expBg = 'rgba(248,113,113,0.12)' }
+                          if (isFuture) { expBg = 'rgba(148,163,184,0.18)' }
                           else if (isCurrent) { expBg = 'linear-gradient(180deg,#fca5a5 0%,#ef4444 55%,#b91c1c 100%)' }
                           else { expBg = 'linear-gradient(180deg,#f87171 0%,#ef4444 60%,#dc2626 100%)' }
                           let monthLabelClass: string
-                          if (isCurrent) { monthLabelClass = 'text-emerald-400 font-bold' }
-                          else if (isFuture) { monthLabelClass = 'text-slate-700' }
-                          else { monthLabelClass = 'text-slate-500' }
+                          if (isCurrent) { monthLabelClass = 'text-emerald-600 font-bold' }
+                          else if (isFuture) { monthLabelClass = 'text-gray-300' }
+                          else { monthLabelClass = 'text-gray-500' }
 
                           return (
                             <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full group">
                               {/* Value tooltip on hover */}
                               {!isFuture && (
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[8px] text-slate-400 text-center mb-1 leading-tight">
-                                  <span className="text-emerald-400">${Math.round(m.revenue / 1000)}k</span>
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[8px] text-gray-500 text-center mb-1 leading-tight">
+                                  <span className="text-emerald-600">${Math.round(m.revenue / 1000)}k</span>
                                   {' / '}
-                                  <span className="text-red-400">${Math.round(m.expenses / 1000)}k</span>
+                                  <span className="text-red-500">${Math.round(m.expenses / 1000)}k</span>
                                 </div>
                               )}
 
@@ -525,13 +522,13 @@ export default function CompanyDashboardPage() {
                       </div>
 
                       {/* Axis */}
-                      <div className="h-px w-full mt-1" style={{ background: 'rgba(148,163,184,0.12)' }} />
-                      <p className="text-[10px] text-slate-600 mt-2 text-right">
-                        Hover sobre cada mes para ver detalle
+                      <div className="h-px w-full mt-1" style={{ background: 'rgba(0,0,0,0.08)' }} />
+                      <p className="text-[10px] text-gray-400 mt-2 text-right">
+                        Pasa el mouse sobre cada mes para ver detalle
                       </p>
                     </>
                   ) : (
-                    <p className="text-slate-600 text-sm text-center py-10">Sin datos mensuales</p>
+                    <p className="text-gray-400 text-sm text-center py-10">Sin datos mensuales</p>
                   )}
                 </div>
               </div>
