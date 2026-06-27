@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -72,18 +72,25 @@ function MonthRanking({ totalIncome, taxYear }: { totalIncome: number; taxYear: 
 
   function rankTag(rank: number) {
     if (rank < 3)
-      return <span className="text-[9px] font-bold text-emerald-400 ml-1">TOP</span>
+      return <span className="text-[9px] font-bold text-emerald-600 ml-1">TOP</span>
     if (rank >= 9)
-      return <span className="text-[9px] font-bold text-red-400 ml-1">LOW</span>
+      return <span className="text-[9px] font-bold text-red-600 ml-1">LOW</span>
     return null
+  }
+
+  function valueClass(isFuture: boolean, rank: number): string {
+    if (isFuture) return 'text-gray-300'
+    if (rank < 3) return 'text-emerald-600'
+    if (rank >= 9) return 'text-red-600'
+    return 'text-gray-700'
   }
 
   return (
     <div>
-      <p className="text-slate-300 text-xs font-semibold uppercase tracking-widest mb-3">
+      <p className="text-gray-700 text-xs font-semibold uppercase tracking-widest mb-3">
         Ranking mensual de ganancias
       </p>
-      <p className="text-slate-500 text-[10px] mb-4">
+      <p className="text-gray-400 text-[10px] mb-4">
         Meses ordenados de mayor a menor ganancia estimada
       </p>
       <div className="space-y-2">
@@ -94,33 +101,31 @@ function MonthRanking({ totalIncome, taxYear }: { totalIncome: number; taxYear: 
           return (
             <div key={month} className="flex items-center gap-2">
               {/* Rank number */}
-              <span className="text-slate-600 text-[10px] w-4 text-right shrink-0">
+              <span className="text-gray-400 text-[10px] w-4 text-right shrink-0">
                 {rank + 1}
               </span>
               {/* Month */}
               <span
                 className={`text-[11px] font-medium w-7 shrink-0 ${
-                  isFuture ? 'text-slate-600' : 'text-slate-300'
+                  isFuture ? 'text-gray-400' : 'text-gray-700'
                 }`}
               >
                 {month}
               </span>
               {/* Bar */}
-              <div className="flex-1 h-5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
                     width: `${isFuture ? barW * 0.3 : barW}%`,
-                    background: isFuture ? 'rgba(100,116,139,0.25)' : barColor(rank),
-                    opacity: isFuture ? 0.4 : 1,
+                    background: isFuture ? 'rgba(148,163,184,0.35)' : barColor(rank),
+                    opacity: isFuture ? 0.6 : 1,
                   }}
                 />
               </div>
               {/* Value */}
               <span
-                className={`text-[11px] font-semibold w-14 text-right shrink-0 ${
-                  isFuture ? 'text-slate-600' : rank < 3 ? 'text-emerald-400' : rank >= 9 ? 'text-red-400' : 'text-slate-300'
-                }`}
+                className={`text-[11px] font-semibold w-14 text-right shrink-0 ${valueClass(isFuture, rank)}`}
               >
                 {isFuture ? '—' : fmt(value)}
               </span>
@@ -173,15 +178,15 @@ function MonthlyTrend({ taxYear, totalIncome }: { taxYear: number; totalIncome: 
 
   return (
     <div>
-      <p className="text-slate-300 text-xs font-semibold uppercase tracking-widest mb-1">
+      <p className="text-gray-700 text-xs font-semibold uppercase tracking-widest mb-1">
         Tendencia del año — altas y bajas
       </p>
-      <p className="text-slate-500 text-[10px] mb-3">
+      <p className="text-gray-400 text-[10px] mb-3">
         Trayectoria mensual de ingresos · Puntos máximo y mínimo marcados
       </p>
 
       {activeValues.length < 2 ? (
-        <p className="text-slate-600 text-xs text-center py-8">
+        <p className="text-gray-400 text-xs text-center py-8">
           Se necesita al menos 2 meses de datos para mostrar la tendencia.
         </p>
       ) : (
@@ -192,7 +197,7 @@ function MonthlyTrend({ taxYear, totalIncome }: { taxYear: number; totalIncome: 
         >
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
+              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" />
               <stop offset="100%" stopColor="#6366f1" stopOpacity="0.02" />
             </linearGradient>
           </defs>
@@ -203,8 +208,8 @@ function MonthlyTrend({ taxYear, totalIncome }: { taxYear: number; totalIncome: 
             const v = minV + ratio * range
             return (
               <g key={ratio}>
-                <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="rgba(100,116,139,0.15)" strokeDasharray="4 4" />
-                <text x={PAD.l - 4} y={y + 4} textAnchor="end" fill="rgba(148,163,184,0.6)" fontSize="9">
+                <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="rgba(0,0,0,0.08)" strokeDasharray="4 4" />
+                <text x={PAD.l - 4} y={y + 4} textAnchor="end" fill="rgba(100,116,139,0.85)" fontSize="9">
                   {fmt(v)}
                 </text>
               </g>
@@ -218,7 +223,7 @@ function MonthlyTrend({ taxYear, totalIncome }: { taxYear: number; totalIncome: 
           <path
             d={linePath}
             fill="none"
-            stroke="#818cf8"
+            stroke="#4f46e5"
             strokeWidth="2"
             strokeLinejoin="round"
             strokeLinecap="round"
@@ -226,24 +231,24 @@ function MonthlyTrend({ taxYear, totalIncome }: { taxYear: number; totalIncome: 
 
           {/* All dots */}
           {points.map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={2.5} fill="#6366f1" />
+            <circle key={i} cx={x} cy={y} r={2.5} fill="#4f46e5" />
           ))}
 
           {/* MAX point */}
-          <circle cx={points[maxIdx][0]} cy={points[maxIdx][1]} r={6} fill="#10b981" stroke="#0d9488" strokeWidth={1.5} />
-          <text x={points[maxIdx][0]} y={points[maxIdx][1] - 10} textAnchor="middle" fill="#34d399" fontSize="9" fontWeight="bold">
+          <circle cx={points[maxIdx][0]} cy={points[maxIdx][1]} r={6} fill="#10b981" stroke="#047857" strokeWidth={1.5} />
+          <text x={points[maxIdx][0]} y={points[maxIdx][1] - 10} textAnchor="middle" fill="#059669" fontSize="9" fontWeight="bold">
             MAX {fmt(maxV)}
           </text>
 
           {/* MIN point */}
-          <circle cx={points[minIdx][0]} cy={points[minIdx][1]} r={6} fill="#ef4444" stroke="#dc2626" strokeWidth={1.5} />
-          <text x={points[minIdx][0]} y={points[minIdx][1] + 18} textAnchor="middle" fill="#f87171" fontSize="9" fontWeight="bold">
+          <circle cx={points[minIdx][0]} cy={points[minIdx][1]} r={6} fill="#ef4444" stroke="#b91c1c" strokeWidth={1.5} />
+          <text x={points[minIdx][0]} y={points[minIdx][1] + 18} textAnchor="middle" fill="#dc2626" fontSize="9" fontWeight="bold">
             MIN {fmt(minV)}
           </text>
 
           {/* Month labels on X axis */}
           {points.map(([x], i) => (
-            <text key={i} x={x} y={H - 4} textAnchor="middle" fill="rgba(148,163,184,0.7)" fontSize="9">
+            <text key={i} x={x} y={H - 4} textAnchor="middle" fill="rgba(100,116,139,0.85)" fontSize="9">
               {MONTHS[i]}
             </text>
           ))}
@@ -252,17 +257,17 @@ function MonthlyTrend({ taxYear, totalIncome }: { taxYear: number; totalIncome: 
 
       {/* Summary pills */}
       <div className="flex gap-3 mt-3">
-        <div className="flex items-center gap-1.5 bg-emerald-950/50 border border-emerald-800/40 rounded-lg px-3 py-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-          <span className="text-[10px] text-emerald-300 font-medium">Mejor: {MONTHS[maxIdx]} · {fmt(maxV)}</span>
+        <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+          <span className="text-[10px] text-emerald-700 font-medium">Mejor: {MONTHS[maxIdx]} · {fmt(maxV)}</span>
         </div>
-        <div className="flex items-center gap-1.5 bg-red-950/50 border border-red-800/40 rounded-lg px-3 py-1.5">
-          <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
-          <span className="text-[10px] text-red-300 font-medium">Menor: {MONTHS[minIdx]} · {fmt(minV)}</span>
+        <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
+          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+          <span className="text-[10px] text-red-700 font-medium">Menor: {MONTHS[minIdx]} · {fmt(minV)}</span>
         </div>
         {maxV > minV && (
-          <div className="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/40 rounded-lg px-3 py-1.5 ml-auto">
-            <span className="text-[10px] text-slate-400">
+          <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 ml-auto">
+            <span className="text-[10px] text-gray-500">
               Diferencia: {fmt(maxV - minV)} ({pct(maxV - minV, minV)} variación)
             </span>
           </div>
@@ -278,10 +283,10 @@ function AnnualComparison({ merged, selectedYear }: { merged: { year: number; in
   if (merged.length === 0) {
     return (
       <div>
-        <p className="text-slate-300 text-xs font-semibold uppercase tracking-widest mb-3">
+        <p className="text-gray-700 text-xs font-semibold uppercase tracking-widest mb-3">
           Comparación anual
         </p>
-        <p className="text-slate-600 text-xs text-center py-10">
+        <p className="text-gray-400 text-xs text-center py-10">
           Guarda formularios de varios años para ver la comparación anual.
         </p>
       </div>
@@ -306,10 +311,10 @@ function AnnualComparison({ merged, selectedYear }: { merged: { year: number; in
 
   return (
     <div>
-      <p className="text-slate-300 text-xs font-semibold uppercase tracking-widest mb-1">
+      <p className="text-gray-700 text-xs font-semibold uppercase tracking-widest mb-1">
         Comparación anual de ganancias
       </p>
-      <p className="text-slate-500 text-[10px] mb-4">
+      <p className="text-gray-400 text-[10px] mb-4">
         Mejores y peores años · Año seleccionado resaltado en violeta
       </p>
 
@@ -328,14 +333,14 @@ function AnnualComparison({ merged, selectedYear }: { merged: { year: number; in
               {yoy !== null && (
                 <span
                   className={`text-[9px] font-bold mb-1 ${
-                    yoy >= 0 ? 'text-emerald-400' : 'text-red-400'
+                    yoy >= 0 ? 'text-emerald-600' : 'text-red-600'
                   }`}
                 >
                   {yoy >= 0 ? '▲' : '▼'} {Math.abs(yoy).toFixed(0)}%
                 </span>
               )}
               {/* Income label */}
-              <span className={`text-[9px] font-semibold mb-1 ${isSelected ? 'text-violet-300' : 'text-slate-400'}`}>
+              <span className={`text-[9px] font-semibold mb-1 ${isSelected ? 'text-violet-700' : 'text-gray-500'}`}>
                 {fmt(income)}
               </span>
               {/* Bar */}
@@ -344,12 +349,12 @@ function AnnualComparison({ merged, selectedYear }: { merged: { year: number; in
                 style={{ height: `${h}px`, ...barColor(year, income) }}
               >
                 {/* shine */}
-                <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-lg bg-white/10 pointer-events-none" />
+                <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-lg bg-white/20 pointer-events-none" />
               </div>
               {/* Year label */}
               <p
                 className={`text-[10px] mt-2 font-medium ${
-                  isSelected ? 'text-violet-300 font-bold' : 'text-slate-500'
+                  isSelected ? 'text-violet-700 font-bold' : 'text-gray-500'
                 }`}
               >
                 {year}
@@ -360,26 +365,26 @@ function AnnualComparison({ merged, selectedYear }: { merged: { year: number; in
       </div>
 
       {/* Axis */}
-      <div className="h-px w-full mt-2" style={{ background: 'rgba(148,163,184,0.12)' }} />
+      <div className="h-px w-full mt-2" style={{ background: 'rgba(0,0,0,0.08)' }} />
 
       {/* Summary */}
       {merged.length > 1 && (
         <div className="flex flex-wrap gap-2 mt-3">
-          <div className="flex items-center gap-1.5 bg-yellow-950/40 border border-yellow-800/30 rounded-lg px-3 py-1.5">
+          <div className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1.5">
             <span className="text-[10px]">🏆</span>
-            <span className="text-[10px] text-yellow-300 font-medium">
+            <span className="text-[10px] text-yellow-700 font-medium">
               Mejor año: {bestYear.year} · {fmt(bestYear.income)}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 bg-red-950/40 border border-red-800/30 rounded-lg px-3 py-1.5">
+          <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
             <span className="text-[10px]">📉</span>
-            <span className="text-[10px] text-red-300 font-medium">
+            <span className="text-[10px] text-red-700 font-medium">
               Menor año: {worstYear.year} · {fmt(worstYear.income)}
             </span>
           </div>
           {merged.length >= 2 && (
-            <div className="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/30 rounded-lg px-3 py-1.5 ml-auto">
-              <span className="text-[10px] text-slate-400">
+            <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 ml-auto">
+              <span className="text-[10px] text-gray-500">
                 Crecimiento total: {pct(bestYear.income - merged[0].income, merged[0].income)}
                 {' '}({merged[0].year}→{bestYear.year})
               </span>
@@ -442,25 +447,22 @@ export default function IncomeAnalytics({ taxYear, totalIncome }: IncomeAnalytic
   ]
 
   return (
-    <div
-      className="rounded-2xl shadow-2xl overflow-hidden"
-      style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%)' }}
-    >
+    <div className="rounded-2xl shadow-lg overflow-hidden bg-white border border-gray-200">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-slate-800/70">
+      <div className="px-6 pt-6 pb-4 border-b border-gray-100">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h2 className="text-white text-lg font-bold tracking-tight">
+            <h2 className="text-[#0D2942] text-lg font-bold tracking-tight">
               Análisis de Ingresos
             </h2>
-            <p className="text-slate-400 text-xs mt-0.5">
+            <p className="text-gray-500 text-xs mt-0.5">
               Año {selectedYear} · Datos estimados basados en ingresos registrados
             </p>
           </div>
           {selectedIncome > 0 && (
             <div className="text-right">
-              <p className="text-slate-500 text-[10px] uppercase tracking-widest">Total anual</p>
-              <p className="text-white font-bold text-base">${selectedIncome.toLocaleString()}</p>
+              <p className="text-gray-400 text-[10px] uppercase tracking-widest">Total anual</p>
+              <p className="text-[#0D2942] font-bold text-base">${selectedIncome.toLocaleString()}</p>
             </div>
           )}
         </div>
@@ -475,7 +477,7 @@ export default function IncomeAnalytics({ taxYear, totalIncome }: IncomeAnalytic
                 className={`text-[11px] font-semibold px-3 py-1 rounded-lg transition-all duration-200 ${
                   y === selectedYear
                     ? 'bg-indigo-600 text-white shadow'
-                    : 'bg-slate-800/70 text-slate-400 hover:text-slate-200 hover:bg-slate-700/70'
+                    : 'bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200'
                 }`}
               >
                 {y}
@@ -485,15 +487,15 @@ export default function IncomeAnalytics({ taxYear, totalIncome }: IncomeAnalytic
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-slate-900/60 rounded-xl p-1">
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setActive(t.id)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                 active === t.id
-                  ? 'bg-indigo-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'text-gray-500 hover:text-gray-800 hover:bg-white'
               }`}
             >
               <span>{t.icon}</span>
