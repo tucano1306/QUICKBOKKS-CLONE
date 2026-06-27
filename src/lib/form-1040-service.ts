@@ -338,7 +338,16 @@ export async function autoPopulateForm1040FromCompany(
     }
   });
 
-  const totalExpenses = Math.round(expenses.reduce((sum, exp) => sum + exp.amount, 0) * 100) / 100;
+  const expenseTableTotal = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+  // También contar los gastos del negocio registrados como Transacciones (tipo EXPENSE).
+  // En esta app, los gastos pueden vivir en la tabla Expense o como Transaction(EXPENSE);
+  // se suman ambos para reflejar TODOS los gastos deducibles reales en el Schedule C.
+  const expenseTransactionsTotal = allTransactions
+    .filter(t => t.type === 'EXPENSE')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalExpenses = Math.round((expenseTableTotal + expenseTransactionsTotal) * 100) / 100;
 
   // Interest/dividend income from transactions
   const interestIncome = allTransactions
