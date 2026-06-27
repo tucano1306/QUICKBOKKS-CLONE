@@ -36,7 +36,6 @@ import {
   Upload,
   FileText,
   Receipt,
-  DollarSign,
   Activity,
   TrendingUp,
   X
@@ -629,18 +628,6 @@ export default function CustomersPage() {
                             >
                               <Upload className="h-4 w-4 mr-1 text-orange-600" />
                               <span className="text-xs font-semibold text-orange-700">Docs</span>
-                            </Button>
-
-                            {/* BOTÓN: Ver Transacciones */}
-                            <Button 
-                              type="button"
-                              variant="outline" 
-                              size="sm" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); globalThis.location.href = `/company/customers/transactions?customerId=${customer.id}`; }}
-                              className="bg-indigo-50 hover:bg-indigo-100 border-indigo-300"
-                            >
-                              <DollarSign className="h-4 w-4 mr-1 text-indigo-600" />
-                              <span className="text-xs font-semibold text-indigo-700">Trans</span>
                             </Button>
 
                             {/* BOTÓN: Ver Facturas */}

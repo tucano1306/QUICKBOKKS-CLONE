@@ -58,11 +58,6 @@ const createPresets = (): DateRange[] => {
       endDate: formatDate(new Date(today.getFullYear(), today.getMonth(), 0))
     },
     {
-      label: 'Este Trimestre',
-      startDate: formatDate(new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1)),
-      endDate: formatDate(new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3 + 3, 0))
-    },
-    {
       label: 'Este Año',
       startDate: formatDate(new Date(today.getFullYear(), 0, 1)),
       endDate: formatDate(new Date(today.getFullYear(), 11, 31))
@@ -78,11 +73,6 @@ const createPresets = (): DateRange[] => {
       endDate: formatDate(today)
     },
     {
-      label: 'Últimos 30 Días',
-      startDate: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)),
-      endDate: formatDate(today)
-    },
-    {
       label: 'Últimos 90 Días',
       startDate: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 90)),
       endDate: formatDate(today)
@@ -90,11 +80,25 @@ const createPresets = (): DateRange[] => {
   ]
 }
 
+// Filtrar por año específico (rangos rápidos): últimos 6 años
+const createYearPresets = (count = 6): DateRange[] => {
+  const currentYear = new Date().getFullYear()
+  return Array.from({ length: count }, (_, i) => {
+    const year = currentYear - i
+    return {
+      label: `Año ${year}`,
+      startDate: `${year}-01-01`,
+      endDate: `${year}-12-31`
+    }
+  })
+}
+
 export default function DateRangeSelector({ value, onSelect: onChange, showPresets = true, className }: DateRangeSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets')
   
   const presets = useMemo(() => createPresets(), [])
+  const yearPresets = useMemo(() => createYearPresets(), [])
 
   const startDateValue = useMemo(() => {
     if (!value?.startDate) return undefined
@@ -249,28 +253,62 @@ export default function DateRangeSelector({ value, onSelect: onChange, showPrese
         {/* Content */}
         <div className="p-4">
           {activeTab === 'presets' && showPresets && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 min-w-[320px]">
-              {presets.map((preset) => {
-                const isSelected = value?.label === preset.label || 
-                  (value?.startDate === preset.startDate && value?.endDate === preset.endDate)
-                
-                return (
-                  <Button
-                    key={preset.label}
-                    size="sm"
-                    variant={isSelected ? 'default' : 'outline'}
-                    onClick={() => selectPreset(preset)}
-                    className={cn(
-                      "justify-start text-left h-auto py-2.5 px-3",
-                      "hover:bg-primary/10 hover:text-primary hover:border-primary/30",
-                      "transition-all duration-200",
-                      isSelected && "bg-primary text-primary-foreground shadow-md"
-                    )}
-                  >
-                    <span className="truncate">{preset.label}</span>
-                  </Button>
-                )
-              })}
+            <div className="space-y-4 min-w-[320px]">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {presets.map((preset) => {
+                  const isSelected = value?.label === preset.label ||
+                    (value?.startDate === preset.startDate && value?.endDate === preset.endDate)
+
+                  return (
+                    <Button
+                      key={preset.label}
+                      size="sm"
+                      variant={isSelected ? 'default' : 'outline'}
+                      onClick={() => selectPreset(preset)}
+                      className={cn(
+                        "justify-start text-left h-auto py-2.5 px-3",
+                        "hover:bg-primary/10 hover:text-primary hover:border-primary/30",
+                        "transition-all duration-200",
+                        isSelected && "bg-primary text-primary-foreground shadow-md"
+                      )}
+                    >
+                      <span className="truncate">{preset.label}</span>
+                    </Button>
+                  )
+                })}
+              </div>
+
+              {/* Filtrar por año */}
+              <div className="border-t pt-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  Filtrar por año
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  {yearPresets.map((preset) => {
+                    const isSelected = value?.label === preset.label ||
+                      (value?.startDate === preset.startDate && value?.endDate === preset.endDate)
+                    const year = preset.label.replace('Año ', '')
+
+                    return (
+                      <Button
+                        key={preset.label}
+                        size="sm"
+                        variant={isSelected ? 'default' : 'outline'}
+                        onClick={() => selectPreset(preset)}
+                        className={cn(
+                          "justify-center text-center h-auto py-2 px-2",
+                          "hover:bg-primary/10 hover:text-primary hover:border-primary/30",
+                          "transition-all duration-200",
+                          isSelected && "bg-primary text-primary-foreground shadow-md"
+                        )}
+                      >
+                        <span className="truncate">{year}</span>
+                      </Button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           )}
 

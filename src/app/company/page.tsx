@@ -14,6 +14,7 @@ import {
     FileText,
     FolderKanban,
     LayoutDashboard,
+    LineChart,
     PieChart,
     Receipt,
     Settings,
@@ -21,7 +22,6 @@ import {
     Sparkles,
     Target,
     TrendingUp,
-    Users,
     Zap
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
@@ -85,10 +85,10 @@ export default function CompanyHomePage() {
       gradient: 'from-red-500 to-rose-600'
     },
     {
-      title: 'Clientes',
-      description: 'Gestión de clientes y portal con upload de documentos',
-      icon: Users,
-      href: '/company/customers/list',
+      title: 'Rentabilidad',
+      description: 'Ganancias por año y escenario sin el gasto de salarios',
+      icon: LineChart,
+      href: '/company/profitability',
       color: 'cyan',
       gradient: 'from-cyan-500 to-blue-500'
     },

@@ -204,7 +204,7 @@ export default function TransactionsPage() {
 
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
+  const [pageSize, setPageSize] = useState(250)
 
   const loadTransactions = useCallback(async () => {
     if (!activeCompany?.id) return
@@ -1091,6 +1091,7 @@ export default function TransactionsPage() {
                 totalPages={totalPages}
                 totalItems={filteredTransactions.length}
                 pageSize={pageSize}
+                pageSizeOptions={[25, 50, 100, 250, 500]}
                 onPageChange={setCurrentPage}
                 onPageSizeChange={(size) => {
                   setPageSize(size)
