@@ -706,6 +706,22 @@ export default function IrsFormsPage() {
           </div>
         </div>
 
+        {/* Aviso de borrador para CPA */}
+        <Card className="border-amber-300 bg-amber-50">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-start gap-2 text-sm text-amber-900">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
+              <p>
+                <strong>Borrador para revisión de un contador (CPA).</strong> Los montos se calculan
+                automáticamente con tus datos reales y se actualizan solos. No es un formulario oficial
+                para presentar ante el IRS: úsalo como base para que un profesional lo verifique y lo
+                radique con software autorizado. Las cifras del año más reciente pueden ser provisionales
+                hasta que el IRS publique los montos oficiales.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Entity Type Banner */}
         {activeCompany && (
           <Card className={(() => {
