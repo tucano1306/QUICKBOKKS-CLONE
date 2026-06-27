@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCompany } from '@/contexts/CompanyContext'
 import {
   TrendingUp,
-  TrendingDown,
   Sparkles,
-  Wallet,
   RefreshCw,
   Info,
-  Car
+  Car,
+  ArrowRight,
+  Wallet
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -45,6 +45,13 @@ const fmt = (n: number): string =>
   `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 const profitColor = (n: number): string => (n >= 0 ? 'text-[#108000]' : 'text-red-600')
+
+// Frase en lenguaje sencillo: cuánto ganaste y cuánto habrías ganado sin pagar salarios
+const profitWord = (n: number): string =>
+  n >= 0 ? `ganaste ${fmt(n)}` : `tuviste una pérdida de ${fmt(-n)}`
+
+const profitWordWould = (n: number): string =>
+  n >= 0 ? `habrías ganado ${fmt(n)}` : `habrías tenido una pérdida de ${fmt(-n)}`
 
 export default function ProfitabilityPage() {
   const { activeCompany } = useCompany()
@@ -103,7 +110,7 @@ export default function ProfitabilityPage() {
               Rentabilidad
             </h1>
             <p className="text-xs sm:text-sm text-gray-500">
-              Ganancias por año y escenario sin el gasto de salarios
+              Tus ganancias por año y cuánto habrías ganado sin pagar salarios
               {activeCompany && (
                 <span className="ml-2 text-[#0077C5] font-medium">• {activeCompany.name}</span>
               )}
@@ -118,14 +125,14 @@ export default function ProfitabilityPage() {
           </button>
         </div>
 
-        {/* Explicación */}
+        {/* Explicación sencilla */}
         <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-900">
           <Info className="h-5 w-5 flex-shrink-0 mt-0.5 text-[#0077C5]" />
           <p>
-            <strong>Ganancia neta</strong> = ingresos − gastos. La{' '}
-            <strong>Ganancia sin salarios</strong> excluye los gastos de la categoría de salarios
-            (<Car className="inline h-3.5 w-3.5 -mt-0.5" /> el chófer), para que veas cuánto habrías
-            ganado sin ese pago. La diferencia entre ambas es exactamente lo que pagaste en salarios.
+            Aquí ves dos escenarios lado a lado: lo que <strong>ganaste de verdad</strong> (con salarios)
+            y lo que <strong>habrías ganado sin pagar salarios</strong>
+            {' '}(<Car className="inline h-3.5 w-3.5 -mt-0.5" /> sin el chófer). La diferencia entre
+            ambos escenarios es exactamente lo que pagaste en salarios.
           </p>
         </div>
 
@@ -145,128 +152,60 @@ export default function ProfitabilityPage() {
 
         {!loading && !error && hasData && (
           <>
-            {/* Tarjetas resumen acumulado */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <SummaryCard
-                title="Ingresos totales"
-                value={fmt(totals.income)}
-                icon={<TrendingUp className="h-5 w-5 text-white" />}
-                bg="bg-[#2CA01C]"
-                valueClass="text-[#108000]"
-              />
-              <SummaryCard
-                title="Gastos totales"
-                value={fmt(totals.expenses)}
-                icon={<TrendingDown className="h-5 w-5 text-white" />}
-                bg="bg-red-500"
-                valueClass="text-red-700"
-              />
-              <SummaryCard
-                title="Ganancia neta total"
-                value={fmt(totals.netProfit)}
-                icon={<Wallet className="h-5 w-5 text-white" />}
-                bg="bg-[#0077C5]"
-                valueClass={profitColor(totals.netProfit)}
-              />
-              <SummaryCard
-                title="Ganancia total sin salarios"
-                value={fmt(totals.profitExclSalary)}
-                icon={<Sparkles className="h-5 w-5 text-white" />}
-                bg="bg-purple-600"
-                valueClass={profitColor(totals.profitExclSalary)}
-                subtitle={`Pagado en salarios: ${fmt(totals.salary)}`}
-              />
-            </div>
-
-            {/* Detalle por año */}
-            <Card>
+            {/* Comparación global (todos los años) */}
+            <Card className="border-2 border-purple-200">
               <CardHeader>
-                <CardTitle className="text-base sm:text-lg">Ganancias por año</CardTitle>
+                <CardTitle className="text-base sm:text-lg">Comparación general (todos los años con datos)</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Tabla en desktop */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-gray-500">
-                        <th className="py-2 pr-4 font-medium">Año</th>
-                        <th className="py-2 px-4 font-medium text-right">Ingresos</th>
-                        <th className="py-2 px-4 font-medium text-right">Gastos</th>
-                        <th className="py-2 px-4 font-medium text-right">Salarios</th>
-                        <th className="py-2 px-4 font-medium text-right">Ganancia neta</th>
-                        <th className="py-2 px-4 font-medium text-right">Ganancia sin salarios</th>
-                        <th className="py-2 pl-4 font-medium text-right">Diferencia</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {years.map((y) => (
-                        <tr key={y.year} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="py-3 pr-4 font-semibold text-[#0D2942]">
-                            {y.year}
-                            {y.isPartial && (
-                              <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 align-middle">
-                                en curso
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-right text-[#108000]">{fmt(y.income)}</td>
-                          <td className="py-3 px-4 text-right text-red-700">{fmt(y.expenses)}</td>
-                          <td className="py-3 px-4 text-right text-gray-600">{fmt(y.salary)}</td>
-                          <td className={`py-3 px-4 text-right font-semibold ${profitColor(y.netProfit)}`}>
-                            {fmt(y.netProfit)}
-                          </td>
-                          <td className={`py-3 px-4 text-right font-semibold ${profitColor(y.profitExclSalary)}`}>
-                            {fmt(y.profitExclSalary)}
-                          </td>
-                          <td className="py-3 pl-4 text-right text-purple-700">+{fmt(y.salary)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t-2 font-semibold">
-                        <td className="py-3 pr-4 text-[#0D2942]">Total</td>
-                        <td className="py-3 px-4 text-right text-[#108000]">{fmt(totals.income)}</td>
-                        <td className="py-3 px-4 text-right text-red-700">{fmt(totals.expenses)}</td>
-                        <td className="py-3 px-4 text-right text-gray-600">{fmt(totals.salary)}</td>
-                        <td className={`py-3 px-4 text-right ${profitColor(totals.netProfit)}`}>{fmt(totals.netProfit)}</td>
-                        <td className={`py-3 px-4 text-right ${profitColor(totals.profitExclSalary)}`}>{fmt(totals.profitExclSalary)}</td>
-                        <td className="py-3 pl-4 text-right text-purple-700">+{fmt(totals.salary)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-
-                {/* Tarjetas en móvil */}
-                <div className="md:hidden space-y-3">
-                  {years.map((y) => (
-                    <div key={y.year} className="rounded-xl border border-gray-200 p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-[#0D2942]">
-                          {y.year}
-                          {y.isPartial && (
-                            <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                              en curso
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-y-1.5 text-sm">
-                        <span className="text-gray-500">Ingresos</span>
-                        <span className="text-right text-[#108000]">{fmt(y.income)}</span>
-                        <span className="text-gray-500">Gastos</span>
-                        <span className="text-right text-red-700">{fmt(y.expenses)}</span>
-                        <span className="text-gray-500">Salarios</span>
-                        <span className="text-right text-gray-600">{fmt(y.salary)}</span>
-                        <span className="text-gray-500 font-medium">Ganancia neta</span>
-                        <span className={`text-right font-semibold ${profitColor(y.netProfit)}`}>{fmt(y.netProfit)}</span>
-                        <span className="text-gray-500 font-medium">Sin salarios</span>
-                        <span className={`text-right font-semibold ${profitColor(y.profitExclSalary)}`}>{fmt(y.profitExclSalary)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ScenarioCompare
+                  real={totals.netProfit}
+                  withoutSalary={totals.profitExclSalary}
+                  salary={totals.salary}
+                />
+                <p className="mt-4 text-sm text-gray-600 leading-relaxed">
+                  En total {profitWord(totals.netProfit)}. Pagaste{' '}
+                  <strong className="text-amber-700">{fmt(totals.salary)}</strong> en salarios;
+                  sin ese gasto {profitWordWould(totals.profitExclSalary)}.
+                </p>
               </CardContent>
             </Card>
+
+            {/* Detalle por año */}
+            <div className="space-y-4">
+              <h2 className="text-base sm:text-lg font-bold text-[#0D2942]">Año por año</h2>
+              {years.map((y) => (
+                <Card key={y.year}>
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-lg font-bold text-[#0D2942]">
+                        {y.year}
+                        {y.isPartial && (
+                          <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 align-middle">
+                            en curso
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        Ingresos {fmt(y.income)} · Gastos {fmt(y.expenses)}
+                      </span>
+                    </div>
+
+                    <ScenarioCompare
+                      real={y.netProfit}
+                      withoutSalary={y.profitExclSalary}
+                      salary={y.salary}
+                    />
+
+                    <p className="mt-3 text-sm text-gray-600 leading-relaxed">
+                      En {y.year} {profitWord(y.netProfit)}. Pagaste{' '}
+                      <strong className="text-amber-700">{fmt(y.salary)}</strong> en salarios;
+                      sin ese gasto {profitWordWould(y.profitExclSalary)}.
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
             {/* Proyección año en curso */}
             {data?.projection && (
@@ -274,19 +213,19 @@ export default function ProfitabilityPage() {
                 <CardHeader>
                   <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-purple-600" />
-                    Proyección {data.projection.year} (fin de año)
+                    Proyección a fin de {data.projection.year}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-gray-500 mb-4">
-                    Estimación anualizando lo acumulado del año en curso (factor ×{data.projection.factor}).
+                    Estimación de cómo cerraría el año si el ritmo actual se mantiene
+                    (anualizando lo acumulado, factor ×{data.projection.factor}).
                   </p>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <ProjItem label="Ingresos proyectados" value={fmt(data.projection.income)} className="text-[#108000]" />
-                    <ProjItem label="Gastos proyectados" value={fmt(data.projection.expenses)} className="text-red-700" />
-                    <ProjItem label="Ganancia neta proyectada" value={fmt(data.projection.netProfit)} className={profitColor(data.projection.netProfit)} />
-                    <ProjItem label="Ganancia proyectada sin salarios" value={fmt(data.projection.profitExclSalary)} className={profitColor(data.projection.profitExclSalary)} />
-                  </div>
+                  <ScenarioCompare
+                    real={data.projection.netProfit}
+                    withoutSalary={data.projection.profitExclSalary}
+                    salary={data.projection.salary}
+                  />
                 </CardContent>
               </Card>
             )}
@@ -297,40 +236,46 @@ export default function ProfitabilityPage() {
   )
 }
 
-function SummaryCard({
-  title,
-  value,
-  icon,
-  bg,
-  valueClass,
-  subtitle,
-}: Readonly<{
-  title: string
-  value: string
-  icon: React.ReactNode
-  bg: string
-  valueClass: string
-  subtitle?: string
-}>) {
+// Dos escenarios lado a lado: ganancia real (con salarios) vs. sin salarios,
+// con la diferencia (lo pagado en salarios) en el centro.
+function ScenarioCompare({
+  real,
+  withoutSalary,
+  salary,
+}: Readonly<{ real: number; withoutSalary: number; salary: number }>) {
   return (
-    <Card className="shadow-md">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${bg}`}>{icon}</div>
-          <span className="text-xs sm:text-sm text-gray-600 font-medium">{title}</span>
+    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-stretch">
+      {/* Escenario real */}
+      <div className="rounded-xl border-2 border-blue-200 bg-blue-50/60 p-4">
+        <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">
+          <Wallet className="h-4 w-4" />
+          Ganancia real (con salarios)
         </div>
-        <div className={`text-lg sm:text-2xl font-bold truncate ${valueClass}`}>{value}</div>
-        {subtitle && <div className="text-xs text-gray-400 mt-1 truncate">{subtitle}</div>}
-      </CardContent>
-    </Card>
-  )
-}
+        <div className={`text-2xl sm:text-3xl font-bold ${profitColor(real)}`}>{fmt(real)}</div>
+        <div className="text-xs text-gray-500 mt-1">Lo que realmente quedó</div>
+      </div>
 
-function ProjItem({ label, value, className }: Readonly<{ label: string; value: string; className: string }>) {
-  return (
-    <div className="rounded-lg bg-white border border-gray-100 p-3">
-      <div className="text-xs text-gray-500 mb-1">{label}</div>
-      <div className={`text-base sm:text-xl font-bold truncate ${className}`}>{value}</div>
+      {/* Diferencia = salarios */}
+      <div className="flex md:flex-col items-center justify-center gap-1 px-2">
+        <ArrowRight className="h-5 w-5 text-amber-500 rotate-90 md:rotate-0" />
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-amber-700">
+            <Car className="h-3.5 w-3.5" />
+            salarios
+          </div>
+          <div className="text-sm font-bold text-amber-700 whitespace-nowrap">+{fmt(salary)}</div>
+        </div>
+      </div>
+
+      {/* Escenario sin salarios */}
+      <div className="rounded-xl border-2 border-purple-300 bg-purple-50/60 p-4">
+        <div className="flex items-center gap-2 text-xs font-semibold text-purple-700 uppercase tracking-wide mb-1">
+          <Sparkles className="h-4 w-4" />
+          Ganancia sin salarios
+        </div>
+        <div className={`text-2xl sm:text-3xl font-bold ${profitColor(withoutSalary)}`}>{fmt(withoutSalary)}</div>
+        <div className="text-xs text-gray-500 mt-1">Lo que habrías ganado sin el chófer</div>
+      </div>
     </div>
   )
 }
