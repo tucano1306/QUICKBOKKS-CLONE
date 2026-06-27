@@ -232,6 +232,21 @@ export default function TransactionsPage() {
     loadTransactions()
   }, [loadTransactions])
 
+  // Auto-refrescar al volver a la pestaña o ventana
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible' && activeCompany?.id) {
+        loadTransactions()
+      }
+    }
+    document.addEventListener('visibilitychange', refresh)
+    globalThis.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      globalThis.removeEventListener('focus', refresh)
+    }
+  }, [activeCompany?.id, loadTransactions])
+
   // Filtrar transacciones
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
