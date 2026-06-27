@@ -312,7 +312,12 @@ async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFo
 
 function computeIrsForms(bundle: TaxFormBundle, companyName?: string): ComputedForms {
   const medicalExpenses = bundle.companyData.expenseBreakdown['Medical'] || 0
-  const stateLocalTax = 10000
+  // SALT real (impuestos estatales/locales/propiedad) si existe en los gastos; si no, 0.
+  // No se asume un monto ficticio: un contador completa esto con datos personales.
+  const stateLocalTax = bundle.companyData.expenseBreakdown['State Tax']
+    || bundle.companyData.expenseBreakdown['Property Tax']
+    || bundle.companyData.expenseBreakdown['Impuestos']
+    || 0
   const mortgageInterest = bundle.companyData.mortgageInterest
   const charitableContributions = bundle.companyData.expenseBreakdown['Charitable'] || 0
   const form5329IraAmt = bundle.form1040.taxableIRA * 0.1
