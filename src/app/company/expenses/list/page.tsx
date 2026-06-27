@@ -263,6 +263,22 @@ export default function ExpensesListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, activeCompany])
 
+  // Auto-refrescar al volver a la pestaña (no mientras se están seleccionando gastos)
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible' && status === 'authenticated' && activeCompany && !selectMode) {
+        loadData()
+      }
+    }
+    document.addEventListener('visibilitychange', refresh)
+    globalThis.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      globalThis.removeEventListener('focus', refresh)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, activeCompany, selectMode])
+
   const loadData = async () => {
     if (!activeCompany) return
     setLoading(true)

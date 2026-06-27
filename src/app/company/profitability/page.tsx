@@ -84,6 +84,21 @@ export default function ProfitabilityPage() {
     load()
   }, [load])
 
+  // Auto-refrescar al volver a la pestaña o ventana
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible' && activeCompany?.id) {
+        load()
+      }
+    }
+    document.addEventListener('visibilitychange', refresh)
+    globalThis.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      globalThis.removeEventListener('focus', refresh)
+    }
+  }, [activeCompany?.id, load])
+
   const years = data?.years ?? []
   const hasData = years.length > 0
 
