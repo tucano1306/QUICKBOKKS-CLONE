@@ -136,7 +136,7 @@ const tabSections: TabSection[] = [
     icon: LineChart,
     color: 'cyan',
     submenus: [
-      { name: 'Ganancias por Año', href: '/company/profitability', description: 'Ganancia real y escenario sin salarios' },
+      { name: 'Ganancias por Año', href: '/company/profitability', description: 'Ganancias con salarios o sin salarios' },
     ]
   },
   {
