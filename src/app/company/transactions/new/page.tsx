@@ -1,6 +1,7 @@
 'use client'
 
 import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
+import ReceiptScannerModal, { type ReceiptScanResult } from '@/components/transactions/receipt-scanner-modal'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCompany } from "@/contexts/CompanyContext"
-import { ArrowLeft, Check, Pencil, Plus, Save, Settings2, Trash2, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { ArrowLeft, Check, Pencil, Plus, Save, ScanLine, Settings2, Trash2, TrendingDown, TrendingUp, X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -83,6 +84,9 @@ export default function NewTransactionPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editingValue, setEditingValue] = useState('')
 
+  // Receipt scanner
+  const [showScanner, setShowScanner] = useState(false)
+
   // Load from localStorage after mount
   useEffect(() => {
     setIncomeCategories(loadCategories('INCOME'))
@@ -131,6 +135,22 @@ export default function NewTransactionPage() {
     if (formData.category === oldName) setFormData(f => ({ ...f, category: trimmed }))
     setEditingIndex(null)
     setEditingValue('')
+  }
+
+  // El escaneo manda sobre importe y fecha —es para lo que se pulsa— pero no
+  // pisa la descripción ni las notas que el usuario ya haya escrito a mano.
+  const handleScanResult = (result: ReceiptScanResult) => {
+    setFormData(f => {
+      const taxNote = result.tax !== null ? `Impuesto del ticket: $${result.tax.toFixed(2)}` : ''
+      return {
+        ...f,
+        amount: result.amount.toFixed(2),
+        date: result.date ?? f.date,
+        description: f.description.trim() || (result.merchant ? `Compra en ${result.merchant}` : f.description),
+        notes: f.notes.trim() || taxNote
+      }
+    })
+    setShowScanner(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -230,6 +250,23 @@ export default function NewTransactionPage() {
                   Gasto
                 </Button>
               </div>
+
+              {/* Escanear ticket — atajo que rellena monto, fecha y comercio */}
+              {formData.type === 'EXPENSE' && (
+                <button
+                  type="button"
+                  onClick={() => setShowScanner(true)}
+                  className="w-full flex items-center gap-3 rounded-lg border border-dashed border-[#0077C5] bg-blue-50/60 px-4 py-3 text-left transition hover:bg-blue-50"
+                >
+                  <ScanLine className="h-5 w-5 shrink-0 text-[#0077C5]" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-[#0077C5]">Escanear ticket</span>
+                    <span className="block text-xs text-gray-500">
+                      Toma una foto y rellenamos el monto, la fecha y el comercio
+                    </span>
+                  </span>
+                </button>
+              )}
 
               {/* Monto */}
               <div>
@@ -409,6 +446,13 @@ export default function NewTransactionPage() {
           </CardContent>
         </Card>
       </div>
+
+      {showScanner && (
+        <ReceiptScannerModal
+          onResult={handleScanResult}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </CompanyTabsLayout>
   )
 }

@@ -77,6 +77,17 @@ const nextConfig = {
           cacheGroups: {
             default: false,
             vendors: false,
+            // El motor OCR sólo lo usa el escáner de tickets, que se carga con
+            // un import dinámico. Sin esta regla el grupo `vendor` de abajo
+            // (chunks: 'all', cualquier node_modules) se lo lleva al bundle
+            // compartido y las 131 páginas cargan Tesseract sin usarlo nunca.
+            tesseract: {
+              name: 'tesseract',
+              chunks: 'async',
+              test: /[\\/]node_modules[\\/]tesseract\.js[\\/]/,
+              priority: 30,
+              reuseExistingChunk: true,
+            },
             // Vendor chunk
             vendor: {
               name: 'vendor',
