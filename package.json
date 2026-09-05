@@ -31,11 +31,12 @@
     "test:all": "npm run test && npm run test:e2e",
     "api:health": "tsx scripts/api-health-check.ts",
     "audit:accounting": "tsx scripts/accounting-audit.ts",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && node scripts/copy-tesseract-worker.mjs",
     "prisma:studio": "prisma studio",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prebuild": "node scripts/copy-tesseract-worker.mjs"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
@@ -95,6 +96,7 @@
     "stripe": "^20.0.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^7.0.0",
     "uuid": "^9.0.1",
     "xlsx": "^0.18.5",
     "xmlbuilder2": "^4.0.0",

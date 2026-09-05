@@ -26,3 +26,11 @@ lint-output.json
 lint-plain.txt
 lint-verbose.txt
 tsc-errors.txt
+
+# Tesseract OCR (escaner de tickets)
+# El worker y el core WASM son copias literales de node_modules: los regenera
+# scripts/copy-tesseract-worker.mjs en postinstall y en prebuild, asi que
+# versionarlos solo anade 12 MB que se quedan obsoletos al subir la dependencia.
+# El .traineddata SI se versiona: no viene en node_modules, se descarga aparte.
+/public/tesseract-worker.min.js
+/public/tesseract-core/
