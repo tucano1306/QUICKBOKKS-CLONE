@@ -137,8 +137,9 @@ export default function NewTransactionPage() {
     setEditingValue('')
   }
 
-  // El escaneo manda sobre importe y fecha —es para lo que se pulsa— pero no
-  // pisa la descripción ni las notas que el usuario ya haya escrito a mano.
+  // El escaneo manda sobre importe, fecha y comercio —es para lo que se pulsa,
+  // y los tres se confirman a mano en el escáner antes de llegar aquí— pero no
+  // pisa las notas que el usuario ya haya escrito.
   const handleScanResult = (result: ReceiptScanResult) => {
     setFormData(f => {
       const taxNote = result.tax !== null ? `Impuesto del ticket: $${result.tax.toFixed(2)}` : ''
@@ -146,7 +147,7 @@ export default function NewTransactionPage() {
         ...f,
         amount: result.amount.toFixed(2),
         date: result.date ?? f.date,
-        description: f.description.trim() || (result.merchant ? `Compra en ${result.merchant}` : f.description),
+        description: result.merchant ? `Compra en ${result.merchant}` : f.description,
         notes: f.notes.trim() || taxNote
       }
     })

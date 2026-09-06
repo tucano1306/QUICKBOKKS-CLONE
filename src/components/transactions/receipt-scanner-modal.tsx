@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { binarize, ocrScale, readReceipt, type ReceiptData } from '@/lib/receipt-scan'
+import { bestReceipt, binarize, ocrScale, readReceipt, type ReceiptData } from '@/lib/receipt-scan'
 import { AlertTriangle, Camera, Check, ImageIcon, Loader2, RotateCcw, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 // Sólo el tipo: el motor OCR (≈14 MB de WASM) se carga con un import dinámico
@@ -33,6 +33,16 @@ const OCR_PADDING = 0.03
 // guía quita la mesa y las manos, que sólo añaden ruido al OCR.
 const GUIDE_MX = 0.08
 const GUIDE_MY = 0.04
+
+/** "2025-03-14" → "14 de marzo de 2025", que es como lee la fecha una persona. */
+function formatDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
 
 /**
  * Recorta la zona encuadrada del vídeo a un Blob, trasladando la guía que se ve
@@ -96,6 +106,7 @@ export default function ReceiptScannerModal({ onResult, onClose }: Props) {
   const [preview, setPreview] = useState<string | null>(null)
   const [data, setData] = useState<ReceiptData | null>(null)
   const [amount, setAmount] = useState('')
+  const [merchant, setMerchant] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [phase, setPhase] = useState('')
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -137,20 +148,24 @@ export default function ReceiptScannerModal({ onResult, onClose }: Props) {
       // habitual: una sola columna de líneas.
       await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK })
       const pass1 = await worker.recognize(prepared, undefined, { text: true })
-      let text = pass1.data.text ?? ''
-      let parsed = readReceipt(text)
+      const text1 = pass1.data.text ?? ''
+      let parsed = readReceipt(text1)
 
       // Pase 2 — sólo si no apareció un total etiquetado: en tickets torcidos o
-      // con logotipo, la segmentación automática separa mejor las columnas.
+      // con logotipo, la segmentación automática separa mejor las columnas. Se
+      // comparan las tres lecturas y gana una entera, en vez de mezclarlas: la
+      // suma de ambos textos también suma los errores de ambos.
       if (parsed.quality !== 'strong') {
+        setPhase('Afinando la lectura…')
         await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO })
         const pass2 = await worker.recognize(prepared, undefined, { text: true })
-        text = text + '\n' + (pass2.data.text ?? '')
-        parsed = readReceipt(text)
+        const text2 = pass2.data.text ?? ''
+        parsed = bestReceipt([parsed, readReceipt(text2), readReceipt(text1 + '\n' + text2)])
       }
 
       setData(parsed)
       setAmount(parsed.total !== null ? parsed.total.toFixed(2) : '')
+      setMerchant(parsed.merchant ?? '')
       setState('preview')
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : 'No se pudo leer el ticket.')
@@ -241,7 +256,7 @@ export default function ReceiptScannerModal({ onResult, onClose }: Props) {
     onResult({
       amount: Math.round(parsedAmount * 100) / 100,
       date: data?.date ?? null,
-      merchant: data?.merchant ?? null,
+      merchant: merchant.trim() || null,
       tax: data?.tax ?? null,
     })
   }
@@ -264,7 +279,9 @@ export default function ReceiptScannerModal({ onResult, onClose }: Props) {
               Escanear ticket
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Extraemos el total, la fecha y el comercio
+              {state === 'preview'
+                ? 'Revisa los datos y corrige lo que haga falta'
+                : 'Extraemos el total, la fecha y el comercio'}
             </p>
           </div>
           <button
@@ -386,8 +403,8 @@ export default function ReceiptScannerModal({ onResult, onClose }: Props) {
               <div className="flex gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
                 <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-800">
-                  No vimos la palabra <strong>Total</strong> en el ticket. Confirma el importe correcto
-                  antes de guardarlo.
+                  No vimos la palabra <strong>Total</strong> en el ticket. Escribe el importe
+                  o elígelo entre los que leímos.
                 </p>
               </div>
             )}
@@ -404,7 +421,7 @@ export default function ReceiptScannerModal({ onResult, onClose }: Props) {
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="pl-8"
+                  className="pl-8 text-lg font-semibold"
                 />
               </div>
             </div>
@@ -412,7 +429,9 @@ export default function ReceiptScannerModal({ onResult, onClose }: Props) {
             {/* Otros importes leídos, para corregir de un toque. */}
             {data.candidates.length > 1 && (
               <div>
-                <p className="text-xs text-gray-500 mb-1.5">Otros importes detectados:</p>
+                <p className="text-xs text-gray-500 mb-1.5">
+                  ¿No es ese el total? Toca el importe correcto:
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {data.candidates.slice(0, 6).map((candidate) => {
                     const selected = parsedAmount === candidate.value
@@ -421,14 +440,16 @@ export default function ReceiptScannerModal({ onResult, onClose }: Props) {
                         key={candidate.value}
                         type="button"
                         onClick={() => setAmount(candidate.value.toFixed(2))}
-                        className={`px-3 py-1.5 rounded-lg border text-sm font-semibold transition ${
+                        className={`px-3 py-1.5 rounded-lg border text-left transition ${
                           selected
-                            ? 'border-[#0077C5] bg-blue-50 text-[#0077C5]'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-[#0077C5]'
+                            ? 'border-[#0077C5] bg-blue-50'
+                            : 'border-gray-200 bg-white hover:border-[#0077C5]'
                         }`}
                       >
-                        ${candidate.value.toFixed(2)}
-                        <span className="ml-1.5 font-normal text-xs text-gray-400">{candidate.label}</span>
+                        <span className={`block text-sm font-semibold ${selected ? 'text-[#0077C5]' : 'text-gray-700'}`}>
+                          ${candidate.value.toFixed(2)}
+                        </span>
+                        <span className="block text-[11px] text-gray-400">{candidate.label}</span>
                       </button>
                     )
                   })}
@@ -436,29 +457,39 @@ export default function ReceiptScannerModal({ onResult, onClose }: Props) {
               </div>
             )}
 
-            {/* Lo demás que se rellenará en el formulario. */}
-            {(data.merchant || data.date || data.tax !== null) && (
-              <dl className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 space-y-1 text-sm">
-                {data.merchant && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-gray-500">Comercio</dt>
-                    <dd className="font-medium text-gray-800 text-right truncate">{data.merchant}</dd>
-                  </div>
-                )}
-                {data.date && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-gray-500">Fecha</dt>
-                    <dd className="font-medium text-gray-800">{data.date}</dd>
-                  </div>
-                )}
-                {data.tax !== null && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-gray-500">Impuesto</dt>
-                    <dd className="font-medium text-gray-800">${data.tax.toFixed(2)}</dd>
-                  </div>
-                )}
-              </dl>
-            )}
+            {/* Comercio: editable siempre. En un ticket el rótulo suele ser el
+                logotipo, y ahí el OCR no tiene nada que leer — antes eso dejaba
+                el gasto sin descripción y sin forma de arreglarlo desde aquí. */}
+            <div>
+              <Label htmlFor="scan-merchant">Comercio</Label>
+              <Input
+                id="scan-merchant"
+                type="text"
+                placeholder="Ej: Walmart"
+                value={merchant}
+                onChange={(e) => setMerchant(e.target.value)}
+                maxLength={60}
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Se usará como descripción del gasto.
+              </p>
+            </div>
+
+            {/* Lo que se rellena solo y no se edita aquí, en una línea cada uno. */}
+            <dl className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 space-y-1 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-gray-500">Fecha</dt>
+                <dd className={data.date ? 'font-medium text-gray-800' : 'text-gray-400'}>
+                  {data.date ? formatDate(data.date) : 'Sin leer — se queda la del formulario'}
+                </dd>
+              </div>
+              {data.tax !== null && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-gray-500">Impuesto</dt>
+                  <dd className="font-medium text-gray-800">${data.tax.toFixed(2)}</dd>
+                </div>
+              )}
+            </dl>
 
             <div className="flex gap-2 pt-1">
               <Button type="button" variant="outline" onClick={startCamera} aria-label="Escanear de nuevo">
