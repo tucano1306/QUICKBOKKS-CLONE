@@ -799,6 +799,9 @@ model Asset {
   updatedAt               DateTime            @updatedAt
   companyId               String?
   depreciations           AssetDepreciation[]
+  valuations              AssetValuation[]
+  improvements            AssetImprovement[]
+  loan                    AssetLoan?
   costCenter              CostCenter?         @relation(fields: [costCenterId], references: [id])
 
   @@map("assets")
@@ -817,6 +820,90 @@ model AssetDepreciation {
   asset                   Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
 
   @@map("asset_depreciations")
+}
+
+/// Tasacion de mercado de un activo.
+///
+/// El valor en libros es contabilidad; esto es lo que alguien pagaria de
+/// verdad. Son datos que entra el usuario a partir de una oferta real -- de
+/// CarMax, de KBB o de un dealer -- porque ninguna formula puede saber el
+/// precio de mercado. Se guarda el millaje del momento para poder extrapolar
+/// cuando la tasacion envejece.
+model AssetValuation {
+  id        String   @id @default(cuid())
+  assetId   String
+  /// Fecha de la tasacion, no la de registro.
+  date      DateTime
+  value     Float
+  /// Millas del odometro cuando se tasó. Sin esto no se puede extrapolar.
+  mileage   Int
+  /// "CarMax", "KBB", "Dealer Chevrolet"...
+  source    String
+  notes     String?
+  createdAt DateTime @default(now())
+  companyId String?
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, date])
+  @@map("asset_valuations")
+}
+
+/// Mejora de capital sobre un activo.
+///
+/// Distinta de un gasto de mantenimiento: cambiar el motor no es gasto del
+/// ejercicio, sube el valor del activo y alarga su vida util. Sin este
+/// tratamiento un vehiculo de uso intensivo llega a valor residual mientras
+/// todavia se esta pagando el prestamo.
+model AssetImprovement {
+  id                String   @id @default(cuid())
+  assetId           String
+  label             String
+  date              DateTime
+  cost              Float
+  /// Millas de vida util que anade. Es una estimacion tecnica que conviene
+  /// validar con el contador: es el parametro que mas mueve el valor en libros.
+  addsLifetimeMiles Int      @default(0)
+  notes             String?
+  createdAt         DateTime @default(now())
+  companyId         String?
+  asset             Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, date])
+  @@map("asset_improvements")
+}
+
+/// Financiacion de un activo.
+///
+/// Permite mostrar el coste REAL -- enganche mas intereses mas mejoras -- en
+/// vez de solo el precio de factura, y avisar cuando se debe mas de lo que el
+/// activo vale.
+model AssetLoan {
+  id                  String    @id @default(cuid())
+  assetId             String    @unique
+  lender              String?
+  /// Importe financiado, no el precio del activo.
+  amountFinanced      Float
+  downPayment         Float     @default(0)
+  /// APR anual en tanto por uno: 8.90% -> 0.089
+  apr                 Float
+  termMonths          Int
+  firstPaymentDate    DateTime?
+  maturityDate        DateTime?
+  /// Saldo de capital segun el ultimo estado de cuenta.
+  currentBalance      Float?
+  paymentsRemaining   Int?
+  /// Interes real de los ultimos 12 meses segun el banco. Comparado con el
+  /// cuadro teorico delata los pagos tardios: estos prestamos llevan interes
+  /// simple diario, asi que cada dia de retraso corre.
+  interestPaidLast12  Float?
+  statementDate       DateTime?
+  notes               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  companyId           String?
+  asset               Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("asset_loans")
 }
 
 model Currency {
