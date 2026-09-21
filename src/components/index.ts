@@ -1,17 +1,16 @@
 // Main Components Index
 //
 // Component Structure:
-// - shared/: Reusable components used across the entire application
-//   - ui/: Basic UI elements (buttons, inputs, cards, tables)
-//   - layout/: Navigation, sidebars, and structural layouts
+// - ui/: Basic UI elements (buttons, inputs, cards, tables)
+// - layout/: Navigation, sidebars, and structural layouts
 //
-// - dashboard/: CRM dashboard components (add as needed)
-//
-// - banking/: Banking integration components (Plaid)
 // - ai-assistant/: AI chat and assistant components
-
-// Re-export from shared (backwards compatibility)
-export * from './shared'
+// - banking/: Banking integration components (Plaid)
+// - dashboard/: CRM dashboard components
+// - documents/: Document upload and review
+// - taxes/: Tax forms and estimates
+// - transactions/: Transaction entry and editing
+// - vehicles/: Vehicle economics (book / market / total cost)
 
 // Feature-specific exports
 export { BankConnectionManager } from './banking/plaid-link'
