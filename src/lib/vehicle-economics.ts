@@ -113,7 +113,12 @@ export interface AmortizationRow {
  * aparte con `interestDrift`.
  */
 export function amortizationSchedule(terms: LoanTerms): AmortizationRow[] {
-  const pmt = monthlyPayment(terms);
+  // El cuadro sigue el CAPITAL, asi que usa la cuota teorica y no la real.
+  // Mientras no se sepa que son los $4,00 de diferencia -- un cargo financiero
+  // anticipado incorporado al principal, o una comision mensual que nunca toca
+  // el capital -- darlos por amortizacion subestimaria lo que debes. La cuota
+  // real manda en el dinero que sale del bolsillo, no en el saldo.
+  const pmt = scheduledPayment(terms);
   const r = terms.apr / 12;
   const rows: AmortizationRow[] = [];
   let balance = terms.amountFinanced;
@@ -166,6 +171,8 @@ export function loanStatus(
   reportedBalance?: number | null
 ): LoanStatus {
   const rows = amortizationSchedule(terms);
+  // Dos cuotas con dos trabajos: la real para el efectivo, la teorica para el
+  // capital. Ver el comentario de amortizationSchedule.
   const pmt = monthlyPayment(terms);
   const totalOfPayments = pmt * terms.termMonths;
   const financeCharge = totalOfPayments - terms.amountFinanced;

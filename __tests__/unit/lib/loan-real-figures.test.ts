@@ -175,3 +175,30 @@ describe('el saldo del banco manda sobre el cuadro teorico', () => {
     expect(loanStatus(CON_CUOTA_REAL, 0, 0).remainingOutlay).toBe(0);
   });
 })
+
+describe('las dos cuotas tienen dos trabajos distintos', () => {
+  const CON_REAL: LoanTerms = { ...CONTRATO, contractPayment: 1097.86 };
+
+  it('el cuadro sigue el capital con la cuota teorica', () => {
+    // Si amortizara los $4,00 extra como capital, el saldo teorico bajaria y
+    // el desvio contra el banco pareceria mayor de lo que es. Mientras no se
+    // sepa que son esos $4,00, darlos por capital subestima la deuda.
+    const conReal = loanStatus(CON_REAL, 36);
+    const sinReal = loanStatus(CONTRATO, 36);
+
+    expect(conReal.scheduledBalance).toBeCloseTo(sinReal.scheduledBalance, 2);
+  });
+
+  it('el efectivo pendiente si usa la cuota real', () => {
+    expect(loanStatus(CON_REAL, 36).remainingOutlay).toBeCloseTo(36 * 1097.86, 2);
+    // Sin cuota de contrato sale la formula exacta, no su redondeo a centimos.
+    expect(loanStatus(CONTRATO, 36).remainingOutlay).toBeCloseTo(36 * scheduledPayment(CONTRATO), 6);
+  });
+
+  it('el desvio de saldo mide la realidad, no mi incertidumbre sobre los $4', () => {
+    const st = loanStatus(CON_REAL, 36, 34619.67);
+
+    // 34.619,67 - 34.448,79. Si el cuadro usara la cuota real saldrian ~351.
+    expect(st.balanceDrift!).toBeCloseTo(170.88, 1);
+  });
+})

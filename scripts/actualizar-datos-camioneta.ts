@@ -26,12 +26,23 @@ const ENGINE_OWN_MILES = 15000
  * El impuesto es exactamente el 6,00% estatal de Florida sobre la unidad.
  * Garantia de 6 anos en piezas y mano de obra, motor "A grade" probado.
  */
-const ENGINE_NOTES = [
-  'Motor 5.3L L84 (VIN D, 8vo digito) - "A grade", probado, 15.000 millas.',
+const ENGINE_EXTRA = [
+  'Motor 5.3L L84 (VIN D, 8vo digito), "A grade", probado, 15.000 millas propias.',
   'Garantia 6 anos piezas y mano de obra.',
-  'Factura: unidad $3.900,00 + pallet $40,00 + impuesto $234,00 (6,00% FL) + comision tarjeta $156,00 = $4.330,00.',
-  'Todo capitalizado: son costes de adquisicion y puesta en servicio.',
+  'El impuesto de $234 es el 6,00% estatal de Florida exacto.',
 ].join(' ')
+
+/**
+ * Las notas existentes ya traen la cita del IRS y el porque de la extension
+ * conservadora. Se anade lo que falta en vez de reemplazarlas: perder ese
+ * razonamiento dejaria el +60.000 sin justificacion escrita.
+ */
+function mergeNotes(previas: string | null): string {
+  const base = (previas ?? '').trim()
+  if (!base) return ENGINE_EXTRA
+  if (base.includes('Garantia 6 anos')) return base
+  return `${base} ${ENGINE_EXTRA}`
+}
 
 async function main() {
   const asset = await prisma.asset.findFirst({
@@ -74,7 +85,7 @@ async function main() {
     console.log(`  odometro el dia     ${engine.mileageAtImprovement ?? '(sin dato)'}  ->  ${ENGINE_ODOMETER}`)
     console.log(`  millas de la pieza  ${engine.componentMiles ?? '(sin dato)'}  ->  ${ENGINE_OWN_MILES}`)
     console.log(`  anade a la vida util ${engine.addsLifetimeMiles} millas  (sin cambio)`)
-    console.log(`  notas               ${engine.notes ? '(se reemplazan)' : '(vacias)'}  ->  desglose de factura + garantia`)
+    console.log(`  notas               ${engine.notes ? 'se conservan' : '(vacias)'}  ->  ${mergeNotes(engine.notes).length} caracteres (se anade garantia y spec)`)
 
     if (APPLY) {
       await prisma.assetImprovement.update({
@@ -82,7 +93,7 @@ async function main() {
         data: {
           mileageAtImprovement: ENGINE_ODOMETER,
           componentMiles: ENGINE_OWN_MILES,
-          notes: ENGINE_NOTES,
+          notes: mergeNotes(engine.notes),
         },
       })
     }
