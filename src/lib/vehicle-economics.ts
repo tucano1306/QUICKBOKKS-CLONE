@@ -201,6 +201,60 @@ export function loanStatus(
   };
 }
 
+/**
+ * Lo que cuesta el prestamo ahora mismo, no a lo largo del plazo.
+ *
+ * El interes total y el pendiente son cifras del contrato entero; no dicen
+ * cuanto te esta costando este mes. Y como el interes cae con el saldo, la
+ * media del plazo enganaria en ambos extremos: al principio se paga mucho mas
+ * y al final mucho menos.
+ */
+export interface InterestNow {
+  /** Interes que corre cada dia sobre el saldo. Asi lo calcula la clausula 1.a. */
+  daily: number;
+  /** Interes de un mes, al tipo periodico del cuadro (APR/12). */
+  monthly: number;
+  /** Lo mismo contado por dias reales: un mes de 31 cuesta mas que uno de 30. */
+  monthly30: number;
+  monthly31: number;
+  /** Parte de la cuota que se va en intereses. */
+  interestPortion: number;
+  /** El resto de la cuota. */
+  principalPortion: number;
+  /** Porcentaje de la cuota que se come el interes. */
+  interestPct: number;
+  /** Media mensual sobre todo el plazo, solo para contraste. */
+  averageMonthly: number;
+}
+
+/**
+ * Se calcula sobre el saldo que manda -- el del banco cuando se conoce --
+ * porque es el que genera intereses de verdad, no el del cuadro teorico.
+ */
+export function interestNow(
+  apr: number,
+  balance: number,
+  payment: number,
+  financeCharge: number,
+  termMonths: number
+): InterestNow {
+  const safeBalance = Math.max(0, balance);
+  const daily = (safeBalance * apr) / 365;
+  const monthly = (safeBalance * apr) / 12;
+  const interestPortion = Math.min(monthly, payment);
+
+  return {
+    daily,
+    monthly,
+    monthly30: daily * 30,
+    monthly31: daily * 31,
+    interestPortion,
+    principalPortion: Math.max(0, payment - interestPortion),
+    interestPct: payment > 0 ? (interestPortion / payment) * 100 : 0,
+    averageMonthly: termMonths > 0 ? financeCharge / termMonths : 0,
+  };
+}
+
 export interface InterestDrift {
   scheduled: number;
   actual: number;

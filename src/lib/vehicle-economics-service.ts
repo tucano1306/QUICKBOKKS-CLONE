@@ -3,6 +3,7 @@ import {
   alerts,
   depreciation,
   interestDrift,
+  interestNow,
   loanStatus,
   marketValue,
   monthlyPayment,
@@ -11,6 +12,7 @@ import {
   type CapitalImprovement,
   type DepreciationResult,
   type InterestDrift,
+  type InterestNow,
   type LoanStatus,
   type MarketValuation,
   type MarketValue,
@@ -69,6 +71,7 @@ export interface VehicleEconomics {
     maturityDate: string | null;
     monthsRemaining: number;
     drift: InterestDrift | null;
+    interestNow: InterestNow;
   }) | null;
   ownership: OwnershipResult | null;
   alerts: VehicleAlert[];
@@ -183,6 +186,8 @@ export async function getVehicleEconomics(
           ? l.payoffAmount - l.currentBalance
           : null,
       paymentVariance: paymentVariance(terms),
+      // Sobre el saldo que manda: es el que genera intereses de verdad.
+      interestNow: interestNow(l.apr, st.actualBalance, st.monthlyPayment, st.financeCharge, l.termMonths),
       maturityDate: l.maturityDate ? l.maturityDate.toISOString() : null,
       monthsRemaining,
       drift:
