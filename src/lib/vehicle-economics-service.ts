@@ -164,7 +164,7 @@ export async function getVehicleEconomics(
         ? Math.max(0, Math.round((l.maturityDate.getTime() - asOf.getTime()) / (MS_PER_YEAR / 12)))
         : Math.max(0, l.termMonths - Math.round(ageYears * 12)));
 
-    const st = loanStatus(terms, monthsRemaining);
+    const st = loanStatus(terms, monthsRemaining, l.currentBalance);
 
     loanBlock = {
       ...st,

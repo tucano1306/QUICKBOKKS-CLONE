@@ -135,15 +135,36 @@ export interface LoanStatus {
   totalOfPayments: number;
   financeCharge: number;
   paymentsMade: number;
+  /** Saldo segun el cuadro teorico. Es un modelo, no un hecho. */
   scheduledBalance: number;
+  /** El que manda: el del banco si se conoce, si no el del cuadro. */
+  actualBalance: number;
+  /**
+   * Cuanto se aparta el saldo real del teorico.
+   *
+   * Positivo significa que debes mas capital del que el cuadro predijo: con
+   * interes diario y pagos aplicados en el orden que elige el banco, parte de
+   * cada cuota que deberia haber ido a capital se comio en intereses.
+   */
+  balanceDrift: number | null;
   interestPaid: number;
   interestRemaining: number;
-  /** Saldo mas intereses pendientes: lo que aun saldra del bolsillo. */
+  /** Lo que aun saldra del bolsillo: las cuotas que quedan, a su importe real. */
   remainingOutlay: number;
 }
 
-/** Donde estas en el prestamo, a partir de los pagos que faltan. */
-export function loanStatus(terms: LoanTerms, paymentsRemaining: number): LoanStatus {
+/**
+ * Donde estas en el prestamo, a partir de los pagos que faltan.
+ *
+ * `reportedBalance` es el capital que dice el banco. Cuando se conoce manda
+ * sobre el cuadro teorico: el cuadro es una prediccion hecha el dia de la
+ * firma, y tres anos de interes diario la separan de la realidad.
+ */
+export function loanStatus(
+  terms: LoanTerms,
+  paymentsRemaining: number,
+  reportedBalance?: number | null
+): LoanStatus {
   const rows = amortizationSchedule(terms);
   const pmt = monthlyPayment(terms);
   const totalOfPayments = pmt * terms.termMonths;
@@ -154,15 +175,22 @@ export function loanStatus(terms: LoanTerms, paymentsRemaining: number): LoanSta
   const scheduledBalance = row ? row.balance : terms.amountFinanced;
   const interestRemaining = financeCharge - interestPaid;
 
+  const hasReported = reportedBalance != null && reportedBalance > 0;
+  const actualBalance = hasReported ? (reportedBalance as number) : scheduledBalance;
+
   return {
     monthlyPayment: pmt,
     totalOfPayments,
     financeCharge,
     paymentsMade: made,
     scheduledBalance,
+    actualBalance,
+    balanceDrift: hasReported ? actualBalance - scheduledBalance : null,
     interestPaid,
     interestRemaining,
-    remainingOutlay: scheduledBalance + interestRemaining,
+    // Las cuotas que faltan a su importe real. Es lo que el banco va a cobrar,
+    // no lo que el cuadro teorico diria que queda.
+    remainingOutlay: Math.max(0, paymentsRemaining) * pmt,
   };
 }
 
@@ -487,7 +515,7 @@ export function alerts(input: AlertInput): VehicleAlert[] {
   // Debes mas de lo que vale. Se mide contra la cancelacion real cuando se
   // conoce: el saldo de capital no libera el titulo por si solo.
   const usePayoff = input.payoffAmount != null && input.payoffAmount > 0;
-  const owed = usePayoff ? (input.payoffAmount as number) : input.loanStatus.scheduledBalance;
+  const owed = usePayoff ? (input.payoffAmount as number) : input.loanStatus.actualBalance;
   const owedLabel = usePayoff ? 'Cancelacion' : 'Saldo';
   const underwater = owed - input.market.value;
   if (underwater > 0) {

@@ -50,6 +50,7 @@ export interface VehicleEconomicsData {
     payoffAmount: number | null; payoffDate: string | null; accruedSincePayment: number | null
     paymentVariance: null | { contract: number; scheduled: number; perMonth: number; overTerm: number; impliedApr: number }
     monthsRemaining: number; monthlyPayment: number; totalOfPayments: number
+    actualBalance: number; balanceDrift: number | null
     financeCharge: number; paymentsMade: number; scheduledBalance: number
     interestPaid: number; interestRemaining: number; remainingOutlay: number
     drift: null | { scheduled: number; actual: number; drift: number; driftPct: number; projectedExtra: number }
@@ -235,11 +236,17 @@ export function VehicleEconomicsCard({
                 }
               />
             ) : (
-              <Stat label="Saldo" value={money(loan.scheduledBalance)} note={
-                loan.reportedBalance != null ? `banco: ${money(loan.reportedBalance)}` : undefined
-              } />
+              <Stat
+                label="Saldo"
+                value={money(loan.actualBalance)}
+                note={loan.reportedBalance != null ? 'según el banco' : 'cuadro teórico'}
+              />
             )}
-            <Stat label="Por desembolsar" value={money(loan.remainingOutlay)} note="saldo + intereses" />
+            <Stat
+              label="Por desembolsar"
+              value={money(loan.remainingOutlay)}
+              note={`${loan.monthsRemaining} cuotas de ${money(loan.monthlyPayment)}`}
+            />
           </div>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -247,6 +254,22 @@ export function VehicleEconomicsCard({
             <Stat label="Interés ya pagado" value={money(loan.interestPaid)} />
             <Stat label="Interés pendiente" value={money(loan.interestRemaining)} tone="good" />
           </div>
+
+          {/* Debes mas capital del que el cuadro predijo: el interes diario se lo comio */}
+          {loan.balanceDrift != null && loan.balanceDrift > 25 && (
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">
+                Debes {money(loan.balanceDrift)} más de capital del que decía el cuadro
+              </p>
+              <p className="mt-1 text-sm text-amber-800">
+                Tras {loan.paymentsMade} pagos el cuadro de amortización predecía un saldo de{' '}
+                {money(loan.scheduledBalance)}, pero el banco reporta{' '}
+                <strong>{money(loan.actualBalance)}</strong>. No es un error de nadie: con interés
+                diario, parte de cada cuota que debía ir a capital se fue en intereses. Es el mismo
+                fenómeno que la desviación de abajo, visto desde el saldo.
+              </p>
+            </div>
+          )}
 
           {/* La cuota real no coincide con la formula: casi siempre es un cargo fijo */}
           {loan.paymentVariance && Math.abs(loan.paymentVariance.perMonth) > 0.5 && (

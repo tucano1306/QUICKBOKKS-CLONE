@@ -85,7 +85,7 @@ describe('el aviso de "debes mas de lo que vale" usa la cancelacion real', () =>
   const base = {
     depreciation: { effectiveLifetimeMiles: 260000, milesDriven: 138647 } as any,
     market: { value: 33936.65, vsBookValue: -4578 } as any,
-    loanStatus: { scheduledBalance: 34448.79 } as any,
+    loanStatus: { scheduledBalance: 34448.79, actualBalance: 34448.79 } as any,
     milesPerYear: 40810,
     monthsRemaining: 36,
   };
@@ -128,3 +128,50 @@ describe('payoff y saldo de capital son cifras distintas y compatibles', () => {
     expect(devengado / diario).toBeCloseTo(16, 0);
   });
 });
+
+describe('el saldo del banco manda sobre el cuadro teorico', () => {
+  const CON_CUOTA_REAL: LoanTerms = { ...CONTRATO, contractPayment: 1097.86 };
+
+  it('sin dato del banco se queda con el cuadro', () => {
+    const st = loanStatus(CON_CUOTA_REAL, 36);
+
+    expect(st.actualBalance).toBeCloseTo(st.scheduledBalance, 2);
+    expect(st.balanceDrift).toBeNull();
+  });
+
+  it('con dato del banco, ese es el que manda', () => {
+    const st = loanStatus(CON_CUOTA_REAL, 36, 34619.67);
+
+    expect(st.actualBalance).toBe(34619.67);
+  });
+
+  it('mide cuanto capital de mas debes frente al cuadro', () => {
+    const st = loanStatus(CON_CUOTA_REAL, 36, 34619.67);
+
+    // Debes mas de lo previsto: el interes diario se comio parte del capital.
+    expect(st.balanceDrift!).toBeGreaterThan(0);
+    expect(st.balanceDrift!).toBeCloseTo(34619.67 - st.scheduledBalance, 2);
+  });
+
+  it('un saldo de cero o negativo no se toma como dato del banco', () => {
+    expect(loanStatus(CON_CUOTA_REAL, 36, 0).balanceDrift).toBeNull();
+    expect(loanStatus(CON_CUOTA_REAL, 36, null).balanceDrift).toBeNull();
+  });
+
+  it('lo que falta por desembolsar son las cuotas que quedan a su importe real', () => {
+    const st = loanStatus(CON_CUOTA_REAL, 36, 34619.67);
+
+    expect(st.remainingOutlay).toBeCloseTo(36 * 1097.86, 2);
+  });
+
+  it('con la cuota teorica el desembolso pendiente es menor: ahi estaba el hueco', () => {
+    const real = loanStatus(CON_CUOTA_REAL, 36, 34619.67);
+    const teorico = loanStatus(CONTRATO, 36, 34619.67);
+
+    expect(real.remainingOutlay - teorico.remainingOutlay).toBeCloseTo(144, 0);
+  });
+
+  it('sin pagos restantes no queda nada por desembolsar', () => {
+    expect(loanStatus(CON_CUOTA_REAL, 0, 0).remainingOutlay).toBe(0);
+  });
+})
