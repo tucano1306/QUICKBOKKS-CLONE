@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { findCategoryByName } from '@/lib/expense-category'
 
 export const dynamic = 'force-dynamic'
 
@@ -169,7 +170,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { action, transactions, destinationAccount, destinationAccountCode, notes } = body
+    const { action, transactions, destinationAccount, destinationAccountCode, notes, companyId } = body
 
     switch (action) {
       case 'preview':
@@ -188,7 +189,7 @@ export async function POST(request: NextRequest) {
 
       case 'execute':
         // Ejecutar reclasificación
-        const results = await executeReclassification(transactions, destinationAccount, destinationAccountCode)
+        const results = await executeReclassification(transactions, destinationAccount, destinationAccountCode, companyId ?? null)
         
         return NextResponse.json({
           success: true,
@@ -226,7 +227,8 @@ export async function POST(request: NextRequest) {
 async function executeReclassification(
   transactions: { id: string; source: 'bank' | 'expense' }[],
   destinationAccount: string,
-  destinationAccountCode: string
+  destinationAccountCode: string,
+  companyId: string | null
 ): Promise<{ success: number; failed: number }> {
   let success = 0
   let failed = 0
@@ -241,11 +243,11 @@ async function executeReclassification(
           }
         })
       } else if (t.source === 'expense') {
-        // Buscar categoría por nombre o crear
-        let category = await prisma.expenseCategory.findFirst({
-          where: { name: destinationAccount }
-        })
-        
+        // Buscar categoría por nombre. La busqueda exacta fallaba si la
+        // categoria destino estaba escrita con otras mayusculas o acentos, y
+        // ademas no filtraba por empresa.
+        const category = await findCategoryByName(companyId, destinationAccount)
+
         if (category) {
           await prisma.expense.update({
             where: { id: t.id },

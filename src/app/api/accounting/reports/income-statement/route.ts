@@ -1,15 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { categoryKey, cleanCategoryName, preferredCategoryName } from '@/lib/category-name';
 
 export const dynamic = 'force-dynamic'
 
 // Helper types
 interface CategoryMap { [key: string]: { name: string; amount: number } }
 
-// Helper: Add amount to category
+/**
+ * Suma un importe a su categoria.
+ *
+ * El mapa se indexa por `categoryKey(catName)`, no por el nombre crudo. Los
+ * nombres llegan de tres sitios sin criterio comun -- `account.name`,
+ * `ExpenseCategory.name` (que no es unique) y `Transaction.category` (texto
+ * libre) -- asi que "Compras internet" y "compras internet" entraban como dos
+ * claves y el reporte mostraba la misma categoria dos veces con el gasto
+ * repartido entre ambas. Agrupando por la clave normalizada se suman juntas.
+ *
+ * El nombre visible conserva la forma escrita por el usuario: no se toca el
+ * dato, solo se unifica como se agrupa al mostrarlo.
+ */
 function addToCategory(map: CategoryMap, catName: string, amount: number): void {
-  if (!map[catName]) map[catName] = { name: catName, amount: 0 };
-  map[catName].amount += amount;
+  const key = categoryKey(catName);
+  const display = cleanCategoryName(catName);
+  if (!map[key]) {
+    map[key] = { name: display, amount: 0 };
+  } else {
+    map[key].name = preferredCategoryName(map[key].name, display);
+  }
+  map[key].amount += amount;
 }
 
 // Helper function: Build expense category map
