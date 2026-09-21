@@ -23,7 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { assetId, label, date, cost, addsLifetimeMiles, notes } = body
+    const {
+      assetId, label, date, cost, addsLifetimeMiles, notes,
+      mileageAtImprovement, componentMiles,
+    } = body
 
     if (!assetId || !label || cost == null) {
       return NextResponse.json(
@@ -51,6 +54,12 @@ export async function POST(request: NextRequest) {
         date: date ? new Date(date) : new Date(),
         cost: Number(cost),
         addsLifetimeMiles: Math.max(0, Number(addsLifetimeMiles) || 0),
+        // Odometro del dia de la mejora: sin el, la depreciacion prospectiva
+        // se desplaza cada vez que avanza el odometro y la mejora no deprecia.
+        mileageAtImprovement:
+          mileageAtImprovement != null ? Math.max(0, Number(mileageAtImprovement)) : null,
+        // Millas propias de la pieza instalada, si es de segunda mano.
+        componentMiles: componentMiles != null ? Math.max(0, Number(componentMiles)) : null,
         notes: notes || null,
       },
     })

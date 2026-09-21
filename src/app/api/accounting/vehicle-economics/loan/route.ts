@@ -29,6 +29,7 @@ export async function PUT(request: NextRequest) {
       assetId, lender, amountFinanced, downPayment, apr, termMonths,
       firstPaymentDate, maturityDate, currentBalance, paymentsRemaining,
       interestPaidLast12, statementDate, notes,
+      contractPayment, payoffAmount, payoffDate,
     } = body
 
     if (!assetId || amountFinanced == null || apr == null || !termMonths) {
@@ -61,7 +62,10 @@ export async function PUT(request: NextRequest) {
       termMonths: Number(termMonths),
       firstPaymentDate: firstPaymentDate ? new Date(firstPaymentDate) : null,
       maturityDate: maturityDate ? new Date(maturityDate) : null,
+      contractPayment: contractPayment != null ? Number(contractPayment) : null,
       currentBalance: currentBalance != null ? Number(currentBalance) : null,
+      payoffAmount: payoffAmount != null ? Number(payoffAmount) : null,
+      payoffDate: payoffDate ? new Date(payoffDate) : null,
       paymentsRemaining: paymentsRemaining != null ? Number(paymentsRemaining) : null,
       interestPaidLast12: interestPaidLast12 != null ? Number(interestPaidLast12) : null,
       statementDate: statementDate ? new Date(statementDate) : null,

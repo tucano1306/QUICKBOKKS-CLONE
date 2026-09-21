@@ -42,11 +42,15 @@ export interface VehicleEconomicsData {
   market: { value: number; basis: 'appraisal' | 'estimate'; ageYears: number; vsBookValue: number
     anchor?: { date: string; value: number; mileage: number; source: string } }
   valuations: Array<{ date: string; value: number; mileage: number; source: string }>
-  improvements: Array<{ label: string; date: string; cost: number; addsLifetimeMiles: number }>
+  improvements: Array<{ label: string; date: string; cost: number; addsLifetimeMiles: number
+    mileageAtImprovement?: number; componentMiles?: number | null }>
   loan: null | {
     lender: string | null; apr: number; termMonths: number; amountFinanced: number
     downPayment: number; reportedBalance: number | null; maturityDate: string | null
+    payoffAmount: number | null; payoffDate: string | null; accruedSincePayment: number | null
+    paymentVariance: null | { contract: number; scheduled: number; perMonth: number; overTerm: number; impliedApr: number }
     monthsRemaining: number; monthlyPayment: number; totalOfPayments: number
+    actualBalance: number; balanceDrift: number | null
     financeCharge: number; paymentsMade: number; scheduledBalance: number
     interestPaid: number; interestRemaining: number; remainingOutlay: number
     drift: null | { scheduled: number; actual: number; drift: number; driftPct: number; projectedExtra: number }
@@ -215,12 +219,34 @@ export function VehicleEconomicsCard({
           action={onEditLoan && { label: 'Editar', onClick: onEditLoan }}
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat label="Cuota mensual" value={money(loan.monthlyPayment)} />
+            <Stat
+              label="Cuota mensual"
+              value={money(loan.monthlyPayment)}
+              note={loan.paymentVariance ? 'del contrato' : 'calculada'}
+            />
             <Stat label="Pagos" value={`${loan.paymentsMade} de ${loan.termMonths}`} note={`${loan.monthsRemaining} restantes`} />
-            <Stat label="Saldo" value={money(loan.scheduledBalance)} note={
-              loan.reportedBalance != null ? `banco: ${money(loan.reportedBalance)}` : undefined
-            } />
-            <Stat label="Por desembolsar" value={money(loan.remainingOutlay)} note="saldo + intereses" />
+            {loan.payoffAmount != null ? (
+              <Stat
+                label="Cancelación hoy"
+                value={money(loan.payoffAmount)}
+                note={
+                  loan.reportedBalance != null
+                    ? `capital ${money(loan.reportedBalance)} + intereses`
+                    : 'capital + intereses devengados'
+                }
+              />
+            ) : (
+              <Stat
+                label="Saldo"
+                value={money(loan.actualBalance)}
+                note={loan.reportedBalance != null ? 'según el banco' : 'cuadro teórico'}
+              />
+            )}
+            <Stat
+              label="Por desembolsar"
+              value={money(loan.remainingOutlay)}
+              note={`${loan.monthsRemaining} cuotas de ${money(loan.monthlyPayment)}`}
+            />
           </div>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -228,6 +254,41 @@ export function VehicleEconomicsCard({
             <Stat label="Interés ya pagado" value={money(loan.interestPaid)} />
             <Stat label="Interés pendiente" value={money(loan.interestRemaining)} tone="good" />
           </div>
+
+          {/* Debes mas capital del que el cuadro predijo: el interes diario se lo comio */}
+          {loan.balanceDrift != null && loan.balanceDrift > 25 && (
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">
+                Debes {money(loan.balanceDrift)} más de capital del que decía el cuadro
+              </p>
+              <p className="mt-1 text-sm text-amber-800">
+                Tras {loan.paymentsMade} pagos el cuadro de amortización predecía un saldo de{' '}
+                {money(loan.scheduledBalance)}, pero el banco reporta{' '}
+                <strong>{money(loan.actualBalance)}</strong>. No es un error de nadie: con interés
+                diario, parte de cada cuota que debía ir a capital se fue en intereses. Es el mismo
+                fenómeno que la desviación de abajo, visto desde el saldo.
+              </p>
+            </div>
+          )}
+
+          {/* La cuota real no coincide con la formula: casi siempre es un cargo fijo */}
+          {loan.paymentVariance && Math.abs(loan.paymentVariance.perMonth) > 0.5 && (
+            <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 p-4">
+              <p className="text-sm font-semibold text-sky-900">
+                Pagas {money(loan.paymentVariance.perMonth)} al mes más de lo que da el contrato
+              </p>
+              <p className="mt-1 text-sm text-sky-800">
+                Con {money(loan.amountFinanced)} al {(loan.apr * 100).toFixed(2)}% a {loan.termMonths}{' '}
+                meses, la cuota debería ser {money(loan.paymentVariance.scheduled)}, pero el banco
+                cobra {money(loan.paymentVariance.contract)}. Son{' '}
+                <strong>{money(loan.paymentVariance.overTerm)}</strong> en todo el plazo. Para que
+                saliera de un tipo de interés haría falta un{' '}
+                {(loan.paymentVariance.impliedApr * 100).toFixed(2)}% — que no es un tipo que nadie
+                escriba en un contrato. Apunta a un cargo fijo mensual: búscalo en el desglose de la
+                página 1.
+              </p>
+            </div>
+          )}
 
           {/* La desviacion: interes simple diario castiga los pagos tardios */}
           {loan.drift && loan.drift.drift > 1 && (
@@ -237,8 +298,9 @@ export function VehicleEconomicsCard({
               </p>
               <p className="mt-1 text-sm text-amber-800">
                 El banco reporta {money(loan.drift.actual)} en los últimos 12 meses; el cuadro de
-                amortización decía {money(loan.drift.scheduled)}. Estos contratos llevan interés
-                simple diario, así que cada día de retraso en el pago corre. Al ritmo actual serían{' '}
+                amortización decía {money(loan.drift.scheduled)}. Tu contrato calcula el interés{' '}
+                <em>a diario</em> sobre el saldo (cláusula 1.a), así que cada día de retraso corre — y
+                el banco aplica cada pago en el orden que elige (cláusula 1.b). Al ritmo actual serían{' '}
                 <strong>{money(loan.drift.projectedExtra)}</strong> de más en lo que queda de préstamo.
               </p>
             </div>
@@ -316,8 +378,14 @@ export function VehicleEconomicsCard({
                   <p className="text-sm font-medium text-[#0D2942]">{m.label}</p>
                   <p className="text-xs text-gray-500">
                     {new Date(m.date).toLocaleDateString('es')}
+                    {m.mileageAtImprovement != null && ` · odómetro ${miles(m.mileageAtImprovement)}`}
                     {m.addsLifetimeMiles > 0 && ` · +${miles(m.addsLifetimeMiles)} de vida útil`}
                   </p>
+                  {m.componentMiles != null && (
+                    <p className="mt-0.5 text-xs text-amber-700">
+                      La pieza instalada traía {miles(m.componentMiles)} — no es nueva
+                    </p>
+                  )}
                 </div>
                 <p className="text-lg font-semibold text-[#0077C5]">{money(m.cost)}</p>
               </div>

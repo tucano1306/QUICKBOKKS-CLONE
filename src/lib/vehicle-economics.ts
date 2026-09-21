@@ -28,14 +28,72 @@ export interface LoanTerms {
   apr: number;
   /** Plazo en meses. */
   termMonths: number;
+  /**
+   * Cuota que figura en el contrato, si se conoce.
+   *
+   * Manda sobre la que sale de la formula. La diferencia entre ambas no es
+   * ruido de redondeo: delata comisiones mensuales o cargos incorporados que
+   * no estan en el APR, y arrastra el cuadro entero -- total pagado, coste
+   * financiero y comparacion con el interes que reporta el banco.
+   */
+  contractPayment?: number | null;
 }
 
-/** Cuota mensual de un prestamo frances (amortizacion constante). */
-export function monthlyPayment({ amountFinanced, apr, termMonths }: LoanTerms): number {
+/**
+ * Cuota mensual: la del contrato si se conoce, si no la del prestamo frances.
+ */
+export function monthlyPayment(terms: LoanTerms): number {
+  if (terms.contractPayment != null && terms.contractPayment > 0) {
+    return terms.contractPayment;
+  }
+  return scheduledPayment(terms);
+}
+
+/** Cuota teorica pura, la que da la formula de amortizacion constante. */
+export function scheduledPayment({ amountFinanced, apr, termMonths }: LoanTerms): number {
   if (amountFinanced <= 0 || termMonths <= 0) return 0;
   const r = apr / 12;
   if (r === 0) return amountFinanced / termMonths;
   return (amountFinanced * r) / (1 - Math.pow(1 + r, -termMonths));
+}
+
+/**
+ * Diferencia entre la cuota real y la teorica.
+ *
+ * Un desvio de importe redondo (4,00 al mes) apunta a una comision fija, no a
+ * un APR distinto: un tipo diferente daria una cifra con decimales sueltos.
+ */
+export interface PaymentVariance {
+  contract: number;
+  scheduled: number;
+  perMonth: number;
+  overTerm: number;
+  /** APR que haria falta para producir la cuota real sin comisiones. */
+  impliedApr: number;
+}
+
+export function paymentVariance(terms: LoanTerms): PaymentVariance | null {
+  if (terms.contractPayment == null || terms.contractPayment <= 0) return null;
+  const scheduled = scheduledPayment(terms);
+  const contract = terms.contractPayment;
+
+  // APR implicito por biseccion: no hay forma cerrada de despejar el tipo.
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 200; i++) {
+    const mid = (lo + hi) / 2;
+    const pay = scheduledPayment({ ...terms, apr: mid, contractPayment: null });
+    if (pay < contract) lo = mid;
+    else hi = mid;
+  }
+
+  return {
+    contract,
+    scheduled,
+    perMonth: contract - scheduled,
+    overTerm: (contract - scheduled) * terms.termMonths,
+    impliedApr: (lo + hi) / 2,
+  };
 }
 
 export interface AmortizationRow {
@@ -55,7 +113,12 @@ export interface AmortizationRow {
  * aparte con `interestDrift`.
  */
 export function amortizationSchedule(terms: LoanTerms): AmortizationRow[] {
-  const pmt = monthlyPayment(terms);
+  // El cuadro sigue el CAPITAL, asi que usa la cuota teorica y no la real.
+  // Mientras no se sepa que son los $4,00 de diferencia -- un cargo financiero
+  // anticipado incorporado al principal, o una comision mensual que nunca toca
+  // el capital -- darlos por amortizacion subestimaria lo que debes. La cuota
+  // real manda en el dinero que sale del bolsillo, no en el saldo.
+  const pmt = scheduledPayment(terms);
   const r = terms.apr / 12;
   const rows: AmortizationRow[] = [];
   let balance = terms.amountFinanced;
@@ -77,16 +140,39 @@ export interface LoanStatus {
   totalOfPayments: number;
   financeCharge: number;
   paymentsMade: number;
+  /** Saldo segun el cuadro teorico. Es un modelo, no un hecho. */
   scheduledBalance: number;
+  /** El que manda: el del banco si se conoce, si no el del cuadro. */
+  actualBalance: number;
+  /**
+   * Cuanto se aparta el saldo real del teorico.
+   *
+   * Positivo significa que debes mas capital del que el cuadro predijo: con
+   * interes diario y pagos aplicados en el orden que elige el banco, parte de
+   * cada cuota que deberia haber ido a capital se comio en intereses.
+   */
+  balanceDrift: number | null;
   interestPaid: number;
   interestRemaining: number;
-  /** Saldo mas intereses pendientes: lo que aun saldra del bolsillo. */
+  /** Lo que aun saldra del bolsillo: las cuotas que quedan, a su importe real. */
   remainingOutlay: number;
 }
 
-/** Donde estas en el prestamo, a partir de los pagos que faltan. */
-export function loanStatus(terms: LoanTerms, paymentsRemaining: number): LoanStatus {
+/**
+ * Donde estas en el prestamo, a partir de los pagos que faltan.
+ *
+ * `reportedBalance` es el capital que dice el banco. Cuando se conoce manda
+ * sobre el cuadro teorico: el cuadro es una prediccion hecha el dia de la
+ * firma, y tres anos de interes diario la separan de la realidad.
+ */
+export function loanStatus(
+  terms: LoanTerms,
+  paymentsRemaining: number,
+  reportedBalance?: number | null
+): LoanStatus {
   const rows = amortizationSchedule(terms);
+  // Dos cuotas con dos trabajos: la real para el efectivo, la teorica para el
+  // capital. Ver el comentario de amortizationSchedule.
   const pmt = monthlyPayment(terms);
   const totalOfPayments = pmt * terms.termMonths;
   const financeCharge = totalOfPayments - terms.amountFinanced;
@@ -96,15 +182,22 @@ export function loanStatus(terms: LoanTerms, paymentsRemaining: number): LoanSta
   const scheduledBalance = row ? row.balance : terms.amountFinanced;
   const interestRemaining = financeCharge - interestPaid;
 
+  const hasReported = reportedBalance != null && reportedBalance > 0;
+  const actualBalance = hasReported ? (reportedBalance as number) : scheduledBalance;
+
   return {
     monthlyPayment: pmt,
     totalOfPayments,
     financeCharge,
     paymentsMade: made,
     scheduledBalance,
+    actualBalance,
+    balanceDrift: hasReported ? actualBalance - scheduledBalance : null,
     interestPaid,
     interestRemaining,
-    remainingOutlay: scheduledBalance + interestRemaining,
+    // Las cuotas que faltan a su importe real. Es lo que el banco va a cobrar,
+    // no lo que el cuadro teorico diria que queda.
+    remainingOutlay: Math.max(0, paymentsRemaining) * pmt,
   };
 }
 
@@ -122,7 +215,10 @@ export interface InterestDrift {
  * Compara el interes real de los ultimos 12 meses con el del cuadro.
  *
  * Una desviacion sostenida al alza casi siempre significa que los pagos entran
- * tarde: con interes simple diario, cada dia de retraso corre. Es la unica
+ * tarde: con interes simple diario, cada dia de retraso corre. No es una
+ * suposicion sobre como suelen ser estos contratos: la clausula 1.a del
+ * contrato lo dice -- "we will figure the finance charge on a daily basis at
+ * the Base Rate on the unpaid part of your Principal Balance". Es la unica
  * parte del coste sobre la que se puede actuar sin refinanciar.
  */
 export function interestDrift(
@@ -399,6 +495,14 @@ export interface AlertInput {
   monthsRemaining: number;
   normalMilesPerYear?: number;
   latestValuationDate?: Date;
+  /**
+   * Cancelacion anticipada segun el banco, si se conoce.
+   *
+   * Es la cifra correcta para "debes mas de lo que vale": el saldo de capital
+   * no basta para liberar el titulo, hay que anadir los intereses devengados
+   * desde el ultimo pago.
+   */
+  payoffAmount?: number | null;
 }
 
 function money(n: number): string {
@@ -415,13 +519,17 @@ export function alerts(input: AlertInput): VehicleAlert[] {
   const out: VehicleAlert[] = [];
   const normal = input.normalMilesPerYear ?? 13500;
 
-  // Debes mas de lo que vale.
-  const underwater = input.loanStatus.scheduledBalance - input.market.value;
+  // Debes mas de lo que vale. Se mide contra la cancelacion real cuando se
+  // conoce: el saldo de capital no libera el titulo por si solo.
+  const usePayoff = input.payoffAmount != null && input.payoffAmount > 0;
+  const owed = usePayoff ? (input.payoffAmount as number) : input.loanStatus.actualBalance;
+  const owedLabel = usePayoff ? 'Cancelacion' : 'Saldo';
+  const underwater = owed - input.market.value;
   if (underwater > 0) {
     out.push({
       level: 'danger',
       title: 'Debes mas de lo que vale',
-      detail: `Saldo ${money(input.loanStatus.scheduledBalance)} frente a un valor de mercado de ${money(input.market.value)}. Diferencia de ${money(underwater)}. Si lo vendieras hoy tendrias que poner esa cantidad de tu bolsillo para cancelar el prestamo.`,
+      detail: `${owedLabel} ${money(owed)} frente a un valor de mercado de ${money(input.market.value)}. Diferencia de ${money(underwater)}. Si lo vendieras hoy tendrias que poner esa cantidad de tu bolsillo para cancelar el prestamo.`,
     });
   }
 
