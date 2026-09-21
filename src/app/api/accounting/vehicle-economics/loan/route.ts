@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveAssetAccess } from '@/lib/company-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,13 +44,16 @@ export async function PUT(request: NextRequest) {
     // cuota no salga disparatada por un malentendido de unidades.
     const normalizedApr = Number(apr) > 1 ? Number(apr) / 100 : Number(apr)
 
-    const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { companyId: true } })
-    if (!asset) {
-      return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
+    const access = await resolveAssetAccess(session.user.id, assetId)
+    if (access.status !== 200) {
+      return NextResponse.json(
+        { error: access.status === 404 ? 'Activo no encontrado' : 'No tienes acceso a este activo' },
+        { status: access.status }
+      )
     }
 
     const data = {
-      companyId: asset.companyId,
+      companyId: access.companyId,
       lender: lender || null,
       amountFinanced: Number(amountFinanced),
       downPayment: Number(downPayment) || 0,
