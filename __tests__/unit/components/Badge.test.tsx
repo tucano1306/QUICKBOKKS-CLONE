@@ -5,6 +5,14 @@
  */
 
 import React from 'react'
+
+/*
+ * Estas clases son las del diseno propio del proyecto (paleta QuickBooks:
+ * #2CA01C verde, #0077C5 azul), no las de shadcn de fabrica. Los tests se
+ * habian quedado anclados a las originales -- bg-primary, bg-secondary,
+ * rounded-md -- y llevaban 19 casos en rojo tapando regresiones reales.
+ * Si cambia el diseno, estas aserciones se actualizan a proposito.
+ */
 import { render, screen } from '@testing-library/react'
 import { Badge } from '@/components/ui/badge'
 
@@ -31,25 +39,25 @@ describe('Badge Component', () => {
     it('should apply default variant styles', () => {
       render(<Badge data-testid="badge">Default</Badge>)
       const badge = screen.getByTestId('badge')
-      expect(badge).toHaveClass('bg-primary')
+      expect(badge).toHaveClass('bg-[#2CA01C]', 'text-white')
     })
 
     it('should apply secondary variant styles', () => {
       render(<Badge variant="secondary" data-testid="badge">Secondary</Badge>)
       const badge = screen.getByTestId('badge')
-      expect(badge).toHaveClass('bg-secondary')
+      expect(badge).toHaveClass('bg-gray-100', 'text-gray-700')
     })
 
     it('should apply destructive variant styles', () => {
       render(<Badge variant="destructive" data-testid="badge">Destructive</Badge>)
       const badge = screen.getByTestId('badge')
-      expect(badge).toHaveClass('bg-destructive')
+      expect(badge).toHaveClass('bg-red-100', 'text-red-800')
     })
 
     it('should apply outline variant styles', () => {
       render(<Badge variant="outline" data-testid="badge">Outline</Badge>)
       const badge = screen.getByTestId('badge')
-      expect(badge).toHaveClass('text-foreground')
+      expect(badge).toHaveClass('border-gray-300', 'text-gray-700')
     })
   })
 
@@ -57,7 +65,7 @@ describe('Badge Component', () => {
     it('should have base styles', () => {
       render(<Badge data-testid="badge">Badge</Badge>)
       const badge = screen.getByTestId('badge')
-      expect(badge).toHaveClass('inline-flex', 'items-center', 'rounded-md')
+      expect(badge).toHaveClass('inline-flex', 'items-center', 'rounded-full')
     })
 
     it('should merge custom className', () => {

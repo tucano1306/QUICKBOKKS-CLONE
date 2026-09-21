@@ -5,6 +5,14 @@
  */
 
 import React from 'react'
+
+/*
+ * Estas clases son las del diseno propio del proyecto (paleta QuickBooks:
+ * #2CA01C verde, #0077C5 azul), no las de shadcn de fabrica. Los tests se
+ * habian quedado anclados a las originales -- bg-primary, bg-secondary,
+ * rounded-md -- y llevaban 19 casos en rojo tapando regresiones reales.
+ * Si cambia el diseno, estas aserciones se actualizan a proposito.
+ */
 import { render, screen } from '@testing-library/react'
 import {
   Card,
@@ -25,7 +33,7 @@ describe('Card Component', () => {
     it('should apply base styles', () => {
       render(<Card data-testid="card">Content</Card>)
       const card = screen.getByTestId('card')
-      expect(card).toHaveClass('rounded-xl', 'border', 'bg-card')
+      expect(card).toHaveClass('rounded-xl', 'border', 'bg-white')
     })
 
     it('should merge custom className', () => {
@@ -50,7 +58,7 @@ describe('Card Component', () => {
 
     it('should apply header styles', () => {
       render(<CardHeader data-testid="header">Header</CardHeader>)
-      expect(screen.getByTestId('header')).toHaveClass('flex', 'flex-col', 'space-y-1.5', 'p-6')
+      expect(screen.getByTestId('header')).toHaveClass('flex', 'flex-col', 'space-y-1.5', 'p-4', 'sm:p-6')
     })
   })
 
@@ -62,7 +70,7 @@ describe('Card Component', () => {
 
     it('should apply title styles', () => {
       render(<CardTitle data-testid="title">Title</CardTitle>)
-      expect(screen.getByTestId('title')).toHaveClass('font-semibold', 'leading-none')
+      expect(screen.getByTestId('title')).toHaveClass('font-bold', 'leading-none', 'tracking-tight')
     })
   })
 
@@ -74,7 +82,7 @@ describe('Card Component', () => {
 
     it('should apply description styles', () => {
       render(<CardDescription data-testid="desc">Description</CardDescription>)
-      expect(screen.getByTestId('desc')).toHaveClass('text-sm', 'text-muted-foreground')
+      expect(screen.getByTestId('desc')).toHaveClass('text-sm', 'text-gray-500')
     })
   })
 
@@ -86,7 +94,7 @@ describe('Card Component', () => {
 
     it('should apply content styles', () => {
       render(<CardContent data-testid="content">Content</CardContent>)
-      expect(screen.getByTestId('content')).toHaveClass('p-6', 'pt-0')
+      expect(screen.getByTestId('content')).toHaveClass('p-4', 'sm:p-6', 'pt-0')
     })
   })
 
@@ -98,7 +106,7 @@ describe('Card Component', () => {
 
     it('should apply footer styles', () => {
       render(<CardFooter data-testid="footer">Footer</CardFooter>)
-      expect(screen.getByTestId('footer')).toHaveClass('flex', 'items-center', 'p-6', 'pt-0')
+      expect(screen.getByTestId('footer')).toHaveClass('flex', 'items-center', 'p-4', 'sm:p-6', 'pt-0')
     })
   })
 

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createTransactionWithJE, createExpenseWithJE } from '@/lib/accounting-service'
+import { findCategoryByName } from '@/lib/expense-category'
 
 export const dynamic = 'force-dynamic'
 
@@ -202,11 +203,10 @@ async function importExpenses(
   let imported = 0
   const errors: string[] = []
 
-  // Obtener o crear categoría por defecto
-  let defaultCategory = await prisma.expenseCategory.findFirst({
-    where: { companyId, name: 'General' }
-  })
-  
+  // Obtener o crear categoría por defecto. La busqueda era `name: 'General'`
+  // exacto, asi que con una "general" ya guardada creaba una segunda fila.
+  let defaultCategory = await findCategoryByName(companyId, 'General')
+
   if (!defaultCategory) {
     defaultCategory = await prisma.expenseCategory.create({
       data: { 
@@ -268,9 +268,12 @@ async function importExpenses(
       let categoryId = defaultCategory.id
 
       if (categoryName) {
-        const category = await prisma.expenseCategory.findFirst({
-          where: { companyId, name: { contains: categoryName, mode: 'insensitive' } }
-        })
+        // Era `contains`, que empareja por subcadena: una fila con categoria
+        // "Compras" enganchaba "Compras internet" o "Compras oficina", la que
+        // Prisma devolviera primero, y el gasto acababa archivado donde no era.
+        // findCategoryByName exige que coincida el nombre entero, ignorando
+        // mayusculas, acentos y espacios sobrantes.
+        const category = await findCategoryByName(companyId, categoryName)
         if (category) categoryId = category.id
       }
 

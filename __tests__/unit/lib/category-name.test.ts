@@ -92,3 +92,18 @@ describe('agrupacion del estado de resultados', () => {
     expect(Object.values(map)).toHaveLength(3) // internet, salarios, telefonia
   })
 })
+
+describe('preferredCategoryName - todo mayusculas', () => {
+  it('descarta el todo-mayusculas frente a una alternativa', () => {
+    // Sin esta regla ganaba "COMPRAS INTERNET": en ASCII las mayusculas
+    // ordenan antes que las minusculas, asi que el desempate alfabetico la
+    // elegia.
+    expect(preferredCategoryName('COMPRAS INTERNET', 'Compras internet')).toBe('Compras internet')
+    expect(preferredCategoryName('Compras internet', 'COMPRAS INTERNET')).toBe('Compras internet')
+    expect(preferredCategoryName('COMPRAS INTERNET', 'compras internet')).toBe('compras internet')
+  })
+
+  it('sigue siendo estable pese a la regla nueva', () => {
+    expect(preferredCategoryName('IVA', 'iva')).toBe(preferredCategoryName('iva', 'IVA'))
+  })
+})
