@@ -60,10 +60,10 @@ export default function CompanyHomePage() {
       featured: true
     },
     {
-      title: 'Contabilidad',
-      description: 'Plan de cuentas, asientos contables y conciliaciones bancarias',
+      title: 'Vehiculo detalles',
+      description: 'Valor en libros, valor de mercado y coste real de cada vehículo',
       icon: Calculator,
-      href: '/company/accounting/chart-of-accounts',
+      href: '/company/accounting/depreciation',
       color: 'green',
       gradient: 'from-green-500 to-emerald-600'
     },

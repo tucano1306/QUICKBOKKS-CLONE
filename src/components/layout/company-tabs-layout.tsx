@@ -318,7 +318,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
   const quickCreateItems = [
     { name: 'Invoice', href: '/company/invoicing/invoices/new', icon: FileText, color: 'text-blue-600' },
     { name: 'Expense', href: '/company/expenses/new', icon: Receipt, color: 'text-red-600' },
-    { name: 'Journal Entry', href: '/company/accounting/journal-entries/new', icon: Calculator, color: 'text-indigo-600' },
+    { name: 'Vehiculo', href: '/company/accounting/depreciation', icon: Calculator, color: 'text-indigo-600' },
   ]
 
   // Notifications data - Mensaje informativo (sin datos mock)

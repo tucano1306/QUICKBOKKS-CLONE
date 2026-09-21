@@ -361,12 +361,12 @@ export default function CompanyDashboardPage() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Button
-                onClick={() => router.push('/company/accounting/chart-of-accounts')}
+                onClick={() => router.push('/company/accounting/depreciation')}
                 variant="outline"
                 className="h-auto py-3 px-4 flex-col gap-2 bg-white hover:bg-green-50 hover:border-[#2CA01C] hover:shadow-md transition-all"
               >
                 <Calculator className="w-5 h-5 text-[#2CA01C]" />
-                <span className="text-xs font-semibold">Contabilidad</span>
+                <span className="text-xs font-semibold">Vehiculo</span>
               </Button>
               <Button
                 onClick={() => router.push('/company/reports/balance-sheet')}
