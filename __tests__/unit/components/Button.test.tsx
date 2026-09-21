@@ -5,6 +5,14 @@
  */
 
 import React from 'react'
+
+/*
+ * Estas clases son las del diseno propio del proyecto (paleta QuickBooks:
+ * #2CA01C verde, #0077C5 azul), no las de shadcn de fabrica. Los tests se
+ * habian quedado anclados a las originales -- bg-primary, bg-secondary,
+ * rounded-md -- y llevaban 19 casos en rojo tapando regresiones reales.
+ * Si cambia el diseno, estas aserciones se actualizan a proposito.
+ */
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Button } from '@/components/ui/button'
 
@@ -31,31 +39,31 @@ describe('Button Component', () => {
     it('should apply default variant styles', () => {
       render(<Button>Default</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('bg-primary')
+      expect(button).toHaveClass('bg-[#2CA01C]', 'text-white')
     })
 
     it('should apply destructive variant styles', () => {
       render(<Button variant="destructive">Delete</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('bg-destructive')
+      expect(button).toHaveClass('bg-red-500', 'text-white')
     })
 
     it('should apply outline variant styles', () => {
       render(<Button variant="outline">Outline</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('border')
+      expect(button).toHaveClass('border-2', 'border-gray-300')
     })
 
     it('should apply secondary variant styles', () => {
       render(<Button variant="secondary">Secondary</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('bg-secondary')
+      expect(button).toHaveClass('bg-gray-100', 'text-gray-900')
     })
 
     it('should apply ghost variant styles', () => {
       render(<Button variant="ghost">Ghost</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('hover:bg-accent')
+      expect(button).toHaveClass('hover:bg-gray-100')
     })
 
     it('should apply link variant styles', () => {
@@ -69,7 +77,7 @@ describe('Button Component', () => {
     it('should apply default size', () => {
       render(<Button>Default Size</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('h-9')
+      expect(button).toHaveClass('h-10')
     })
 
     it('should apply small size', () => {
@@ -81,13 +89,13 @@ describe('Button Component', () => {
     it('should apply large size', () => {
       render(<Button size="lg">Large</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('h-10')
+      expect(button).toHaveClass('h-12')
     })
 
     it('should apply icon size', () => {
       render(<Button size="icon">🔍</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('h-9', 'w-9')
+      expect(button).toHaveClass('h-10', 'w-10')
     })
   })
 
