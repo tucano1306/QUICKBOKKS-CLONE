@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveAssetAccess } from '@/lib/company-access'
 
 // GET /api/accounting/assets/[id] - Get a specific asset
 export async function GET(
@@ -11,10 +12,20 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
+      )
+    }
+
+    // El id viene de la URL: sin comprobar la empresa, cualquiera con cuenta
+    // podria leer, modificar o borrar el activo de otra.
+    const access = await resolveAssetAccess(session.user.id, params.id)
+    if (access.status !== 200) {
+      return NextResponse.json(
+        { error: access.status === 404 ? 'Activo no encontrado' : 'No tienes acceso a este activo' },
+        { status: access.status }
       )
     }
 
@@ -49,10 +60,20 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
+      )
+    }
+
+    // El id viene de la URL: sin comprobar la empresa, cualquiera con cuenta
+    // podria leer, modificar o borrar el activo de otra.
+    const access = await resolveAssetAccess(session.user.id, params.id)
+    if (access.status !== 200) {
+      return NextResponse.json(
+        { error: access.status === 404 ? 'Activo no encontrado' : 'No tienes acceso a este activo' },
+        { status: access.status }
       )
     }
 
@@ -119,10 +140,20 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
+      )
+    }
+
+    // El id viene de la URL: sin comprobar la empresa, cualquiera con cuenta
+    // podria leer, modificar o borrar el activo de otra.
+    const access = await resolveAssetAccess(session.user.id, params.id)
+    if (access.status !== 200) {
+      return NextResponse.json(
+        { error: access.status === 404 ? 'Activo no encontrado' : 'No tienes acceso a este activo' },
+        { status: access.status }
       )
     }
 

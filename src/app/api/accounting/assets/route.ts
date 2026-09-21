@@ -1,5 +1,6 @@
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { userCanAccessCompany } from '@/lib/company-access';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -17,10 +18,21 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const companyId = searchParams.get('companyId');
 
+    // Sin companyId esto devolvia los activos de TODAS las empresas a cualquiera
+    // con sesion. Ahora es obligatorio y hay que pertenecer a la empresa.
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere companyId' }, { status: 400 });
+    }
+    if (!(await userCanAccessCompany(session.user.id, companyId))) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 });
+    }
+
     const where: any = {};
     if (status) where.status = status;
     if (category) where.category = category;
-    if (companyId) where.OR = [{ companyId }, { companyId: null }];
+    // Un activo sin empresa es compartido por diseno: el esquema declara el
+    // campo opcional y esas filas se consideran visibles para todos.
+    where.OR = [{ companyId }, { companyId: null }];
 
     const assets = await prisma.asset.findMany({
       where,
@@ -44,7 +56,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -67,7 +79,17 @@ export async function POST(request: NextRequest) {
       estimatedLifetimeMiles,
       yearModel,
       vin,
+      companyId,
     } = body;
+
+    // Sin esto el activo nacia sin empresa, y un activo sin empresa lo ve todo
+    // el mundo. Se exige y se comprueba la pertenencia.
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere companyId' }, { status: 400 });
+    }
+    if (!(await userCanAccessCompany(session.user.id, companyId))) {
+      return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 });
+    }
 
     // Generar número de activo
     const lastAsset = await prisma.asset.findFirst({
@@ -97,6 +119,7 @@ export async function POST(request: NextRequest) {
         accountId,
         locationId,
         costCenterId,
+        companyId,
         bookValue,
         // Campos de millas
         currentMileage: currentMileage || null,
