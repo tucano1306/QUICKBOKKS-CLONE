@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { canonicalTransactionCategory } from '@/lib/transaction-category'
 import { deleteTransactionWithReversal } from '@/lib/accounting-service'
 
 /**
@@ -202,11 +203,18 @@ export async function PUT(
     const parsedDate = parseTransactionDate(date);
     const newAmount = Number.parseFloat(amount);
 
+    // Editar tambien creaba variantes: se comprobaba `category.trim()` pero se
+    // guardaba el valor sin recortar y sin mirar como estaba escrita ya.
+    const canonicalCategory = await canonicalTransactionCategory(
+      existingTransaction.companyId,
+      category
+    )
+
     const updatedTransaction = await prisma.transaction.update({
       where: { id: transactionId },
       data: {
         type: type || existingTransaction.type,
-        category,
+        category: canonicalCategory,
         description: description || null,
         amount: newAmount,
         date: parsedDate,

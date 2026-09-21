@@ -1,5 +1,6 @@
 
 import { authOptions } from '@/lib/auth'
+import { canonicalTransactionCategory } from '@/lib/transaction-category'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
@@ -73,10 +74,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No tienes acceso a esta empresa' }, { status: 403 })
     }
 
+    // `Transaction.category` es texto libre y era la fuente real de las
+    // categorias repetidas en el estado de resultados: se guardaba tal cual, asi
+    // que "compras internet" convivia con "Compras internet". Se reutiliza la
+    // forma que ya exista en la empresa en vez de crear otra variante.
+    const canonicalCategory = await canonicalTransactionCategory(companyId, category)
+
     const transaction = await prisma.transaction.create({
       data: {
         type,
-        category,
+        category: canonicalCategory,
         amount: Number(amount),
         date: date ? new Date(date) : new Date(),
         description,
