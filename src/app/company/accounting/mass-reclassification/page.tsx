@@ -132,9 +132,15 @@ export default function MassReclassificationPage() {
         const data = await response.json()
         setPreviewResult(data)
         setShowPreview(true)
+      } else {
+        // Sin esta rama, un fallo del servidor dejaba la pantalla igual que si
+        // no hubieras pulsado nada.
+        const data = await response.json().catch(() => null)
+        setMessage({ type: 'error', text: data?.error || 'No se pudo generar la vista previa' })
       }
     } catch (error) {
       console.error('Error previewing:', error)
+      setMessage({ type: 'error', text: 'No se pudo generar la vista previa' })
     } finally {
       setIsProcessing(false)
     }
@@ -164,9 +170,16 @@ export default function MassReclassificationPage() {
         await fetchData()
         setMessage({ type: 'success', text: `${selectedTransactions.length} transacciones reclasificadas` })
         setTimeout(() => setMessage(null), 3000)
+      } else {
+        // Este era el fallo mas engañoso: el servidor devolvia 500 y aqui no
+        // habia rama else, asi que no se reclasificaba nada y la pantalla no
+        // decia absolutamente nada.
+        const data = await response.json().catch(() => null)
+        setMessage({ type: 'error', text: data?.error || 'No se pudo completar la reclasificación' })
       }
     } catch (error) {
       console.error('Error executing reclassification:', error)
+      setMessage({ type: 'error', text: 'No se pudo completar la reclasificación' })
     } finally {
       setIsProcessing(false)
     }
