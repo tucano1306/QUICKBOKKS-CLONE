@@ -152,6 +152,8 @@ export interface CapitalImprovement {
   cost: number;
   /** Millas de vida util que anade la mejora. Un motor de reemplazo las anade. */
   addsLifetimeMiles: number;
+  /** Odometro cuando se hizo la mejora. Sin esto no se puede depreciar en prospectivo. */
+  mileageAtImprovement: number;
 }
 
 export interface DepreciationInput {
@@ -178,37 +180,74 @@ export interface DepreciationResult {
 }
 
 /**
- * Depreciacion por millas recorridas, con mejoras capitalizadas.
+ * Depreciacion por millas recorridas, con mejoras capitalizadas en PROSPECTIVO.
  *
  * Una mejora de capital -- cambiar el motor, no un cambio de aceite -- no es
- * gasto del ejercicio: se suma al valor del activo y alarga su vida util. Si no
- * se trata asi, el vehiculo llega a valor residual mientras todavia se paga el
- * prestamo, que es justo lo que pasaba aqui: a 40.000 millas al ano las 200.000
- * de vida util se agotaban ano y medio antes de la ultima cuota.
+ * gasto del ejercicio. Bajo las Tangible Property Regulations del IRS
+ * (§1.263(a)-3) sustituir un componente mayor de la unidad de propiedad es una
+ * "restoration" y debe capitalizarse; el safe harbor de mantenimiento rutinario
+ * no aplica porque no se espera repetir la operacion dentro de la vida de clase
+ * del vehiculo.
+ *
+ * El punto delicado es COMO se deprecia despues. No se recalcula desde el
+ * origen con la vida nueva: eso reduciria retroactivamente la depreciacion ya
+ * registrada en ejercicios cerrados. El tratamiento correcto es prospectivo:
+ *
+ *   1. depreciacion acumulada hasta la fecha de la mejora, con los parametros
+ *      originales;
+ *   2. valor neto en libros en esa fecha + coste de la mejora = nueva base;
+ *   3. esa base, menos el residual, se reparte sobre la vida RESTANTE.
+ *
+ * Asi la depreciacion pasada queda intacta y solo cambia la futura, que es lo
+ * que revisaria un auditor.
  */
 export function depreciation(input: DepreciationInput): DepreciationResult {
-  const improvements = input.improvements ?? [];
+  const improvements = [...(input.improvements ?? [])].sort(
+    (a, b) => a.mileageAtImprovement - b.mileageAtImprovement
+  );
   const improvementsCapitalized = improvements.reduce((s, i) => s + i.cost, 0);
   const addedMiles = improvements.reduce((s, i) => s + i.addsLifetimeMiles, 0);
 
-  const depreciableBase = input.purchasePrice + improvementsCapitalized;
   const effectiveLifetimeMiles = input.lifetimeMiles + addedMiles;
   const milesDriven = Math.max(0, input.currentMileage - input.purchaseMileage);
 
-  const depreciable = Math.max(0, depreciableBase - input.salvageValue);
-  const perMile = effectiveLifetimeMiles > 0 ? depreciable / effectiveLifetimeMiles : 0;
+  // Estado que se va arrastrando mejora a mejora.
+  let base = input.purchasePrice; // valor bruto acumulado del activo
+  let bookValue = input.purchasePrice;
+  let odometer = input.purchaseMileage;
+  let lifetimeEnd = input.purchaseMileage + input.lifetimeMiles;
+  let accumulated = 0;
 
-  const accumulated = Math.min(depreciable, milesDriven * perMile);
-  const bookValue = depreciableBase - accumulated;
+  const depreciateTo = (targetMileage: number) => {
+    const remainingMiles = Math.max(0, lifetimeEnd - odometer);
+    const depreciable = Math.max(0, bookValue - input.salvageValue);
+    const rate = remainingMiles > 0 ? depreciable / remainingMiles : 0;
+    const miles = Math.max(0, Math.min(targetMileage, lifetimeEnd) - odometer);
+    const charge = Math.min(depreciable, miles * rate);
+    accumulated += charge;
+    bookValue -= charge;
+    odometer = Math.max(odometer, targetMileage);
+  };
+
+  for (const imp of improvements) {
+    depreciateTo(imp.mileageAtImprovement);
+    base += imp.cost;
+    bookValue += imp.cost;
+    lifetimeEnd += imp.addsLifetimeMiles;
+  }
+  depreciateTo(input.currentMileage);
+
+  const remainingMiles = Math.max(0, lifetimeEnd - odometer);
+  const depreciableNow = Math.max(0, bookValue - input.salvageValue);
 
   return {
-    depreciableBase,
+    depreciableBase: base,
     effectiveLifetimeMiles,
     milesDriven,
     percentUsed: effectiveLifetimeMiles > 0 ? (milesDriven / effectiveLifetimeMiles) * 100 : 0,
     accumulated,
     bookValue,
-    perMile,
+    perMile: remainingMiles > 0 ? depreciableNow / remainingMiles : 0,
     improvementsCapitalized,
   };
 }

@@ -31,7 +31,11 @@ const MOTOR: CapitalImprovement = {
   label: 'Motor 5.3L de reemplazo (15K millas, garantia 6 anos)',
   date: new Date('2026-07-30'),
   cost: 4330,
-  addsLifetimeMiles: 120000,
+  // 60.000 y no mas: el motor es nuevo pero transmision, suspension y
+  // carroceria siguen con 138K millas. La vida del activo la marca el sistema
+  // mas gastado, no el mas nuevo.
+  addsLifetimeMiles: 60000,
+  mileageAtImprovement: 137816,
 }
 
 describe('monthlyPayment', () => {
@@ -145,7 +149,7 @@ describe('depreciation', () => {
     // Es el motivo de capitalizarlo: al 69% de vida util y con el prestamo vivo
     // hasta 2029, el activo llegaba a residual antes que la ultima cuota.
     expect(depreciation(base).percentUsed).toBeGreaterThan(65)
-    expect(depreciation({ ...base, improvements: [MOTOR] }).percentUsed).toBeLessThan(45)
+    expect(depreciation({ ...base, improvements: [MOTOR] }).percentUsed).toBeLessThan(57)
   })
 
   it('nunca deprecia por debajo del valor residual', () => {
@@ -294,7 +298,11 @@ describe('alerts', () => {
     expect(avisos.some((a) => a.title.includes('No hay ninguna tasacion'))).toBe(true)
   })
 
-  it('el motor capitalizado calla el aviso de vida util', () => {
+  it('con +60.000 millas el motor NO llega a cubrir el prestamo', () => {
+    // Hallazgo, no capricho: 260.000 millas de vida total se agotan hacia
+    // agosto de 2029 y la ultima cuota es de septiembre. Se queda ~4 meses
+    // corto, asi que el aviso sigue saliendo. La cifra se elige por lo que
+    // aguanta el vehiculo, no por acallar la alerta.
     const conMotor = depreciation({
       purchasePrice: SUBURBAN.purchasePrice,
       salvageValue: SUBURBAN.salvageValue,
@@ -302,6 +310,25 @@ describe('alerts', () => {
       currentMileage: SUBURBAN.currentMileage,
       lifetimeMiles: SUBURBAN.lifetimeMiles,
       improvements: [MOTOR],
+    })
+    const despues = alerts({
+      depreciation: conMotor,
+      market: mkt,
+      loanStatus: st,
+      milesPerYear: 40839,
+      monthsRemaining: 36,
+    })
+    expect(despues.some((a) => a.title.includes('vida util se agota'))).toBe(true)
+  })
+
+  it('una extension suficiente si calla el aviso', () => {
+    const conMotor = depreciation({
+      purchasePrice: SUBURBAN.purchasePrice,
+      salvageValue: SUBURBAN.salvageValue,
+      purchaseMileage: SUBURBAN.purchaseMileage,
+      currentMileage: SUBURBAN.currentMileage,
+      lifetimeMiles: SUBURBAN.lifetimeMiles,
+      improvements: [{ ...MOTOR, addsLifetimeMiles: 100000 }],
     })
     const despues = alerts({
       depreciation: conMotor,
