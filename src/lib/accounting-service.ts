@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { canonicalTransactionCategory } from '@/lib/transaction-category';
 
 // Códigos de cuentas estándar
 const ACCOUNT_CODES = {
@@ -354,14 +355,22 @@ export async function createTransactionWithJE(params: CreateTransactionParams) {
   const { companyId, type, amount, description, category, date, notes, userId } = params;
   const txDate = date || new Date();
   const txDescription = description || category || (type === 'INCOME' ? 'Ingreso' : 'Gasto');
-  
+
+  // `Transaction.category` es texto libre, y esta es la via oficial para crear
+  // transacciones, asi que sin normalizar aqui se seguian sembrando variantes
+  // ("compras internet" junto a "Compras internet") por mucho que se arreglaran
+  // las rutas de la API. Se resuelve ANTES de abrir el $transaction: la consulta
+  // es de lectura y no tiene por que ocupar la transaccion.
+  const rawCategory = category || (type === 'INCOME' ? 'Ingreso General' : 'Gasto General');
+  const txCategory = await canonicalTransactionCategory(companyId, rawCategory);
+
   return prisma.$transaction(async (tx) => {
     // 1. Crear la transacción
     const transaction = await tx.transaction.create({
       data: {
         companyId,
         type,
-        category: category || (type === 'INCOME' ? 'Ingreso General' : 'Gasto General'),
+        category: txCategory,
         description: txDescription,
         amount,
         date: txDate,
