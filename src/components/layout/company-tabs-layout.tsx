@@ -68,17 +68,20 @@ const tabSections: TabSection[] = [
   },
   {
     id: 'accounting',
-    name: 'Contabilidad',
+    // La seccion se llamaba "Contabilidad" y agrupaba siete herramientas
+    // contables generales. Se reduce a la depreciacion de vehiculos, que es lo
+    // que se usa, y pasa a llamarse por lo que de verdad contiene.
+    //
+    // Las paginas de las entradas retiradas -- chart-of-accounts,
+    // transactions, mass-reclassification, reconciliation, journal-entries y
+    // bank-sync -- NO se han borrado: siguen existiendo y son accesibles por
+    // URL directa. Solo se han quitado de la navegacion, asi que devolver
+    // cualquiera de ellas es anadir de nuevo su linea aqui.
+    name: 'Vehiculo detalles',
     icon: Calculator,
     color: 'green',
     submenus: [
-      { name: 'Plan de Cuentas', href: '/company/accounting/chart-of-accounts', description: 'Catálogo de cuentas contables' },
-      { name: 'Transacciones', href: '/company/accounting/transactions', description: 'Importar y clasificar transacciones' },
-      { name: 'Reclasificación Masiva', href: '/company/accounting/mass-reclassification', description: 'Cambio de cuentas en lote' },
-      { name: 'Conciliación Bancaria', href: '/company/accounting/reconciliation', description: 'Cuadrar cuentas bancarias' },
-      { name: 'Asientos Contables', href: '/company/accounting/journal-entries', description: 'Registros manuales' },
-      { name: '🚗 Depreciación de Activos', href: '/company/accounting/depreciation', description: 'Calcular depreciación de vehículos y activos' },
-      { name: 'Sincronización Bancaria', href: '/company/accounting/bank-sync', description: 'Conectar bancos y tarjetas' }
+      { name: '🚗 Depreciación de Activos', href: '/company/accounting/depreciation', description: 'Calcular depreciación de vehículos y activos' }
     ]
   },
   {
@@ -895,7 +898,13 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-[#0D2942]">{activeSection.name}</h3>
-                    <p className="text-xs text-gray-500">{activeSection.submenus.length} opciones disponibles</p>
+                    {/* Singular aparte: al quedar secciones de una sola entrada
+                        el texto decia "1 opciones disponibles". */}
+                    <p className="text-xs text-gray-500">
+                      {activeSection.submenus.length === 1
+                        ? '1 opción disponible'
+                        : `${activeSection.submenus.length} opciones disponibles`}
+                    </p>
                   </div>
                 </div>
                 {/* Breadcrumb actual */}
