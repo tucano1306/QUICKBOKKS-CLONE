@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolveAssetAccess } from '@/lib/company-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,15 +35,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'El coste no puede ser negativo' }, { status: 400 })
     }
 
-    const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { companyId: true } })
-    if (!asset) {
-      return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
+    const access = await resolveAssetAccess(session.user.id, assetId)
+    if (access.status !== 200) {
+      return NextResponse.json(
+        { error: access.status === 404 ? 'Activo no encontrado' : 'No tienes acceso a este activo' },
+        { status: access.status }
+      )
     }
 
     const improvement = await prisma.assetImprovement.create({
       data: {
         assetId,
-        companyId: asset.companyId,
+        companyId: access.companyId,
         label: String(label).trim(),
         date: date ? new Date(date) : new Date(),
         cost: Number(cost),
@@ -68,6 +72,19 @@ export async function DELETE(request: NextRequest) {
     const id = new URL(request.url).searchParams.get('id')
     if (!id) {
       return NextResponse.json({ error: 'Se requiere el id de la mejora' }, { status: 400 })
+    }
+
+    // Comprobar de quien es la fila antes de borrarla: el id viene de la URL.
+    const row = await prisma.assetImprovement.findUnique({ where: { id }, select: { assetId: true } })
+    if (!row) {
+      return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    }
+    const access = await resolveAssetAccess(session.user.id, row.assetId)
+    if (access.status !== 200) {
+      return NextResponse.json(
+        { error: access.status === 404 ? 'No encontrado' : 'No tienes acceso a este activo' },
+        { status: access.status }
+      )
     }
 
     await prisma.assetImprovement.delete({ where: { id } })

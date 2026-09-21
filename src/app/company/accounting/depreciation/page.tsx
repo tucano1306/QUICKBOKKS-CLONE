@@ -23,12 +23,20 @@ import {
 
 type Modal = 'valuation' | 'improvement' | 'loan' | 'mileage' | null
 
+/** Otra empresa del usuario que si tiene vehiculos, para no acabar duplicandolos. */
+interface OtherCompany {
+  id: string
+  name: string
+  vehicleCount: number
+}
+
 export default function VehicleDetailsPage() {
   const { status } = useSession()
   const router = useRouter()
-  const { activeCompany } = useCompany()
+  const { activeCompany, companies, setActiveCompany } = useCompany()
 
   const [vehicles, setVehicles] = useState<VehicleEconomicsData[]>([])
+  const [elsewhere, setElsewhere] = useState<OtherCompany[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<Modal>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -42,6 +50,7 @@ export default function VehicleDetailsPage() {
       if (res.ok) {
         const data = await res.json()
         setVehicles(data.vehicles || [])
+        setElsewhere(data.otherCompanies || [])
       } else {
         const err = await res.json().catch(() => null)
         setMessage({ type: 'error', text: err?.error || 'No se pudieron cargar los vehículos' })
@@ -124,12 +133,45 @@ export default function VehicleDetailsPage() {
             <p className="text-gray-500">Calculando…</p>
           </div>
         ) : vehicles.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-12 text-center">
+          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center sm:p-12">
             <Car className="mx-auto h-10 w-10 text-gray-400" />
-            <p className="mt-3 font-semibold text-[#0D2942]">No hay vehículos registrados</p>
-            <p className="mt-1 text-sm text-gray-600">
-              Los vehículos se dan de alta como activos de categoría VEHICLE.
+            <p className="mt-3 font-semibold text-[#0D2942]">
+              {activeCompany?.name
+                ? `${activeCompany.name} no tiene vehículos registrados`
+                : 'No hay vehículos registrados'}
             </p>
+
+            {elsewhere.length > 0 ? (
+              <>
+                <p className="mx-auto mt-2 max-w-md text-sm text-gray-600">
+                  Pero sí los tienes en{' '}
+                  {elsewhere.length === 1 ? 'otra empresa' : 'otras empresas'}. Cambia de empresa
+                  para verlos — si lo das de alta aquí acabarás con el mismo vehículo duplicado.
+                </p>
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  {elsewhere.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        const target = companies.find((x) => x.id === c.id)
+                        if (target) setActiveCompany(target)
+                      }}
+                      className="rounded-lg bg-[#2CA01C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#248016]"
+                    >
+                      Ver en {c.name}
+                      <span className="ml-2 rounded-full bg-white/25 px-2 py-0.5 text-xs">
+                        {c.vehicleCount}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-gray-600">
+                Los vehículos se dan de alta como activos de categoría VEHICLE.
+              </p>
+            )}
           </div>
         ) : (
           vehicles.map((v) => (
