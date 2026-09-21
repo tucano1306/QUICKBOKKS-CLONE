@@ -51,6 +51,8 @@ export interface VehicleEconomicsData {
     paymentVariance: null | { contract: number; scheduled: number; perMonth: number; overTerm: number; impliedApr: number }
     monthsRemaining: number; monthlyPayment: number; totalOfPayments: number
     actualBalance: number; balanceDrift: number | null
+    interestNow: { daily: number; monthly: number; monthly30: number; monthly31: number
+      interestPortion: number; principalPortion: number; interestPct: number; averageMonthly: number }
     financeCharge: number; paymentsMade: number; scheduledBalance: number
     interestPaid: number; interestRemaining: number; remainingOutlay: number
     drift: null | { scheduled: number; actual: number; drift: number; driftPct: number; projectedExtra: number }
@@ -253,6 +255,59 @@ export function VehicleEconomicsCard({
             <Stat label="Interés total" value={money(loan.financeCharge)} note={`APR ${(loan.apr * 100).toFixed(2)}%`} />
             <Stat label="Interés ya pagado" value={money(loan.interestPaid)} />
             <Stat label="Interés pendiente" value={money(loan.interestRemaining)} tone="good" />
+          </div>
+
+          {/* Lo que cuesta AHORA. Las tres cifras de arriba son del plazo entero
+              y no dicen cuanto te esta costando este mes. */}
+          <div className="mt-5 rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm font-semibold text-[#0D2942]">Lo que te cuesta ahora mismo</p>
+
+            <div className="mt-3 grid gap-4 sm:grid-cols-3">
+              <Stat
+                label="Interés este mes"
+                value={money(loan.interestNow.monthly)}
+                note={`media del plazo: ${money(loan.interestNow.averageMonthly)}`}
+              />
+              <Stat
+                label="Cada día que pasa"
+                value={money(loan.interestNow.daily)}
+                note={`mes de 30: ${money(loan.interestNow.monthly30)} · de 31: ${money(loan.interestNow.monthly31)}`}
+              />
+              <Stat
+                label="De tu cuota, a interés"
+                value={`${loan.interestNow.interestPct.toFixed(1)}%`}
+                note={`${money(loan.interestNow.interestPortion)} de ${money(loan.monthlyPayment)}`}
+              />
+            </div>
+
+            {/* La barra hace visible de un vistazo cuanto de la cuota se evapora */}
+            <div className="mt-4">
+              <div className="flex h-2.5 overflow-hidden rounded-full bg-gray-100">
+                <div
+                  className="bg-amber-500"
+                  style={{ width: `${Math.min(100, loan.interestNow.interestPct)}%` }}
+                />
+                <div className="flex-1 bg-[#2CA01C]" />
+              </div>
+              <div className="mt-2 flex justify-between text-xs text-gray-600">
+                <span>
+                  <span className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />
+                  Interés {money(loan.interestNow.interestPortion)}
+                </span>
+                <span>
+                  <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#2CA01C]" />
+                  Resto de la cuota {money(loan.interestNow.principalPortion)}
+                </span>
+              </div>
+            </div>
+
+            <p className="mt-3 text-xs text-gray-500">
+              El interés cae a medida que baja el saldo, así que hoy pagas{' '}
+              {loan.interestNow.monthly < loan.interestNow.averageMonthly ? 'menos' : 'más'} que la
+              media del plazo. Tu contrato lo calcula <em>a diario</em> (cláusula 1.a): un mes de 31
+              días cuesta {money(loan.interestNow.monthly31 - loan.interestNow.monthly30)} más que
+              uno de 30.
+            </p>
           </div>
 
           {/* Debes mas capital del que el cuadro predijo: el interes diario se lo comio */}
