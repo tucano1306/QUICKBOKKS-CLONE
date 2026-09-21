@@ -863,6 +863,13 @@ model AssetImprovement {
   /// Millas de vida util que anade. Es una estimacion tecnica que conviene
   /// validar con el contador: es el parametro que mas mueve el valor en libros.
   addsLifetimeMiles Int      @default(0)
+  /// Odometro del vehiculo el dia de la mejora. Sin este dato hay que asumir el
+  /// actual, y entonces la depreciacion se recalcula mal en cuanto el odometro
+  /// avanza: la mejora "viaja" hacia adelante y no deprecia nunca.
+  mileageAtImprovement Int?
+  /// Millas propias de la pieza instalada, si es de segunda mano. Un motor de
+  /// reemplazo con 15.000 millas no es un motor nuevo.
+  componentMiles    Int?
   notes             String?
   createdAt         DateTime @default(now())
   companyId         String?
@@ -889,8 +896,17 @@ model AssetLoan {
   termMonths          Int
   firstPaymentDate    DateTime?
   maturityDate        DateTime?
+  /// Cuota real del contrato. Manda sobre la que sale de la formula: el banco
+  /// puede cobrar comisiones mensuales o redondear, y esa diferencia arrastra
+  /// todo el cuadro de amortizacion.
+  contractPayment     Float?
   /// Saldo de capital segun el ultimo estado de cuenta.
   currentBalance      Float?
+  /// Cancelacion anticipada: capital mas intereses devengados desde el ultimo
+  /// pago. Es lo que de verdad hay que entregar para liberar el titulo, y
+  /// siempre es mayor que `currentBalance`.
+  payoffAmount        Float?
+  payoffDate          DateTime?
   paymentsRemaining   Int?
   /// Interes real de los ultimos 12 meses segun el banco. Comparado con el
   /// cuadro teorico delata los pagos tardios: estos prestamos llevan interes

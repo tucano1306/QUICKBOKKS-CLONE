@@ -28,14 +28,72 @@ export interface LoanTerms {
   apr: number;
   /** Plazo en meses. */
   termMonths: number;
+  /**
+   * Cuota que figura en el contrato, si se conoce.
+   *
+   * Manda sobre la que sale de la formula. La diferencia entre ambas no es
+   * ruido de redondeo: delata comisiones mensuales o cargos incorporados que
+   * no estan en el APR, y arrastra el cuadro entero -- total pagado, coste
+   * financiero y comparacion con el interes que reporta el banco.
+   */
+  contractPayment?: number | null;
 }
 
-/** Cuota mensual de un prestamo frances (amortizacion constante). */
-export function monthlyPayment({ amountFinanced, apr, termMonths }: LoanTerms): number {
+/**
+ * Cuota mensual: la del contrato si se conoce, si no la del prestamo frances.
+ */
+export function monthlyPayment(terms: LoanTerms): number {
+  if (terms.contractPayment != null && terms.contractPayment > 0) {
+    return terms.contractPayment;
+  }
+  return scheduledPayment(terms);
+}
+
+/** Cuota teorica pura, la que da la formula de amortizacion constante. */
+export function scheduledPayment({ amountFinanced, apr, termMonths }: LoanTerms): number {
   if (amountFinanced <= 0 || termMonths <= 0) return 0;
   const r = apr / 12;
   if (r === 0) return amountFinanced / termMonths;
   return (amountFinanced * r) / (1 - Math.pow(1 + r, -termMonths));
+}
+
+/**
+ * Diferencia entre la cuota real y la teorica.
+ *
+ * Un desvio de importe redondo (4,00 al mes) apunta a una comision fija, no a
+ * un APR distinto: un tipo diferente daria una cifra con decimales sueltos.
+ */
+export interface PaymentVariance {
+  contract: number;
+  scheduled: number;
+  perMonth: number;
+  overTerm: number;
+  /** APR que haria falta para producir la cuota real sin comisiones. */
+  impliedApr: number;
+}
+
+export function paymentVariance(terms: LoanTerms): PaymentVariance | null {
+  if (terms.contractPayment == null || terms.contractPayment <= 0) return null;
+  const scheduled = scheduledPayment(terms);
+  const contract = terms.contractPayment;
+
+  // APR implicito por biseccion: no hay forma cerrada de despejar el tipo.
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 200; i++) {
+    const mid = (lo + hi) / 2;
+    const pay = scheduledPayment({ ...terms, apr: mid, contractPayment: null });
+    if (pay < contract) lo = mid;
+    else hi = mid;
+  }
+
+  return {
+    contract,
+    scheduled,
+    perMonth: contract - scheduled,
+    overTerm: (contract - scheduled) * terms.termMonths,
+    impliedApr: (lo + hi) / 2,
+  };
 }
 
 export interface AmortizationRow {
@@ -399,6 +457,14 @@ export interface AlertInput {
   monthsRemaining: number;
   normalMilesPerYear?: number;
   latestValuationDate?: Date;
+  /**
+   * Cancelacion anticipada segun el banco, si se conoce.
+   *
+   * Es la cifra correcta para "debes mas de lo que vale": el saldo de capital
+   * no basta para liberar el titulo, hay que anadir los intereses devengados
+   * desde el ultimo pago.
+   */
+  payoffAmount?: number | null;
 }
 
 function money(n: number): string {
@@ -415,13 +481,17 @@ export function alerts(input: AlertInput): VehicleAlert[] {
   const out: VehicleAlert[] = [];
   const normal = input.normalMilesPerYear ?? 13500;
 
-  // Debes mas de lo que vale.
-  const underwater = input.loanStatus.scheduledBalance - input.market.value;
+  // Debes mas de lo que vale. Se mide contra la cancelacion real cuando se
+  // conoce: el saldo de capital no libera el titulo por si solo.
+  const usePayoff = input.payoffAmount != null && input.payoffAmount > 0;
+  const owed = usePayoff ? (input.payoffAmount as number) : input.loanStatus.scheduledBalance;
+  const owedLabel = usePayoff ? 'Cancelacion' : 'Saldo';
+  const underwater = owed - input.market.value;
   if (underwater > 0) {
     out.push({
       level: 'danger',
       title: 'Debes mas de lo que vale',
-      detail: `Saldo ${money(input.loanStatus.scheduledBalance)} frente a un valor de mercado de ${money(input.market.value)}. Diferencia de ${money(underwater)}. Si lo vendieras hoy tendrias que poner esa cantidad de tu bolsillo para cancelar el prestamo.`,
+      detail: `${owedLabel} ${money(owed)} frente a un valor de mercado de ${money(input.market.value)}. Diferencia de ${money(underwater)}. Si lo vendieras hoy tendrias que poner esa cantidad de tu bolsillo para cancelar el prestamo.`,
     });
   }
 

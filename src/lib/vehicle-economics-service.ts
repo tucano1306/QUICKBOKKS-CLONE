@@ -7,6 +7,7 @@ import {
   marketValue,
   monthlyPayment,
   ownership,
+  paymentVariance,
   type CapitalImprovement,
   type DepreciationResult,
   type InterestDrift,
@@ -14,6 +15,7 @@ import {
   type MarketValuation,
   type MarketValue,
   type OwnershipResult,
+  type PaymentVariance,
   type VehicleAlert,
 } from '@/lib/vehicle-economics';
 
@@ -52,7 +54,7 @@ export interface VehicleEconomics {
   depreciation: DepreciationResult;
   market: MarketValue;
   valuations: MarketValuation[];
-  improvements: CapitalImprovement[];
+  improvements: Array<CapitalImprovement & { componentMiles: number | null }>;
   loan: (LoanStatus & {
     lender: string | null;
     apr: number;
@@ -60,6 +62,10 @@ export interface VehicleEconomics {
     amountFinanced: number;
     downPayment: number;
     reportedBalance: number | null;
+    payoffAmount: number | null;
+    payoffDate: string | null;
+    accruedSincePayment: number | null;
+    paymentVariance: PaymentVariance | null;
     maturityDate: string | null;
     monthsRemaining: number;
     drift: InterestDrift | null;
@@ -94,9 +100,10 @@ export async function getVehicleEconomics(
     date: i.date,
     cost: i.cost,
     addsLifetimeMiles: i.addsLifetimeMiles,
-    // Sin odometro registrado se asume el actual: la mejora no habra
-    // depreciado nada todavia, que es lo prudente.
-    mileageAtImprovement: currentMileage,
+    // El odometro del dia de la mejora. Sin el hay que asumir el actual, y
+    // entonces la mejora "viaja" hacia adelante cada vez que se actualiza el
+    // odometro y no llega a depreciar nunca.
+    mileageAtImprovement: i.mileageAtImprovement ?? currentMileage,
   }));
 
   const dep = depreciation({
@@ -107,6 +114,12 @@ export async function getVehicleEconomics(
     lifetimeMiles,
     improvements,
   });
+
+  // Para la pantalla: lo mismo mas los datos informativos que el calculo ignora.
+  const improvementsView = improvements.map((imp, i) => ({
+    ...imp,
+    componentMiles: asset.improvements[i]?.componentMiles ?? null,
+  }));
 
   const valuations: MarketValuation[] = asset.valuations.map((v) => ({
     date: v.date,
@@ -137,7 +150,12 @@ export async function getVehicleEconomics(
 
   if (asset.loan) {
     const l = asset.loan;
-    const terms = { amountFinanced: l.amountFinanced, apr: l.apr, termMonths: l.termMonths };
+    const terms = {
+      amountFinanced: l.amountFinanced,
+      apr: l.apr,
+      termMonths: l.termMonths,
+      contractPayment: l.contractPayment,
+    };
     // Si el banco no da los pagos restantes se deducen de la fecha de
     // vencimiento; y si tampoco hay, del plazo desde la compra.
     monthsRemaining =
@@ -156,6 +174,15 @@ export async function getVehicleEconomics(
       amountFinanced: l.amountFinanced,
       downPayment: l.downPayment,
       reportedBalance: l.currentBalance,
+      payoffAmount: l.payoffAmount,
+      payoffDate: l.payoffDate ? l.payoffDate.toISOString() : null,
+      // Intereses devengados desde el ultimo pago: lo que separa el saldo de
+      // capital de lo que hay que entregar para liberar el titulo.
+      accruedSincePayment:
+        l.payoffAmount != null && l.currentBalance != null
+          ? l.payoffAmount - l.currentBalance
+          : null,
+      paymentVariance: paymentVariance(terms),
       maturityDate: l.maturityDate ? l.maturityDate.toISOString() : null,
       monthsRemaining,
       drift:
@@ -182,7 +209,8 @@ export async function getVehicleEconomics(
         milesPerYear,
         monthsRemaining,
         normalMilesPerYear: NORMAL_MILES_PER_YEAR,
-        latestValuationDate: valuations[0]?.date,
+        payoffAmount: asset.loan?.payoffAmount ?? null,
+      latestValuationDate: valuations[0]?.date,
       })
     : [];
 
@@ -210,7 +238,7 @@ export async function getVehicleEconomics(
     depreciation: dep,
     market: mkt,
     valuations,
-    improvements,
+    improvements: improvementsView,
     loan: loanBlock,
     ownership: own,
     alerts: vehicleAlerts,
