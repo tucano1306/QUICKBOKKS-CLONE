@@ -249,7 +249,7 @@ export default function VehicleDetailsPage() {
             { name: 'payoffDate', label: 'Fecha de esa cancelación', type: 'date' },
             { name: 'paymentsRemaining', label: 'Pagos restantes', type: 'number' },
             { name: 'interestPaidLast12', label: 'Interés pagado últimos 12 meses ($)', type: 'number',
-              hint: 'Comparado con el cuadro teórico delata los pagos tardíos: estos contratos llevan interés simple diario' },
+              hint: 'Comparado con el cuadro teórico delata los pagos tardíos: tu contrato calcula el interés a diario sobre el saldo (cláusula 1.a)' },
             { name: 'maturityDate', label: 'Fecha de vencimiento', type: 'date' },
           ]}
           onCancel={() => setModal(null)}

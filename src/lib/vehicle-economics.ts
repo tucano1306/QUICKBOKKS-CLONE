@@ -180,7 +180,10 @@ export interface InterestDrift {
  * Compara el interes real de los ultimos 12 meses con el del cuadro.
  *
  * Una desviacion sostenida al alza casi siempre significa que los pagos entran
- * tarde: con interes simple diario, cada dia de retraso corre. Es la unica
+ * tarde: con interes simple diario, cada dia de retraso corre. No es una
+ * suposicion sobre como suelen ser estos contratos: la clausula 1.a del
+ * contrato lo dice -- "we will figure the finance charge on a daily basis at
+ * the Base Rate on the unpaid part of your Principal Balance". Es la unica
  * parte del coste sobre la que se puede actuar sin refinanciar.
  */
 export function interestDrift(

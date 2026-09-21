@@ -275,8 +275,9 @@ export function VehicleEconomicsCard({
               </p>
               <p className="mt-1 text-sm text-amber-800">
                 El banco reporta {money(loan.drift.actual)} en los últimos 12 meses; el cuadro de
-                amortización decía {money(loan.drift.scheduled)}. Estos contratos llevan interés
-                simple diario, así que cada día de retraso en el pago corre. Al ritmo actual serían{' '}
+                amortización decía {money(loan.drift.scheduled)}. Tu contrato calcula el interés{' '}
+                <em>a diario</em> sobre el saldo (cláusula 1.a), así que cada día de retraso corre — y
+                el banco aplica cada pago en el orden que elige (cláusula 1.b). Al ritmo actual serían{' '}
                 <strong>{money(loan.drift.projectedExtra)}</strong> de más en lo que queda de préstamo.
               </p>
             </div>
