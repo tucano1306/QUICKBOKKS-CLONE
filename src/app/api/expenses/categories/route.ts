@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { cleanCategoryName } from '@/lib/category-name'
+import { findCategoryByName } from '@/lib/expense-category'
 
 // Revalidar cada 2 minutos - las categorías cambian poco frecuentemente
 export const revalidate = 120
@@ -70,9 +72,30 @@ export async function POST(request: Request) {
       )
     }
 
+    // Causa raiz de las categorias duplicadas en los reportes: aqui se creaba
+    // con el `name` tal cual, sin comprobar si ya existia. Como
+    // `ExpenseCategory.name` no tiene `@unique`, dar de alta "compras internet"
+    // teniendo ya "Compras internet" creaba una segunda fila, y el gasto
+    // quedaba partido entre las dos.
+    const cleanName = cleanCategoryName(name)
+
+    if (!cleanName) {
+      return NextResponse.json(
+        { error: 'El nombre no puede estar vacío', message: 'El nombre no puede estar vacío' },
+        { status: 400 }
+      )
+    }
+
+    const existing = await findCategoryByName(companyId, cleanName)
+
+    if (existing) {
+      const msg = `Ya existe la categoría «${existing.name}». Usa esa en lugar de crear una variante, o renómbrala si quieres cambiar cómo se escribe.`
+      return NextResponse.json({ error: msg, message: msg, existing }, { status: 409 })
+    }
+
     const category = await prisma.expenseCategory.create({
       data: {
-        name,
+        name: cleanName,
         description,
         type,
         taxRate: taxRate || 16,
@@ -120,10 +143,39 @@ export async function PUT(request: Request) {
       )
     }
 
+    // Renombrar tambien puede crear un duplicado: pasar "Compras internet" a
+    // "compras internet" cuando ya existe la otra variante deja las dos filas.
+    const cleanName = cleanCategoryName(name)
+
+    if (!cleanName) {
+      return NextResponse.json(
+        { error: 'El nombre no puede estar vacío', message: 'El nombre no puede estar vacío' },
+        { status: 400 }
+      )
+    }
+
+    const current = await prisma.expenseCategory.findUnique({ where: { id } })
+
+    if (!current) {
+      return NextResponse.json(
+        { error: 'Categoría no encontrada', message: 'Categoría no encontrada' },
+        { status: 404 }
+      )
+    }
+
+    const clash = await findCategoryByName(current.companyId, cleanName)
+
+    // Cambiar solo mayusculas o acentos de la propia categoria si vale: el
+    // choque solo es real si la coincidencia es con OTRA fila.
+    if (clash && clash.id !== id) {
+      const msg = `Ya existe la categoría «${clash.name}». Renombrar esta así dejaría las dos separadas en los reportes.`
+      return NextResponse.json({ error: msg, message: msg, existing: clash }, { status: 409 })
+    }
+
     const category = await prisma.expenseCategory.update({
       where: { id },
       data: {
-        name,
+        name: cleanName,
         description,
         type,
         taxRate: taxRate || 16,

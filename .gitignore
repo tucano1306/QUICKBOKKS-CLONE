@@ -34,3 +34,7 @@ tsc-errors.txt
 # El .traineddata SI se versiona: no viene en node_modules, se descarga aparte.
 /public/tesseract-worker.min.js
 /public/tesseract-core/
+
+# Graphify — grafo del codigo (se regenera en local con `graphify extract .`)
+graphify-out/
+.claude/

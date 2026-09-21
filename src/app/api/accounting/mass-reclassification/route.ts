@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import {
+  executeReclassification,
+  resolveCategory,
+  resolveTargets,
+} from '@/lib/mass-reclassification'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,15 +84,28 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' }
     })
 
-    // Combinar transacciones
+    // Combinar transacciones.
+    //
+    // Los nombres de campo son los que pinta la tabla en
+    // company/accounting/mass-reclassification/page.tsx: `type`,
+    // `currentCategory` y `currentCategoryId`. Antes se devolvian como
+    // `currentAccount`, `currentAccountCode` y `source`, que no coincidian con
+    // nada, asi que la columna de categoria salia vacia y TODAS las filas se
+    // pintaban como gasto en rojo (`t.type === 'income'` era siempre falso
+    // sobre undefined), incluidos los ingresos.
+    //
+    // El signo del importe bancario sigue la convencion del resto del repo
+    // (ver banking/reconciliation/import): positivo es deposito, negativo
+    // retiro.
     const allTransactions = [
       ...transactions.map(t => ({
         id: t.id,
         date: t.date,
         description: t.description || t.name,
         amount: Math.abs(t.amount),
-        currentAccount: t.category?.[0] || 'Sin clasificar',
-        currentAccountCode: '',
+        type: (t.amount > 0 ? 'income' : 'expense') as 'income' | 'expense',
+        currentCategory: t.category?.[0] || 'Sin clasificar',
+        currentCategoryId: '',
         source: 'bank' as const,
         selected: false
       })),
@@ -96,8 +114,9 @@ export async function GET(request: NextRequest) {
         date: e.date,
         description: e.description,
         amount: Number(e.amount),
-        currentAccount: e.category?.name || 'Sin clasificar',
-        currentAccountCode: e.category?.id || '',
+        type: 'expense' as const,
+        currentCategory: e.category?.name || 'Sin clasificar',
+        currentCategoryId: e.category?.id || '',
         source: 'expense' as const,
         selected: false
       }))
@@ -105,11 +124,11 @@ export async function GET(request: NextRequest) {
 
     // Agrupar por cuenta actual para estadísticas
     const accountGroups = allTransactions.reduce((acc, t) => {
-      if (!acc[t.currentAccount]) {
-        acc[t.currentAccount] = { count: 0, total: 0 }
+      if (!acc[t.currentCategory]) {
+        acc[t.currentCategory] = { count: 0, total: 0 }
       }
-      acc[t.currentAccount].count++
-      acc[t.currentAccount].total += t.amount
+      acc[t.currentCategory].count++
+      acc[t.currentCategory].total += t.amount
       return acc
     }, {} as Record<string, { count: number; total: number }>)
 
@@ -169,49 +188,75 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { action, transactions, destinationAccount, destinationAccountCode, notes } = body
+    const { action, transactionIds, newCategoryId, destinationAccount, companyId } = body
 
-    switch (action) {
-      case 'preview':
-        // Vista previa de reclasificación
-        const previewTotal = transactions.reduce((sum: number, t: any) => sum + t.amount, 0)
-        return NextResponse.json({
-          success: true,
-          preview: {
-            transactionCount: transactions.length,
-            totalAmount: previewTotal,
-            sourceAccounts: [...new Set(transactions.map((t: any) => t.currentAccount))],
-            destinationAccount,
-            estimatedTime: `${Math.ceil(transactions.length / 10)} segundos`
-          }
-        })
-
-      case 'execute':
-        // Ejecutar reclasificación
-        const results = await executeReclassification(transactions, destinationAccount, destinationAccountCode)
-        
-        return NextResponse.json({
-          success: true,
-          message: `${results.success} transacciones reclasificadas exitosamente`,
-          results: {
-            success: results.success,
-            failed: results.failed,
-            totalProcessed: results.success + results.failed
-          }
-        })
-
-      case 'undo':
-        // Deshacer última reclasificación (basado en historial)
-        const { reclassificationId } = body
-        // En producción, guardaríamos el estado anterior para poder revertir
-        return NextResponse.json({
-          success: true,
-          message: 'Reclasificación revertida exitosamente'
-        })
-
-      default:
-        return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
+    // La pantalla manda `transactionIds` (ids sueltos) y `newCategoryId` (id de
+    // ExpenseCategory). Antes esto desestructuraba `transactions` y
+    // `destinationAccount`, que nunca llegaban: `transactions` quedaba
+    // undefined y tanto el `.reduce` de la vista previa como el `for...of` de
+    // la ejecucion lanzaban TypeError. El try/catch lo convertia en un 500 y la
+    // pantalla, que solo miraba `response.ok`, no reclasificaba nada sin decir
+    // por que.
+    //
+    // `destinationAccount` (nombre) se sigue aceptando como alternativa a
+    // `newCategoryId` para no romper llamadas por nombre; se resuelve con
+    // findCategoryByName, insensible a mayusculas y acentos y filtrada por
+    // empresa.
+    if (action !== 'preview' && action !== 'execute') {
+      return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
     }
+
+    if (!Array.isArray(transactionIds) || transactionIds.length === 0) {
+      return NextResponse.json(
+        { error: 'No se recibió ninguna transacción para reclasificar' },
+        { status: 400 }
+      )
+    }
+
+    const category = await resolveCategory(companyId ?? null, newCategoryId, destinationAccount)
+
+    if (!category) {
+      return NextResponse.json(
+        { error: 'No se encontró la categoría de destino' },
+        { status: 400 }
+      )
+    }
+
+    const targets = await resolveTargets(transactionIds, companyId ?? null)
+
+    if (targets.length === 0) {
+      return NextResponse.json(
+        { error: 'Las transacciones seleccionadas ya no existen' },
+        { status: 404 }
+      )
+    }
+
+    if (action === 'preview') {
+      // La pantalla hace `setPreviewResult(data)` directamente, asi que la
+      // respuesta ES el resultado: nada de envolverlo en { preview: ... }.
+      return NextResponse.json({
+        totalTransactions: targets.length,
+        totalAmount: targets.reduce((sum, t) => sum + t.amount, 0),
+        affected: targets.map((t) => ({
+          id: t.id,
+          description: t.description,
+          oldCategory: t.currentCategory,
+          newCategory: category.name,
+        })),
+      })
+    }
+
+    const results = await executeReclassification(targets, category)
+
+    return NextResponse.json({
+      success: true,
+      message: `${results.success} transacciones reclasificadas exitosamente`,
+      results: {
+        success: results.success,
+        failed: results.failed,
+        totalProcessed: results.success + results.failed
+      }
+    })
 
   } catch (error) {
     console.error('Error processing reclassification:', error)
@@ -220,45 +265,4 @@ export async function POST(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
-}
-
-// Función para ejecutar reclasificación
-async function executeReclassification(
-  transactions: { id: string; source: 'bank' | 'expense' }[],
-  destinationAccount: string,
-  destinationAccountCode: string
-): Promise<{ success: number; failed: number }> {
-  let success = 0
-  let failed = 0
-
-  for (const t of transactions) {
-    try {
-      if (t.source === 'bank') {
-        await prisma.bankTransaction.update({
-          where: { id: t.id },
-          data: {
-            category: [destinationAccount]
-          }
-        })
-      } else if (t.source === 'expense') {
-        // Buscar categoría por nombre o crear
-        let category = await prisma.expenseCategory.findFirst({
-          where: { name: destinationAccount }
-        })
-        
-        if (category) {
-          await prisma.expense.update({
-            where: { id: t.id },
-            data: { categoryId: category.id }
-          })
-        }
-      }
-      success++
-    } catch (e) {
-      console.error('Error reclassifying transaction:', t.id, e)
-      failed++
-    }
-  }
-
-  return { success, failed }
 }

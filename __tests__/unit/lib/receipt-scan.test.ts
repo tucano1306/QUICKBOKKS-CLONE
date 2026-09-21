@@ -1,11 +1,16 @@
 import {
   amountsInLine,
+  bareAmountsInLine,
+  bestReceipt,
   extractDate,
   extractMerchant,
   extractTax,
   ocrScale,
+  otsuThreshold,
   parseAmount,
   readReceipt,
+  repairOcrAmounts,
+  thresholdMask,
 } from '@/lib/receipt-scan'
 
 // Ticket estadounidense típico: el total convive con subtotal, impuesto,
@@ -65,18 +70,52 @@ describe('parseAmount', () => {
   })
 })
 
+describe('repairOcrAmounts', () => {
+  it('convierte en cifras las letras que el OCR confunde dentro de un importe', () => {
+    expect(repairOcrAmounts('TOTAL 1l.S2')).toBe('TOTAL 11.52')
+    expect(repairOcrAmounts('TOTAL 2O,OO')).toBe('TOTAL 20,00')
+  })
+
+  it('lee como moneda la ese que precede a las cifras', () => {
+    expect(repairOcrAmounts('TOTAL S17.39')).toBe('TOTAL $17.39')
+    expect(repairOcrAmounts('TOTAL S25')).toBe('TOTAL $25')
+  })
+
+  it('no toca las palabras del ticket', () => {
+    expect(repairOcrAmounts('TOTAL A PAGAR')).toBe('TOTAL A PAGAR')
+    expect(repairOcrAmounts('SUBTOTAL 10.77')).toBe('SUBTOTAL 10.77')
+  })
+
+  it('deja en paz lo que sólo son letras parecidas a cifras', () => {
+    expect(repairOcrAmounts('CAJA SS,SS')).toBe('CAJA SS,SS')
+  })
+})
+
 describe('amountsInLine', () => {
   it('devuelve los importes en orden de aparición', () => {
     expect(amountsInLine('2 x 3.50      7.00')).toEqual([3.5, 7])
   })
 
   it('no confunde un porcentaje con dinero', () => {
-    expect(amountsInLine('TAX  7.00%          0.75')).toEqual([7, 0.75])
+    expect(amountsInLine('TAX  7.00%          0.75')).toEqual([0.75])
+  })
+
+  it('no confunde una fecha escrita con puntos con dinero', () => {
+    expect(amountsInLine('FECHA 12.03.2025')).toEqual([])
   })
 
   it('ignora enteros sueltos sin símbolo de moneda', () => {
     expect(amountsInLine('EGGS DOZEN 12')).toEqual([])
     expect(amountsInLine('EGGS DOZEN $12')).toEqual([12])
+  })
+
+  it('recupera el importe que el OCR leyó con letras', () => {
+    expect(amountsInLine('TOTAL 1l.S2')).toEqual([11.52])
+  })
+
+  it('bareAmountsInLine sí lee el entero suelto', () => {
+    expect(bareAmountsInLine('TOTAL 45')).toEqual([45])
+    expect(bareAmountsInLine('TOTAL 11.52')).toEqual([])
   })
 })
 
@@ -121,6 +160,14 @@ describe('extractMerchant', () => {
     expect(extractMerchant('STORE #4521\nTHE UPS STORE\n')).toBe('THE UPS STORE')
   })
 
+  it('quita los adornos con los que se enmarca el rótulo', () => {
+    expect(extractMerchant('*** WALMART ***\n')).toBe('WALMART')
+  })
+
+  it('salta la basura que el OCR saca del logotipo', () => {
+    expect(extractMerchant('|+~ =|_ ~/\\|\nCAFE CENTRAL\n')).toBe('CAFE CENTRAL')
+  })
+
   it('devuelve null si la cabecera no trae nombre', () => {
     expect(extractMerchant('12345\n67890\n')).toBeNull()
   })
@@ -163,6 +210,29 @@ describe('readReceipt', () => {
     expect(values).not.toContain(0.75)
   })
 
+  it('recoge el importe cuando el OCR lo deja en la línea de abajo', () => {
+    const result = readReceipt(`CAFE CENTRAL
+SUBTOTAL
+4.50
+TOTAL
+4.86`)
+    expect(result.total).toBe(4.86)
+    expect(result.quality).toBe('strong')
+  })
+
+  it('no le atribuye a la etiqueta el importe de otro artículo', () => {
+    const result = readReceipt(`TOTAL
+CROISSANT       3.25`)
+    expect(result.total).toBeNull()
+  })
+
+  it('pide confirmar el total que se quedó sin decimales', () => {
+    const result = readReceipt('CAFE CENTRAL\nTOTAL 45')
+    expect(result.quality).toBe('weak')
+    expect(result.total).toBeNull()
+    expect(result.candidates[0].value).toBe(45)
+  })
+
   it('no rellena el importe solo cuando no hay ninguna línea de total', () => {
     const result = readReceipt(`CAFE CENTRAL
 Espresso        4.50
@@ -185,10 +255,73 @@ CHANGE          2.25`)
   })
 })
 
+describe('bestReceipt', () => {
+  it('se queda con el pase que encontró un total etiquetado', () => {
+    const weak = readReceipt('CAFE CENTRAL\nEspresso 4.50')
+    const strong = readReceipt('CAFE CENTRAL\nTOTAL 4.86')
+    expect(bestReceipt([weak, strong]).total).toBe(4.86)
+    expect(bestReceipt([strong, weak]).total).toBe(4.86)
+  })
+
+  it('a igual total prefiere el pase que además leyó fecha y comercio', () => {
+    const bare = readReceipt('TOTAL 11.52')
+    const full = readReceipt('WALMART\n03/14/2025\nTOTAL 11.52')
+    expect(bestReceipt([bare, full]).merchant).toBe('WALMART')
+  })
+})
+
 describe('ocrScale', () => {
   it('amplía las fotos pequeñas y recorta las enormes', () => {
     expect(ocrScale(800)).toBeGreaterThan(1)
     expect(ocrScale(4000)).toBeLessThan(1)
     expect(ocrScale(1800)).toBe(1)
+  })
+})
+
+describe('thresholdMask', () => {
+  const W = 200
+  const H = 60
+  const STROKE_EVERY = 20
+  const INK_DELTA = 60
+
+  // Ticket fotografiado con sombra: el papel pasa de casi negro por la
+  // izquierda a casi blanco por la derecha, y encima lleva trazos de texto
+  // igual de oscuros respecto de su entorno en toda su anchura.
+  const shadedReceipt = (): Uint8Array => {
+    const grey = new Uint8Array(W * H)
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const paper = 40 + x
+        const isStroke = x % STROKE_EVERY < 3
+        grey[y * W + x] = Math.max(0, isStroke ? paper - INK_DELTA : paper)
+      }
+    }
+    return grey
+  }
+
+  const isStrokeColumn = (x: number) => x % STROKE_EVERY < 3
+
+  it('conserva el texto en las dos mitades de una foto con sombra', () => {
+    const mask = thresholdMask(shadedReceipt(), W, H)
+    const row = 30 * W
+    for (const x of [10, 30, 150, 170]) {
+      expect(mask[row + x]).toBe(255) // papel
+    }
+    for (const x of [21, 41, 161, 181]) {
+      expect(mask[row + x]).toBe(0) // tinta
+    }
+  })
+
+  it('el umbral global se comía la mitad en sombra — por eso ya no se usa', () => {
+    const grey = shadedReceipt()
+    const hist = new Array<number>(256).fill(0)
+    for (const g of grey) hist[g]++
+    const global = otsuThreshold(hist, grey.length)
+
+    // Con un único umbral, el papel a la izquierda queda por debajo y sale
+    // negro: el OCR ve un borrón donde había texto.
+    const shadedPaper = 40 + 10
+    expect(shadedPaper).toBeLessThan(global)
+    expect(isStrokeColumn(10)).toBe(false)
   })
 })

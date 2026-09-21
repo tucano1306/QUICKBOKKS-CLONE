@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createExpenseWithJE } from '@/lib/accounting-service'
+import { findCategoryByName } from '@/lib/expense-category'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,10 +140,12 @@ export async function POST(request: NextRequest) {
       })
     }
     
+    // La busqueda era `name: 'Otros'` exacto y sin filtrar por empresa: no
+    // encontraba una "otros" ya existente y creaba otra fila, y ademas podia
+    // devolver la categoria de OTRA empresa. Ahora compara con el mismo
+    // criterio que los reportes y se limita a la empresa actual.
     if (!category) {
-      category = await prisma.expenseCategory.findFirst({
-        where: { name: 'Otros' }
-      })
+      category = await findCategoryByName(companyId, 'Otros')
     }
 
     if (!category) {
@@ -150,7 +153,8 @@ export async function POST(request: NextRequest) {
         data: {
           name: 'Otros',
           description: 'Gastos varios',
-          type: 'OTHER'
+          type: 'OTHER',
+          companyId
         }
       })
     }
