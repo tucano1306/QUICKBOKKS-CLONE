@@ -907,8 +907,6 @@ model Notification {
   /// previsto, asi que se emite uno por cambio y no uno por dia.
   dedupeKey String?
   readAt    DateTime?
-  /// Cuando se envio por correo. Null significa que aun no se ha enviado.
-  emailedAt DateTime?
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
