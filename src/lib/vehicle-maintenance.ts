@@ -211,3 +211,85 @@ export function serviceCost(records: ServiceRecord[], milesCovered: number): Ser
     perMile: milesCovered > 0 ? total / milesCovered : 0,
   };
 }
+
+// ------------------------------------------------------------------ avisos
+
+/** Millas antes del cambio a las que hay que avisar, si el vehiculo no define otro. */
+export const DEFAULT_ALERT_MILES = 200;
+
+export interface EstimatedOdometer {
+  /** Lectura estimada para hoy. */
+  odometer: number;
+  /** La ultima lectura de verdad, sobre la que se proyecta. */
+  knownOdometer: number;
+  /** Dias transcurridos desde esa lectura. */
+  daysSinceReading: number;
+  /** Millas anadidas por la proyeccion. */
+  projectedMiles: number;
+  /**
+   * La proyeccion aporta algo o es solo la lectura conocida.
+   *
+   * La pantalla y el correo tienen que decirlo: un numero estimado presentado
+   * como leido es peor que no dar numero.
+   */
+  isEstimate: boolean;
+}
+
+/**
+ * Odometro estimado para una fecha, a partir de la ultima lectura y el ritmo.
+ *
+ * Hace falta porque el odometro solo se conoce cuando alguien lo escribe, y con
+ * un uso de 112 millas al dia la lectura envejece muy deprisa: esperar a la
+ * siguiente actualizacion es esperar a que el aviso llegue tarde.
+ */
+export function estimateOdometer(
+  knownOdometer: number,
+  readingDate: Date,
+  milesPerYear: number,
+  asOf: Date
+): EstimatedOdometer {
+  const days = Math.max(0, (asOf.getTime() - readingDate.getTime()) / (24 * 60 * 60 * 1000));
+  const perDay = Math.max(0, milesPerYear) / 365;
+  const projectedMiles = days * perDay;
+
+  return {
+    odometer: knownOdometer + projectedMiles,
+    knownOdometer,
+    daysSinceReading: days,
+    projectedMiles,
+    isEstimate: projectedMiles >= 1,
+  };
+}
+
+export interface AlertDecision {
+  shouldAlert: boolean;
+  level: 'warning' | 'danger';
+  milesRemaining: number;
+  /** Identifica el cambio concreto, para no repetir el aviso cada dia. */
+  dedupeKey: string;
+}
+
+/**
+ * Si toca avisar, y con que clave.
+ *
+ * La clave lleva el odometro del cambio previsto: se emite un aviso por cambio
+ * y no uno por dia. Y distingue el aviso de proximidad del de vencido, porque
+ * son dos momentos distintos que merecen dos avisos.
+ */
+export function alertDecision(
+  assetId: string,
+  status: Pick<OilChangeStatus, 'nextDueOdometer'>,
+  milesRemaining: number,
+  alertMiles: number = DEFAULT_ALERT_MILES
+): AlertDecision {
+  const threshold = alertMiles > 0 ? alertMiles : DEFAULT_ALERT_MILES;
+  const overdue = milesRemaining < 0;
+  const near = milesRemaining <= threshold;
+
+  return {
+    shouldAlert: near,
+    level: overdue ? 'danger' : 'warning',
+    milesRemaining,
+    dedupeKey: `oil:${assetId}:${status.nextDueOdometer}:${overdue ? 'overdue' : 'near'}`,
+  };
+}

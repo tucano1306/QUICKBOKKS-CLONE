@@ -16,6 +16,8 @@ import {
   averageInterval,
   projectDue,
   serviceCost,
+  estimateOdometer,
+  alertDecision,
   type ServiceRecord,
 } from '@/lib/vehicle-maintenance';
 
@@ -259,3 +261,114 @@ describe('serviceCost', () => {
     expect(c.average).toBe(0);
   });
 });
+
+// --------------------------------------------------------------- avisos
+
+describe('estimateOdometer', () => {
+  const LEIDO = new Date('2026-09-21T00:00:00Z')
+  const RITMO = 40804 // millas al ano reales de esta camioneta
+
+  it('el mismo dia de la lectura no proyecta nada', () => {
+    const e = estimateOdometer(138650, LEIDO, RITMO, LEIDO)
+
+    expect(e.odometer).toBe(138650)
+    expect(e.isEstimate).toBe(false)
+  })
+
+  it('proyecta unas 112 millas al dia', () => {
+    const e = estimateOdometer(138650, LEIDO, RITMO, new Date('2026-09-22T00:00:00Z'))
+
+    expect(e.projectedMiles).toBeCloseTo(111.8, 1)
+    expect(e.isEstimate).toBe(true)
+  })
+
+  it('en una semana sin actualizar se acumulan casi 800 millas', () => {
+    const e = estimateOdometer(138650, LEIDO, RITMO, new Date('2026-09-28T00:00:00Z'))
+
+    expect(e.projectedMiles).toBeCloseTo(782.8, 0)
+    expect(e.daysSinceReading).toBeCloseTo(7, 6)
+  })
+
+  it('conserva la lectura real para poder contrastarla', () => {
+    const e = estimateOdometer(138650, LEIDO, RITMO, new Date('2026-10-21T00:00:00Z'))
+
+    expect(e.knownOdometer).toBe(138650)
+    expect(e.odometer).toBeGreaterThan(e.knownOdometer)
+  })
+
+  it('una fecha anterior a la lectura no resta millas', () => {
+    const e = estimateOdometer(138650, LEIDO, RITMO, new Date('2026-08-01T00:00:00Z'))
+
+    expect(e.odometer).toBe(138650)
+  })
+
+  it('sin ritmo conocido no inventa millas', () => {
+    const e = estimateOdometer(138650, LEIDO, 0, new Date('2026-12-01T00:00:00Z'))
+
+    expect(e.odometer).toBe(138650)
+    expect(e.isEstimate).toBe(false)
+  })
+})
+
+describe('alertDecision', () => {
+  const status = { nextDueOdometer: 143650 }
+
+  it('no avisa con el intervalo casi entero por delante', () => {
+    expect(alertDecision('a1', status, 5000).shouldAlert).toBe(false)
+  })
+
+  it('no avisa justo por encima del umbral', () => {
+    expect(alertDecision('a1', status, 201).shouldAlert).toBe(false)
+  })
+
+  it('avisa al entrar en las 200 millas', () => {
+    const d = alertDecision('a1', status, 200)
+
+    expect(d.shouldAlert).toBe(true)
+    expect(d.level).toBe('warning')
+  })
+
+  it('pasado el cambio sube a peligro', () => {
+    const d = alertDecision('a1', status, -50)
+
+    expect(d.shouldAlert).toBe(true)
+    expect(d.level).toBe('danger')
+  })
+
+  it('el aviso de proximidad y el de vencido son distintos', () => {
+    // Si compartieran clave, el segundo nunca llegaria a crearse.
+    expect(alertDecision('a1', status, 150).dedupeKey).not.toBe(
+      alertDecision('a1', status, -10).dedupeKey
+    )
+  })
+
+  it('la clave no cambia dia tras dia dentro del mismo cambio', () => {
+    expect(alertDecision('a1', status, 180).dedupeKey).toBe(
+      alertDecision('a1', status, 60).dedupeKey
+    )
+  })
+
+  it('tras el cambio, el siguiente estrena clave', () => {
+    const siguiente = { nextDueOdometer: 148650 }
+
+    expect(alertDecision('a1', status, 100).dedupeKey).not.toBe(
+      alertDecision('a1', siguiente, 100).dedupeKey
+    )
+  })
+
+  it('cada vehiculo lleva la suya', () => {
+    expect(alertDecision('a1', status, 100).dedupeKey).not.toBe(
+      alertDecision('a2', status, 100).dedupeKey
+    )
+  })
+
+  it('se puede pedir un umbral distinto', () => {
+    expect(alertDecision('a1', status, 400, 500).shouldAlert).toBe(true)
+    expect(alertDecision('a1', status, 400, 300).shouldAlert).toBe(false)
+  })
+
+  it('un umbral invalido cae al estandar de 200', () => {
+    expect(alertDecision('a1', status, 200, 0).shouldAlert).toBe(true)
+    expect(alertDecision('a1', status, 201, -5).shouldAlert).toBe(false)
+  })
+})
