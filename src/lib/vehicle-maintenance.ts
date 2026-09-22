@@ -293,3 +293,84 @@ export function alertDecision(
     dedupeKey: `oil:${assetId}:${status.nextDueOdometer}:${overdue ? 'overdue' : 'near'}`,
   };
 }
+
+// -------------------------------------------------------------- validacion
+
+/**
+ * Ningun vehiculo de carretera llega aqui. Sirve de tope absoluto frente a un
+ * dedazo con digitos de mas.
+ */
+export const MAX_PLAUSIBLE_ODOMETER = 2_000_000;
+
+/**
+ * Ritmo diario por encima del cual la lectura no es creible.
+ *
+ * Un dia entero de autopista sin parar son unas 1.200 millas. Se deja holgura
+ * hasta 1.500 para no estorbar a nadie: el objetivo es cazar el digito de mas,
+ * no discutir con quien conduce mucho.
+ */
+export const MAX_PLAUSIBLE_MILES_PER_DAY = 1500;
+
+export interface OdometerCheck {
+  ok: boolean;
+  reason?: string;
+}
+
+/**
+ * Comprueba que una lectura del odometro es creible antes de guardarla.
+ *
+ * Importa mas de lo que parece: el odometro no solo mueve el control de
+ * millas, tambien alimenta la depreciacion por unidades de produccion. Una
+ * lectura con un digito de mas hundiria el valor en libros del balance sin que
+ * saltara ningun error.
+ */
+export function checkOdometerReading(input: {
+  reading: number;
+  /** La ultima lectura conocida, si la hay. */
+  lastKnown?: number | null;
+  /** Fecha de esa lectura. */
+  lastKnownDate?: Date | null;
+  /** Fecha de la lectura nueva. */
+  readingDate: Date;
+  /** La lectura mas alta ya registrada en un servicio. */
+  highestServiceOdometer?: number | null;
+}): OdometerCheck {
+  const { reading } = input;
+
+  if (!Number.isFinite(reading) || reading < 0) {
+    return { ok: false, reason: 'La lectura del odómetro no es un número válido.' };
+  }
+
+  if (reading > MAX_PLAUSIBLE_ODOMETER) {
+    return {
+      ok: false,
+      reason: `${Math.round(reading).toLocaleString('es')} millas no es una lectura posible. Revisa si sobra algún dígito.`,
+    };
+  }
+
+  // El odometro no retrocede: una lectura por debajo de un servicio ya
+  // registrado es imposible, no una correccion.
+  if (input.highestServiceOdometer != null && reading < input.highestServiceOdometer) {
+    return {
+      ok: false,
+      reason: `Ya hay un servicio registrado con el odómetro en ${Math.round(input.highestServiceOdometer).toLocaleString('es')} mi, y el odómetro no retrocede.`,
+    };
+  }
+
+  // Salto imposible desde la ultima lectura conocida.
+  if (input.lastKnown != null && input.lastKnownDate) {
+    const days = Math.max(
+      1 / 24,
+      (input.readingDate.getTime() - input.lastKnownDate.getTime()) / (24 * 60 * 60 * 1000)
+    );
+    const jump = reading - input.lastKnown;
+    if (jump > 0 && jump / days > MAX_PLAUSIBLE_MILES_PER_DAY) {
+      return {
+        ok: false,
+        reason: `Serían ${Math.round(jump).toLocaleString('es')} millas en ${days < 1 ? 'menos de un día' : `${Math.round(days)} días`}, que no es posible. La última lectura fue ${Math.round(input.lastKnown).toLocaleString('es')} mi; revisa si sobra algún dígito.`,
+      };
+    }
+  }
+
+  return { ok: true };
+}

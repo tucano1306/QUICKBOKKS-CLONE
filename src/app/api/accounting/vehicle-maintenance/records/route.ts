@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { resolveAssetAccess } from '@/lib/company-access'
 import { runOilChangeAlerts } from '@/lib/vehicle-alerts-service'
+import { checkOdometerReading } from '@/lib/vehicle-maintenance'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,13 +47,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // El odometro tambien alimenta la depreciacion: una lectura con un digito
+    // de mas hundiria el valor en libros sin que saltara ningun error.
+    const asset0 = await prisma.asset.findUnique({
+      where: { id: assetId },
+      select: { currentMileage: true, lastMileageUpdate: true },
+    })
+    const mayor = await prisma.vehicleServiceRecord.findFirst({
+      where: { assetId },
+      orderBy: { odometer: 'desc' },
+      select: { odometer: true },
+    })
+    const readingDate = date ? new Date(date) : new Date()
+    const check = checkOdometerReading({
+      reading: Math.round(reading),
+      lastKnown: asset0?.currentMileage ?? null,
+      lastKnownDate: asset0?.lastMileageUpdate ?? null,
+      readingDate,
+      highestServiceOdometer: mayor?.odometer ?? null,
+    })
+    if (!check.ok) {
+      return NextResponse.json({ error: check.reason }, { status: 400 })
+    }
+
     const record = await prisma.vehicleServiceRecord.create({
       data: {
         assetId,
         companyId: access.companyId,
         type: typeof type === 'string' && type.trim() ? type.trim() : 'OIL_CHANGE',
         odometer: Math.round(reading),
-        date: date ? new Date(date) : new Date(),
+        date: readingDate,
         cost: cost != null && cost !== '' ? Number(cost) : null,
         vendor: vendor || null,
         oilType: oilType || null,

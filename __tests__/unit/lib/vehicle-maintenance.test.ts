@@ -18,6 +18,7 @@ import {
   serviceCost,
   estimateOdometer,
   alertDecision,
+  checkOdometerReading,
   type ServiceRecord,
 } from '@/lib/vehicle-maintenance';
 
@@ -370,5 +371,142 @@ describe('alertDecision', () => {
   it('un umbral invalido cae al estandar de 200', () => {
     expect(alertDecision('a1', status, 200, 0).shouldAlert).toBe(true)
     expect(alertDecision('a1', status, 201, -5).shouldAlert).toBe(false)
+  })
+})
+
+// ----------------------------------------------------- validacion del odometro
+
+describe('las dos escalas se mueven juntas al registrar un cambio', () => {
+  // El caso que se pidio comprobar: cambio a las 4.230 millas de la salida del
+  // taller, es decir con el odometro en 142.880.
+  const TRAS_EL_CAMBIO = 138650 + 4230
+
+  it('el odometro pasa a ser la lectura registrada', () => {
+    const s = oilChangeStatus({
+      records: [rec('a', TRAS_EL_CAMBIO, '2026-10-18')],
+      currentOdometer: TRAS_EL_CAMBIO,
+      baseline: BASE,
+    })
+
+    expect(s.lastOdometer).toBe(142880)
+    expect(s.isBaseline).toBe(false)
+  })
+
+  it('las millas del motor suben lo mismo, no lo que marca el odometro', () => {
+    expect(engineMilesAt(TRAS_EL_CAMBIO, BASE)).toBe(19230)
+  })
+
+  it('el desfase entre las dos cuentas se mantiene intacto', () => {
+    const antes = 138650 - engineMilesAt(138650, BASE)
+    const despues = TRAS_EL_CAMBIO - engineMilesAt(TRAS_EL_CAMBIO, BASE)
+
+    expect(despues).toBe(antes)
+    expect(despues).toBe(123650)
+  })
+
+  it('el siguiente cambio se recalcula desde la lectura nueva', () => {
+    const s = oilChangeStatus({
+      records: [rec('a', TRAS_EL_CAMBIO, '2026-10-18')],
+      currentOdometer: TRAS_EL_CAMBIO,
+      baseline: BASE,
+    })
+
+    expect(s.nextDueOdometer).toBe(147880)
+    expect(s.engineMilesAtNextChange).toBe(24230)
+  })
+
+  it('cambiar antes de tiempo queda registrado como tal', () => {
+    const h = serviceHistory([rec('a', TRAS_EL_CAMBIO, '2026-10-18')], BASE)
+
+    expect(h[0].milesSincePrevious).toBe(4230)
+    expect(h[0].vsInterval).toBe(-770)
+  })
+})
+
+describe('checkOdometerReading', () => {
+  const HOY = new Date('2026-10-18T00:00:00Z')
+  const AYER = new Date('2026-10-17T00:00:00Z')
+
+  it('acepta una lectura normal', () => {
+    expect(
+      checkOdometerReading({
+        reading: 142880,
+        lastKnown: 138650,
+        lastKnownDate: new Date('2026-09-21T00:00:00Z'),
+        readingDate: HOY,
+      }).ok
+    ).toBe(true)
+  })
+
+  it('rechaza el digito de mas', () => {
+    const r = checkOdometerReading({
+      reading: 1428800,
+      lastKnown: 138650,
+      lastKnownDate: new Date('2026-09-21T00:00:00Z'),
+      readingDate: HOY,
+    })
+
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/d[ií]gito/i)
+  })
+
+  it('rechaza lo que ningun vehiculo de carretera alcanza', () => {
+    expect(checkOdometerReading({ reading: 5_000_000, readingDate: HOY }).ok).toBe(false)
+  })
+
+  it('rechaza negativos y valores que no son numero', () => {
+    expect(checkOdometerReading({ reading: -1, readingDate: HOY }).ok).toBe(false)
+    expect(checkOdometerReading({ reading: Number.NaN, readingDate: HOY }).ok).toBe(false)
+  })
+
+  it('el odometro no retrocede por debajo de un servicio ya registrado', () => {
+    const r = checkOdometerReading({
+      reading: 140000,
+      readingDate: HOY,
+      highestServiceOdometer: 142880,
+    })
+
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/no retrocede/i)
+  })
+
+  it('un salto imposible en un dia se rechaza', () => {
+    // 20.000 millas en 24 horas.
+    const r = checkOdometerReading({
+      reading: 158650,
+      lastKnown: 138650,
+      lastKnownDate: AYER,
+      readingDate: HOY,
+    })
+
+    expect(r.ok).toBe(false)
+  })
+
+  it('pero el mismo salto tras meses sin actualizar si se acepta', () => {
+    // 20.000 millas en seis meses son 110 al dia: su ritmo real.
+    expect(
+      checkOdometerReading({
+        reading: 158650,
+        lastKnown: 138650,
+        lastKnownDate: new Date('2026-04-18T00:00:00Z'),
+        readingDate: HOY,
+      }).ok
+    ).toBe(true)
+  })
+
+  it('sin lectura previa no inventa un limite de ritmo', () => {
+    expect(checkOdometerReading({ reading: 138650, readingDate: HOY }).ok).toBe(true)
+  })
+
+  it('no estorba a quien conduce mucho de verdad', () => {
+    // 1.100 millas en un dia: largo, pero posible.
+    expect(
+      checkOdometerReading({
+        reading: 139750,
+        lastKnown: 138650,
+        lastKnownDate: AYER,
+        readingDate: HOY,
+      }).ok
+    ).toBe(true)
   })
 })

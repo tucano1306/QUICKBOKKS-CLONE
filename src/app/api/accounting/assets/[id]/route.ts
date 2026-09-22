@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { resolveAssetAccess } from '@/lib/company-access'
+import { checkOdometerReading } from '@/lib/vehicle-maintenance'
 
 // GET /api/accounting/assets/[id] - Get a specific asset
 export async function GET(
@@ -91,6 +92,26 @@ export async function PUT(
         { error: 'Activo no encontrado' },
         { status: 404 }
       )
+    }
+
+    // El odometro alimenta la depreciacion por millas: una lectura con un
+    // digito de mas hundiria el valor en libros sin que saltara ningun error.
+    if (data.currentMileage !== undefined) {
+      const mayor = await prisma.vehicleServiceRecord.findFirst({
+        where: { assetId: params.id },
+        orderBy: { odometer: 'desc' },
+        select: { odometer: true },
+      })
+      const check = checkOdometerReading({
+        reading: Number(data.currentMileage),
+        lastKnown: existingAsset.currentMileage,
+        lastKnownDate: existingAsset.lastMileageUpdate,
+        readingDate: new Date(),
+        highestServiceOdometer: mayor?.odometer ?? null,
+      })
+      if (!check.ok) {
+        return NextResponse.json({ error: check.reason }, { status: 400 })
+      }
     }
 
     // Update the asset
