@@ -795,6 +795,8 @@ model Asset {
   lastMileageUpdate       DateTime? // Última actualización del odómetro
   yearModel               Int? // Año del modelo del vehículo
   vin                     String? // VIN del vehículo
+  /// Cada cuantas millas toca el cambio de aceite. Null usa el estandar.
+  serviceIntervalMiles    Int?
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
   companyId               String?
@@ -802,6 +804,7 @@ model Asset {
   valuations              AssetValuation[]
   improvements            AssetImprovement[]
   loan                    AssetLoan?
+  serviceRecords          VehicleServiceRecord[]
   costCenter              CostCenter?         @relation(fields: [costCenterId], references: [id])
 
   @@map("assets")
@@ -877,6 +880,34 @@ model AssetImprovement {
 
   @@index([assetId, date])
   @@map("asset_improvements")
+}
+
+/// Mantenimiento del vehiculo: cambios de aceite y demas servicios.
+///
+/// Se registra la lectura del ODOMETRO, que es lo unico observable. Las millas
+/// del motor se derivan: un motor de reemplazo empieza con sus propias millas y
+/// el odometro sigue contando las del chasis.
+model VehicleServiceRecord {
+  id        String   @id @default(cuid())
+  assetId   String
+  companyId String?
+  /// OIL_CHANGE por ahora; el campo deja sitio a rotacion de neumaticos y demas.
+  type      String   @default("OIL_CHANGE")
+  /// Lectura del odometro el dia del servicio.
+  odometer  Int
+  date      DateTime
+  cost      Float?
+  vendor    String?
+  /// Tipo de aceite usado, para no cambiar de criterio sin querer.
+  oilType   String?
+  /// Foto del odometro como respaldo de la lectura.
+  photoUrl  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, odometer])
+  @@map("vehicle_service_records")
 }
 
 /// Financiacion de un activo.
