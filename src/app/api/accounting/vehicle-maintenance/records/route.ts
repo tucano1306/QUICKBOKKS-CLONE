@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { resolveAssetAccess } from '@/lib/company-access'
+import { runOilChangeAlerts } from '@/lib/vehicle-alerts-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,6 +74,12 @@ export async function POST(request: NextRequest) {
         data: { currentMileage: record.odometer, lastMileageUpdate: record.date },
       })
     }
+
+    // Un cambio registrado reinicia el contador: se reevaluan los avisos en
+    // el acto para que no quede encendido uno que ya no aplica.
+    await runOilChangeAlerts().catch((e) =>
+      console.error('No se pudieron reevaluar los avisos:', e)
+    )
 
     return NextResponse.json(record, { status: 201 })
   } catch (error) {

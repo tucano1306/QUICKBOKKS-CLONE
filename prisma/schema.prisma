@@ -33,6 +33,7 @@ model User {
   uploadedDocuments   UploadedDocument[]
 
   @@map("users")
+  notifications       Notification[]
 }
 
 model Account {
@@ -797,6 +798,8 @@ model Asset {
   vin                     String? // VIN del vehículo
   /// Cada cuantas millas toca el cambio de aceite. Null usa el estandar.
   serviceIntervalMiles    Int?
+  /// Cuantas millas antes del cambio hay que avisar. Null usa el estandar.
+  serviceAlertMiles       Int?
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
   companyId               String?
@@ -880,6 +883,38 @@ model AssetImprovement {
 
   @@index([assetId, date])
   @@map("asset_improvements")
+}
+
+/// Aviso para un usuario.
+///
+/// Generico a proposito: hoy lo usa el cambio de aceite, pero el tipo es texto
+/// libre para que quepan otros sin tocar el esquema.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  companyId String?
+  /// OIL_CHANGE_DUE y los que vengan.
+  type      String
+  /// info | warning | danger
+  level     String    @default("info")
+  title     String
+  body      String
+  /// A donde lleva al pulsarlo.
+  link      String?
+  /// Clave de deduplicacion. El trabajo diario vuelve a evaluar las mismas
+  /// condiciones cada dia; sin esta clave crearia el mismo aviso una y otra vez
+  /// hasta enterrar la campana. Para el aceite lleva el odometro del cambio
+  /// previsto, asi que se emite uno por cambio y no uno por dia.
+  dedupeKey String?
+  readAt    DateTime?
+  /// Cuando se envio por correo. Null significa que aun no se ha enviado.
+  emailedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt])
+  @@map("notifications")
 }
 
 /// Mantenimiento del vehiculo: cambios de aceite y demas servicios.

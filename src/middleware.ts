@@ -11,7 +11,11 @@ const apiRoutesWithInternalAuth = [
   '/api/accounting/',
   '/api/transactions',
   '/api/expenses',
-  '/api/reports/'
+  '/api/reports/',
+  '/api/notifications',
+  // El trabajo programado no trae sesion: se autentica con CRON_SECRET dentro
+  // de la propia ruta, que responde 401 sin el.
+  '/api/cron/'
 ]
 
 // Rutas que requieren roles específicos

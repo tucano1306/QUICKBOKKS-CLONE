@@ -262,6 +262,49 @@ const tabSections: TabSection[] = [
   }
 ]
 
+/** Lo que pinta la campana. Traduce la forma de la API a la que ya usaba el menu. */
+interface UiNotification {
+  id: string
+  title: string
+  description: string
+  time: string
+  type: 'warning' | 'success' | 'info'
+  read: boolean
+  link: string | null
+}
+
+function toUiNotification(n: {
+  id: string
+  title: string
+  body: string
+  level: string
+  link: string | null
+  readAt: string | null
+  createdAt: string
+}): UiNotification {
+  return {
+    id: n.id,
+    title: n.title,
+    description: n.body,
+    time: relativeTime(n.createdAt),
+    // El menu solo tiene tres estilos; 'danger' comparte el de aviso.
+    type: n.level === 'info' ? 'info' : 'warning',
+    read: n.readAt != null,
+    link: n.link,
+  }
+}
+
+function relativeTime(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (mins < 1) return 'ahora'
+  if (mins < 60) return `hace ${mins} min`
+  const horas = Math.floor(mins / 60)
+  if (horas < 24) return `hace ${horas} h`
+  const dias = Math.floor(horas / 24)
+  return dias === 1 ? 'ayer' : `hace ${dias} días`
+}
+
+
 export default function CompanyTabsLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { activeCompany } = useCompany()
   const { data: session } = useSession()
@@ -322,8 +365,46 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
     { name: 'Vehiculo', href: '/company/accounting/depreciation', icon: Calculator, color: 'text-indigo-600' },
   ]
 
-  // Notifications data - Mensaje informativo (sin datos mock)
-  const notifications: { id: number; title: string; description: string; time: string; type: 'warning' | 'success' | 'info'; read: boolean }[] = []
+  // Avisos reales de /api/notifications. Antes esto era un array vacio fijo:
+  // la campana existia pero no podia encenderse nunca.
+  const [notifications, setNotifications] = useState<UiNotification[]>([])
+
+  const loadNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications')
+      if (!res.ok) return
+      const data = await res.json()
+      setNotifications((data.notifications ?? []).map(toUiNotification))
+    } catch {
+      // La campana es accesoria: si falla, no se rompe la pantalla entera.
+    }
+  }
+
+  useEffect(() => {
+    if (!session?.user) return
+    loadNotifications()
+    // Se refresca cada pocos minutos para que un aviso creado por el trabajo
+    // diario aparezca sin tener que recargar la pagina.
+    const t = setInterval(loadNotifications, 5 * 60 * 1000)
+    return () => clearInterval(t)
+  }, [session?.user])
+
+  const openNotification = async (notif: UiNotification) => {
+    setShowNotifications(false)
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+    )
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: notif.id }),
+      })
+    } catch {
+      // Marcar como leido es cosmetico; si falla, el aviso sigue ahi.
+    }
+    if (notif.link) router.push(notif.link)
+  }
 
   // Help menu items
   const helpItems = [
@@ -740,7 +821,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                     "p-2.5 rounded-full transition-colors relative",
                     showNotifications ? "bg-gray-200" : "hover:bg-gray-100"
                   )}
-                  title="Notifications"
+                  title="Avisos"
                 >
                   <Bell className="w-5 h-5 text-gray-600" />
                   {notifications.some(n => !n.read) && (
@@ -755,8 +836,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                     <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-bold text-[#0D2942]">Notifications</p>
-                          <p className="text-xs text-gray-500">{notifications.length} notifications</p>
+                          <p className="text-sm font-bold text-[#0D2942]">Avisos</p>
+                          <p className="text-xs text-gray-500">{notifications.filter(n => !n.read).length} sin leer</p>
                         </div>
                       </div>
                       <div className="max-h-80 overflow-y-auto">
@@ -764,7 +845,7 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                           notifications.map((notif) => (
                             <button
                               key={notif.id}
-                              onClick={() => setShowNotifications(false)}
+                              onClick={() => openNotification(notif)}
                               className={cn(
                                 "w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50",
                                 !notif.read && "bg-blue-50/50"
@@ -796,8 +877,8 @@ export default function CompanyTabsLayout({ children }: Readonly<{ children: Rea
                         ) : (
                           <div className="py-8 text-center">
                             <Bell className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-                            <p className="text-sm text-gray-500">No notifications</p>
-                            <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
+                            <p className="text-sm text-gray-500">No hay avisos</p>
+                            <p className="text-xs text-gray-400 mt-1">Todo al día</p>
                           </div>
                         )}
                       </div>
