@@ -81,7 +81,8 @@ const tabSections: TabSection[] = [
     icon: Calculator,
     color: 'green',
     submenus: [
-      { name: '🚗 Depreciación de Activos', href: '/company/accounting/depreciation', description: 'Calcular depreciación de vehículos y activos' }
+      { name: '🚗 Depreciación de Activos', href: '/company/accounting/depreciation', description: 'Calcular depreciación de vehículos y activos' },
+      { name: '🛢️ Control de Millas', href: '/company/accounting/mileage-control', description: 'Cambios de aceite y mantenimiento por millas' }
     ]
   },
   {

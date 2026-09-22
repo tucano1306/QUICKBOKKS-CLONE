@@ -2,25 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getVehicleEconomics } from '@/lib/vehicle-economics-service'
 import {
   resolveAssetAccess,
   userCanAccessCompany,
   vehiclesInOtherCompanies,
 } from '@/lib/company-access'
+import { getVehicleMaintenance } from '@/lib/vehicle-maintenance-service'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * Economia completa de un vehiculo: libros, mercado, prestamo, coste y avisos.
+ * Control de millas: estado del cambio de aceite, historial y proyeccion.
  *
- * Sin `assetId` devuelve todos los activos de la empresa ya calculados, que es
- * lo que pinta la pantalla de listado.
- *
- * Cuando la empresa activa no tiene vehiculos se devuelve ademas `otherCompanies`:
- * las OTRAS empresas del usuario que si tienen alguno. Sin ese dato la pantalla
- * queda en un callejon sin salida que invita a dar de alta un vehiculo que ya
- * existe en otra empresa, y acabas con el mismo activo duplicado.
+ * Sin `assetId` devuelve todos los vehiculos de la empresa, que es lo que
+ * pinta la pantalla de listado.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -38,15 +33,18 @@ export async function GET(request: NextRequest) {
       const access = await resolveAssetAccess(userId, assetId)
       if (access.status !== 200) {
         return NextResponse.json(
-          { error: access.status === 404 ? 'Activo no encontrado' : 'No tienes acceso a este activo' },
+          {
+            error:
+              access.status === 404 ? 'Activo no encontrado' : 'No tienes acceso a este activo',
+          },
           { status: access.status }
         )
       }
-      const economics = await getVehicleEconomics(assetId)
-      if (!economics) {
+      const data = await getVehicleMaintenance(assetId)
+      if (!data) {
         return NextResponse.json({ error: 'Activo no encontrado' }, { status: 404 })
       }
-      return NextResponse.json({ vehicles: [economics] })
+      return NextResponse.json({ vehicles: [data] })
     }
 
     if (!companyId) {
@@ -62,7 +60,7 @@ export async function GET(request: NextRequest) {
       orderBy: { purchaseDate: 'desc' },
     })
 
-    const vehicles = (await Promise.all(assets.map((a) => getVehicleEconomics(a.id)))).filter(
+    const vehicles = (await Promise.all(assets.map((a) => getVehicleMaintenance(a.id)))).filter(
       (v): v is NonNullable<typeof v> => v !== null
     )
 
@@ -70,12 +68,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ vehicles })
     }
 
-    return NextResponse.json({ vehicles, otherCompanies: await vehiclesInOtherCompanies(userId, companyId) })
+    return NextResponse.json({
+      vehicles,
+      otherCompanies: await vehiclesInOtherCompanies(userId, companyId),
+    })
   } catch (error) {
-    console.error('Error calculando economia del vehiculo:', error)
+    console.error('Error cargando el control de millas:', error)
     return NextResponse.json(
       {
-        error: 'Error al calcular la economía del vehículo',
+        error: 'Error al cargar el control de millas',
         details: error instanceof Error ? error.message : 'Error desconocido',
       },
       { status: 500 }

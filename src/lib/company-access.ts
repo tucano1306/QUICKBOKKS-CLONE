@@ -47,3 +47,34 @@ export async function resolveAssetAccess(userId: string, assetId: string): Promi
   }
   return { status: 200, companyId: asset.companyId }
 }
+
+/**
+ * Otras empresas del usuario que si tienen vehiculos, con cuantos.
+ *
+ * Sirve para que una pantalla vacia no sea un callejon sin salida: sin este
+ * dato se invita a dar de alta un vehiculo que ya existe en otra empresa, y se
+ * acaba con el mismo activo duplicado.
+ *
+ * Solo mira empresas donde el usuario es miembro: no revela nada ajeno.
+ */
+export async function vehiclesInOtherCompanies(userId: string, currentCompanyId: string) {
+  const memberships = await prisma.companyUser.findMany({
+    where: { userId, companyId: { not: currentCompanyId } },
+    select: { company: { select: { id: true, name: true } } },
+  })
+
+  const found = await Promise.all(
+    memberships
+      .map((m) => m.company)
+      .filter((c): c is { id: string; name: string } => c !== null)
+      .map(async (c) => ({
+        id: c.id,
+        name: c.name,
+        vehicleCount: await prisma.asset.count({
+          where: { companyId: c.id, category: 'VEHICLE', status: { not: 'DISPOSED' } },
+        }),
+      }))
+  )
+
+  return found.filter((c) => c.vehicleCount > 0)
+}
