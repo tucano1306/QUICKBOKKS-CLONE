@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runOilChangeAlerts } from '@/lib/vehicle-alerts-service'
-import { sendPendingNotificationEmails } from '@/lib/notification-email'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 /**
- * Trabajo diario: detecta cambios de aceite proximos y reparte los avisos.
+ * Trabajo diario: detecta cambios de aceite proximos y crea los avisos.
+ *
+ * Los avisos van solo a la campana de la aplicacion. No se envia correo.
  *
  * Lo llama el cron de Vercel, que manda la cabecera Authorization con
  * CRON_SECRET. Sin ese secreto la ruta responde 401: es un endpoint que
- * escribe en la base y manda correos, asi que no puede quedar abierto.
+ * escribe en la base, asi que no puede quedar abierto.
  *
  * Es idempotente. El indice unico (userId, dedupeKey) hace que ejecutarlo
  * varias veces el mismo dia no duplique ningun aviso.
@@ -33,12 +34,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const alerts = await runOilChangeAlerts()
-    const email = await sendPendingNotificationEmails()
 
     return NextResponse.json({
       ok: true,
       alerts,
-      email,
       ranAt: new Date().toISOString(),
     })
   } catch (error) {
