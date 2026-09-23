@@ -2094,6 +2094,16 @@ model TaxForm1040 {
   line12_standardOrItemized Float @default(0) // Standard deduction or itemized
   line13_qbiDeduction       Float @default(0) // Qualified business income deduction
   line14_totalDeductions    Float @default(0) // Add lines 12 and 13
+
+  // Schedule A (deducciones detalladas). Montos EN BRUTO tal como los declara el
+  // contribuyente: el piso del 7.5% del AGI sobre gastos médicos y el tope SALT
+  // se aplican al calcular, no al guardar. Si su total supera la deducción
+  // estándar, se usa la detallada en la línea 12.
+  scheduleA_medicalExpenses         Float   @default(0)
+  scheduleA_stateLocalTax           Float   @default(0)
+  scheduleA_mortgageInterest        Float   @default(0)
+  scheduleA_charitableContributions Float   @default(0)
+  usesItemizedDeductions            Boolean @default(false)
   line15_taxableIncome      Float @default(0) // Line 11 - Line 14
 
   // Tax and Credits
@@ -2184,7 +2194,10 @@ model TaxForm1040 {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  @@unique([userId, taxYear])
+  // Un 1040 por usuario, EMPRESA y año: cada empresa registrada lleva su propio
+  // borrador. Antes era [userId, taxYear], por lo que guardar el 1040 de una
+  // empresa sobrescribía el de las demás.
+  @@unique([userId, companyId, taxYear])
   @@index([userId])
   @@index([companyId])
   @@index([taxYear])

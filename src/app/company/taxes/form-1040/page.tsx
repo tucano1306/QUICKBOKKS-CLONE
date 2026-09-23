@@ -62,6 +62,11 @@ interface Dependent {
 // Clave para guardar borrador en localStorage
 const FORM_1040_DRAFT_KEY = 'form1040_draft'
 
+// El borrador local es por EMPRESA y año: sin el id de la empresa, el borrador
+// de una compañía aparecía al abrir el formulario de otra.
+const draftKey = (taxYear: number, companyId?: string) =>
+  `${FORM_1040_DRAFT_KEY}_${companyId ?? 'sin-empresa'}_${taxYear}`
+
 export default function Form1040Page() {
   const router = useRouter()
   const { status } = useSession()
@@ -139,7 +144,7 @@ export default function Form1040Page() {
   // Cargar borrador de localStorage al iniciar
   useEffect(() => {
     if (globalThis.window !== undefined && !draftLoaded) {
-      const savedDraft = localStorage.getItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`)
+      const savedDraft = localStorage.getItem(draftKey(taxYear, activeCompany?.id))
       if (savedDraft) {
         try {
           const draft = JSON.parse(savedDraft)
@@ -152,7 +157,12 @@ export default function Form1040Page() {
       setDraftLoaded(true)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taxYear, draftLoaded])
+  }, [taxYear, activeCompany?.id, draftLoaded])
+
+  // Al cambiar de empresa o de año hay que releer el borrador de ESA empresa.
+  useEffect(() => {
+    setDraftLoaded(false)
+  }, [taxYear, activeCompany?.id])
 
   // Guardar borrador en localStorage cuando cambien los datos importantes
   useEffect(() => {
@@ -172,7 +182,7 @@ export default function Form1040Page() {
         dependents,
         lastSaved: new Date().toISOString()
       }
-      localStorage.setItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`, JSON.stringify(draft))
+      localStorage.setItem(draftKey(taxYear, activeCompany?.id), JSON.stringify(draft))
     }
   }, [
     taxYear, filingStatus, firstName, middleInitial, lastName, ssn,
@@ -183,7 +193,7 @@ export default function Form1040Page() {
     iraDistributions, taxableIRA, pensionsAnnuities, taxablePensions,
     socialSecurity, taxableSocialSecurity, capitalGainLoss, otherIncome,
     scheduleC_grossReceipts, scheduleC_expenses,
-    withholding, estimatedPayments, dependents, draftLoaded
+    withholding, estimatedPayments, dependents, draftLoaded, activeCompany?.id
   ])
 
   useEffect(() => {
@@ -360,7 +370,7 @@ export default function Form1040Page() {
   // Limpiar borrador después de guardar exitosamente
   const clearDraft = () => {
     if (globalThis.window !== undefined) {
-      localStorage.removeItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`)
+      localStorage.removeItem(draftKey(taxYear, activeCompany?.id))
     }
   }
 
@@ -695,6 +705,9 @@ export default function Form1040Page() {
             </h1>
             <p className="text-muted-foreground mt-1">
               U.S. Individual Income Tax Return - Año Fiscal {taxYear}
+              {activeCompany && (
+                <span className="ml-2 font-medium text-primary">• {activeCompany.name}</span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -716,6 +729,22 @@ export default function Form1040Page() {
             </Select>
           </div>
         </div>
+
+        {/* Aviso de borrador para CPA */}
+        <Card className="border-amber-300 bg-amber-50">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-start gap-2 text-sm text-amber-900">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
+              <p>
+                <strong>Borrador para revisión de un contador (CPA).</strong> Los montos se calculan
+                con los datos reales de esta empresa y se actualizan solos. No es un formulario
+                oficial para presentar ante el IRS: sirve de base para que un profesional lo
+                verifique y lo radique con software autorizado. Cada empresa lleva su propio
+                borrador por año fiscal.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Banner: datos copiados del año anterior */}
         {!!copiedFromYear && (
