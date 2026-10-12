@@ -43,6 +43,17 @@ interface Transaction {
   date: string
   status: string
   notes: string | null
+  /** `foody:…` en los gastos que llegaron solos desde Foody. */
+  reference?: string | null
+}
+
+/** Marca los gastos que entraron solos desde Foody: sin ella no se distinguen de los tecleados. */
+function FoodyBadge() {
+  return (
+    <Badge variant="outline" className="text-xs py-0 h-5 border-emerald-300 text-emerald-700" title="Llegó desde Foody">
+      🥑 Foody
+    </Badge>
+  )
 }
 
 // ─── Module-level helpers (reduce cognitive complexity) ───────────────────────
@@ -986,6 +997,7 @@ export default function TransactionsPage() {
                         </span>
                         <span className="text-gray-400">•</span>
                         <Badge variant="outline" className="text-xs py-0 h-5">{t.category}</Badge>
+                        {t.reference?.startsWith('foody:') && <FoodyBadge />}
                       </div>
 
                       {/* Notas si existen */}
@@ -1055,6 +1067,7 @@ export default function TransactionsPage() {
                           {formatTransactionDate(t.date, { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                         <Badge variant="outline" className="text-xs">{t.category}</Badge>
+                        {t.reference?.startsWith('foody:') && <FoodyBadge />}
                       </div>
                       {t.notes && <p className="text-xs text-gray-400 mt-1 truncate">{t.notes}</p>}
                     </div>

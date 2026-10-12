@@ -5,6 +5,7 @@ import CompanyTabsLayout from '@/components/layout/company-tabs-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import FoodyIntegrationCard from '@/components/integrations/foody-integration-card'
 import { 
   Mail, 
   CheckCircle2, 
@@ -254,6 +255,8 @@ export default function IntegrationsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <FoodyIntegrationCard />
 
         {/* Otras integraciones futuras */}
         <Card className="opacity-60">
