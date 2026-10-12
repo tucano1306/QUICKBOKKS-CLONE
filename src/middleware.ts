@@ -15,7 +15,10 @@ const apiRoutesWithInternalAuth = [
   '/api/notifications',
   // El trabajo programado no trae sesion: se autentica con CRON_SECRET dentro
   // de la propia ruta, que responde 401 sin el.
-  '/api/cron/'
+  '/api/cron/',
+  // Foody llama de servidor a servidor, sin sesion: la ruta exige la firma
+  // HMAC de `x-foody-signature`. El estado (/estado) pide sesion dentro.
+  '/api/integrations/foody'
 ]
 
 // Rutas que requieren roles específicos
