@@ -96,3 +96,24 @@ graphify extract . --code-only && graphify cluster-only . --no-label
 graphify claude install    # hooks PreToolUse en .claude/settings.json
 graphify hook install      # post-commit / post-checkout
 ```
+
+## Integración con Foody
+
+Foody (la app de despensa y gastos del mismo dueño) manda aquí sus gastos por
+`POST /api/integrations/foody`, sin sesión: se autentica con una firma HMAC
+(`src/lib/foody-integration/firma.ts`; mismo vector de prueba en los dos repos).
+
+| Variable | Para qué |
+|---|---|
+| `FOODY_SECRET` | el secreto compartido (en Foody: `COMPUTO_SECRET`), 32+ caracteres |
+| `FOODY_COMPANY_ID` | empresa de lo PERSONAL («Leonardo»): entra en `transactions` como EXPENSE |
+| `FOODY_BUSINESS_COMPANY_ID` | empresa de lo de NEGOCIO («Venecoro»): entra en el módulo de Gastos (`expenses`) |
+
+- La empresa la fija este lado, nunca el cuerpo de la petición.
+- Cada gasto lleva `reference = foody:<ref>`: mandar dos veces no duplica.
+- Lo ya tecleado a mano (mismo importe, ±1 día) se ENLAZA en vez de duplicarse.
+- Lo de negocio copia categoría, descripción, proveedor y método de pago del
+  último gasto parecido de la empresa (`plantilla.ts`), y lleva su asiento
+  como el formulario (`src/lib/expense-journal.ts`).
+- Sin `FOODY_BUSINESS_COMPANY_ID`, lo de negocio se responde `omitido` y no se
+  escribe en ningún sitio: nunca cae en la empresa personal.

@@ -7,6 +7,14 @@
 
 import { prisma } from '@/lib/prisma';
 import { canonicalTransactionCategory } from '@/lib/transaction-category';
+import type { Prisma } from '@prisma/client';
+
+/**
+ * `prisma` o el `tx` de una transaccion. La integracion con Foody borra gastos
+ * dentro de su propia transaccion, y su contra-asiento tiene que ir en ella: si
+ * el lote falla, no puede quedar un asiento revertido de un gasto que sigue ahi.
+ */
+type DbAsientos = Pick<Prisma.TransactionClient, 'journalEntry' | 'expense'>;
 
 // Códigos de cuentas estándar
 const ACCOUNT_CODES = {
@@ -36,8 +44,8 @@ async function getAccountId(code: string, companyId: string): Promise<string | n
   return account?.id || null;
 }
 
-async function generateEntryNumber(companyId: string): Promise<string> {
-  const count = await prisma.journalEntry.count({
+async function generateEntryNumber(companyId: string, db: DbAsientos = prisma): Promise<string> {
+  const count = await db.journalEntry.count({
     where: { companyId }
   });
   const year = new Date().getFullYear();
@@ -236,10 +244,11 @@ export async function createPaymentReceivedJournalEntry(
 export async function reverseJournalEntry(
   journalEntryId: string,
   reason: string,
-  createdBy?: string
+  createdBy?: string,
+  db: DbAsientos = prisma
 ) {
   try {
-    const original = await prisma.journalEntry.findUnique({
+    const original = await db.journalEntry.findUnique({
       where: { id: journalEntryId },
       include: { lines: true }
     });
@@ -260,9 +269,9 @@ export async function reverseJournalEntry(
       }))
     );
 
-    const entryNumber = await generateEntryNumber(original.companyId);
+    const entryNumber = await generateEntryNumber(original.companyId, db);
 
-    const reversalEntry = await prisma.journalEntry.create({
+    const reversalEntry = await db.journalEntry.create({
       data: {
         entryNumber,
         date: original.date, // ✅ Usar la misma fecha del asiento original para reportes por período
@@ -288,8 +297,8 @@ export async function reverseJournalEntry(
 /**
  * Buscar journal entry por referencia (transaction ID, expense ID, etc.)
  */
-export async function findJournalEntryByReference(reference: string) {
-  return prisma.journalEntry.findFirst({
+export async function findJournalEntryByReference(reference: string, db: DbAsientos = prisma) {
+  return db.journalEntry.findFirst({
     where: { reference },
     include: { lines: true }
   });
@@ -318,17 +327,18 @@ export async function deleteTransactionWithReversal(
  */
 export async function deleteExpenseWithReversal(
   expenseId: string,
-  userId: string
+  userId: string,
+  db: DbAsientos = prisma
 ) {
   // Buscar asiento contable asociado
-  const journalEntry = await findJournalEntryByReference(expenseId);
+  const journalEntry = await findJournalEntryByReference(expenseId, db);
   
   if (journalEntry) {
-    await reverseJournalEntry(journalEntry.id, 'Gasto eliminado', userId);
+    await reverseJournalEntry(journalEntry.id, 'Gasto eliminado', userId, db);
   }
   
   // Eliminar el gasto
-  await prisma.expense.delete({ where: { id: expenseId } });
+  await db.expense.delete({ where: { id: expenseId } });
 }
 
 // ============================================

@@ -11,6 +11,15 @@ import { z } from 'zod'
 const REF = /^(trip|payment):[A-Za-z0-9:_-]{1,110}$/
 const FECHA = /^\d{4}-\d{2}-\d{2}$/
 
+/**
+ * De quien es el gasto. En Foody cada ticket y cada pago lleva su parte de
+ * negocio (`business_share`): lo personal entra en la empresa personal
+ * (FOODY_COMPANY_ID, «Leonardo») y lo de negocio en la de negocio
+ * (FOODY_BUSINESS_COMPANY_ID, «Venecoro»). El pago de la Suburban no tiene
+ * nada que hacer en las cuentas de casa.
+ */
+export const destinoFoodySchema = z.enum(['personal', 'negocio']).default('personal')
+
 export const gastoFoodySchema = z.object({
   ref: z.string().regex(REF),
   fecha: z.string().regex(FECHA),
@@ -18,6 +27,7 @@ export const gastoFoodySchema = z.object({
   categoria: z.string().trim().min(1).max(80),
   descripcion: z.string().trim().min(1).max(200),
   notas: z.string().max(500).optional(),
+  destino: destinoFoodySchema,
 })
 
 export const borradoFoodySchema = z.object({
@@ -28,6 +38,7 @@ export const borradoFoodySchema = z.object({
    * escribio el. `borrar`, para los que creo Foody.
    */
   modo: z.enum(['borrar', 'desvincular']),
+  destino: destinoFoodySchema,
 })
 
 /** `{ ping: true }`: comprobar la conexion sin tocar nada. */
@@ -43,6 +54,7 @@ export const loteFoodySchema = z.object({
 export type GastoFoody = z.infer<typeof gastoFoodySchema>
 export type BorradoFoody = z.infer<typeof borradoFoodySchema>
 export type LoteFoody = z.infer<typeof loteFoodySchema>
+export type DestinoFoody = z.infer<typeof destinoFoodySchema>
 
 export const PREFIJO_REFERENCIA = 'foody:'
 
