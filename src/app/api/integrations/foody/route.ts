@@ -16,8 +16,9 @@ const MAX_CUERPO = 1_000_000
  * No hay sesion: quien llama es el servidor de Foody, no un navegador. Se
  * autentica con la firma HMAC de la cabecera `x-foody-signature` (ver
  * firma.ts), y la empresa en la que escribe la fija ESTE lado
- * (FOODY_COMPANY_ID), nunca el cuerpo: aunque alguien tuviera una firma
- * valida, no podria elegir otra empresa.
+ * (FOODY_COMPANY_ID para lo personal, FOODY_BUSINESS_COMPANY_ID para lo de
+ * negocio), nunca el cuerpo: aunque alguien tuviera una firma valida, no
+ * podria elegir otra empresa.
  *
  * Cuerpo: `{ ping: true }` para comprobar la conexion, o
  * `{ upserts, borrar, simular }` para aplicar (o previsualizar) un lote.
@@ -58,12 +59,28 @@ export async function POST(request: NextRequest) {
   }
   const datosEmpresa = { id: empresa.id, nombre: empresa.name.trim() }
 
-  if (esPing || !lote) return NextResponse.json({ ok: true, empresa: datosEmpresa })
+  // La de negocio es opcional: si falta o esta inactiva, lo personal sigue
+  // entrando y lo de negocio se responde `omitido`.
+  const negocio = config.companyNegocioId
+    ? await prisma.company.findUnique({
+        where: { id: config.companyNegocioId },
+        select: { id: true, name: true, isActive: true },
+      })
+    : null
+  const datosNegocio = negocio?.isActive ? { id: negocio.id, nombre: negocio.name.trim() } : null
+
+  if (esPing || !lote) return NextResponse.json({ ok: true, empresa: datosEmpresa, empresaNegocio: datosNegocio })
 
   const datos = lote.data as LoteFoody
   try {
-    const resumen = await aplicarLoteFoody(empresa.id, datos)
-    return NextResponse.json({ ok: true, empresa: datosEmpresa, simulado: datos.simular, ...resumen })
+    const resumen = await aplicarLoteFoody(empresa.id, datos, datosNegocio?.id ?? null)
+    return NextResponse.json({
+      ok: true,
+      empresa: datosEmpresa,
+      empresaNegocio: datosNegocio,
+      simulado: datos.simular,
+      ...resumen,
+    })
   } catch (error) {
     console.error('[foody] error aplicando lote:', error)
     return NextResponse.json({ error: 'No se pudo aplicar el lote' }, { status: 500 })

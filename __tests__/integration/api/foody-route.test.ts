@@ -31,11 +31,17 @@ const lote = {
   borrar: [],
 }
 
+const EMPRESAS: Record<string, { id: string; name: string; isActive: boolean }> = {
+  leonardo: { id: 'leonardo', name: 'Leonardo ', isActive: true },
+  venecoro: { id: 'venecoro', name: 'Venecoro', isActive: true },
+}
+
 beforeEach(() => {
   process.env.FOODY_SECRET = SECRETO
   process.env.FOODY_COMPANY_ID = 'leonardo'
+  delete process.env.FOODY_BUSINESS_COMPANY_ID
   aplicarLoteFoody.mockReset()
-  findUnique.mockReset().mockResolvedValue({ id: 'leonardo', name: 'Leonardo ', isActive: true })
+  findUnique.mockReset().mockImplementation(async ({ where }: { where: { id: string } }) => EMPRESAS[where.id] ?? null)
 })
 
 describe('POST /api/integrations/foody', () => {
@@ -55,7 +61,17 @@ describe('POST /api/integrations/foody', () => {
   it('el ping contesta con la empresa en la que se escribe', async () => {
     const res = await POST(peticion({ ping: true }))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ ok: true, empresa: { id: 'leonardo', nombre: 'Leonardo' } })
+    expect(await res.json()).toEqual({ ok: true, empresa: { id: 'leonardo', nombre: 'Leonardo' }, empresaNegocio: null })
+  })
+
+  it('con empresa de negocio, el ping dice las dos', async () => {
+    process.env.FOODY_BUSINESS_COMPANY_ID = 'venecoro'
+    const res = await POST(peticion({ ping: true }))
+    expect(await res.json()).toEqual({
+      ok: true,
+      empresa: { id: 'leonardo', nombre: 'Leonardo' },
+      empresaNegocio: { id: 'venecoro', nombre: 'Venecoro' },
+    })
   })
 
   it('un lote mal formado es 422', async () => {
@@ -67,8 +83,36 @@ describe('POST /api/integrations/foody', () => {
     aplicarLoteFoody.mockResolvedValue({ resultados: [{ ref: 'trip:t1:grocery', accion: 'creado', id: 'x' }], porAccion: { creado: 1 } })
     const res = await POST(peticion({ ...lote, companyId: 'otra-empresa' }))
     expect(res.status).toBe(200)
-    expect(aplicarLoteFoody).toHaveBeenCalledWith('leonardo', expect.objectContaining({ simular: false }))
+    expect(aplicarLoteFoody).toHaveBeenCalledWith('leonardo', expect.objectContaining({ simular: false }), null)
     expect((await res.json()).porAccion).toEqual({ creado: 1 })
+  })
+
+  it('lo de negocio va a la empresa de negocio de la configuracion', async () => {
+    process.env.FOODY_BUSINESS_COMPANY_ID = 'venecoro'
+    aplicarLoteFoody.mockResolvedValue({ resultados: [], porAccion: {} })
+    await POST(peticion(lote))
+    expect(aplicarLoteFoody).toHaveBeenCalledWith('leonardo', expect.anything(), 'venecoro')
+    // Sin decir nada, un gasto es personal.
+    expect(aplicarLoteFoody.mock.calls[0][1].upserts[0].destino).toBe('personal')
+  })
+
+  it('una empresa de negocio inactiva no para lo personal: se pasa como si no hubiera', async () => {
+    process.env.FOODY_BUSINESS_COMPANY_ID = 'venecoro'
+    findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
+      where.id === 'venecoro' ? { ...EMPRESAS.venecoro, isActive: false } : EMPRESAS[where.id]
+    )
+    aplicarLoteFoody.mockResolvedValue({ resultados: [], porAccion: {} })
+    const res = await POST(peticion(lote))
+    expect(res.status).toBe(200)
+    expect(aplicarLoteFoody).toHaveBeenCalledWith('leonardo', expect.anything(), null)
+    expect((await res.json()).empresaNegocio).toBeNull()
+  })
+
+  it('la misma empresa como personal y de negocio no separa nada', async () => {
+    process.env.FOODY_BUSINESS_COMPANY_ID = 'leonardo'
+    aplicarLoteFoody.mockResolvedValue({ resultados: [], porAccion: {} })
+    await POST(peticion(lote))
+    expect(aplicarLoteFoody).toHaveBeenCalledWith('leonardo', expect.anything(), null)
   })
 
   it('si la empresa configurada esta inactiva, 409', async () => {

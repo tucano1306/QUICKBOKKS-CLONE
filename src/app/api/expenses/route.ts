@@ -4,49 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { validateExpenseRequest, validatePagination } from '@/lib/validation-middleware'
 import { deleteExpenseWithReversal } from '@/lib/accounting-service'
+import { crearAsientoDeGasto } from '@/lib/expense-journal'
 
 export const dynamic = 'force-dynamic'
-
-/**
- * Mapear categoría de gasto a código de cuenta contable
- */
-function getExpenseAccountCode(categoryName: string): string {
-  const categoryLower = categoryName.toLowerCase();
-  
-  if (categoryLower.includes('salario') || categoryLower.includes('chofer') || categoryLower.includes('sueldo')) {
-    return '5100';
-  }
-  if (categoryLower.includes('alquiler') || categoryLower.includes('rent')) {
-    return '5200';
-  }
-  if (categoryLower.includes('servicio') || categoryLower.includes('luz') || categoryLower.includes('agua')) {
-    return '5300';
-  }
-  return '5900'; // Otros Gastos por defecto
-}
-
-/**
- * Generar siguiente número de asiento contable
- */
-async function generateEntryNumber(tx: any, companyId: string): Promise<string> {
-  const year = new Date().getFullYear();
-  const lastJE = await tx.journalEntry.findFirst({
-    where: { 
-      companyId,
-      entryNumber: { startsWith: `JE-${year}-` }
-    },
-    orderBy: { entryNumber: 'desc' }
-  });
-  
-  let nextNumber = 1;
-  if (lastJE?.entryNumber) {
-    const lastNum = Number.parseInt(lastJE.entryNumber.split('-')[2], 10);
-    if (!Number.isNaN(lastNum)) {
-      nextNumber = lastNum + 1;
-    }
-  }
-  return `JE-${year}-${String(nextNumber).padStart(6, '0')}`;
-}
 
 /**
  * Normalizar método de pago al enum válido de Prisma
@@ -254,61 +214,16 @@ export async function POST(request: NextRequest) {
       // 2. Si hay companyId, crear Journal Entry (opcional, no bloqueante)
       if (companyId) {
         try {
-          const expDate = parseDate(date);
-          const categoryName = expense.category?.name || 'General';
-          const expAmount = Number.parseFloat(amount);
-
-          // Buscar cuenta de caja
-          const cashAccount = await tx.chartOfAccounts.findFirst({
-            where: { 
-              code: '1000',
-              OR: [{ companyId }, { companyId: null }]
-            }
+          const entryNumber = await crearAsientoDeGasto(tx, {
+            expenseId: expense.id,
+            companyId,
+            userId: session.user.id,
+            amount: Number.parseFloat(amount),
+            date: parseDate(date),
+            description,
+            categoryName: expense.category?.name,
           });
-
-          if (!cashAccount) {
-            console.warn('⚠️ Cuenta de Caja (1000) no encontrada, gasto creado sin journal entry');
-            return expense;
-          }
-
-          // Mapear categoría a cuenta de gasto
-          const expenseAccountCode = getExpenseAccountCode(categoryName);
-
-          const expenseAccount = await tx.chartOfAccounts.findFirst({
-            where: { 
-              code: expenseAccountCode,
-              OR: [{ companyId }, { companyId: null }]
-            }
-          });
-
-          if (!expenseAccount) {
-            console.warn(`⚠️ Cuenta de gastos (${expenseAccountCode}) no encontrada, gasto creado sin journal entry`);
-            return expense;
-          }
-
-          // Generar número de asiento único
-          const entryNumber = await generateEntryNumber(tx, companyId);
-
-          // Crear Journal Entry
-          await tx.journalEntry.create({
-            data: {
-              entryNumber,
-              date: expDate,
-              description: `Gasto: ${description || categoryName}`,
-              reference: expense.id,
-              companyId,
-              createdBy: session.user.id,
-              status: 'POSTED',
-              lines: {
-                create: [
-                  { accountId: expenseAccount.id, debit: expAmount, credit: 0, description: description || categoryName, lineNumber: 1 },
-                  { accountId: cashAccount.id, debit: 0, credit: expAmount, description: 'Pago de gasto', lineNumber: 2 }
-                ]
-              }
-            }
-          });
-
-          console.log(`✅ Gasto ${expense.id} creado con JE ${entryNumber}`);
+          if (entryNumber) console.log(`✅ Gasto ${expense.id} creado con JE ${entryNumber}`);
         } catch (jeError) {
           console.error('⚠️ Error creando journal entry, pero gasto fue creado:', jeError);
           // No lanzar error, el gasto ya fue creado exitosamente

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { canonicalTransactionCategory } from '@/lib/transaction-category'
 import { elegirDuplicado, type CandidatoManual } from './duplicados'
 import { fechaDeGasto, referenciaDe, type BorradoFoody, type GastoFoody, type LoteFoody } from './lote'
+import { aplicarBorradoNegocio, aplicarUpsertNegocio, type TxNegocio } from './aplicar-negocio'
 
 /**
  * Aplica en la empresa un lote de gastos de Foody.
@@ -15,6 +16,11 @@ import { fechaDeGasto, referenciaDe, type BorradoFoody, type GastoFoody, type Lo
  *
  * Todo el lote va en una transaccion: o entra entero o no entra nada, y Foody
  * lo reintenta.
+ *
+ * Lo PERSONAL va a `transactions` de la empresa personal (abajo). Lo de NEGOCIO
+ * va al modulo de Gastos de la empresa de negocio (aplicar-negocio.ts); si no
+ * hay empresa de negocio configurada, se responde `omitido` y no se escribe en
+ * ningun sitio: Foody lo guarda como pendiente y lo reintenta.
  */
 
 export type AccionFoody =
@@ -25,12 +31,17 @@ export type AccionFoody =
   | 'borrado'
   | 'desvinculado'
   | 'no_existe'
+  | 'omitido'
 
 export interface ResultadoFoody {
   ref: string
   accion: AccionFoody
-  /** El id de la transaccion en Computo, cuando la hay. */
+  /** El id de la transaccion (o del gasto, en negocio) en Computo, cuando lo hay. */
   id?: string
+  /** Por que se omitio: lo que Foody le enseña al usuario. */
+  motivo?: string
+  /** Negocio: la categoria con la que se creo (o se crearia) el gasto. */
+  categoria?: string
 }
 
 export interface ResumenFoody {
@@ -38,7 +49,7 @@ export interface ResumenFoody {
   porAccion: Partial<Record<AccionFoody, number>>
 }
 
-type Tx = Pick<typeof prisma, 'transaction'>
+type Tx = Pick<typeof prisma, 'transaction'> & TxNegocio
 
 const UN_DIA = 86_400_000
 
@@ -136,15 +147,29 @@ async function aplicarBorrado(tx: Tx, companyId: string, b: BorradoFoody, simula
   return { ref: b.ref, accion: 'borrado', id: existente.id }
 }
 
-export async function aplicarLoteFoody(companyId: string, lote: LoteFoody): Promise<ResumenFoody> {
+const SIN_NEGOCIO = 'Computo no tiene empresa de negocio configurada (FOODY_BUSINESS_COMPANY_ID)'
+
+export async function aplicarLoteFoody(
+  companyId: string,
+  lote: LoteFoody,
+  companyNegocioId: string | null = null
+): Promise<ResumenFoody> {
   const simular = lote.simular === true
   const correr = async (tx: Tx) => {
     const enlazados = new Set<string>()
     const resultados: ResultadoFoody[] = []
-    // Primero los borrados: si un ticket cambio de tipo, su referencia vieja se
-    // va antes de que la nueva busque duplicados.
-    for (const b of lote.borrar ?? []) resultados.push(await aplicarBorrado(tx, companyId, b, simular))
-    for (const g of lote.upserts ?? []) resultados.push(await aplicarUpsert(tx, companyId, g, simular, enlazados))
+    // Primero los borrados: si un ticket cambio de tipo (o de dueño), su
+    // referencia vieja se va antes de que la nueva busque duplicados.
+    for (const b of lote.borrar ?? []) {
+      if (b.destino !== 'negocio') resultados.push(await aplicarBorrado(tx, companyId, b, simular))
+      else if (companyNegocioId) resultados.push(await aplicarBorradoNegocio(tx, companyNegocioId, b, simular))
+      else resultados.push({ ref: b.ref, accion: 'omitido', motivo: SIN_NEGOCIO })
+    }
+    for (const g of lote.upserts ?? []) {
+      if (g.destino !== 'negocio') resultados.push(await aplicarUpsert(tx, companyId, g, simular, enlazados))
+      else if (companyNegocioId) resultados.push(await aplicarUpsertNegocio(tx, companyNegocioId, g, simular, enlazados))
+      else resultados.push({ ref: g.ref, accion: 'omitido', motivo: SIN_NEGOCIO })
+    }
     return resultados
   }
 

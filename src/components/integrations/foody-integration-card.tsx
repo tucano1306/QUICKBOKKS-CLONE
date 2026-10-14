@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowDownLeft, CheckCircle2, Link2, RefreshCw, ShieldCheck, Tags, XCircle } from 'lucide-react'
+import { ArrowDownLeft, Briefcase, CheckCircle2, Link2, RefreshCw, ShieldCheck, Tags, XCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,8 @@ interface Reciente {
   amount: number
   date: string
   updatedAt: string
+  /** Llego al modulo de Gastos de la empresa de negocio. */
+  negocio?: boolean
 }
 
 interface EstadoFoody {
@@ -23,6 +25,7 @@ interface EstadoFoody {
   total?: number
   ultimo?: string | null
   recientes?: Reciente[]
+  negocio?: { empresa: { id: string; nombre: string } | null; delMes: { cantidad: number; total: number } } | null
 }
 
 const dinero = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
@@ -133,12 +136,22 @@ export default function FoodyIntegrationCard() {
               <div className="rounded-lg border p-3">
                 <p className="text-xs text-gray-500">Entran en</p>
                 <p className="font-semibold text-gray-900 dark:text-white">{estado.empresa?.nombre ?? '—'}</p>
+                {estado.negocio?.empresa && (
+                  <p className="text-xs text-gray-500">
+                    Negocio: <span className="font-medium text-gray-700 dark:text-gray-300">{estado.negocio.empresa.nombre}</span>
+                  </p>
+                )}
               </div>
               <div className="rounded-lg border p-3">
                 <p className="text-xs text-gray-500">Este mes</p>
                 <p className="font-semibold text-gray-900 dark:text-white">
                   {estado.delMes?.cantidad ?? 0} gastos · {dinero(estado.delMes?.total ?? 0)}
                 </p>
+                {estado.negocio?.empresa && (
+                  <p className="text-xs text-gray-500">
+                    + {estado.negocio.delMes.cantidad} de negocio · {dinero(estado.negocio.delMes.total)}
+                  </p>
+                )}
               </div>
               <div className="rounded-lg border p-3">
                 <p className="text-xs text-gray-500">Último recibido</p>
@@ -158,6 +171,11 @@ export default function FoodyIntegrationCard() {
                       <Badge variant="outline" className="shrink-0 text-xs py-0 h-5">
                         {r.category}
                       </Badge>
+                      {r.negocio && (
+                        <Badge variant="secondary" className="shrink-0 text-xs py-0 h-5">
+                          {estado.negocio?.empresa?.nombre ?? 'Negocio'}
+                        </Badge>
+                      )}
                     </span>
                     <span className="shrink-0 text-right">
                       <span className="font-semibold">{dinero(r.amount)}</span>
@@ -170,7 +188,7 @@ export default function FoodyIntegrationCard() {
           </>
         )}
 
-        <ul className="grid gap-2 text-sm text-gray-600 dark:text-gray-400 sm:grid-cols-3">
+        <ul className="grid gap-2 text-sm text-gray-600 dark:text-gray-400 sm:grid-cols-2">
           <li className="flex gap-2">
             <Tags className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" aria-hidden="true" />
             <span>Cada tipo de Foody cae en su categoría: Súper en Supermercado, Gasolina en Gasolina…</span>
@@ -182,6 +200,13 @@ export default function FoodyIntegrationCard() {
           <li className="flex gap-2">
             <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" aria-hidden="true" />
             <span>Si cambias la categoría aquí, Foody no te la deshace.</span>
+          </li>
+          <li className="flex gap-2">
+            <Briefcase className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" aria-hidden="true" />
+            <span>
+              Lo marcado como negocio en Foody va a {estado?.negocio?.empresa?.nombre ?? 'la empresa de negocio'}, a Gastos,
+              con la categoría y el proveedor de tu último gasto igual.
+            </span>
           </li>
         </ul>
 
