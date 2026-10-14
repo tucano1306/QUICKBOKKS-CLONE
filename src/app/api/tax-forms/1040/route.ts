@@ -1,8 +1,13 @@
 import { authOptions } from '@/lib/auth';
 import {
     autoPopulateForm1040FromCompany,
+    calculateAdditionalMedicareTax,
+    calculateItemizedDeductions,
+    calculateQbiDeduction,
+    calculateSelfEmploymentTax,
     calculateStandardDeduction,
     calculateTaxFromBrackets,
+    chooseDeduction,
     generateForm1040Summary,
     getAITaxSuggestions,
     getForm1040,
@@ -20,24 +25,28 @@ async function handleAutoPopulateAndSave(
   year: number
 ): Promise<NextResponse> {
   const autoData = await autoPopulateForm1040FromCompany(companyId, userId, year);
-  const existing = await prisma.taxForm1040.findUnique({
-    where: { userId_taxYear: { userId, taxYear: year } }
+  // El borrador es por usuario + EMPRESA + año: buscar solo por usuario/año
+  // hacía que una empresa sobrescribiera el borrador de otra.
+  const existing = await prisma.taxForm1040.findFirst({
+    where: { userId, taxYear: year, companyId },
+    select: { id: true },
   });
   if (!existing) {
-    return NextResponse.json({ error: 'No existe un borrador para este año. Primero cree el formulario con su información personal.' }, { status: 404 });
+    return NextResponse.json({ error: 'No existe un borrador para este año en esta empresa. Primero cree el formulario con su información personal.' }, { status: 404 });
   }
   const hasScheduleC = (autoData.scheduleC?.netProfit ?? 0) !== 0 || (autoData.scheduleC?.grossReceipts ?? 0) !== 0;
   const netProfit = (autoData.scheduleC?.grossReceipts ?? 0) - (autoData.scheduleC?.expenses ?? 0);
-  const selfEmployTaxable = Math.max(0, netProfit) * 0.9235;
-  const selfEmployTax = selfEmployTaxable * 0.153;
-  const deductSeTax = selfEmployTax / 2;
+  // Mismo helper que el resto de la app: 12.4% de SS hasta el tope + 2.9% de Medicare.
+  const se = calculateSelfEmploymentTax(netProfit, year, autoData.w2Detail?.socialSecurityWages ?? 0);
+  const selfEmployTax = se.tax;
+  const deductSeTax = se.deductiblePortion;
   const totalIncome = (autoData.income?.wages ?? 0)
     + (autoData.income?.taxableInterest ?? 0)
     + (autoData.income?.ordinaryDividends ?? 0)
     + (autoData.income?.otherIncome ?? 0);
 
   await prisma.taxForm1040.update({
-    where: { userId_taxYear: { userId, taxYear: year } },
+    where: { id: existing.id },
     data: {
       companyId,
       line1a_w2Wages: autoData.income?.wages ?? 0,
@@ -71,7 +80,8 @@ async function handleAutoPopulateAndSave(
       deductibleSeTax: deductSeTax,
       totalIncome,
       withholding: autoData.payments?.withholding ?? 0,
-    }
+    },
+    warnings: autoData.warnings ?? [],
   });
 }
 
@@ -79,9 +89,9 @@ async function handleAutoPopulateAndSave(
  * GET /api/tax-forms/1040?year=2024&companyId=xxx
  * Obtiene el Form 1040 o auto-genera uno basado en datos de la empresa
  */
-async function handleCopyFromPreviousYear(userId: string, year: number): Promise<NextResponse> {
+async function handleCopyFromPreviousYear(userId: string, year: number, companyId: string | null): Promise<NextResponse> {
   const previousYear = year - 1;
-  const previousForm = await getForm1040(userId, previousYear);
+  const previousForm = await getForm1040(userId, previousYear, companyId);
   if (!previousForm) {
     return NextResponse.json({
       error: `No se encontró un formulario guardado para el año ${previousYear}. Primero debe guardar un Form 1040 del año anterior.`
@@ -112,7 +122,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100
  */
 async function handleComputeFull(userId: string, companyId: string, year: number): Promise<NextResponse> {
   const autoData = await autoPopulateForm1040FromCompany(companyId, userId, year)
-  const saved = await getForm1040(userId, year)
+  const saved = await getForm1040(userId, year, companyId)
 
   const filingStatus = saved?.filingStatus || 'SINGLE'
 
@@ -129,29 +139,71 @@ async function handleComputeFull(userId: string, companyId: string, year: number
     netProfit: autoData.scheduleC?.netProfit ?? 0,
   }
 
-  // Self-employment tax: 12.4% Seguro Social (hasta el límite salarial del año)
-  // + 2.9% Medicare (sin límite). Para ingresos bajos equivale a 15.3%.
-  const SS_WAGE_BASE: Record<number, number> = { 2024: 168600, 2025: 176100 }
-  const wageBase = SS_WAGE_BASE[year] ?? 176100
+  // Schedule SE con el tope de Seguro Social, reducido por los salarios W-2 que
+  // ya cotizaron. Helper único compartido con el resto de la app.
   const net = scheduleC.netProfit
-  const seBase = r2(Math.max(0, net) * 0.9235)
-  const seTax = r2(Math.min(seBase, wageBase) * 0.124 + seBase * 0.029)
-  const seDeductible = r2(seTax / 2)
+  const se = calculateSelfEmploymentTax(net, year, autoData.w2Detail?.socialSecurityWages ?? 0)
+  const seBase = se.netEarnings
+  const seTax = se.tax
+  const seDeductible = se.deductiblePortion
 
   const totalIncome = r2(income.wages + income.taxableInterest + income.ordinaryDividends + income.otherIncome)
   const agi = r2(totalIncome - seDeductible)
-  const standardDeduction = calculateStandardDeduction(filingStatus, undefined, year)
-  const qbiDeduction = net > 0 ? r2(Math.min(net * 0.2, Math.max(0, agi - standardDeduction) * 0.2)) : 0
-  const taxableIncome = Math.max(0, r2(agi - standardDeduction - qbiDeduction))
+
+  // Deducción: la MAYOR entre la estándar y la detallada del Schedule A.
+  const standardDeduction = calculateStandardDeduction(
+    filingStatus,
+    {
+      youBornBefore1960: saved?.youBornBefore1960 ?? false,
+      youBlind: saved?.youBlind ?? false,
+      spouseBornBefore1960: saved?.spouseBornBefore1960 ?? false,
+      spouseBlind: saved?.spouseBlind ?? false,
+    },
+    year
+  )
+  const itemized = calculateItemizedDeductions(
+    {
+      medicalExpenses: saved?.scheduleA_medicalExpenses ?? 0,
+      stateLocalTax: saved?.scheduleA_stateLocalTax ?? 0,
+      mortgageInterest: saved?.scheduleA_mortgageInterest ?? 0,
+      charitableContributions: saved?.scheduleA_charitableContributions ?? 0,
+    },
+    agi,
+    year
+  )
+  const chosen = chooseDeduction(standardDeduction, itemized.total)
+
+  // QBI reducido por la mitad deducible del SE tax (regla del Form 8995).
+  const qbiDeduction = calculateQbiDeduction(net, seDeductible, agi, chosen.amount)
+  const taxableIncome = Math.max(0, r2(agi - chosen.amount - qbiDeduction))
   const tax = calculateTaxFromBrackets(taxableIncome, filingStatus, year)
-  const additionalTaxes = seTax
+
+  // Schedule 2: TODOS los impuestos adicionales entran a la línea 24.
+  const additionalMedicareTax = calculateAdditionalMedicareTax(
+    autoData.w2Detail?.medicareWages ?? 0,
+    seBase,
+    filingStatus
+  )
+  const additionalTaxes = r2(seTax + additionalMedicareTax)
   const totalTax = r2(tax + additionalTaxes)
+
+  // Créditos por dependientes guardados en el borrador (Child Tax Credit y
+  // crédito por otros dependientes). Antes se enviaba 0 fijo.
+  const dependents = Array.isArray(saved?.dependents) ? (saved?.dependents as any[]) : []
+  const childTaxCredit = dependents.filter(d => d?.childTaxCredit).length * 2000
+  const otherDependentCredit = dependents.filter(d => d?.creditOtherDependents).length * 500
+  const totalCredits = childTaxCredit + otherDependentCredit
+  const netTax = Math.max(0, r2(totalTax - totalCredits))
 
   const w2Withholding = autoData.payments?.withholding ?? 0
   const estimatedPayments = autoData.payments?.estimatedPayments ?? 0
   const totalPayments = r2(w2Withholding + estimatedPayments)
-  const refund = Math.max(0, r2(totalPayments - totalTax))
-  const amountOwed = Math.max(0, r2(totalTax - totalPayments))
+  const refund = Math.max(0, r2(totalPayments - netTax))
+  const amountOwed = Math.max(0, r2(netTax - totalPayments))
+
+  // Impuesto total del año ANTERIOR, para el safe harbor de pagos estimados.
+  const priorForm = await getForm1040(userId, year - 1, companyId)
+  const priorYearTax = priorForm?.line24_totalTax ?? null
 
   return NextResponse.json({
     computed: true,
@@ -166,10 +218,31 @@ async function handleComputeFull(userId: string, companyId: string, year: number
     income,
     scheduleC,
     scheduleSE: { netEarnings: seBase, selfEmploymentTax: seTax, deductiblePortion: seDeductible },
+    scheduleA: {
+      medicalExpenses: itemized.medicalRaw,
+      medicalFloor: itemized.medicalFloor,
+      medicalDeductible: itemized.medicalDeductible,
+      stateLocalTax: itemized.saltRaw,
+      saltCap: itemized.saltCap,
+      stateLocalTaxDeductible: itemized.saltDeductible,
+      mortgageInterest: itemized.mortgageInterest,
+      charitableContributions: itemized.charitableContributions,
+      total: itemized.total,
+      useItemized: chosen.useItemized,
+    },
+    schedule2: {
+      selfEmploymentTax: seTax,
+      additionalMedicareTax,
+      totalAdditionalTaxes: additionalTaxes,
+    },
+    priorYearTax,
+    warnings: autoData.warnings ?? [],
     totals: {
-      totalIncome, adjustments: seDeductible, agi, standardDeduction, qbiDeduction,
-      totalDeductions: r2(standardDeduction + qbiDeduction), taxableIncome,
-      tax, additionalTaxes, totalTax, childTaxCredit: 0, netTax: totalTax,
+      totalIncome, adjustments: seDeductible, agi,
+      standardDeduction, itemizedDeduction: itemized.total, useItemized: chosen.useItemized,
+      deductionTaken: chosen.amount, qbiDeduction,
+      totalDeductions: r2(chosen.amount + qbiDeduction), taxableIncome,
+      tax, additionalTaxes, totalTax, childTaxCredit, otherDependentCredit, netTax,
       w2Withholding, estimatedPayments, totalPayments, refund, amountOwed,
     },
   })
@@ -209,7 +282,7 @@ export async function GET(request: NextRequest) {
 
     // Si se solicita sugerencias de AI
     if (action === 'ai-suggestions') {
-      const form1040 = await getForm1040(session.user.id, year);
+      const form1040 = await getForm1040(session.user.id, year, companyId);
       if (!form1040) {
         return NextResponse.json({ error: 'No se encontró el Form 1040 para este año' }, { status: 404 });
       }
@@ -219,7 +292,7 @@ export async function GET(request: NextRequest) {
 
     // Si se solicita resumen
     if (action === 'summary') {
-      const form1040 = await getForm1040(session.user.id, year);
+      const form1040 = await getForm1040(session.user.id, year, companyId);
       if (!form1040) {
         return NextResponse.json({ error: 'No se encontró el Form 1040 para este año' }, { status: 404 });
       }
@@ -229,7 +302,7 @@ export async function GET(request: NextRequest) {
 
     // Copiar datos del año anterior para llenar el formulario actual
     if (action === 'copy-from-previous-year') {
-      return handleCopyFromPreviousYear(session.user.id, year);
+      return handleCopyFromPreviousYear(session.user.id, year, companyId);
     }
 
     // Retornar todos los años guardados para el usuario (para estadísticas multi-año)
@@ -250,7 +323,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener Form 1040 existente
-    const form1040 = await getForm1040(session.user.id, year);
+    const form1040 = await getForm1040(session.user.id, year, companyId);
 
     if (!form1040) {
       // Retornar estructura vacía para nuevo formulario
@@ -455,14 +528,23 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Se requiere el año' }, { status: 400 });
     }
 
-    await prisma.taxForm1040.delete({
+    // Borrar solo el borrador de ESTA empresa: sin el filtro se eliminaba el
+    // único registro del año, sin importar a qué empresa pertenecía.
+    const companyId = searchParams.get('companyId');
+    const target = await prisma.taxForm1040.findFirst({
       where: {
-        userId_taxYear: {
-          userId: session.user.id,
-          taxYear: year
-        }
-      }
+        userId: session.user.id,
+        taxYear: year,
+        ...(companyId ? { companyId } : {}),
+      },
+      select: { id: true },
     });
+
+    if (!target) {
+      return NextResponse.json({ error: 'No se encontró un formulario para eliminar' }, { status: 404 });
+    }
+
+    await prisma.taxForm1040.delete({ where: { id: target.id } });
 
     return NextResponse.json({ message: 'Form 1040 eliminado correctamente' });
   } catch (error: any) {
