@@ -117,3 +117,27 @@ Foody (la app de despensa y gastos del mismo dueño) manda aquí sus gastos por
   como el formulario (`src/lib/expense-journal.ts`).
 - Sin `FOODY_BUSINESS_COMPANY_ID`, lo de negocio se responde `omitido` y no se
   escribe en ningún sitio: nunca cae en la empresa personal.
+
+## Pruebas contra base real
+
+`__tests__/integration/db/database.test.ts` y `__tests__/integration/api/customers.test.ts`
+escriben en una base DE VERDAD: crean y borran empresas, clientes y usuarios
+«test-…». Hasta octubre de 2026 caían en `DATABASE_URL`, que next/jest carga
+del `.env`, o sea en **producción**: la tabla de empresas llevaba 232 altas y
+229 bajas para solo 3 empresas reales.
+
+Ahora solo corren con `TEST_DATABASE_URL`, y nunca si apunta a la misma base
+que otra variable `*DATABASE*` o `*POSTGRES*` del entorno, aunque sea por la
+dirección con o sin `-pooler` (`__tests__/integration/base-de-pruebas.ts`).
+Sin ella se saltan (`describe.skip`), avisan del motivo, y `jest` sigue
+saliendo con 0.
+
+Para correrlas:
+
+1. En Neon (proyecto `quiet-mud-77980078`), crea una **rama** desde la principal.
+2. Copia su cadena de conexión en `.env.test.local`, que está en `.gitignore`
+   y next/jest la carga solo en pruebas:
+   ```
+   TEST_DATABASE_URL="postgresql://…rama-de-pruebas…"
+   ```
+3. Ejecuta `npx jest __tests__/integration/db __tests__/integration/api/customers.test.ts`.

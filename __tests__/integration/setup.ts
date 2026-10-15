@@ -1,20 +1,34 @@
 /**
  * Integration Tests Setup
- * 
- * This file sets up the test environment for integration tests.
- * It creates a test database context and handles cleanup.
+ *
+ * Las pruebas que importan este archivo escriben en una base de datos DE
+ * VERDAD: crean y borran empresas, clientes y usuarios «test-…».
+ *
+ * Solo corren con TEST_DATABASE_URL, explicita y distinta de cualquier base
+ * de la app (ver base-de-pruebas.ts). Sin ella se saltan: antes caian en
+ * DATABASE_URL, que es la de produccion, y cada `jest` escribia alli.
  */
 
+import { randomUUID } from 'crypto'
 import { PrismaClient } from '@prisma/client'
+import { motivoParaSaltar } from './base-de-pruebas'
 
-// Use a separate test database
-const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
+const motivo = motivoParaSaltar(process.env)
+export const hayBaseDePruebas = motivo === null
 
-// Create a test-specific Prisma client
+if (motivo) {
+  console.warn(`[integracion] Se saltan las pruebas contra base real: ${motivo}. Ver CLAUDE.md.`)
+}
+
+/** `describe` si hay base de pruebas segura; si no, `describe.skip`. */
+export const describeConBase: jest.Describe = hayBaseDePruebas ? describe : describe.skip
+
+// Sin base de pruebas el cliente se crea apuntando a ninguna parte y nunca se
+// conecta: las pruebas que lo usan estan saltadas.
 export const testPrisma = new PrismaClient({
   datasources: {
     db: {
-      url: TEST_DATABASE_URL,
+      url: hayBaseDePruebas ? process.env.TEST_DATABASE_URL : 'postgresql://localhost:5432/sin_base_de_pruebas',
     },
   },
 })
@@ -24,26 +38,22 @@ jest.mock('@/lib/prisma', () => ({
   prisma: testPrisma,
 }))
 
-// Setup and teardown
 beforeAll(async () => {
-  // Connect to test database
-  await testPrisma.$connect()
+  if (hayBaseDePruebas) await testPrisma.$connect()
 })
 
 afterAll(async () => {
-  // Disconnect from test database
-  await testPrisma.$disconnect()
+  if (hayBaseDePruebas) await testPrisma.$disconnect()
 })
 
-// Reset database state between tests (for isolation)
-beforeEach(async () => {
-  // You can add database cleanup logic here if needed
-  // For example, wrapping each test in a transaction that gets rolled back
-})
-
-afterEach(async () => {
-  // Clean up after each test if needed
-})
+/**
+ * Ids con `randomUUID` y no con `Date.now()`: dos altas en el mismo
+ * milisegundo chocaban por el id («Unique constraint failed on the fields:
+ * (`id`)»). El prefijo «test-» se queda, para reconocer cualquier resto.
+ */
+export function idDePrueba(tipo: 'company' | 'user' | 'customer'): string {
+  return `test-${tipo}-${randomUUID()}`
+}
 
 /**
  * Helper function to create test data
@@ -51,7 +61,7 @@ afterEach(async () => {
 export async function createTestCompany() {
   return testPrisma.company.create({
     data: {
-      id: `test-company-${Date.now()}`,
+      id: idDePrueba('company'),
       name: 'Test Company',
       taxId: 'TEST000000XXX',
       email: 'test@company.com',
@@ -69,9 +79,9 @@ export async function createTestCompany() {
 export async function createTestUser() {
   return testPrisma.user.create({
     data: {
-      id: `test-user-${Date.now()}`,
+      id: idDePrueba('user'),
       name: 'Test User',
-      email: `test-${Date.now()}@example.com`,
+      email: `test-${randomUUID()}@example.com`,
       password: 'hashedpassword',
     },
   })
@@ -80,9 +90,9 @@ export async function createTestUser() {
 export async function createTestCustomer(companyId: string) {
   return testPrisma.customer.create({
     data: {
-      id: `test-customer-${Date.now()}`,
+      id: idDePrueba('customer'),
       name: 'Test Customer',
-      email: `customer-${Date.now()}@example.com`,
+      email: `customer-${randomUUID()}@example.com`,
       phone: '555-0124',
       address: '456 Customer Ave',
       city: 'Miami',

@@ -4,9 +4,19 @@
  * Tests for database migrations, seeding, and data integrity.
  */
 
-import { testPrisma, createTestCompany, createTestUser, createTestCustomer, cleanupTestData } from '../setup'
+import {
+  testPrisma,
+  createTestCompany,
+  createTestUser,
+  createTestCustomer,
+  cleanupTestData,
+  describeConBase,
+  idDePrueba,
+} from '../setup'
+import { randomUUID } from 'crypto'
 
-describe('Database Integration Tests', () => {
+// Solo con TEST_DATABASE_URL (ver ../base-de-pruebas.ts): nunca en produccion.
+describeConBase('Database Integration Tests', () => {
   describe('Database Connection', () => {
     it('should connect to the database', async () => {
       const result = await testPrisma.$queryRaw`SELECT 1 as connected`
@@ -229,7 +239,7 @@ describe('Database Integration Tests', () => {
     })
 
     it('should rollback transaction on error', async () => {
-      const customerId = `test-customer-${Date.now()}`
+      const customerId = idDePrueba('customer')
       
       try {
         await testPrisma.$transaction(async (tx) => {
@@ -238,7 +248,7 @@ describe('Database Integration Tests', () => {
             data: {
               id: customerId,
               name: 'Transaction Test Customer',
-              email: `tx-${Date.now()}@test.com`,
+              email: `tx-${randomUUID()}@test.com`,
               companyId: testCompany.id,
               status: 'ACTIVE',
             },
@@ -260,14 +270,14 @@ describe('Database Integration Tests', () => {
     })
 
     it('should commit transaction on success', async () => {
-      const customerId = `test-customer-${Date.now()}`
+      const customerId = idDePrueba('customer')
       
       await testPrisma.$transaction(async (tx) => {
         await tx.customer.create({
           data: {
             id: customerId,
             name: 'Transaction Test Customer',
-            email: `tx-${Date.now()}@test.com`,
+            email: `tx-${randomUUID()}@test.com`,
             companyId: testCompany.id,
             status: 'ACTIVE',
           },
