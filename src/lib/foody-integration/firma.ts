@@ -19,6 +19,17 @@ import crypto from 'crypto'
 
 export const TOLERANCIA_FIRMA_SEGUNDOS = 300
 
+/**
+ * Seis caracteres del SHA-256 del secreto: con ellos se sabe si Foody y
+ * Computo tienen la MISMA clave sin enseñar ninguna. En Vercel los dos
+ * secretos son «Sensitive» y nadie puede leerlos; sin esta huella, un secreto
+ * mal pegado en un lado era indistinguible de un despliegue que todavia no lo
+ * habia recogido. 24 bits de un hash no acercan a nadie a una clave de 256.
+ */
+export function huellaSecreto(secreto: string): string {
+  return crypto.createHash('sha256').update(secreto).digest('hex').slice(0, 6)
+}
+
 export function firmarCuerpo(secreto: string, timestamp: number, cuerpo: string): string {
   return crypto.createHmac('sha256', secreto).update(`${timestamp}.${cuerpo}`).digest('hex')
 }

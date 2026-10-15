@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { aplicarLoteFoody } from '@/lib/foody-integration/aplicar'
 import { configFoody } from '@/lib/foody-integration/config'
-import { verificarFirma } from '@/lib/foody-integration/firma'
+import { huellaSecreto, verificarFirma } from '@/lib/foody-integration/firma'
 import { loteFoodySchema, pingFoodySchema, type LoteFoody } from '@/lib/foody-integration/lote'
 
 export const dynamic = 'force-dynamic'
@@ -35,7 +35,11 @@ export async function POST(request: NextRequest) {
   }
 
   const firma = verificarFirma(config.secreto, request.headers.get('x-foody-signature'), cuerpo)
-  if (!firma.ok) return NextResponse.json({ error: firma.motivo }, { status: 401 })
+  // La huella de la clave de este lado va en el rechazo: Foody la compara con
+  // la suya y puede decir «claves distintas» en vez de adivinar.
+  if (!firma.ok) {
+    return NextResponse.json({ error: firma.motivo, huella: huellaSecreto(config.secreto) }, { status: 401 })
+  }
 
   let json: unknown
   try {

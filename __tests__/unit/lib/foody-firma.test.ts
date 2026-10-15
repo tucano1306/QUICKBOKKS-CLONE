@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { cabeceraFirma, firmarCuerpo, verificarFirma } from '@/lib/foody-integration/firma'
+import { cabeceraFirma, firmarCuerpo, huellaSecreto, verificarFirma } from '@/lib/foody-integration/firma'
 
 /**
  * La firma con la que Foody demuestra que un lote es suyo.
@@ -17,6 +17,11 @@ const CUERPO = '{"ping":true}'
 describe('firma Foody → Computo', () => {
   it('el vector compartido con Foody', () => {
     expect(firmarCuerpo(SECRETO, T, CUERPO)).toBe('7215974da98b111d77836844a943ce044c3a73f4e85ce1b01c88796d56529795')
+  })
+
+  it('la huella del secreto, tambien compartida con Foody', () => {
+    expect(huellaSecreto(SECRETO)).toBe('659be3')
+    expect(huellaSecreto(SECRETO + 'x')).not.toBe('659be3')
   })
 
   it('una firma recien hecha es valida', () => {
