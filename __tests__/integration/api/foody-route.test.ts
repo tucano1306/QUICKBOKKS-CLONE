@@ -58,6 +58,14 @@ describe('POST /api/integrations/foody', () => {
     expect(aplicarLoteFoody).not.toHaveBeenCalled()
   })
 
+  it('el rechazo dice el motivo y la huella de la clave de este lado, no la clave', async () => {
+    const res = await POST(peticion(lote, null))
+    const json = await res.json()
+    expect(json).toEqual({ error: 'Falta la firma', huella: '659be3' })
+    expect(JSON.stringify(json)).not.toContain(SECRETO)
+    expect(aplicarLoteFoody).not.toHaveBeenCalled()
+  })
+
   it('el ping contesta con la empresa en la que se escribe', async () => {
     const res = await POST(peticion({ ping: true }))
     expect(res.status).toBe(200)
