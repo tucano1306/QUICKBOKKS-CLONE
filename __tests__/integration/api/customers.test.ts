@@ -8,9 +8,10 @@
  * Run with: npm run test:integration
  */
 
-import { testPrisma, createTestCompany, createTestUser, createTestCustomer, cleanupTestData } from '../setup'
+import { testPrisma, createTestCompany, createTestUser, createTestCustomer, cleanupTestData, describeConBase } from '../setup'
 
-describe('Customers API Integration', () => {
+// Solo con TEST_DATABASE_URL (ver ../base-de-pruebas.ts): nunca en produccion.
+describeConBase('Customers API Integration', () => {
   let testCompany: any
   let testUser: any
 
