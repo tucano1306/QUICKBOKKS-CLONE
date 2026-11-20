@@ -7,6 +7,22 @@
  */
 
 import { prisma } from './prisma';
+import {
+  calculateAdditionalMedicareTax,
+  calculateItemizedDeductions,
+  calculateQbiDeduction,
+  calculateSelfEmploymentTax,
+  calculateVehicleDepreciationTotal,
+  chooseDeduction,
+  pickForYear,
+  round2,
+  type ItemizedDeductionInput,
+} from './irs-rules';
+
+// Las reglas puras del IRS viven en irs-rules.ts para que las pantallas puedan
+// usar exactamente las mismas fórmulas que el backend. Se re-exportan aquí para
+// no romper los imports existentes.
+export * from './irs-rules';
 
 // Tax brackets by year - will use latest available if year not found
 const TAX_BRACKETS: { [year: number]: any } = {
@@ -112,13 +128,6 @@ const TAX_BRACKETS: { [year: number]: any } = {
 // Devuelve el valor del año exacto; si no existe, usa el año disponible más
 // reciente que sea <= al solicitado (p. ej. 2026 usa la tabla de 2025); y si el
 // año es anterior a todos los disponibles, usa el más antiguo.
-function pickForYear<T>(table: { [year: number]: T }, year: number): T {
-  if (table[year]) return table[year];
-  const years = Object.keys(table).map(Number).sort((a, b) => a - b);
-  const atOrBefore = years.filter(y => y <= year);
-  const useYear = atOrBefore.length > 0 ? Math.max(...atOrBefore) : years[0];
-  return table[useYear];
-}
 
 // Get tax brackets for a specific year (fallback to most recent if not available)
 function getTaxBracketsForYear(year: number) {
@@ -134,6 +143,10 @@ const STANDARD_DEDUCTIONS: { [year: number]: any } = {
     HEAD_OF_HOUSEHOLD: 21900,
     QUALIFYING_SURVIVING_SPOUSE: 29200,
   },
+  // OJO: estos son los montos publicados en el Rev. Proc. 2024-40. La legislación
+  // de julio de 2025 los elevó (aprox. $15,750 / $31,500 / $23,625). Confirmá la
+  // cifra definitiva en las instrucciones del Form 1040 del año antes de cambiarla:
+  // mover esta tabla cambia el impuesto de todos los borradores.
   2025: {
     SINGLE: 15000,
     MARRIED_FILING_JOINTLY: 30000,
@@ -164,6 +177,7 @@ const ADDITIONAL_DEDUCTIONS: { [year: number]: any } = {
 function getAdditionalDeductionForYear(year: number) {
   return pickForYear(ADDITIONAL_DEDUCTIONS, year);
 }
+
 
 export interface Form1040Input {
   userId: string;
@@ -199,6 +213,9 @@ export interface Form1040Input {
     childTaxCredit: boolean;
     creditOtherDependents: boolean;
   }>;
+  // Deducciones detalladas (Schedule A). Si su total supera la deducción
+  // estándar, se usa la detallada.
+  itemizedDeductions?: ItemizedDeductionInput;
 }
 
 export interface Form1040Data {
@@ -258,6 +275,18 @@ export interface Form1040Data {
     expenses: number;
     netProfit: number;
   };
+  scheduleSE?: {
+    netEarnings: number;
+    selfEmploymentTax: number;
+    deductiblePortion: number;
+  };
+  w2Detail?: {
+    socialSecurityWages: number;
+    medicareWages: number;
+  };
+  // Avisos para el contador sobre supuestos que la app no puede resolver sola
+  // (fuentes de ingreso duplicadas, gastos sin marca de deducible, etc.).
+  warnings?: string[];
   aiSuggestions?: any;
 }
 
@@ -302,14 +331,19 @@ export function calculateStandardDeduction(
   let deduction = yearDeductions[filingStatus as keyof typeof yearDeductions] || yearDeductions.SINGLE;
 
   if (additionalDeductions) {
-    const isMarried = filingStatus.includes('MARRIED');
+    // El monto adicional "de casado" aplica también a QUALIFYING_SURVIVING_SPOUSE,
+    // que no contiene la palabra MARRIED pero usa las mismas cifras que MFJ.
+    const usesMarriedAmount =
+      filingStatus.includes('MARRIED') || filingStatus === 'QUALIFYING_SURVIVING_SPOUSE';
+    // Las casillas del cónyuge solo existen si se presenta declaración conjunta.
+    const hasSpouse = filingStatus === 'MARRIED_FILING_JOINTLY';
     const yearAdditional = getAdditionalDeductionForYear(year);
-    const additionalAmount = isMarried ? yearAdditional.MARRIED : yearAdditional.SINGLE;
+    const additionalAmount = usesMarriedAmount ? yearAdditional.MARRIED : yearAdditional.SINGLE;
 
     if (additionalDeductions.youBornBefore1960) deduction += additionalAmount;
     if (additionalDeductions.youBlind) deduction += additionalAmount;
-    if (additionalDeductions.spouseBornBefore1960 && isMarried) deduction += additionalAmount;
-    if (additionalDeductions.spouseBlind && isMarried) deduction += additionalAmount;
+    if (additionalDeductions.spouseBornBefore1960 && hasSpouse) deduction += additionalAmount;
+    if (additionalDeductions.spouseBlind && hasSpouse) deduction += additionalAmount;
   }
 
   return deduction;
@@ -332,9 +366,11 @@ export async function autoPopulateForm1040FromCompany(
     throw new Error('Empresa no encontrada');
   }
 
-  // Get all income data for the year
-  const yearStart = new Date(taxYear, 0, 1);
-  const yearEnd = new Date(taxYear, 11, 31, 23, 59, 59);
+  // Rango del año fiscal en UTC. Las fechas se guardan en UTC, así que usar
+  // hora local dejaba fuera los movimientos del 1 de enero y del 31 de diciembre
+  // (y no coincidía con el módulo de Rentabilidad, que ya usa UTC).
+  const yearStart = new Date(Date.UTC(taxYear, 0, 1, 0, 0, 0, 0));
+  const yearEnd = new Date(Date.UTC(taxYear, 11, 31, 23, 59, 59, 999));
 
   // Get W-2 data if available
   const w2Forms = await prisma.taxFormW2.findMany({
@@ -345,15 +381,19 @@ export async function autoPopulateForm1040FromCompany(
   });
 
   // Get business income (Schedule C - Self Employment)
-  // Primary: paid invoices
+  // Primary: paid invoices.
+  // Base caja: el ingreso se reconoce cuando se COBRA, no cuando se emite. Una
+  // factura emitida en diciembre y cobrada en enero pertenece al año siguiente.
+  // Si la factura está pagada pero no tiene fecha de cobro registrada, se usa la
+  // fecha de emisión como aproximación.
   const invoices = await prisma.invoice.findMany({
     where: {
       companyId,
       status: 'PAID',
-      issueDate: {
-        gte: yearStart,
-        lte: yearEnd
-      }
+      OR: [
+        { paidDate: { gte: yearStart, lte: yearEnd } },
+        { paidDate: null, issueDate: { gte: yearStart, lte: yearEnd } },
+      ],
     }
   });
 
@@ -368,17 +408,35 @@ export async function autoPopulateForm1040FromCompany(
     }
   });
 
-  const incomeTransactions = allTransactions.filter(t => t.type === 'INCOME');
-  // Remove interest and dividend transactions from business income (they have their own lines)
-  const businessIncomeTransactions = incomeTransactions.filter(
-    t => !t.category?.includes('Interest') && !t.category?.includes('Dividend')
-  );
-  const transactionIncome = Math.round(businessIncomeTransactions.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
+  const warnings: string[] = [];
 
-  // Use whichever source has data (prefer invoices if both exist)
+  // Un ÚNICO criterio para clasificar intereses y dividendos, usado tanto para
+  // excluirlos del ingreso del negocio como para sumarlos en sus propias líneas.
+  // Antes se excluía por `includes('Interest')` pero se sumaba por igualdad
+  // exacta con 'Interest Income', así que categorías como "Bank Interest"
+  // desaparecían de ambos lados.
+  const isInterestCategory = (c: string | null | undefined) => /interest/i.test(c ?? '');
+  const isDividendCategory = (c: string | null | undefined) => /dividend/i.test(c ?? '');
+
+  const incomeTransactions = allTransactions.filter(t => t.type === 'INCOME');
+  const businessIncomeTransactions = incomeTransactions.filter(
+    t => !isInterestCategory(t.category) && !isDividendCategory(t.category)
+  );
+  const transactionIncome = round2(businessIncomeTransactions.reduce((sum, t) => sum + t.amount, 0));
+
   // Use subtotal (pre-tax) not total, so collected sales tax is not counted as income
-  const invoiceSubtotalIncome = Math.round(invoices.reduce((sum, inv) => sum + (inv.subtotal ?? inv.total), 0) * 100) / 100;
+  const invoiceSubtotalIncome = round2(invoices.reduce((sum, inv) => sum + (inv.subtotal ?? inv.total), 0));
+
+  // No existe vínculo entre Transaction e Invoice en el esquema, así que sumar
+  // ambas fuentes duplicaría el ingreso de quien registra el cobro de una factura
+  // también como transacción. Se prioriza la factura (registro formal), pero se
+  // AVISA del monto descartado en vez de perderlo en silencio.
   const totalBusinessIncome = invoiceSubtotalIncome > 0 ? invoiceSubtotalIncome : transactionIncome;
+  if (invoiceSubtotalIncome > 0 && transactionIncome > 0) {
+    warnings.push(
+      `Se usaron las facturas pagadas ($${invoiceSubtotalIncome.toFixed(2)}) como ingreso del negocio y se ignoraron $${transactionIncome.toFixed(2)} en transacciones de ingreso, para no contar dos veces el mismo cobro. Verificá con tu contador cuál de las dos fuentes es la correcta para esta empresa.`
+    );
+  }
 
   // Get business expenses — only tax-deductible ones
   const expenses = await prisma.expense.findMany({
@@ -396,50 +454,68 @@ export async function autoPopulateForm1040FromCompany(
 
   // También contar los gastos del negocio registrados como Transacciones (tipo EXPENSE).
   // En esta app, los gastos pueden vivir en la tabla Expense o como Transaction(EXPENSE);
-  // se suman ambos para reflejar TODOS los gastos deducibles reales en el Schedule C.
-  const expenseTransactionsTotal = allTransactions
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // se suman ambos para reflejar TODOS los gastos del Schedule C.
+  const expenseTransactions = allTransactions.filter(t => t.type === 'EXPENSE');
+  const expenseTransactionsTotal = round2(expenseTransactions.reduce((sum, t) => sum + t.amount, 0));
 
-  // Depreciación anual de vehículos (Form 4562 -> Schedule C, línea 13).
-  // Línea recta = (precio - valor residual) / vida útil, solo si el activo está
-  // en servicio y dentro de su vida útil en el año fiscal. Es una deducción real.
+  // La tabla Expense marca cuáles son deducibles (`taxDeductible`); el modelo
+  // Transaction no tiene ese campo, así que estos gastos entran completos al
+  // Schedule C sin poder filtrar los no deducibles. Se avisa para que el
+  // contador los revise.
+  if (expenseTransactionsTotal > 0) {
+    warnings.push(
+      `$${expenseTransactionsTotal.toFixed(2)} en gastos provienen de Transacciones, que no tienen marca de "deducible de impuestos". Se incluyeron completos en el Schedule C: revisá que ninguno sea un gasto personal o no deducible.`
+    );
+  }
+
+  // Depreciación de vehículos (Form 4562 -> Schedule C, línea 13) por MACRS.
   const vehicleAssets = await prisma.asset.findMany({
     where: { companyId, category: 'VEHICLE', status: 'ACTIVE' }
   });
-  const vehicleDepreciation = vehicleAssets.reduce((sum, a) => {
-    const purchaseYear = new Date(a.purchaseDate).getUTCFullYear();
-    if (taxYear < purchaseYear || taxYear >= purchaseYear + a.usefulLife) return sum;
-    const annual = a.usefulLife > 0 ? (a.purchasePrice - a.salvageValue) / a.usefulLife : 0;
-    return sum + Math.max(0, annual);
-  }, 0);
+  const vehicleDepreciation = calculateVehicleDepreciationTotal(vehicleAssets, taxYear);
+  if (vehicleDepreciation > 0) {
+    warnings.push(
+      'La depreciación de vehículos usa MACRS 5 años (convención de medio año) sin los topes de auto de lujo de la §280F ni el porcentaje de uso comercial. Tu contador debe ajustarla.'
+    );
+  }
 
-  const totalExpenses = Math.round((expenseTableTotal + expenseTransactionsTotal + vehicleDepreciation) * 100) / 100;
+  const totalExpenses = round2(expenseTableTotal + expenseTransactionsTotal + vehicleDepreciation);
 
-  // Interest/dividend income from transactions
-  const interestIncome = allTransactions
-    .filter(t => t.category === 'Interest Income')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Interest/dividend income from transactions — mismo criterio que la exclusión
+  // de arriba, y solo sobre transacciones de INGRESO.
+  const interestIncome = round2(
+    incomeTransactions.filter(t => isInterestCategory(t.category)).reduce((sum, t) => sum + t.amount, 0)
+  );
 
-  const dividendIncome = allTransactions
-    .filter(t => t.category?.includes('Dividend'))
-    .reduce((sum, t) => sum + t.amount, 0);
+  const dividendIncome = round2(
+    incomeTransactions.filter(t => isDividendCategory(t.category)).reduce((sum, t) => sum + t.amount, 0)
+  );
 
   // Calculate W-2 wages
-  const totalW2Wages = w2Forms.reduce((sum, w2) => sum + w2.wages, 0);
-  const totalFederalWithheld = w2Forms.reduce((sum, w2) => sum + w2.federalIncomeTaxWithheld, 0);
+  const totalW2Wages = round2(w2Forms.reduce((sum, w2) => sum + w2.wages, 0));
+  const totalFederalWithheld = round2(w2Forms.reduce((sum, w2) => sum + w2.federalIncomeTaxWithheld, 0));
+  // Salarios que ya cotizaron al Seguro Social / Medicare: reducen el tope
+  // disponible para la parte de SS del impuesto de autoempleo (Schedule SE).
+  const totalW2SocialSecurityWages = round2(w2Forms.reduce((sum, w2) => sum + w2.socialSecurityWages, 0));
+  const totalW2MedicareWages = round2(w2Forms.reduce((sum, w2) => sum + w2.medicareWages, 0));
 
   // Schedule C calculations (Self-Employment)
   const scheduleC = {
     grossReceipts: totalBusinessIncome,
     expenses: totalExpenses,
-    netProfit: Math.round((totalBusinessIncome - totalExpenses) * 100) / 100
+    netProfit: round2(totalBusinessIncome - totalExpenses)
   };
 
-  // Self-employment tax (15.3% on 92.35% of net profit) — only if profitable
-  const selfEmploymentTaxableIncome = Math.max(0, scheduleC.netProfit) * 0.9235;
-  const selfEmploymentTax = selfEmploymentTaxableIncome * 0.153;
-  const deductibleSelfEmploymentTax = selfEmploymentTax / 2;
+  // Schedule SE con el tope de Seguro Social (helper compartido por toda la app)
+  const se = calculateSelfEmploymentTax(scheduleC.netProfit, taxYear, totalW2SocialSecurityWages);
+  const selfEmploymentTax = se.tax;
+  const deductibleSelfEmploymentTax = se.deductiblePortion;
+
+  if (dividendIncome > 0) {
+    warnings.push(
+      'Los dividendos calificados quedan en $0: solo pueden tomarse de la casilla 1b de un Form 1099-DIV real. Cargá el 1099-DIV para que la tasa preferencial se aplique.'
+    );
+  }
 
   return {
     taxYear,
@@ -447,7 +523,10 @@ export async function autoPopulateForm1040FromCompany(
       wages: totalW2Wages,
       taxableInterest: interestIncome,
       ordinaryDividends: dividendIncome,
-      qualifiedDividends: dividendIncome * 0.8, // Estimate 80% qualified
+      // Los dividendos calificados NO se pueden estimar: se declaran desde la
+      // casilla 1b del 1099-DIV. Antes se asumía un 80% inventado, que cambiaba
+      // el impuesto sin ningún respaldo documental.
+      qualifiedDividends: 0,
       iraDistributions: 0,
       taxableIRA: 0,
       pensionsAnnuities: 0,
@@ -456,7 +535,7 @@ export async function autoPopulateForm1040FromCompany(
       taxableSocialSecurity: 0,
       capitalGainLoss: 0,
       otherIncome: scheduleC.netProfit, // Schedule C net profit flows to Line 8 (Other Income / Schedule 1)
-      totalIncome: totalW2Wages + interestIncome + dividendIncome + scheduleC.netProfit
+      totalIncome: round2(totalW2Wages + interestIncome + dividendIncome + scheduleC.netProfit)
     },
     adjustments: {
       total: deductibleSelfEmploymentTax,
@@ -472,7 +551,17 @@ export async function autoPopulateForm1040FromCompany(
       otherPayments: 0,
       totalPayments: totalFederalWithheld
     },
-    scheduleC
+    scheduleC,
+    scheduleSE: {
+      netEarnings: se.netEarnings,
+      selfEmploymentTax: se.tax,
+      deductiblePortion: se.deductiblePortion,
+    },
+    w2Detail: {
+      socialSecurityWages: totalW2SocialSecurityWages,
+      medicareWages: totalW2MedicareWages,
+    },
+    warnings,
   };
 }
 
@@ -505,29 +594,52 @@ export async function saveForm1040(
     totalIncome: 0
   };
 
-  // Include Schedule C net profit in total income (flows to Line 8 via Schedule 1)
+  // Schedule C net profit ya viene incluido en income.totalIncome vía otherIncome
+  // (Línea 8 / Schedule 1) cuando los datos provienen del auto-llenado.
   const scheduleCNetProfit = calculatedData.scheduleC?.netProfit || 0;
   const fullTotalIncome = income.totalIncome + scheduleCNetProfit;
 
-  const adjustments = calculatedData.adjustments?.total || 0;
-  const agi = fullTotalIncome - adjustments;
+  // Schedule SE con el tope de Seguro Social
+  const se = calculateSelfEmploymentTax(
+    scheduleCNetProfit,
+    input.taxYear,
+    calculatedData.w2Detail?.socialSecurityWages ?? 0
+  );
 
-  // QBI deduction (Form 8995): 20% of qualified business income, cannot exceed 20% of taxable income
-  const qbiDeduction = scheduleCNetProfit > 0 ? Math.min(scheduleCNetProfit * 0.2, Math.max(0, fullTotalIncome - adjustments - standardDeduction) * 0.2) : 0;
+  const adjustments = calculatedData.adjustments?.total || se.deductiblePortion;
+  const agi = round2(fullTotalIncome - adjustments);
 
-  // Use standard deduction (could implement itemized later)
-  const totalDeduction = standardDeduction + qbiDeduction;
-  const taxableIncome = Math.max(0, agi - totalDeduction);
+  // Deducción detallada vs estándar: se toma la MAYOR de las dos.
+  const itemized = calculateItemizedDeductions(
+    input.itemizedDeductions ?? {},
+    agi,
+    input.taxYear
+  );
+  const chosen = chooseDeduction(standardDeduction, itemized.total);
+
+  // QBI (Form 8995): el QBI se reduce por la mitad deducible del SE tax y la
+  // deducción se limita al 20% del ingreso gravable antes de la propia QBI.
+  const qbiDeduction = calculateQbiDeduction(
+    scheduleCNetProfit,
+    se.deductiblePortion,
+    agi,
+    chosen.amount
+  );
+
+  const totalDeduction = round2(chosen.amount + qbiDeduction);
+  const taxableIncome = Math.max(0, round2(agi - totalDeduction));
 
   // Calculate tax using the correct year
   const taxFromBrackets = calculateTaxFromBrackets(taxableIncome, input.filingStatus, input.taxYear);
 
-  // Self-employment tax if applicable
-  let additionalTaxes = 0;
-  if (calculatedData.scheduleC && calculatedData.scheduleC.netProfit > 0) {
-    const seIncome = calculatedData.scheduleC.netProfit * 0.9235;
-    additionalTaxes = seIncome * 0.153;
-  }
+  // Impuestos adicionales (Schedule 2): autoempleo + Additional Medicare Tax.
+  // Ambos deben entrar al impuesto total, no solo mostrarse por separado.
+  const additionalMedicareTax = calculateAdditionalMedicareTax(
+    calculatedData.w2Detail?.medicareWages ?? 0,
+    se.netEarnings,
+    input.filingStatus
+  );
+  const additionalTaxes = round2(se.tax + additionalMedicareTax);
 
   const totalTax = taxFromBrackets + additionalTaxes;
 
@@ -546,13 +658,20 @@ export async function saveForm1040(
   const amountOwed = netTax > totalPayments ? netTax - totalPayments : 0;
 
   // Save to database
-  const form1040 = await prisma.taxForm1040.upsert({
+  // El borrador se busca por usuario + EMPRESA + año. `findFirst` (y no la llave
+  // compuesta) porque companyId es opcional y en SQL `= NULL` nunca coincide.
+  const existing = await prisma.taxForm1040.findFirst({
     where: {
-      userId_taxYear: {
-        userId: input.userId,
-        taxYear: input.taxYear
-      }
+      userId: input.userId,
+      taxYear: input.taxYear,
+      companyId: input.companyId ?? null,
     },
+    select: { id: true },
+  });
+
+  const form1040 = await prisma.taxForm1040.upsert({
+    // Si no existe, este id no coincide con ninguna fila y se ejecuta `create`.
+    where: { id: existing?.id ?? '__nuevo_form_1040__' },
     update: {
       companyId: input.companyId,
       filingStatus: input.filingStatus,
@@ -589,7 +708,12 @@ export async function saveForm1040(
       line9_totalIncome: fullTotalIncome,
       line10_adjustments: adjustments,
       line11_adjustedGrossIncome: agi,
-      line12_standardOrItemized: standardDeduction,
+      line12_standardOrItemized: chosen.amount,
+      usesItemizedDeductions: chosen.useItemized,
+      scheduleA_medicalExpenses: itemized.medicalRaw,
+      scheduleA_stateLocalTax: itemized.saltRaw,
+      scheduleA_mortgageInterest: itemized.mortgageInterest,
+      scheduleA_charitableContributions: itemized.charitableContributions,
       line13_qbiDeduction: qbiDeduction,
       line14_totalDeductions: totalDeduction,
       line15_taxableIncome: taxableIncome,
@@ -649,7 +773,12 @@ export async function saveForm1040(
       line9_totalIncome: fullTotalIncome,
       line10_adjustments: adjustments,
       line11_adjustedGrossIncome: agi,
-      line12_standardOrItemized: standardDeduction,
+      line12_standardOrItemized: chosen.amount,
+      usesItemizedDeductions: chosen.useItemized,
+      scheduleA_medicalExpenses: itemized.medicalRaw,
+      scheduleA_stateLocalTax: itemized.saltRaw,
+      scheduleA_mortgageInterest: itemized.mortgageInterest,
+      scheduleA_charitableContributions: itemized.charitableContributions,
       line13_qbiDeduction: qbiDeduction,
       line14_totalDeductions: totalDeduction,
       line15_taxableIncome: taxableIncome,
@@ -679,18 +808,23 @@ export async function saveForm1040(
 /**
  * Get Form 1040 by user and year
  */
-export async function getForm1040(userId: string, taxYear: number) {
-  return await prisma.taxForm1040.findUnique({
+export async function getForm1040(userId: string, taxYear: number, companyId?: string | null) {
+  // Cada empresa tiene su propio borrador. Si no se indica empresa se devuelve
+  // el más reciente del año, para no romper llamadas antiguas.
+  return await prisma.taxForm1040.findFirst({
     where: {
-      userId_taxYear: { userId, taxYear }
-    }
+      userId,
+      taxYear,
+      ...(companyId === undefined ? {} : { companyId }),
+    },
+    orderBy: { updatedAt: 'desc' },
   });
 }
 
-function getFilingStatusThreshold(filingStatus: string): number {
-  if (filingStatus.includes('MARRIED')) return 29200;
-  if (filingStatus === 'HEAD_OF_HOUSEHOLD') return 21900;
-  return 14600;
+// Umbral para sugerir itemizar = la deducción estándar del año, no cifras
+// de 2024 fijas en el código.
+function getFilingStatusThreshold(filingStatus: string, year: number): number {
+  return calculateStandardDeduction(filingStatus, undefined, year);
 }
 
 // ── Tax Suggestion Helpers ──────────────────────────────────────────────────
@@ -824,7 +958,7 @@ export async function getAITaxSuggestions(form1040Data: any): Promise<any[]> {
   }
 
   if (standardDeduction > 0) {
-    const threshold = getFilingStatusThreshold(filingStatus);
+    const threshold = getFilingStatusThreshold(filingStatus, form1040Data.taxYear ?? new Date().getFullYear());
     suggestions.push({
       type: 'deduction',
       title: '📋 Revise si Itemizar es Mejor',

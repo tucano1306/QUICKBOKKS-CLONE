@@ -13,6 +13,12 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCompany } from '@/contexts/CompanyContext'
+import {
+  calculateSection179Deduction as section179ForYear,
+  getSection179Limits,
+  calculateVehicleDepreciation as macrsVehicleDepreciation,
+  round2 as r2,
+} from '@/lib/irs-rules'
 import { downloadTaxPDF } from '@/lib/tax-pdf'
 import {
     AlertCircle,
@@ -116,13 +122,36 @@ interface TaxFormBundle {
     employeeCount: number
     vehicles: VehicleAsset[]
   }
-  // Prior year data (for penalty calculation)
+  // Schedule A ya calculado por el API con el piso del 7.5% del AGI y el tope
+  // SALT aplicados, para que el total coincida con sus propias líneas.
+  scheduleA: {
+    medicalExpenses: number
+    medicalFloor: number
+    medicalDeductible: number
+    stateLocalTax: number
+    saltCap: number
+    stateLocalTaxDeductible: number
+    mortgageInterest: number
+    charitableContributions: number
+    total: number
+    useItemized: boolean
+  }
+  // Impuestos adicionales calculados por el API (los mismos que entran a la
+  // línea 24 del 1040: la página ya no los recalcula por su cuenta).
+  schedule2: {
+    selfEmploymentTax: number
+    additionalMedicareTax: number
+    totalAdditionalTaxes: number
+  }
+  // Impuesto total del año ANTERIOR (safe harbor de pagos estimados)
   priorYearTax: number
+  // Supuestos que el contador debe revisar
+  warnings: string[]
 }
 
 interface ComputedForms {
   form8879: { totalIncome: number; agi: number; taxableIncome: number; totalTax: number; refundOrOwed: number }
-  scheduleA: { medicalExpenses: number; stateLocalTax: number; mortgageInterest: number; charitableContributions: number; total: number }
+  scheduleA: { medicalExpenses: number; medicalFloor: number; medicalDeductible: number; stateLocalTax: number; saltCap: number; stateLocalTaxDeductible: number; mortgageInterest: number; charitableContributions: number; total: number }
   form5329: { iraDistributions: number; earlyWithdrawalPenalty: number; totalAdditionalTax: number }
   form8962: { agi: number; eligibleForCredit: boolean; estimatedCredit: number }
   form8396: { mortgageInterest: number; creditRate: number; credit: number }
@@ -306,38 +335,82 @@ async function fetchIrsBundle(taxYear: number, companyId: string): Promise<TaxFo
       deductiblePortion:c.scheduleSE.deductiblePortion,
     },
     companyData,
-    priorYearTax: t.totalTax,
+    scheduleA: {
+      medicalExpenses: c.scheduleA?.medicalExpenses ?? 0,
+      medicalFloor: c.scheduleA?.medicalFloor ?? 0,
+      medicalDeductible: c.scheduleA?.medicalDeductible ?? 0,
+      stateLocalTax: c.scheduleA?.stateLocalTax ?? 0,
+      saltCap: c.scheduleA?.saltCap ?? 10000,
+      stateLocalTaxDeductible: c.scheduleA?.stateLocalTaxDeductible ?? 0,
+      mortgageInterest: c.scheduleA?.mortgageInterest ?? 0,
+      charitableContributions: c.scheduleA?.charitableContributions ?? 0,
+      total: c.scheduleA?.total ?? 0,
+      useItemized: c.scheduleA?.useItemized ?? false,
+    },
+    schedule2: {
+      selfEmploymentTax: c.schedule2?.selfEmploymentTax ?? c.scheduleSE.selfEmploymentTax,
+      additionalMedicareTax: c.schedule2?.additionalMedicareTax ?? 0,
+      totalAdditionalTaxes: c.schedule2?.totalAdditionalTaxes ?? c.scheduleSE.selfEmploymentTax,
+    },
+    // Impuesto del año anterior, no el del año actual: es lo que exige el
+    // safe harbor (100%/110% del impuesto del año previo).
+    priorYearTax: c.priorYearTax ?? 0,
+    warnings: Array.isArray(c.warnings) ? c.warnings : [],
   }
 }
 
 function computeIrsForms(bundle: TaxFormBundle, companyName?: string): ComputedForms {
-  const medicalExpenses = bundle.companyData.expenseBreakdown['Medical'] || 0
-  // SALT real (impuestos estatales/locales/propiedad) si existe en los gastos; si no, 0.
-  // No se asume un monto ficticio: un contador completa esto con datos personales.
-  const stateLocalTax = bundle.companyData.expenseBreakdown['State Tax']
+  // Schedule A viene del API con el piso del 7.5% del AGI y el tope SALT ya
+  // aplicados. Si el borrador no tiene datos personales cargados, se muestran
+  // los gastos del negocio que puedan corresponder, como referencia.
+  const medicalExpenses = bundle.scheduleA.medicalExpenses
+    || bundle.companyData.expenseBreakdown['Medical']
+    || 0
+  const stateLocalTax = bundle.scheduleA.stateLocalTax
+    || bundle.companyData.expenseBreakdown['State Tax']
     || bundle.companyData.expenseBreakdown['Property Tax']
     || bundle.companyData.expenseBreakdown['Impuestos']
     || 0
-  const mortgageInterest = bundle.companyData.mortgageInterest
-  const charitableContributions = bundle.companyData.expenseBreakdown['Charitable'] || 0
-  const form5329IraAmt = bundle.form1040.taxableIRA * 0.1
-  const form5329Total = bundle.form1040.taxableIRA > 0 ? form5329IraAmt : 0
-  const form8962Credit = bundle.form1040.agi < 40000
-    ? Math.max(0, (40000 - bundle.form1040.agi) * 0.05)
-    : 0
-  const form8396Credit = Math.min(mortgageInterest * 0.2, 2000)
+  const mortgageInterest = bundle.scheduleA.mortgageInterest || bundle.companyData.mortgageInterest
+  const charitableContributions = bundle.scheduleA.charitableContributions
+    || bundle.companyData.expenseBreakdown['Charitable']
+    || 0
+
+  // El total del Schedule A DEBE ser la suma de las líneas deducibles que se
+  // muestran (médico tras el piso + SALT topeado + hipoteca + caridad), no la
+  // suma cruda de los montos declarados.
+  const medicalDeductible = Math.max(0, medicalExpenses - bundle.form1040.agi * 0.075)
+  const saltDeductible = Math.min(stateLocalTax, bundle.scheduleA.saltCap)
+  const scheduleATotal = r2(medicalDeductible + saltDeductible + mortgageInterest + charitableContributions)
+
+  // Form 5329: el 10% adicional solo aplica a retiros ANTICIPADOS (antes de los
+  // 59½) sin excepción. La app no conoce la edad ni el motivo del retiro, así
+  // que no lo asume: lo determina el contador.
+  const form5329Total = 0
+
+  // Formularios 8962 (Premium Tax Credit) y 8396 (crédito hipotecario): exigen
+  // datos que la app no tiene — Form 1095-A con las primas del plan de
+  // referencia, y un certificado MCC con su tasa. Antes se inventaban con
+  // fórmulas sin respaldo, lo que creaba créditos ficticios. Quedan en 0.
+  const form8962Credit = 0
+  const form8396Credit = 0
+
   const assets = bundle.companyData.businessAssets
   const vehicles = bundle.companyData.vehicles || []
-  // Compute annual vehicle depreciation (straight-line) for the tax year
-  const vehicleAnnualDepreciation = vehicles.reduce((sum, v) => {
-    const annualDep = v.usefulLife > 0 ? (v.purchasePrice - v.salvageValue) / v.usefulLife : 0
-    return sum + annualDep
-  }, 0)
+  // Depreciación por MACRS 5 años (medio año), misma regla que el backend.
+  const vehicleAnnualDepreciation = r2(
+    vehicles.reduce((sum, v) => sum + macrsVehicleDepreciation(v, bundle.taxYear), 0)
+  )
   const vehicleTotalAccumulated = vehicles.reduce((sum, v) => sum + (v.accumulatedDepreciation || 0), 0)
-  const section179Deduction = Math.min(assets, 1_160_000)
-  const form8959Tax = bundle.form1040.agi > 200000 ? (bundle.form1040.agi - 200000) * 0.009 : 0
-  const seTaxTotal = bundle.scheduleSE.selfEmploymentTax
-  const totalAdditionalTaxes = seTaxTotal + form8959Tax + form5329Total
+  // §179: topada al límite del año, con eliminación gradual, y nunca por encima
+  // del ingreso gravable del negocio (no puede generar una pérdida).
+  const section179Deduction = section179ForYear(assets, bundle.scheduleC.netProfit, bundle.taxYear)
+
+  // Impuestos adicionales: los calcula el API con el umbral correcto por estado
+  // civil y sobre salarios Medicare + ingreso de autoempleo (nunca sobre el AGI).
+  const form8959Tax = bundle.schedule2.additionalMedicareTax
+  const seTaxTotal = bundle.schedule2.selfEmploymentTax
+  const totalAdditionalTaxes = bundle.schedule2.totalAdditionalTaxes
   let summaryBorderClass = 'border-muted'
   if (bundle.form1040.refund > 0) summaryBorderClass = 'border-green-400'
   else if (bundle.form1040.amountOwed > 0) summaryBorderClass = 'border-red-400'
@@ -352,14 +425,18 @@ function computeIrsForms(bundle: TaxFormBundle, companyName?: string): ComputedF
     },
     scheduleA: {
       medicalExpenses,
+      medicalFloor: r2(bundle.form1040.agi * 0.075),
+      medicalDeductible,
       stateLocalTax,
+      saltCap: bundle.scheduleA.saltCap,
+      stateLocalTaxDeductible: saltDeductible,
       mortgageInterest,
       charitableContributions,
-      total: medicalExpenses + stateLocalTax + mortgageInterest + charitableContributions,
+      total: scheduleATotal,
     },
     form5329: {
       iraDistributions: bundle.form1040.iraDistributions,
-      earlyWithdrawalPenalty: form5329IraAmt,
+      earlyWithdrawalPenalty: 0,
       totalAdditionalTax: form5329Total,
     },
     form8962: {
@@ -369,15 +446,21 @@ function computeIrsForms(bundle: TaxFormBundle, companyName?: string): ComputedF
     },
     form8396: {
       mortgageInterest,
-      creditRate: 0.2,
+      creditRate: 0,
       credit: form8396Credit,
     },
     form4562: {
       businessAssets: assets,
       section179Deduction,
-      bonusDepreciation: assets * 0.6,
-      macrsDepreciation: vehicleAnnualDepreciation > 0 ? vehicleAnnualDepreciation : assets * 0.2,
-      totalDepreciation: section179Deduction + vehicleAnnualDepreciation,
+      // La depreciación bonus solo aplica a "propiedad calificada" y su tasa
+      // depende del año y de la fecha de adquisición. Aplicarla al total de
+      // activos inventaba una deducción; queda en 0 para que la determine el
+      // contador con el detalle de cada activo.
+      bonusDepreciation: 0,
+      // MACRS real de los vehículos. Antes, si no había vehículos, se inventaba
+      // un 20% del total de activos.
+      macrsDepreciation: vehicleAnnualDepreciation,
+      totalDepreciation: r2(section179Deduction + vehicleAnnualDepreciation),
       vehicles,
       vehicleAnnualDepreciation,
       vehicleTotalAccumulated,
@@ -475,7 +558,26 @@ function buildBundleFromPdf(e: ExtractedPdf, taxYear: number): TaxFormBundle {
       employeeCount: 0,
       vehicles: [],
     },
-    priorYearTax: totalTax,
+    scheduleA: {
+      medicalExpenses: (e.scheduleA_medicalExpenses as number) ?? 0,
+      medicalFloor: r2(agi * 0.075),
+      medicalDeductible: Math.max(0, ((e.scheduleA_medicalExpenses as number) ?? 0) - agi * 0.075),
+      stateLocalTax: (e.scheduleA_stateLocalTax as number) ?? 0,
+      saltCap: 10000,
+      stateLocalTaxDeductible: Math.min((e.scheduleA_stateLocalTax as number) ?? 0, 10000),
+      mortgageInterest,
+      charitableContributions: (e.scheduleA_charitableContributions as number) ?? 0,
+      total: (e.scheduleA_total as number) ?? 0,
+      useItemized: ((e.scheduleA_total as number) ?? 0) > standardDed,
+    },
+    schedule2: {
+      selfEmploymentTax: seTax,
+      additionalMedicareTax: 0,
+      totalAdditionalTaxes: seTax,
+    },
+    // Un PDF cargado no trae el impuesto del año anterior.
+    priorYearTax: 0,
+    warnings: [],
   }
 }
 
@@ -485,7 +587,17 @@ function patchFormsFromPdf(forms: ComputedForms, e: ExtractedPdf): void {
     forms.scheduleA.stateLocalTax = (e.scheduleA_stateLocalTax as number) ?? forms.scheduleA.stateLocalTax
     forms.scheduleA.mortgageInterest = (e.scheduleA_mortgageInterest as number) ?? forms.scheduleA.mortgageInterest
     forms.scheduleA.charitableContributions = (e.scheduleA_charitableContributions as number) ?? forms.scheduleA.charitableContributions
-    forms.scheduleA.total = e.scheduleA_total as number
+    // El total se RECALCULA a partir de las líneas deducibles (médico tras el
+    // piso del 7.5% y SALT topeado). Copiar el total del PDF tal cual rompía la
+    // coherencia con las líneas que la pantalla muestra encima.
+    forms.scheduleA.medicalDeductible = Math.max(0, forms.scheduleA.medicalExpenses - forms.scheduleA.medicalFloor)
+    forms.scheduleA.stateLocalTaxDeductible = Math.min(forms.scheduleA.stateLocalTax, forms.scheduleA.saltCap)
+    forms.scheduleA.total = r2(
+      forms.scheduleA.medicalDeductible +
+      forms.scheduleA.stateLocalTaxDeductible +
+      forms.scheduleA.mortgageInterest +
+      forms.scheduleA.charitableContributions
+    )
   }
   if ((e.form5329_totalAdditionalTax as number) > 0) {
     forms.form5329.iraDistributions = (e.form5329_iraDistributions as number) ?? forms.form5329.iraDistributions
@@ -727,6 +839,27 @@ export default function IrsFormsPage() {
           </CardContent>
         </Card>
 
+        {/* Supuestos que el contador debe revisar, detectados con los datos reales */}
+        {bundle && bundle.warnings.length > 0 && (
+          <Card className="border-orange-300 bg-orange-50">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-start gap-2 text-sm text-orange-900">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-orange-600" />
+                <div>
+                  <p className="font-semibold mb-1">
+                    Revisá estos puntos con tu contador ({bundle.warnings.length})
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {bundle.warnings.map((w) => (
+                      <li key={w}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Entity Type Banner */}
         {activeCompany && (
           <Card className={(() => {
@@ -936,14 +1069,14 @@ export default function IrsFormsPage() {
                 <div className="space-y-1">
                   <h4 className="font-semibold text-sm mb-2 text-primary">Medical and Dental Expenses</h4>
                   <LineRow label="1. Medical and Dental Expenses" value={scheduleA?.medicalExpenses || 0} sub />
-                  <LineRow label="2. AGI × 7.5%" value={(bundle.form1040.agi * 0.075)} sub />
-                  <LineRow label="3. Deductible Amount (Line 1 − Line 2)" value={Math.max(0, (scheduleA?.medicalExpenses || 0) - bundle.form1040.agi * 0.075)} />
+                  <LineRow label="2. AGI × 7.5%" value={scheduleA?.medicalFloor || 0} sub />
+                  <LineRow label="3. Deductible Amount (Line 1 − Line 2)" value={scheduleA?.medicalDeductible || 0} />
 
                   <h4 className="font-semibold text-sm mb-2 mt-4 text-primary">Taxes You Paid (SALT)</h4>
                   <LineRow label="5a. State and Local Income Taxes" value={0} sub />
                   <LineRow label="5b. General Sales Tax" value={0} sub />
                   <LineRow label="5c. Real Estate Taxes" value={scheduleA?.stateLocalTax || 0} sub />
-                  <LineRow label="5e. SALT Total (capped at $10,000)" value={Math.min(scheduleA?.stateLocalTax || 0, 10000)} />
+                  <LineRow label={`5e. SALT Total (capped at $${fmt(scheduleA?.saltCap || 0)})`} value={scheduleA?.stateLocalTaxDeductible || 0} />
 
                   <h4 className="font-semibold text-sm mb-2 mt-4 text-primary">Interest You Paid</h4>
                   <LineRow label="8a. Home Mortgage Interest (Form 1098)" value={scheduleA?.mortgageInterest || 0} sub />
@@ -1174,12 +1307,15 @@ export default function IrsFormsPage() {
                   <h4 className="font-semibold text-sm mb-2 mt-4 text-primary">Part II — Premium Tax Credit Claim and Reconciliation</h4>
                   <LineRow label="12. Annual Contribution Amount" value={bundle.form1040.agi * 0.0985} sub />
                   <LineRow label="13. Applicable SLCSP Premium" value={0} sub />
-                  <LineRow label="Estimated Premium Tax Credit" value={form8962?.estimatedCredit || 0} bold />
+                  <LineRow label="Premium Tax Credit" value={form8962?.estimatedCredit || 0} bold />
 
-                  <p className="text-xs text-muted-foreground mt-3">
-                    ⚠️ This is an estimate. Actual credit depends on Marketplace-provided Form 1095-A showing premiums paid and SLCSP amounts.
-                    If you received advance payments (APTC), reconcile on Lines 24–26.
-                  </p>
+                  <div className="mt-3 p-2 rounded border border-amber-300 bg-amber-50 text-xs text-amber-900">
+                    <strong>Queda en $0 a propósito.</strong> El PTC no se puede estimar desde la
+                    contabilidad: depende del Form 1095-A del Marketplace, que trae las primas
+                    pagadas y el plan de referencia (SLCSP), del tamaño del grupo familiar y del
+                    nivel federal de pobreza. Tu contador lo completa con ese formulario. Si
+                    recibiste pagos adelantados (APTC), se reconcilian en las líneas 24–26.
+                  </div>
                 </div>
               </PrintSection>
             </TabsContent>
@@ -1193,7 +1329,7 @@ export default function IrsFormsPage() {
                 <div className="space-y-1">
                   <h4 className="font-semibold text-sm mb-2 text-primary">Part I — Current Year Mortgage Interest Credit</h4>
                   <LineRow label="1. Interest Paid on Certified Mortgage" value={form8396?.mortgageInterest || 0} sub />
-                  <LineRow label="2. Certificate Credit Rate" value={`${((form8396?.creditRate || 0.2) * 100).toFixed(0)}%`} sub />
+                  <LineRow label="2. Certificate Credit Rate (del MCC)" value={form8396?.creditRate ? `${(form8396.creditRate * 100).toFixed(0)}%` : '—'} sub />
                   <LineRow label="3. Mortgage Interest Credit (Line 1 × Line 2, max $2,000)" value={form8396?.credit || 0} sub />
                   <LineRow label="4. Amount from Prior Year (carryforward)" value={0} sub />
                   <LineRow label="5. Total Credit" value={form8396?.credit || 0} bold />
@@ -1202,11 +1338,12 @@ export default function IrsFormsPage() {
                   <LineRow label="16. Credit Used (Line 14 or Line 15)" value={form8396?.credit || 0} sub />
                   <LineRow label="17. Carryforward to Next Year" value={0} sub />
                 </div>
-                {(bundle.companyData.mortgageInterest === 0) && (
-                  <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950 rounded text-xs text-amber-700 dark:text-amber-300">
-                    ⚠️ No mortgage interest data found. If you have a Mortgage Credit Certificate, enter mortgage interest in your expense records.
-                  </div>
-                )}
+                <div className="mt-3 p-2 rounded border border-amber-300 bg-amber-50 text-xs text-amber-900">
+                  <strong>Queda en $0 a propósito.</strong> Este crédito solo existe si tenés un
+                  Mortgage Credit Certificate (MCC) emitido por un gobierno estatal o local, y la
+                  tasa del crédito viene impresa en ese certificado — no es un porcentaje fijo.
+                  Sin el MCC no corresponde reclamarlo.
+                </div>
               </PrintSection>
             </TabsContent>
 
@@ -1218,14 +1355,14 @@ export default function IrsFormsPage() {
                 </p>
                 <div className="space-y-1">
                   <h4 className="font-semibold text-sm mb-2 text-primary">Part I — Election to Expense Certain Property (Section 179)</h4>
-                  <LineRow label="1. Maximum Amount (2024: $1,160,000)" value={1160000} sub />
+                  <LineRow label={`1. Maximum Amount (${taxYear})`} value={getSection179Limits(taxYear).limit} sub />
                   <LineRow label="2. Total Cost of Sec. 179 Property Placed in Service" value={form4562?.businessAssets || 0} sub />
-                  <LineRow label="3. Threshold Cost (Phase-out begins at $2,890,000)" value={2890000} sub />
+                  <LineRow label={`3. Threshold Cost (phase-out begins)`} value={getSection179Limits(taxYear).phaseOutThreshold} sub />
                   <LineRow label="7. Listed on Property (Line 29 + 30)" value={0} sub />
                   <LineRow label="12. Section 179 Deduction" value={form4562?.section179Deduction || 0} bold />
 
                   <h4 className="font-semibold text-sm mb-2 mt-4 text-primary">Part II — Special Depreciation Allowance (Bonus)</h4>
-                  <LineRow label="14. Special Depreciation Allowance for Qualified Property (60% for 2024)" value={form4562?.bonusDepreciation || 0} bold />
+                  <LineRow label="14. Special Depreciation Allowance for Qualified Property (bonus)" value={form4562?.bonusDepreciation || 0} bold />
 
                   <h4 className="font-semibold text-sm mb-2 mt-4 text-primary">Part III — MACRS Depreciation</h4>
                   <LineRow label="19h. 5-year property (computers, etc.)" value={0} sub />
