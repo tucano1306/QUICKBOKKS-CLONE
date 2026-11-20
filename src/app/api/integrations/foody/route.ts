@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { aplicarLoteFoody } from '@/lib/foody-integration/aplicar'
 import { configFoody } from '@/lib/foody-integration/config'
 import { huellaSecreto, verificarFirma } from '@/lib/foody-integration/firma'
+import { diaEnMiami } from '@/lib/foody-integration/ingresos'
 import { loteFoodySchema, pingFoodySchema, type LoteFoody } from '@/lib/foody-integration/lote'
 
 export const dynamic = 'force-dynamic'
@@ -11,7 +12,25 @@ export const dynamic = 'force-dynamic'
 const MAX_CUERPO = 1_000_000
 
 /**
- * POST /api/integrations/foody — Foody manda aqui sus gastos.
+ * Lo que Foody pregunta antes de mandar su primer ingreso.
+ *
+ * Que el campo exista ya le dice que este lado acepta ingresos: un Computo
+ * anterior rechazaria el lote entero por una ref `income:`, y con el los
+ * gastos. Y `ultimoTecleado` es el dia (en Miami) en que el usuario apunto a
+ * mano su ultimo ingreso: lo cobrado hasta ese dia ya esta aqui, aunque sea
+ * sumado en uno solo, asi que Foody empieza a mandarlos el dia siguiente.
+ */
+async function ingresosDeLaEmpresa(companyId: string): Promise<{ ultimoTecleado: string | null }> {
+  const ultimo = await prisma.transaction.findFirst({
+    where: { companyId, type: 'INCOME', reference: null },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
+  })
+  return { ultimoTecleado: ultimo ? diaEnMiami(ultimo.createdAt) : null }
+}
+
+/**
+ * POST /api/integrations/foody — Foody manda aqui sus gastos e ingresos.
  *
  * No hay sesion: quien llama es el servidor de Foody, no un navegador. Se
  * autentica con la firma HMAC de la cabecera `x-foody-signature` (ver
@@ -73,7 +92,14 @@ export async function POST(request: NextRequest) {
     : null
   const datosNegocio = negocio?.isActive ? { id: negocio.id, nombre: negocio.name.trim() } : null
 
-  if (esPing || !lote) return NextResponse.json({ ok: true, empresa: datosEmpresa, empresaNegocio: datosNegocio })
+  if (esPing || !lote) {
+    return NextResponse.json({
+      ok: true,
+      empresa: datosEmpresa,
+      empresaNegocio: datosNegocio,
+      ingresos: await ingresosDeLaEmpresa(empresa.id),
+    })
+  }
 
   const datos = lote.data as LoteFoody
   try {

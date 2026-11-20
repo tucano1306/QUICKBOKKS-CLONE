@@ -1,15 +1,28 @@
 import { z } from 'zod'
 
 /**
- * Lo que Foody manda: el estado deseado de sus gastos, no una lista de eventos.
+ * Lo que Foody manda: el estado deseado de sus gastos e ingresos, no una lista
+ * de eventos.
  *
- * `ref` identifica cada gasto en Foody (un tramo de un ticket, o el pago de un
- * recibo) y se guarda en `Transaction.reference` como `foody:<ref>`. Con eso
- * cada envio es idempotente: mandar dos veces lo mismo no crea dos gastos.
+ * `ref` identifica cada cosa en Foody (un tramo de un ticket, el pago de un
+ * recibo o un cheque cobrado) y se guarda en `Transaction.reference` como
+ * `foody:<ref>`. Con eso cada envio es idempotente: mandar dos veces lo mismo
+ * no crea dos transacciones.
  */
 
-const REF = /^(trip|payment):[A-Za-z0-9:_-]{1,110}$/
+const REF = /^(trip|payment|income):[A-Za-z0-9:_-]{1,110}$/
 const FECHA = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Gasto o ingreso. Va en la ref, como el destino en Foody: un borrado, que solo
+ * lleva la ref, sabe que esta quitando. `income:` es un cheque o un pago suelto
+ * que el usuario apunto en Foody como ingreso; todo lo demas, un gasto.
+ */
+export type TipoFoody = 'gasto' | 'ingreso'
+
+export function tipoDeRef(ref: string): TipoFoody {
+  return ref.startsWith('income:') ? 'ingreso' : 'gasto'
+}
 
 /**
  * De quien es el gasto. En Foody cada ticket y cada pago lleva su parte de

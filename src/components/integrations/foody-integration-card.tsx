@@ -15,6 +15,8 @@ interface Reciente {
   updatedAt: string
   /** Llego al modulo de Gastos de la empresa de negocio. */
   negocio?: boolean
+  /** Un cheque o pago suelto de Foody, que entra como ingreso. */
+  ingreso?: boolean
 }
 
 interface EstadoFoody {
@@ -22,6 +24,7 @@ interface EstadoFoody {
   acceso?: boolean
   empresa?: { id: string; nombre: string } | null
   delMes?: { cantidad: number; total: number }
+  ingresosDelMes?: { cantidad: number; total: number }
   total?: number
   ultimo?: string | null
   recientes?: Reciente[]
@@ -85,7 +88,7 @@ export default function FoodyIntegrationCard() {
             </div>
             <div>
               <CardTitle className="text-xl">Foody</CardTitle>
-              <CardDescription>Los gastos que registras en Foody entran solos aquí</CardDescription>
+              <CardDescription>Los gastos e ingresos que registras en Foody entran solos aquí</CardDescription>
             </div>
           </div>
           {!cargando && estado && (
@@ -147,6 +150,12 @@ export default function FoodyIntegrationCard() {
                 <p className="font-semibold text-gray-900 dark:text-white">
                   {estado.delMes?.cantidad ?? 0} gastos · {dinero(estado.delMes?.total ?? 0)}
                 </p>
+                {(estado.ingresosDelMes?.cantidad ?? 0) > 0 && (
+                  <p className="text-xs text-gray-500">
+                    {estado.ingresosDelMes?.cantidad} {estado.ingresosDelMes?.cantidad === 1 ? 'ingreso' : 'ingresos'} ·{' '}
+                    {dinero(estado.ingresosDelMes?.total ?? 0)}
+                  </p>
+                )}
                 {estado.negocio?.empresa && (
                   <p className="text-xs text-gray-500">
                     + {estado.negocio.delMes.cantidad} de negocio · {dinero(estado.negocio.delMes.total)}
@@ -176,9 +185,17 @@ export default function FoodyIntegrationCard() {
                           {estado.negocio?.empresa?.nombre ?? 'Negocio'}
                         </Badge>
                       )}
+                      {r.ingreso && (
+                        <Badge variant="secondary" className="shrink-0 text-xs py-0 h-5">
+                          Ingreso
+                        </Badge>
+                      )}
                     </span>
                     <span className="shrink-0 text-right">
-                      <span className="font-semibold">{dinero(r.amount)}</span>
+                      <span className="font-semibold">
+                        {r.ingreso ? '+' : ''}
+                        {dinero(r.amount)}
+                      </span>
                       <span className="ml-2 text-xs text-gray-500">{diaDeGasto(r.date)}</span>
                     </span>
                   </li>
@@ -192,6 +209,10 @@ export default function FoodyIntegrationCard() {
           <li className="flex gap-2">
             <Tags className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" aria-hidden="true" />
             <span>Cada tipo de Foody cae en su categoría: Súper en Supermercado, Gasolina en Gasolina…</span>
+          </li>
+          <li className="flex gap-2">
+            <ArrowDownLeft className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" aria-hidden="true" />
+            <span>Los cheques y pagos sueltos de Foody entran como ingresos, en la categoría de tu último ingreso parecido.</span>
           </li>
           <li className="flex gap-2">
             <Link2 className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" aria-hidden="true" />
