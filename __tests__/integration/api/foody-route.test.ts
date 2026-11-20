@@ -12,8 +12,14 @@ const SECRETO = 'secreto-de-prueba-foody-computo-0123456789'
 
 const aplicarLoteFoody = jest.fn()
 const findUnique = jest.fn()
+const ultimoIngreso = jest.fn()
 jest.mock('@/lib/foody-integration/aplicar', () => ({ aplicarLoteFoody: (...a: unknown[]) => aplicarLoteFoody(...a) }))
-jest.mock('@/lib/prisma', () => ({ prisma: { company: { findUnique: (...a: unknown[]) => findUnique(...a) } } }))
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    company: { findUnique: (...a: unknown[]) => findUnique(...a) },
+    transaction: { findFirst: (...a: unknown[]) => ultimoIngreso(...a) },
+  },
+}))
 
 import { POST } from '@/app/api/integrations/foody/route'
 import { cabeceraFirma } from '@/lib/foody-integration/firma'
@@ -42,6 +48,7 @@ beforeEach(() => {
   delete process.env.FOODY_BUSINESS_COMPANY_ID
   aplicarLoteFoody.mockReset()
   findUnique.mockReset().mockImplementation(async ({ where }: { where: { id: string } }) => EMPRESAS[where.id] ?? null)
+  ultimoIngreso.mockReset().mockResolvedValue(null)
 })
 
 describe('POST /api/integrations/foody', () => {
@@ -69,7 +76,25 @@ describe('POST /api/integrations/foody', () => {
   it('el ping contesta con la empresa en la que se escribe', async () => {
     const res = await POST(peticion({ ping: true }))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ ok: true, empresa: { id: 'leonardo', nombre: 'Leonardo' }, empresaNegocio: null })
+    expect(await res.json()).toEqual({
+      ok: true,
+      empresa: { id: 'leonardo', nombre: 'Leonardo' },
+      empresaNegocio: null,
+      ingresos: { ultimoTecleado: null },
+    })
+  })
+
+  it('el ping dice el dia, en Miami, en que se tecleo a mano el ultimo ingreso de la empresa personal', async () => {
+    ultimoIngreso.mockResolvedValue({ createdAt: new Date('2026-10-26T01:43:52.000Z') })
+    const res = await POST(peticion({ ping: true }))
+    // A las 21:43 del 25 en Miami, aunque en UTC ya sea el 26.
+    expect((await res.json()).ingresos).toEqual({ ultimoTecleado: '2026-10-25' })
+    expect(ultimoIngreso).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { companyId: 'leonardo', type: 'INCOME', reference: null },
+        orderBy: { createdAt: 'desc' },
+      })
+    )
   })
 
   it('con empresa de negocio, el ping dice las dos', async () => {
@@ -79,6 +104,7 @@ describe('POST /api/integrations/foody', () => {
       ok: true,
       empresa: { id: 'leonardo', nombre: 'Leonardo' },
       empresaNegocio: { id: 'venecoro', nombre: 'Venecoro' },
+      ingresos: { ultimoTecleado: null },
     })
   })
 

@@ -19,8 +19,9 @@ function inicioDelMes(ahora: Date): { desde: Date; hasta: Date } {
 /**
  * GET /api/integrations/foody/estado — lo que enseña la tarjeta de Foody en
  * Integraciones: si esta configurada, en que empresas escribe y que ha llegado.
- * Lo personal son transacciones de la empresa personal; lo de negocio, gastos
- * del modulo de Gastos de la empresa de negocio (si hay y si se tiene acceso).
+ * Lo personal son transacciones de la empresa personal (gastos e ingresos); lo
+ * de negocio, gastos del modulo de Gastos de la empresa de negocio (si hay y
+ * si se tiene acceso).
  *
  * Con sesion normal, y solo para quien tiene acceso a esa empresa.
  */
@@ -39,6 +40,7 @@ export async function GET() {
 
   const { desde, hasta } = inicioDelMes(new Date())
   const deFoody = { companyId: config.companyId, type: 'EXPENSE' as const, reference: { startsWith: PREFIJO_REFERENCIA } }
+  const ingresosDeFoody = { ...deFoody, type: 'INCOME' as const }
 
   const negocioId = config.companyNegocioId
   const accesoNegocio = negocioId
@@ -46,19 +48,24 @@ export async function GET() {
     : null
   const deFoodyNegocio = { companyId: negocioId ?? '', reference: { startsWith: PREFIJO_REFERENCIA } }
 
-  const [empresa, delMes, total, recientes, negocio] = await Promise.all([
+  const [empresa, delMes, ingresosDelMes, total, recientes, negocio] = await Promise.all([
     prisma.company.findUnique({ where: { id: config.companyId }, select: { id: true, name: true } }),
     prisma.transaction.aggregate({
       where: { ...deFoody, date: { gte: desde, lt: hasta } },
       _count: { _all: true },
       _sum: { amount: true },
     }),
+    prisma.transaction.aggregate({
+      where: { ...ingresosDeFoody, date: { gte: desde, lt: hasta } },
+      _count: { _all: true },
+      _sum: { amount: true },
+    }),
     prisma.transaction.count({ where: deFoody }),
     prisma.transaction.findMany({
-      where: deFoody,
+      where: { ...deFoody, type: { in: ['EXPENSE' as const, 'INCOME' as const] } },
       orderBy: { updatedAt: 'desc' },
       take: 6,
-      select: { id: true, description: true, category: true, amount: true, date: true, updatedAt: true },
+      select: { id: true, type: true, description: true, category: true, amount: true, date: true, updatedAt: true },
     }),
     accesoNegocio && negocioId
       ? Promise.all([
@@ -95,7 +102,8 @@ export async function GET() {
     updatedAt: g.updatedAt,
     negocio: true,
   }))
-  const todos = [...recientes, ...recientesNegocio]
+  const recientesPersonales = recientes.map(({ type, ...t }) => (type === 'INCOME' ? { ...t, ingreso: true } : t))
+  const todos = [...recientesPersonales, ...recientesNegocio]
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
     .slice(0, 6)
 
@@ -104,6 +112,10 @@ export async function GET() {
     acceso: true,
     empresa: empresa ? { id: empresa.id, nombre: empresa.name.trim() } : null,
     delMes: { cantidad: delMes._count._all, total: Math.round((delMes._sum.amount ?? 0) * 100) / 100 },
+    ingresosDelMes: {
+      cantidad: ingresosDelMes._count._all,
+      total: Math.round((ingresosDelMes._sum.amount ?? 0) * 100) / 100,
+    },
     total,
     ultimo: todos[0]?.updatedAt ?? null,
     recientes: todos,
