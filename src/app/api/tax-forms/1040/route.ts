@@ -21,7 +21,7 @@ async function handleAutoPopulateAndSave(
 ): Promise<NextResponse> {
   const autoData = await autoPopulateForm1040FromCompany(companyId, userId, year);
   const existing = await prisma.taxForm1040.findUnique({
-    where: { userId_taxYear: { userId, taxYear: year } }
+    where: { userId_companyId_taxYear: { userId, companyId, taxYear: year } }
   });
   if (!existing) {
     return NextResponse.json({ error: 'No existe un borrador para este año. Primero cree el formulario con su información personal.' }, { status: 404 });
@@ -37,7 +37,7 @@ async function handleAutoPopulateAndSave(
     + (autoData.income?.otherIncome ?? 0);
 
   await prisma.taxForm1040.update({
-    where: { userId_taxYear: { userId, taxYear: year } },
+    where: { userId_companyId_taxYear: { userId, companyId, taxYear: year } },
     data: {
       companyId,
       line1a_w2Wages: autoData.income?.wages ?? 0,
@@ -79,12 +79,14 @@ async function handleAutoPopulateAndSave(
  * GET /api/tax-forms/1040?year=2024&companyId=xxx
  * Obtiene el Form 1040 o auto-genera uno basado en datos de la empresa
  */
-async function handleCopyFromPreviousYear(userId: string, year: number): Promise<NextResponse> {
+async function handleCopyFromPreviousYear(userId: string, companyId: string, year: number): Promise<NextResponse> {
   const previousYear = year - 1;
-  const previousForm = await getForm1040(userId, previousYear);
+  // El año anterior se copia de la MISMA empresa: cada una lleva su propio
+  // historial, y mezclar el de Venecoro en el de Leonardo no tendría sentido.
+  const previousForm = await getForm1040(userId, companyId, previousYear);
   if (!previousForm) {
     return NextResponse.json({
-      error: `No se encontró un formulario guardado para el año ${previousYear}. Primero debe guardar un Form 1040 del año anterior.`
+      error: `No se encontró un formulario guardado para el año ${previousYear} en esta empresa. Primero debe guardar un Form 1040 del año anterior.`
     }, { status: 404 });
   }
   const copiedFields = {
@@ -112,7 +114,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100
  */
 async function handleComputeFull(userId: string, companyId: string, year: number): Promise<NextResponse> {
   const autoData = await autoPopulateForm1040FromCompany(companyId, userId, year)
-  const saved = await getForm1040(userId, year)
+  const saved = await getForm1040(userId, companyId, year)
 
   const filingStatus = saved?.filingStatus || 'SINGLE'
 
@@ -207,9 +209,15 @@ export async function GET(request: NextRequest) {
       return handleAutoPopulateAndSave(session.user.id, companyId, year);
     }
 
+    // A partir de aquí todo se refiere a UN formulario concreto, y desde que
+    // cada empresa guarda el suyo, sin empresa no se sabe a cuál.
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere la empresa (companyId)' }, { status: 400 });
+    }
+
     // Si se solicita sugerencias de AI
     if (action === 'ai-suggestions') {
-      const form1040 = await getForm1040(session.user.id, year);
+      const form1040 = await getForm1040(session.user.id, companyId, year);
       if (!form1040) {
         return NextResponse.json({ error: 'No se encontró el Form 1040 para este año' }, { status: 404 });
       }
@@ -219,7 +227,7 @@ export async function GET(request: NextRequest) {
 
     // Si se solicita resumen
     if (action === 'summary') {
-      const form1040 = await getForm1040(session.user.id, year);
+      const form1040 = await getForm1040(session.user.id, companyId, year);
       if (!form1040) {
         return NextResponse.json({ error: 'No se encontró el Form 1040 para este año' }, { status: 404 });
       }
@@ -229,13 +237,13 @@ export async function GET(request: NextRequest) {
 
     // Copiar datos del año anterior para llenar el formulario actual
     if (action === 'copy-from-previous-year') {
-      return handleCopyFromPreviousYear(session.user.id, year);
+      return handleCopyFromPreviousYear(session.user.id, companyId, year);
     }
 
     // Retornar todos los años guardados para el usuario (para estadísticas multi-año)
     if (action === 'all-years') {
       const forms = await prisma.taxForm1040.findMany({
-        where: { userId: session.user.id },
+        where: { userId: session.user.id, companyId },
         select: {
           taxYear: true,
           line9_totalIncome: true,
@@ -250,7 +258,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener Form 1040 existente
-    const form1040 = await getForm1040(session.user.id, year);
+    const form1040 = await getForm1040(session.user.id, companyId, year);
 
     if (!form1040) {
       // Retornar estructura vacía para nuevo formulario
@@ -304,6 +312,13 @@ export async function POST(request: NextRequest) {
       scheduleC,
       action
     } = body;
+
+    // Desde que cada empresa guarda su propio 1040, sin empresa no hay dónde
+    // guardarlo. Se avisa aquí con un 400 claro en vez de dejar que reviente
+    // más abajo con un 500.
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere la empresa (companyId)' }, { status: 400 });
+    }
 
     // Si es auto-populate, obtener datos de la empresa
     if (action === 'auto-populate' && companyId) {
@@ -450,15 +465,23 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const year = Number.parseInt(searchParams.get('year') || '0', 10);
+    const companyId = searchParams.get('companyId');
 
     if (!year) {
       return NextResponse.json({ error: 'Se requiere el año' }, { status: 400 });
     }
 
+    // Sin empresa, este borrado se llevaba por delante el único formulario que
+    // había. Ahora cada empresa tiene el suyo y hay que decir cuál.
+    if (!companyId) {
+      return NextResponse.json({ error: 'Se requiere la empresa (companyId)' }, { status: 400 });
+    }
+
     await prisma.taxForm1040.delete({
       where: {
-        userId_taxYear: {
+        userId_companyId_taxYear: {
           userId: session.user.id,
+          companyId,
           taxYear: year
         }
       }
