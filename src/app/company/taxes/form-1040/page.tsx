@@ -59,18 +59,46 @@ interface Dependent {
   creditOtherDependents: boolean
 }
 
-// Clave para guardar borrador en localStorage
-const FORM_1040_DRAFT_KEY = 'form1040_draft'
+// Clave para guardar borrador en localStorage.
+// Lleva la empresa y el año dentro: con una sola clave fija, el borrador que se
+// escribía con Leonardo reaparecía al entrar con Venecoro.
+const draftKey = (companyId: string | undefined, taxYear: number) =>
+  `form1040_draft:${companyId ?? 'sin-empresa'}:${taxYear}`
+
+const ENTITY_LABELS: Record<string, string> = {
+  SOLE_PROPRIETOR: 'persona natural (Sole Proprietor)',
+  LLC: 'LLC de un solo miembro',
+  S_CORP: 'S Corporation',
+  C_CORP: 'C Corporation',
+  PARTNERSHIP: 'Partnership',
+}
+
+const ENTITY_FORMS: Record<string, string> = {
+  SOLE_PROPRIETOR: 'Form 1040 + Schedule C + Schedule SE',
+  LLC: 'Form 1040 + Schedule C + Schedule SE',
+  S_CORP: 'Form 1120-S (y K-1 a los socios)',
+  C_CORP: 'Form 1120',
+  PARTNERSHIP: 'Form 1065',
+}
 
 export default function Form1040Page() {
   const router = useRouter()
   const { status } = useSession()
   const { activeCompany } = useCompany()
 
+  // Tipo fiscal de la empresa activa. Se configura en Ajustes → Empresa y ya lo
+  // usaba la página de formularios IRS; aquí faltaba, así que una persona
+  // jurídica veía una declaración individual sin ninguna advertencia.
+  const tipoEntidad = activeCompany?.taxEntityType || 'SOLE_PROPRIETOR'
+  const esPersonaJuridica = tipoEntidad === 'S_CORP' || tipoEntidad === 'C_CORP' || tipoEntidad === 'PARTNERSHIP'
+  const etiquetaEntidad = ENTITY_LABELS[tipoEntidad] ?? tipoEntidad
+  const formularioQueLeToca = ENTITY_FORMS[tipoEntidad] ?? 'otro formulario'
+
   // Form State
   const currentYear = new Date().getFullYear()
   const [taxYear, setTaxYear] = useState<number>(currentYear - 1)
-  const [draftLoaded, setDraftLoaded] = useState(false)
+  // Qué borrador (empresa + año) está cargado en memoria ahora mismo.
+  const [draftLoadedKey, setDraftLoadedKey] = useState<string | null>(null)
   const [filingStatus, setFilingStatus] = useState<string>('SINGLE')
   const [loading, setLoading] = useState(false)
   const [existingForm, setExistingForm] = useState<any>(null)
@@ -136,27 +164,32 @@ export default function Form1040Page() {
     }
   }, [status, router])
 
-  // Cargar borrador de localStorage al iniciar
+  // Cargar borrador de localStorage al iniciar.
+  // Se recarga cuando cambia la empresa o el año, no una sola vez: antes el
+  // borrador quedaba "cargado" para siempre, así que al cambiar de empresa se
+  // seguían editando —y guardando— los valores de la anterior.
+  const currentDraftKey = draftKey(activeCompany?.id, taxYear)
   useEffect(() => {
-    if (globalThis.window !== undefined && !draftLoaded) {
-      const savedDraft = localStorage.getItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`)
-      if (savedDraft) {
-        try {
-          const draft = JSON.parse(savedDraft)
-          populateDraftFromData(draft)
-          toast.success('Borrador recuperado automáticamente', { icon: '📋' })
-        } catch (e) {
-          console.error('Error parsing draft:', e)
-        }
+    if (globalThis.window === undefined || draftLoadedKey === currentDraftKey) return
+    const savedDraft = localStorage.getItem(currentDraftKey)
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft)
+        populateDraftFromData(draft)
+        toast.success('Borrador recuperado automáticamente', { icon: '📋' })
+      } catch (e) {
+        console.error('Error parsing draft:', e)
       }
-      setDraftLoaded(true)
     }
+    setDraftLoadedKey(currentDraftKey)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taxYear, draftLoaded])
+  }, [currentDraftKey, draftLoadedKey])
 
-  // Guardar borrador en localStorage cuando cambien los datos importantes
+  // Guardar borrador en localStorage cuando cambien los datos importantes.
+  // Sólo si lo que hay en memoria pertenece a ESTA empresa y año; si no, se
+  // estaría copiando el formulario de una empresa dentro del de la otra.
   useEffect(() => {
-    if (globalThis.window !== undefined && draftLoaded) {
+    if (globalThis.window !== undefined && draftLoadedKey === currentDraftKey) {
       const draft = {
         taxYear,
         filingStatus,
@@ -172,7 +205,7 @@ export default function Form1040Page() {
         dependents,
         lastSaved: new Date().toISOString()
       }
-      localStorage.setItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`, JSON.stringify(draft))
+      localStorage.setItem(currentDraftKey, JSON.stringify(draft))
     }
   }, [
     taxYear, filingStatus, firstName, middleInitial, lastName, ssn,
@@ -183,7 +216,7 @@ export default function Form1040Page() {
     iraDistributions, taxableIRA, pensionsAnnuities, taxablePensions,
     socialSecurity, taxableSocialSecurity, capitalGainLoss, otherIncome,
     scheduleC_grossReceipts, scheduleC_expenses,
-    withholding, estimatedPayments, dependents, draftLoaded
+    withholding, estimatedPayments, dependents, draftLoadedKey, currentDraftKey
   ])
 
   useEffect(() => {
@@ -249,6 +282,12 @@ export default function Form1040Page() {
         if (data.exists) {
           setExistingForm(data)
           populateFormFromData(data)
+        } else {
+          // Esta empresa todavía no tiene formulario. Hay que vaciar lo que
+          // quedó de la anterior: si no, el nombre y el SSN de Leonardo seguían
+          // en pantalla al cambiar a Venecoro, y el guardado los escribía ahí.
+          setExistingForm(null)
+          populateFormFromData({})
         }
       }
 
@@ -360,14 +399,14 @@ export default function Form1040Page() {
   // Limpiar borrador después de guardar exitosamente
   const clearDraft = () => {
     if (globalThis.window !== undefined) {
-      localStorage.removeItem(`${FORM_1040_DRAFT_KEY}_${taxYear}`)
+      localStorage.removeItem(currentDraftKey)
     }
   }
 
   const handleCopyFromPreviousYear = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/tax-forms/1040?year=${taxYear}&action=copy-from-previous-year`)
+      const response = await fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${activeCompany?.id ?? ''}&action=copy-from-previous-year`)
       const result = await response.json()
       if (!response.ok) {
         toast.error(result.error || 'No se encontraron datos del año anterior')
@@ -618,7 +657,7 @@ export default function Form1040Page() {
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/tax-forms/1040?year=${taxYear}&action=ai-suggestions`)
+      const response = await fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${activeCompany?.id ?? ''}&action=ai-suggestions`)
       if (response.ok) {
         const result = await response.json()
         setAISuggestions(result.suggestions || [])
@@ -642,7 +681,7 @@ export default function Form1040Page() {
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/tax-forms/1040?year=${taxYear}&action=summary`)
+      const response = await fetch(`/api/tax-forms/1040?year=${taxYear}&companyId=${activeCompany?.id ?? ''}&action=summary`)
       if (response.ok) {
         const result = await response.json()
         setSummary(result.summary || '')
@@ -747,7 +786,7 @@ export default function Form1040Page() {
         )}
 
         {/* Draft Status Card - Mostrar si hay datos sin guardar */}
-        {!existingForm && draftLoaded && (firstName || wages > 0 || scheduleC_grossReceipts > 0) && (
+        {!existingForm && draftLoadedKey === currentDraftKey && (firstName || wages > 0 || scheduleC_grossReceipts > 0) && (
           <Card className="border-amber-200 bg-amber-50">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -801,6 +840,33 @@ export default function Form1040Page() {
                     Sugerencias IA
                   </Button>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* De quién es este formulario. Cada empresa guarda el suyo, así que
+            conviene que se vea en qué borrador se está escribiendo — y avisar
+            cuando la empresa activa es jurídica, porque una S/C-Corp no
+            presenta el 1040: presenta 1120 o 1120-S. */}
+        {activeCompany && (
+          <Card className={esPersonaJuridica ? 'border-amber-300 bg-amber-50' : 'border-blue-200 bg-blue-50'}>
+            <CardContent className="py-3 px-4">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <Building2 className="w-4 h-4 shrink-0" />
+                <span>
+                  Form 1040 {taxYear} de <span className="font-semibold">{activeCompany.name}</span>
+                </span>
+                {esPersonaJuridica ? (
+                  <span className="text-amber-700 font-medium">
+                    — es una {etiquetaEntidad}, que no presenta Form 1040 individual sino {formularioQueLeToca}.
+                    Lo de aquí es sólo referencia.
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    — {etiquetaEntidad}. Cada empresa guarda su propio borrador.
+                  </span>
+                )}
               </div>
             </CardContent>
           </Card>

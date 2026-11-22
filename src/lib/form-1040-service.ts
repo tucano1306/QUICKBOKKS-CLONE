@@ -257,6 +257,10 @@ export interface Form1040Data {
     grossReceipts: number;
     expenses: number;
     netProfit: number;
+    // Desglose de `expenses` que rellena autoPopulateForm1040FromCompany.
+    deductibleExpenses?: number;
+    vehicleDepreciation?: number;
+    personalExpensesExcluded?: number;
   };
   aiSuggestions?: any;
 }
@@ -315,6 +319,21 @@ export function calculateStandardDeduction(
   return deduction;
 }
 
+// `Transaction.category` es texto libre, sin tabla ni restricción detrás (ver
+// canonicalTransactionCategory), así que reconocer una línea del 1040 se hace
+// por el nombre. Las categorías que la app ofrece por defecto están en español
+// — "Intereses" — y el código original solo miraba las inglesas.
+const norm = (c: string | null | undefined): string =>
+  (c ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+function isInterestCategory(category: string | null | undefined): boolean {
+  return /\binteres(es)?\b|\binterest\b/.test(norm(category));
+}
+
+function isDividendCategory(category: string | null | undefined): boolean {
+  return /\bdividendos?\b|\bdividends?\b/.test(norm(category));
+}
+
 /**
  * Auto-populate Form 1040 from company data
  */
@@ -371,7 +390,7 @@ export async function autoPopulateForm1040FromCompany(
   const incomeTransactions = allTransactions.filter(t => t.type === 'INCOME');
   // Remove interest and dividend transactions from business income (they have their own lines)
   const businessIncomeTransactions = incomeTransactions.filter(
-    t => !t.category?.includes('Interest') && !t.category?.includes('Dividend')
+    t => !isInterestCategory(t.category) && !isDividendCategory(t.category)
   );
   const transactionIncome = Math.round(businessIncomeTransactions.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
 
@@ -394,12 +413,22 @@ export async function autoPopulateForm1040FromCompany(
 
   const expenseTableTotal = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  // También contar los gastos del negocio registrados como Transacciones (tipo EXPENSE).
-  // En esta app, los gastos pueden vivir en la tabla Expense o como Transaction(EXPENSE);
-  // se suman ambos para reflejar TODOS los gastos deducibles reales en el Schedule C.
-  const expenseTransactionsTotal = allTransactions
+  // Los gastos tipo Transaction NO entran en el Schedule C.
+  //
+  // Antes se sumaban todos, y ahí estaba el error: `Expense` tiene el campo
+  // `taxDeductible` y se filtraba por él, pero `Transaction` no tiene ese campo
+  // —su `category` es texto libre sin tabla detrás— así que entraban enteros,
+  // sin que nada comprobara si eran deducibles. Con Foody mandando la compra
+  // del supermercado de la persona natural a `transactions`, cada bolsa de la
+  // compra se estaba restando como gasto de negocio.
+  //
+  // El reparto lo fija la propia app (ver CLAUDE.md, integración con Foody):
+  // lo de NEGOCIO se escribe en `expenses`, lo PERSONAL en `transactions`. Así
+  // que la tabla `Expense` es el libro de gastos deducibles y manda ella sola.
+  // Se sigue informando el total personal para poder enseñarlo aparte.
+  const personalExpenseTransactions = Math.round(allTransactions
     .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
 
   // Depreciación anual de vehículos (Form 4562 -> Schedule C, línea 13).
   // Línea recta = (precio - valor residual) / vida útil, solo si el activo está
@@ -414,16 +443,20 @@ export async function autoPopulateForm1040FromCompany(
     return sum + Math.max(0, annual);
   }, 0);
 
-  const totalExpenses = Math.round((expenseTableTotal + expenseTransactionsTotal + vehicleDepreciation) * 100) / 100;
+  const totalExpenses = Math.round((expenseTableTotal + vehicleDepreciation) * 100) / 100;
 
-  // Interest/dividend income from transactions
-  const interestIncome = allTransactions
-    .filter(t => t.category === 'Interest Income')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Intereses y dividendos tienen su propia línea en el 1040, así que salen del
+  // ingreso de negocio. Se reconocen en los dos idiomas: las categorías por
+  // defecto de la app están en español ("Intereses"), pero esto solo buscaba
+  // "Interest Income" y "Dividend", de modo que ningún ticket real encajaba y
+  // los intereses acababan contados como facturación del negocio.
+  const interestIncome = Math.round(allTransactions
+    .filter(t => isInterestCategory(t.category))
+    .reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
 
-  const dividendIncome = allTransactions
-    .filter(t => t.category?.includes('Dividend'))
-    .reduce((sum, t) => sum + t.amount, 0);
+  const dividendIncome = Math.round(allTransactions
+    .filter(t => isDividendCategory(t.category))
+    .reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
 
   // Calculate W-2 wages
   const totalW2Wages = w2Forms.reduce((sum, w2) => sum + w2.wages, 0);
@@ -433,7 +466,12 @@ export async function autoPopulateForm1040FromCompany(
   const scheduleC = {
     grossReceipts: totalBusinessIncome,
     expenses: totalExpenses,
-    netProfit: Math.round((totalBusinessIncome - totalExpenses) * 100) / 100
+    netProfit: Math.round((totalBusinessIncome - totalExpenses) * 100) / 100,
+    // Desglose, para que en pantalla se vea de dónde sale la deducción y qué
+    // se quedó fuera por ser personal.
+    deductibleExpenses: Math.round(expenseTableTotal * 100) / 100,
+    vehicleDepreciation: Math.round(vehicleDepreciation * 100) / 100,
+    personalExpensesExcluded: personalExpenseTransactions
   };
 
   // Self-employment tax (15.3% on 92.35% of net profit) — only if profitable
@@ -447,7 +485,11 @@ export async function autoPopulateForm1040FromCompany(
       wages: totalW2Wages,
       taxableInterest: interestIncome,
       ordinaryDividends: dividendIncome,
-      qualifiedDividends: dividendIncome * 0.8, // Estimate 80% qualified
+      // Qué parte de un dividendo es "qualified" lo dice el 1099-DIV del banco,
+      // no se deduce de nada que haya en esta base de datos. Antes se ponía el
+      // 80% — un número inventado que viajaba hasta la línea 3a del formulario
+      // y cambiaba el impuesto. Se deja en 0 y lo escribe el usuario.
+      qualifiedDividends: 0,
       iraDistributions: 0,
       taxableIRA: 0,
       pensionsAnnuities: 0,
@@ -546,10 +588,15 @@ export async function saveForm1040(
   const amountOwed = netTax > totalPayments ? netTax - totalPayments : 0;
 
   // Save to database
+  if (!input.companyId) {
+    throw new Error('Se requiere la empresa para guardar el Form 1040');
+  }
+
   const form1040 = await prisma.taxForm1040.upsert({
     where: {
-      userId_taxYear: {
+      userId_companyId_taxYear: {
         userId: input.userId,
+        companyId: input.companyId,
         taxYear: input.taxYear
       }
     },
@@ -679,10 +726,10 @@ export async function saveForm1040(
 /**
  * Get Form 1040 by user and year
  */
-export async function getForm1040(userId: string, taxYear: number) {
+export async function getForm1040(userId: string, companyId: string, taxYear: number) {
   return await prisma.taxForm1040.findUnique({
     where: {
-      userId_taxYear: { userId, taxYear }
+      userId_companyId_taxYear: { userId, companyId, taxYear }
     }
   });
 }

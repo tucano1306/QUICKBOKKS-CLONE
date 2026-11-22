@@ -2014,10 +2014,13 @@ model TaxFormW3 {
 
 // ============== IRS FORM 1040 - U.S. INDIVIDUAL INCOME TAX RETURN ==============
 model TaxForm1040 {
-  id        String  @id @default(cuid())
-  userId    String
-  companyId String?
-  taxYear   Int
+  id String @id @default(cuid())
+  userId String
+  // Obligatorio: el borrador pertenece a UNA empresa. Cuando era opcional y la
+  // clave unica era (userId, taxYear) solo cabia un 1040 por persona y año, asi
+  // que auto-rellenar desde la segunda empresa sobrescribia el de la primera.
+  companyId String
+  taxYear Int
 
   // Filing Status (Line 1-5)
   filingStatus FilingStatus1040 @default(SINGLE)
@@ -2184,7 +2187,7 @@ model TaxForm1040 {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  @@unique([userId, taxYear])
+  @@unique([userId, companyId, taxYear])
   @@index([userId])
   @@index([companyId])
   @@index([taxYear])
